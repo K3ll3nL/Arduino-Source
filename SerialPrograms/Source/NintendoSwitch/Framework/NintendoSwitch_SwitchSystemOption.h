@@ -16,9 +16,8 @@
 #define PokemonAutomation_NintendoSwitch_SwitchSystemOption_H
 
 #include "Common/Cpp/Color.h"
-#include "CommonFramework/Globals.h"
 #include "CommonFramework/AudioPipeline/AudioOption.h"
-#include "CommonFramework/VideoPipeline/CameraOption.h"
+#include "CommonFramework/VideoPipeline/VideoSourceDescriptor.h"
 #include "CommonFramework/VideoPipeline/VideoOverlayOption.h"
 #include "Controllers/ControllerCapability.h"
 #include "Controllers/ControllerDescriptor.h"
@@ -38,6 +37,7 @@ Color pick_color(
 class SwitchSystemOption{
     static const std::string JSON_CONTROLLER;
     static const std::string JSON_CAMERA;
+    static const std::string JSON_VIDEO;
     static const std::string JSON_AUDIO;
     static const std::string JSON_OVERLAY;
 
@@ -61,7 +61,7 @@ public:
     const bool m_allow_commands_while_running;
 
     ControllerOption m_controller;
-    CameraOption m_camera;
+    VideoSourceOption m_video;
     AudioOption m_audio;
     VideoOverlayOption m_overlay;
 };

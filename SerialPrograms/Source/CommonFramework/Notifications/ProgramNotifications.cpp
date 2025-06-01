@@ -43,9 +43,9 @@ JsonObject make_credits_field(const ProgramInfo& info){
         ? PROGRAM_NAME + " CC " + PROGRAM_VERSION + "-dev"
         : PROGRAM_NAME + " CC " + PROGRAM_VERSION + "";
     if (GlobalSettings::instance().HIDE_NOTIF_DISCORD_LINK){
-        text += " ([GitHub](" + PROJECT_GITHUB_URL + "About/))";
+        text += " ([GitHub](" + GITHUB_LINK_URL + "))";
     }else{
-        text += " ([GitHub](" + PROJECT_GITHUB_URL + "About/)/[Discord](" + DISCORD_LINK_URL + "))";
+        text += " ([GitHub](" + GITHUB_LINK_URL + ")/[Discord](" + DISCORD_LINK_URL_EMBED + "))";
     }
     field["value"] = std::move(text);
     return field;
@@ -89,7 +89,7 @@ void send_raw_notification(
     const std::vector<std::pair<std::string, std::string>>& messages,
     const ImageAttachment& image
 ){
-    std::shared_ptr<PendingFileSend> file(new PendingFileSend(logger, image));
+    std::shared_ptr<PendingFileSend> file = std::make_shared<PendingFileSend>(logger, image);
     bool hasFile = !file->filepath().empty();
 
     JsonObject embed;
@@ -147,7 +147,7 @@ void send_raw_notification(
     const std::vector<std::pair<std::string, std::string>>& messages,
     const std::string& filepath
 ){
-    std::shared_ptr<PendingFileSend> file(new PendingFileSend(filepath, true));
+    std::shared_ptr<PendingFileSend> file = std::make_shared<PendingFileSend>(filepath, true);
     bool hasFile = !file->filepath().empty();
 
     JsonObject embed;
@@ -285,7 +285,7 @@ void send_program_notification_with_file(
         filepath
     );
 }
-void send_program_notification(
+bool send_program_notification(
     ProgramEnvironment& env, EventNotificationOption& settings,
     Color color,
     const std::string& title,
@@ -294,7 +294,7 @@ void send_program_notification(
     const ImageViewRGB32& image, bool keep_file
 ){
     if (!settings.ok_to_send_now(env.logger())){
-        return;
+        return false;
     }
 #if 1
     messages.emplace_back(
@@ -331,6 +331,8 @@ void send_program_notification(
         messages,
         ImageAttachment(image, settings.screenshot(), keep_file)
     );
+
+    return true;
 }
 
 

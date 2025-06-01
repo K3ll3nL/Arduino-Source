@@ -35,6 +35,7 @@ add_compile_definitions(QT_DISABLE_DEPRECATED_BEFORE=0x050F00)
 link_directories(${CMAKE_CURRENT_LIST_DIR})
 
 file(GLOB MAIN_SOURCES
+    ../3rdParty/ONNX/OnnxToolsPA.h
     ../3rdParty/QtWavFile/WavFile.cpp
     ../3rdParty/QtWavFile/WavFile.h
     ../3rdParty/TesseractPA/TesseractPA.cpp
@@ -456,8 +457,6 @@ file(GLOB MAIN_SOURCES
     Source/CommonFramework/Tools/VideoStream.h
     Source/CommonFramework/VideoPipeline/Backends/CameraImplementations.cpp
     Source/CommonFramework/VideoPipeline/Backends/CameraImplementations.h
-    Source/CommonFramework/VideoPipeline/Backends/CameraWidgetQt5.cpp
-    Source/CommonFramework/VideoPipeline/Backends/CameraWidgetQt5.h
     Source/CommonFramework/VideoPipeline/Backends/CameraWidgetQt6.5.cpp
     Source/CommonFramework/VideoPipeline/Backends/CameraWidgetQt6.5.h
     Source/CommonFramework/VideoPipeline/Backends/CameraWidgetQt6.cpp
@@ -465,25 +464,20 @@ file(GLOB MAIN_SOURCES
     Source/CommonFramework/VideoPipeline/Backends/MediaServicesQt6.cpp
     Source/CommonFramework/VideoPipeline/Backends/MediaServicesQt6.h
     Source/CommonFramework/VideoPipeline/Backends/VideoFrameQt.h
-    Source/CommonFramework/VideoPipeline/Backends/VideoToolsQt5.cpp
-    Source/CommonFramework/VideoPipeline/Backends/VideoToolsQt5.h
     Source/CommonFramework/VideoPipeline/CameraInfo.h
-    Source/CommonFramework/VideoPipeline/CameraOption.cpp
-    Source/CommonFramework/VideoPipeline/CameraOption.h
-    Source/CommonFramework/VideoPipeline/CameraSession.h
     Source/CommonFramework/VideoPipeline/Stats/CpuUtilizationStats.h
     Source/CommonFramework/VideoPipeline/Stats/ThreadUtilizationStats.cpp
     Source/CommonFramework/VideoPipeline/Stats/ThreadUtilizationStats.h
-    Source/CommonFramework/VideoPipeline/UI/CameraSelectorWidget.cpp
-    Source/CommonFramework/VideoPipeline/UI/CameraSelectorWidget.h
     Source/CommonFramework/VideoPipeline/UI/VideoDisplayWidget.cpp
     Source/CommonFramework/VideoPipeline/UI/VideoDisplayWidget.h
     Source/CommonFramework/VideoPipeline/UI/VideoDisplayWindow.cpp
     Source/CommonFramework/VideoPipeline/UI/VideoDisplayWindow.h
     Source/CommonFramework/VideoPipeline/UI/VideoOverlayWidget.cpp
     Source/CommonFramework/VideoPipeline/UI/VideoOverlayWidget.h
-    Source/CommonFramework/VideoPipeline/UI/VideoWidget.h
+    Source/CommonFramework/VideoPipeline/UI/VideoSourceSelectorWidget.cpp
+    Source/CommonFramework/VideoPipeline/UI/VideoSourceSelectorWidget.h
     Source/CommonFramework/VideoPipeline/VideoFeed.h
+    Source/CommonFramework/VideoPipeline/VideoOverlay.cpp
     Source/CommonFramework/VideoPipeline/VideoOverlay.h
     Source/CommonFramework/VideoPipeline/VideoOverlayOption.cpp
     Source/CommonFramework/VideoPipeline/VideoOverlayOption.h
@@ -493,6 +487,18 @@ file(GLOB MAIN_SOURCES
     Source/CommonFramework/VideoPipeline/VideoOverlayTypes.cpp
     Source/CommonFramework/VideoPipeline/VideoOverlayTypes.h
     Source/CommonFramework/VideoPipeline/VideoPipelineOptions.h
+    Source/CommonFramework/VideoPipeline/VideoSession.cpp
+    Source/CommonFramework/VideoPipeline/VideoSession.h
+    Source/CommonFramework/VideoPipeline/VideoSource.cpp
+    Source/CommonFramework/VideoPipeline/VideoSource.h
+    Source/CommonFramework/VideoPipeline/VideoSourceDescriptor.cpp
+    Source/CommonFramework/VideoPipeline/VideoSourceDescriptor.h
+    Source/CommonFramework/VideoPipeline/VideoSources/VideoSource_Camera.cpp
+    Source/CommonFramework/VideoPipeline/VideoSources/VideoSource_Camera.h
+    Source/CommonFramework/VideoPipeline/VideoSources/VideoSource_Null.cpp
+    Source/CommonFramework/VideoPipeline/VideoSources/VideoSource_Null.h
+    Source/CommonFramework/VideoPipeline/VideoSources/VideoSource_StillImage.cpp
+    Source/CommonFramework/VideoPipeline/VideoSources/VideoSource_StillImage.h
     Source/CommonFramework/Windows/ButtonDiagram.cpp
     Source/CommonFramework/Windows/ButtonDiagram.h
     Source/CommonFramework/Windows/DpiScaler.cpp
@@ -895,6 +901,9 @@ file(GLOB MAIN_SOURCES
     Source/NintendoSwitch/Controllers/SerialPABotBase/NintendoSwitch_SerialPABotBase_WirelessJoycon.h
     Source/NintendoSwitch/Controllers/SerialPABotBase/NintendoSwitch_SerialPABotBase_WirelessProController.cpp
     Source/NintendoSwitch/Controllers/SerialPABotBase/NintendoSwitch_SerialPABotBase_WirelessProController.h
+    Source/NintendoSwitch/Controllers/SysbotBase/SysbotBase3_ControllerState.h
+    Source/NintendoSwitch/Controllers/SysbotBase/SysbotBase3_ProController.cpp
+    Source/NintendoSwitch/Controllers/SysbotBase/SysbotBase3_ProController.h
     Source/NintendoSwitch/Controllers/SysbotBase/SysbotBase_Connection.cpp
     Source/NintendoSwitch/Controllers/SysbotBase/SysbotBase_Connection.h
     Source/NintendoSwitch/Controllers/SysbotBase/SysbotBase_Descriptor.cpp
@@ -906,6 +915,8 @@ file(GLOB MAIN_SOURCES
     Source/NintendoSwitch/DevPrograms/BoxDraw.h
     Source/NintendoSwitch/DevPrograms/JoyconProgram.cpp
     Source/NintendoSwitch/DevPrograms/JoyconProgram.h
+    Source/NintendoSwitch/DevPrograms/TestDudunsparceFormDetector.cpp
+    Source/NintendoSwitch/DevPrograms/TestDudunsparceFormDetector.h
     Source/NintendoSwitch/DevPrograms/TestProgramComputer.cpp
     Source/NintendoSwitch/DevPrograms/TestProgramComputer.h
     Source/NintendoSwitch/DevPrograms/TestProgramSwitch.cpp
@@ -1342,6 +1353,8 @@ file(GLOB MAIN_SOURCES
     Source/PokemonLA/Programs/General/PokemonLA_ClothingBuyer.h
     Source/PokemonLA/Programs/General/PokemonLA_DistortionWaiter.cpp
     Source/PokemonLA/Programs/General/PokemonLA_DistortionWaiter.h
+    Source/PokemonLA/Programs/General/PokemonLA_MMORoutines.cpp
+    Source/PokemonLA/Programs/General/PokemonLA_MMORoutines.h
     Source/PokemonLA/Programs/General/PokemonLA_OutbreakFinder.cpp
     Source/PokemonLA/Programs/General/PokemonLA_OutbreakFinder.h
     Source/PokemonLA/Programs/General/PokemonLA_PokedexTasksReader.cpp
@@ -1747,6 +1760,8 @@ file(GLOB MAIN_SOURCES
     Source/PokemonSV/Programs/FastCodeEntry/PokemonSV_FastCodeEntry.h
     Source/PokemonSV/Programs/FastCodeEntry/PokemonSV_VideoFastCodeEntry.cpp
     Source/PokemonSV/Programs/FastCodeEntry/PokemonSV_VideoFastCodeEntry.h
+    Source/PokemonSV/Programs/FormHunting/PokemonSV_ThreeSegmentDudunsparceFinder.cpp
+    Source/PokemonSV/Programs/FormHunting/PokemonSV_ThreeSegmentDudunsparceFinder.h
     Source/PokemonSV/Programs/General/PokemonSV_AutonomousBallThrower.cpp
     Source/PokemonSV/Programs/General/PokemonSV_AutonomousBallThrower.h
     Source/PokemonSV/Programs/General/PokemonSV_ClothingBuyer.cpp
@@ -1783,12 +1798,14 @@ file(GLOB MAIN_SOURCES
     Source/PokemonSV/Programs/PokemonSV_ConnectToInternet.h
     Source/PokemonSV/Programs/PokemonSV_GameEntry.cpp
     Source/PokemonSV/Programs/PokemonSV_GameEntry.h
-    Source/PokemonSV/Programs/PokemonSV_Navigation.cpp
-    Source/PokemonSV/Programs/PokemonSV_Navigation.h
+    Source/PokemonSV/Programs/PokemonSV_MenuNavigation.cpp
+    Source/PokemonSV/Programs/PokemonSV_MenuNavigation.h
     Source/PokemonSV/Programs/PokemonSV_SaveGame.cpp
     Source/PokemonSV/Programs/PokemonSV_SaveGame.h
     Source/PokemonSV/Programs/PokemonSV_Terarium.cpp
     Source/PokemonSV/Programs/PokemonSV_Terarium.h
+    Source/PokemonSV/Programs/PokemonSV_WorldNavigation.cpp
+    Source/PokemonSV/Programs/PokemonSV_WorldNavigation.h
     Source/PokemonSV/Programs/Sandwiches/PokemonSV_IngredientSession.cpp
     Source/PokemonSV/Programs/Sandwiches/PokemonSV_IngredientSession.h
     Source/PokemonSV/Programs/Sandwiches/PokemonSV_SandwichMaker.cpp
@@ -2060,6 +2077,8 @@ file(GLOB MAIN_SOURCES
     Source/PokemonSwSh/Programs/DateSpamFarmers/PokemonSwSh_DateSpam-StowOnSideFarmer.h
     Source/PokemonSwSh/Programs/DateSpamFarmers/PokemonSwSh_DateSpam-WattFarmer.cpp
     Source/PokemonSwSh/Programs/DateSpamFarmers/PokemonSwSh_DateSpam-WattFarmer.h
+    Source/PokemonSwSh/Programs/DateSpamFarmers/PokemonSwSh_DateSpam-WattTraderFarmer.cpp
+    Source/PokemonSwSh/Programs/DateSpamFarmers/PokemonSwSh_DateSpam-WattTraderFarmer.h
     Source/PokemonSwSh/Programs/DenHunting/PokemonSwSh_BeamReset.cpp
     Source/PokemonSwSh/Programs/DenHunting/PokemonSwSh_BeamReset.h
     Source/PokemonSwSh/Programs/DenHunting/PokemonSwSh_DaySkipperEU.cpp
@@ -2276,12 +2295,21 @@ if (APPLE)
     )
 
     # make sure Packages repo, https://github.com/PokemonAutomation/Packages is placed in the same folder as this Arduino-Source repo
-    # so the post-build command can copy the resources folder Packages/SerialPrograms/Resources/ into the built app bundle
+    # so the post-build command can copy the resources folder Packages/SerialPrograms/Resources/ into the built app bundle:
+    string(FIND "${CMAKE_CURRENT_SOURCE_DIR}" "Arduino-Source-Internal" internal_repro_position)  # determine if this is an internal repo
+    if (internal_repro_position EQUAL -1)  # no "Arduino-Source-Internal" substr in the current source dir
+        # we are building the public repo
+        set(RESOURCES_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../Packages/SerialPrograms/Resources")
+    else()
+        # we are building the internal repo
+        set(RESOURCES_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../../../Packages/SerialPrograms/Resources")
+    endif()
+    message(STATUS "Set Resources folder path from Packages repo: ${RESOURCES_PATH}")
     add_custom_command(
         TARGET SerialPrograms
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/../../Packages/SerialPrograms/Resources"
+        "${RESOURCES_PATH}"
         "$<TARGET_FILE_DIR:SerialPrograms>/../Resources"
     )
 else() # WIN and Linux:
@@ -2303,10 +2331,10 @@ if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../../Internal/SerialPrograms/Internal0.
     target_sources(SerialPrograms PRIVATE ../../Internal/SerialPrograms/Internal1.cpp)
 endif()
 
-#extract opencv_world460d.dll from archive on Windows Debug builds
+#extract opencv_world4110d.dll from archive on Windows Debug builds
 if (MSVC)
     file(ARCHIVE_EXTRACT
-      INPUT ${CMAKE_CURRENT_SOURCE_DIR}/../3rdPartyBinaries/opencv_world460d.zip
+      INPUT ${CMAKE_CURRENT_SOURCE_DIR}/../3rdPartyBinaries/opencv_world4110d.zip
       DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../3rdPartyBinaries/
     )
 endif()
@@ -2321,10 +2349,34 @@ target_link_directories(SerialPrograms PRIVATE ../3rdPartyBinaries/)
 
 if (MSVC)
     add_library(OpenCV_lib IMPORTED UNKNOWN)
+    target_include_directories(SerialPrograms SYSTEM PRIVATE ../3rdParty/opencv-4.11.0/)
     set_target_properties(OpenCV_lib PROPERTIES
-        IMPORTED_LOCATION_RELEASE   ${CMAKE_CURRENT_SOURCE_DIR}/../3rdPartyBinaries/opencv_world460.lib
-        IMPORTED_LOCATION_DEBUG     ${CMAKE_CURRENT_SOURCE_DIR}/../3rdPartyBinaries/opencv_world460d.lib)
+        IMPORTED_LOCATION_RELEASE   ${CMAKE_CURRENT_SOURCE_DIR}/../3rdPartyBinaries/opencv_world4110.lib
+        IMPORTED_LOCATION_DEBUG     ${CMAKE_CURRENT_SOURCE_DIR}/../3rdPartyBinaries/opencv_world4110d.lib)
     set_target_properties(OpenCV_lib PROPERTIES
+        MAP_IMPORTED_CONFIG_DEBUG           DEBUG
+        MAP_IMPORTED_CONFIG_RELEASE         RELEASE
+        MAP_IMPORTED_CONFIG_RELWITHDEBINFO  RELEASE
+        MAP_IMPORTED_CONFIG_MINSIZEREL      RELEASE
+    )
+
+    add_library(ONNX_lib IMPORTED UNKNOWN)
+    target_include_directories(SerialPrograms SYSTEM PRIVATE ../3rdParty/ONNX/)
+    set_target_properties(ONNX_lib PROPERTIES
+        IMPORTED_LOCATION_RELEASE   ${CMAKE_CURRENT_SOURCE_DIR}/../3rdPartyBinaries/onnxruntime.lib
+        IMPORTED_LOCATION_DEBUG     ${CMAKE_CURRENT_SOURCE_DIR}/../3rdPartyBinaries/onnxruntime.lib)
+    set_target_properties(ONNX_lib PROPERTIES
+        MAP_IMPORTED_CONFIG_DEBUG           DEBUG
+        MAP_IMPORTED_CONFIG_RELEASE         RELEASE
+        MAP_IMPORTED_CONFIG_RELWITHDEBINFO  RELEASE
+        MAP_IMPORTED_CONFIG_MINSIZEREL      RELEASE
+    )
+
+    add_library(ONNX_Providers_lib IMPORTED UNKNOWN)
+    set_target_properties(ONNX_Providers_lib PROPERTIES
+        IMPORTED_LOCATION_RELEASE   ${CMAKE_CURRENT_SOURCE_DIR}/../3rdPartyBinaries/onnxruntime_providers_shared.lib
+        IMPORTED_LOCATION_DEBUG     ${CMAKE_CURRENT_SOURCE_DIR}/../3rdPartyBinaries/onnxruntime_providers_shared.lib)
+    set_target_properties(ONNX_Providers_lib PROPERTIES
         MAP_IMPORTED_CONFIG_DEBUG           DEBUG
         MAP_IMPORTED_CONFIG_RELEASE         RELEASE
         MAP_IMPORTED_CONFIG_RELWITHDEBINFO  RELEASE
@@ -2342,7 +2394,15 @@ if (MSVC)
         MAP_IMPORTED_CONFIG_MINSIZEREL      RELEASE
     )
 
-    target_link_libraries(SerialPrograms PRIVATE tesseractPA.lib OpenCV_lib Sleepy.lib dpp_lib)
+    target_link_libraries(
+        SerialPrograms PRIVATE
+        tesseractPA.lib
+        OpenCV_lib
+        ONNX_lib
+        ONNX_Providers_lib
+        Sleepy.lib
+        dpp_lib
+    )
     target_compile_definitions(
         SerialPrograms PRIVATE
         _CRT_SECURE_NO_WARNINGS
@@ -2370,9 +2430,51 @@ if (MSVC)
 #    target_compile_options(SerialPrograms PRIVATE /arch:AVX2   /DPA_Arch_x64_AVX2)
 #    target_compile_options(SerialPrograms PRIVATE /arch:AVX512 /DPA_Arch_x64_AVX512)
 #    target_compile_options(SerialPrograms PRIVATE /arch:AVX512 /DPA_Arch_x64_AVX512GF)
-else()
-    # Find OpenCV
+else() # macOS and Linux
+    if (APPLE)
+        # Get root path where Homebrew installs libraries. Example root path: "/opt/homebrew/",
+        # where you can find libraries in "/opt/homebrew/lib/" and headers in "/opt/homebrew/include/".
+        # CMake does not support ONNX Runtime, so we have to add ONNX Runtime paths on our own.
+        # Save the root path as CMake variable HOMEBREW_PREFIX.
+        execute_process(COMMAND brew --prefix OUTPUT_VARIABLE HOMEBREW_PREFIX OUTPUT_STRIP_TRAILING_WHITESPACE)
 
+        # Get ONNX Runtime paths
+        target_include_directories(SerialPrograms PRIVATE ${HOMEBREW_PREFIX}/include/onnxruntime)
+        target_link_libraries(SerialPrograms PRIVATE ${HOMEBREW_PREFIX}/lib/libonnxruntime.dylib)
+    else() # Linux
+        # Instructions took from https://github.com/microsoft/onnxruntime/discussions/6489
+        # Step 1: Download the file
+        file(DOWNLOAD
+            https://github.com/microsoft/onnxruntime/releases/download/v1.22.0/onnxruntime-linux-x64-1.22.0.tgz
+            ${CMAKE_BINARY_DIR}/onnxruntime-linux-x64-1.22.0.tgz
+            SHOW_PROGRESS
+        )
+
+        # Step 2: Extract the archive
+        execute_process(
+            COMMAND tar -xzf onnxruntime-linux-x64-1.22.0.tgz
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        )
+
+        # Step 3: Copy files to /usr/local
+        execute_process(
+            COMMAND sudo cp -r ${CMAKE_BINARY_DIR}/onnxruntime-linux-x64-1.22.0/include /usr/local/
+        )
+        execute_process(
+            COMMAND sudo cp -r ${CMAKE_BINARY_DIR}/onnxruntime-linux-x64-1.22.0/lib /usr/local/
+        )
+
+        # Step 4: Run ldconfig
+        execute_process(
+            COMMAND sudo ldconfig
+            WORKING_DIRECTORY /usr/local/lib
+        )
+
+        # Link against ONNX Runtime
+        target_link_libraries(SerialPrograms PRIVATE onnxruntime)
+    endif()
+
+    # Find OpenCV
     # set(OPENCV_DIR, "/usr/local/opt/opencv/lib/cmake/opencv4")
     find_package(OpenCV REQUIRED HINTS "/usr/local/opt/opencv/lib/cmake/opencv4/")
     # set(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:/usr/local/opt/opencv/lib/pkgconfig")
@@ -2411,7 +2513,8 @@ else()
         # Add -Wno-c11-extensions to avoid clang gives
         # /usr/local/Cellar/opencv/4.5.5_3/include/opencv4/opencv2/core/mat.inl.hpp:2116:9: error: '_Atomic' is a C11 extension
         # when compiling OpenCV
-        target_compile_options(SerialPrograms PRIVATE -Wall -Wextra -Wpedantic -Werror -Wno-c11-extensions)
+        # target_compile_options(SerialPrograms PRIVATE -Wall -Wextra -Wpedantic -Werror -Wno-c11-extensions)
+        target_compile_options(SerialPrograms PRIVATE -Wall -Wextra -Wpedantic -Werror)
     else()
         # Assume GCC
         target_compile_options(SerialPrograms PRIVATE -Wall -Wextra -Wpedantic -Werror -fno-strict-aliasing)

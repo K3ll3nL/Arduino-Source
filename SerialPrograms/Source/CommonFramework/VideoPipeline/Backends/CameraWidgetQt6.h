@@ -10,18 +10,15 @@
 #include <QtGlobal>
 #if QT_VERSION_MAJOR == 6
 
-#include <set>
 #include <mutex>
+#include <QWidget>
 #include <QCameraDevice>
 #include <QMediaCaptureSession>
 #include <QVideoFrame>
-#include "Common/Cpp/EventRateTracker.h"
-#include "Common/Cpp/LifetimeSanitizer.h"
 #include "Common/Cpp/Concurrency/SpinLock.h"
 #include "CommonFramework/Tools/StatAccumulator.h"
+#include "CommonFramework/VideoPipeline/VideoSource.h"
 #include "CommonFramework/VideoPipeline/CameraInfo.h"
-#include "CommonFramework/VideoPipeline/CameraSession.h"
-#include "CommonFramework/VideoPipeline/UI/VideoWidget.h"
 #include "CameraImplementations.h"
 
 class QCamera;
@@ -36,73 +33,51 @@ public:
     virtual std::vector<CameraInfo> get_all_cameras() const override;
     virtual std::string get_camera_name(const CameraInfo& info) const override;
 
-    virtual std::unique_ptr<PokemonAutomation::CameraSession> make_camera(Logger& logger, Resolution default_resolution) const override;
+    virtual std::unique_ptr<VideoSource> make_video_source(
+        Logger& logger,
+        const CameraInfo& info,
+        Resolution resolution
+    ) const override;
 };
 
 
-struct FrameReadyListener{
-    virtual void new_frame_available() = 0;
-};
 
 
 
-class CameraSession : public QObject, public PokemonAutomation::CameraSession{
+
+
+
+class CameraVideoSource : public QObject, public VideoSource{
 public:
-    virtual void add_state_listener(StateListener& listener) override;
-    virtual void remove_state_listener(StateListener& listener) override;
+    virtual ~CameraVideoSource();
+    CameraVideoSource(
+        Logger& logger,
+        const CameraInfo& info,
+        Resolution desired_resolution
+    );
 
-    void add_listener(FrameReadyListener& listener);
-    void remove_listener(FrameReadyListener& listener);
-
-    virtual void add_frame_listener(VideoFrameListener& listener) override;
-    virtual void remove_frame_listener(VideoFrameListener& listener) override;
-
-
-public:
-    virtual ~CameraSession();
-    CameraSession(Logger& logger, Resolution default_resolution);
-
-    virtual void get(CameraOption& option) override;
-    virtual void set(const CameraOption& option) override;
-
-    virtual void reset() override;
-    virtual void set_source(CameraInfo device) override;
-    virtual void set_resolution(Resolution resolution) override;
-
-    virtual CameraInfo current_device() const override;
-    virtual Resolution current_resolution() const override;
-    virtual std::vector<Resolution> supported_resolutions() const override;
+    virtual Resolution current_resolution() const override{
+        return m_resolution;
+    }
+    virtual const std::vector<Resolution>& supported_resolutions() const override{
+        return m_resolutions;
+    }
 
     virtual VideoSnapshot snapshot() override;
 
-    virtual double fps_source() override;
-    virtual double fps_display() override;
+    virtual QWidget* make_display_QtWidget(QWidget* parent) override;
 
-    std::pair<QVideoFrame, uint64_t> latest_frame();
-    void report_rendered_frame(WallClock timestamp);
-
-    virtual VideoWidget* make_QtWidget(QWidget* parent) override;
+private:
+//    void set_video_output(QGraphicsVideoItem& item);
 
 
 private:
-    //  These must be run on the UI thread.
-    void shutdown();
-    void startup();
+    friend class CameraVideoDisplay;
 
-
-private:
     Logger& m_logger;
-    Resolution m_default_resolution;
-
-    //  If you need both locks, acquire "m_lock" first.
-    mutable std::mutex m_lock;
-    mutable SpinLock m_frame_lock;
-
-    CameraInfo m_device;
     Resolution m_resolution;
 
-    QList<QCameraFormat> m_formats;
-    std::map<Resolution, const QCameraFormat*> m_resolution_map;
+    std::mutex m_snapshot_lock;
 
     std::unique_ptr<QCamera> m_camera;
     std::unique_ptr<QVideoSink> m_video_sink;
@@ -110,23 +85,43 @@ private:
 
     std::vector<Resolution> m_resolutions;
 
-    EventRateTracker m_fps_tracker_source;
-    EventRateTracker m_fps_tracker_display;
+private:
+    //  Last Cached Image: All accesses must be under this lock.
 
-    //  Last Frame
-    QVideoFrame m_last_frame;
-    WallClock m_last_frame_timestamp;
-    uint64_t m_last_frame_seqnum = 0;
-
-    //  Last Cached Image
     QImage m_last_image;
     WallClock m_last_image_timestamp;
     uint64_t m_last_image_seqnum = 0;
+
     PeriodicStatsReporterI32 m_stats_conversion;
 
-    std::set<StateListener*> m_state_listeners;
-    std::set<FrameReadyListener*> m_frame_ready_listeners;
-    std::set<VideoFrameListener*> m_frame_listeners;
+
+private:
+    //  Last Frame: All accesses must be under this lock.
+    //  These will be updated very rapidly by the main thread.
+    //  Holding the frame lock will block the main thread.
+    //  So accessors should minimize the time they hold the frame lock.
+
+    mutable SpinLock m_frame_lock;
+
+    QVideoFrame m_last_frame;
+    WallClock m_last_frame_timestamp;
+    std::atomic<uint64_t> m_last_frame_seqnum;
+
+};
+
+
+class CameraVideoDisplay : public QWidget, private VideoFrameListener{
+public:
+    ~CameraVideoDisplay();
+    CameraVideoDisplay(QWidget* parent, CameraVideoSource& source);
+
+private:
+    virtual void on_frame(std::shared_ptr<const VideoFrame> frame) override;
+    virtual void paintEvent(QPaintEvent* event) override;
+
+private:
+    CameraVideoSource& m_source;
+    std::shared_ptr<const VideoFrame> m_last_frame;
 
     LifetimeSanitizer m_sanitizer;
 };
@@ -134,22 +129,9 @@ private:
 
 
 
-class VideoWidget : public PokemonAutomation::VideoWidget, public FrameReadyListener{
-public:
-    VideoWidget(QWidget* parent, CameraSession& session);
-    virtual ~VideoWidget();
-
-    virtual PokemonAutomation::CameraSession& camera() override{ return m_session; }
-
-private:
-    virtual void new_frame_available() override;
-    virtual void paintEvent(QPaintEvent* event) override;
 
 
-private:
-    CameraSession& m_session;
-    uint64_t m_last_seqnum = 0;
-};
+
 
 
 

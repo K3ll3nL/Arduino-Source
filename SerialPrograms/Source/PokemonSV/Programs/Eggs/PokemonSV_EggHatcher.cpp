@@ -12,7 +12,7 @@
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSV/Inference/Boxes/PokemonSV_BoxDetection.h"
-#include "PokemonSV/Programs/PokemonSV_Navigation.h"
+#include "PokemonSV/Programs/PokemonSV_MenuNavigation.h"
 #include "PokemonSV/Programs/Eggs/PokemonSV_EggRoutines.h"
 #include "PokemonSV/Programs/Boxes/PokemonSV_BoxRoutines.h"
 #include "PokemonSV_EggHatcher.h"
@@ -120,20 +120,20 @@ void EggHatcher::hatch_one_box(SingleSwitchProgramEnvironment& env, ProControlle
             if (num_non_egg_pokemon == 0){
                 // nothing in this column
                 env.log("Nothing in column " + std::to_string(column_index+1) + ".");
-                env.console.overlay().add_log("Empty column", COLOR_WHITE);
+                env.console.overlay().add_log("Empty column");
                 continue;
             }
 
             // we have only non-egg pokemon in the column
             // Move them back
             env.log("Only non-egg pokemon in column, move them back.");
-            env.console.overlay().add_log("No egg in column", COLOR_WHITE);
+            env.console.overlay().add_log("No egg in column");
             unload_one_column_from_party(env, env.console, context, NOTIFICATION_ERROR_RECOVERABLE, column_index, HAS_CLONE_RIDE_POKEMON);
             continue;
         }
         
         env.log("Loaded " + std::to_string(num_eggs) + " eggs to party.");
-        env.console.overlay().add_log("Load " + std::to_string(num_eggs) + " eggs", COLOR_WHITE);
+        env.console.overlay().add_log("Load " + std::to_string(num_eggs) + " eggs");
         leave_box_system_to_overworld(env.program_info(), env.console, context);
 
         auto hatched_callback = [&](uint8_t){  

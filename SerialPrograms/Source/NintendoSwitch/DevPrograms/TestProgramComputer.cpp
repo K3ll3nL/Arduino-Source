@@ -145,6 +145,7 @@
 
 
 //#include <opencv2/core.hpp>
+#include <onnxruntime_cxx_api.h>
 #include <random>
 
 
@@ -224,7 +225,6 @@ class WatchdogTest1 : public WatchdogCallback{
 
 
 
-
 template <typename Type>
 class CheckedObject{
 public:
@@ -284,7 +284,6 @@ struct RequestManagerConfig{
 
 
 
-
 void TestProgramComputer::program(ProgramEnvironment& env, CancellableScope& scope){
     using namespace Kernels;
     using namespace NintendoSwitch;
@@ -296,12 +295,75 @@ void TestProgramComputer::program(ProgramEnvironment& env, CancellableScope& sco
     using namespace std::chrono_literals;
 
 
+#if 0
+    {
+        CommandQueue queue;
 
+        queue.enqueue_command(ControllerCommand{
+            .seqnum = 10,
+            .milliseconds = 1000,
+            .state = ControllerState{
+                .buttons = 123,
+            }
+        });
+        queue.enqueue_command(ControllerCommand{
+            .seqnum = 11,
+            .milliseconds = 2000,
+            .state = ControllerState{
+                .buttons = 456,
+            }
+        });
+
+        scope.wait_for(60s);
+    }
+#endif
+
+#if 0
+    HeapCircularBuffer<std::string> buffer(10);
+
+    buffer.try_push_back("asdf");
+    buffer.try_push_back("qwer");
+    buffer.try_push_back("zxcv");
+
+    cout << buffer[0] << endl;
+    cout << buffer[1] << endl;
+    cout << buffer[2] << endl;
+    cout << "--------------------" << endl;
+    buffer.pop_front();
+    cout << buffer[0] << endl;
+    cout << buffer[1] << endl;
+#endif
+
+#if 0
+    Command command{
+        123,
+        100,
+        512,
+        2000, 3000,
+        4000, 5000
+    };
+
+    char str[65] = {};
+    command.write_to_hex(str);
+    cout << str << endl;
+    memset(&command, 0, sizeof(Command));
+
+    command.parse_from_hex(str);
+
+    cout << command.milliseconds << endl;
+    cout << command.buttons << endl;
+    cout << command.left_joystick_x << endl;
+    cout << command.left_joystick_y << endl;
+    cout << command.right_joystick_x << endl;
+    cout << command.right_joystick_y << endl;
+#endif
+
+#if 0
     ImageRGB32 image("20250503-121259857603.png");
 
     image = filter_rgb32_euclidean(image, (uint32_t)COLOR_PURPLE, 100, COLOR_RED, true);
     image.save("temp.png");
-
+#endif
 
 
 

@@ -23,7 +23,8 @@
 #include "PokemonSV/Programs/Boxes/PokemonSV_BoxRoutines.h"
 #include "PokemonSV/Programs/PokemonSV_SaveGame.h"
 #include "PokemonSV/Programs/PokemonSV_GameEntry.h"
-#include "PokemonSV/Programs/PokemonSV_Navigation.h"
+#include "PokemonSV/Programs/PokemonSV_MenuNavigation.h"
+#include "PokemonSV/Programs/PokemonSV_WorldNavigation.h"
 #include "PokemonSV/Programs/Eggs/PokemonSV_EggRoutines.h"
 #include "PokemonSV/Programs/Boxes/PokemonSV_BoxRelease.h"
 #include "PokemonSV/Programs/Sandwiches/PokemonSV_SandwichRoutines.h"
@@ -100,7 +101,7 @@ EggAutonomous::EggAutonomous()
     , AUTO_SAVING(
         "<b>Auto-Saving:</b><br>Automatically save the game to recover from crashes and allow eggs to be unhatched.<br>" +
         make_text_url(
-            ONLINE_DOC_URL + "ComputerControl/blob/master/Wiki/Programs/PokemonSV/EggAutonomous.md#auto-saving-mode",
+            ONLINE_DOC_URL_BASE + "ComputerControl/blob/master/Wiki/Programs/PokemonSV/EggAutonomous.md#auto-saving-mode",
             "See the wiki for the full explanations of each mode."
         ),
         {
@@ -185,7 +186,7 @@ void EggAutonomous::program(SingleSwitchProgramEnvironment& env, ProControllerCo
     assert_16_9_720p_min(env.logger(), env.console);
 
     //  Connect the controller.
-    pbf_press_button(context, BUTTON_L, 10, 0);
+    pbf_press_button(context, BUTTON_L, 10, 100);
 
     {
         // reset_position_to_flying_spot(env, context);
@@ -277,7 +278,7 @@ void EggAutonomous::program(SingleSwitchProgramEnvironment& env, ProControllerCo
             env.log("Resetting game since nothing found, saving sandwich ingredients.");
             reset_game(env.program_info(), env.console, context);
         }else{ // game_already_resetted == true
-            env.log("Game resetted back to egg fetching routine.");
+            env.log("Game reset back to egg fetching routine.");
         }
 
         if (m_num_sandwich_spent >= max_num_sandwiches){
@@ -564,7 +565,7 @@ void EggAutonomous::process_one_baby(SingleSwitchProgramEnvironment& env, ProCon
             send_keep_notification();
 
             if (move_pokemon_to_keep(env, context, party_row) == false){
-                env.log("No empty slot availble to place new pokemon.");
+                env.log("No empty slot available to place new pokemon.");
                 env.console.overlay().add_log("No box space", COLOR_RED);
                 throw ProgramFinishedException();
             }

@@ -38,6 +38,11 @@ WidgetStackFixedAspectRatio::WidgetStackFixedAspectRatio(
 void WidgetStackFixedAspectRatio::add_widget(QWidget& widget){
     widget.setParent(m_stack_holder);
     m_widgets.insert(&widget);
+    widget.show();
+}
+void WidgetStackFixedAspectRatio::remove_widget(QWidget* widget){
+    m_widgets.erase(widget);
+    delete widget;
 }
 double WidgetStackFixedAspectRatio::sanitize_aspect_ratio(double aspect_ratio) const{
     if (aspect_ratio == 0 || std::isnan(aspect_ratio)){
@@ -113,7 +118,7 @@ void WidgetStackFixedAspectRatio::resize_to_width(int width){
 //    cout << "WidgetStackFixedAspectRatio::resize_to_width(): " << width << " <- " << previous_width << endl;
 
     if (width > previous_width && width < previous_width + 50 && !m_debouncer.check(width)){
-//        cout << "Supressing potential infinite resizing loop." << endl;
+//        cout << "Suppressing potential infinite resizing loop." << endl;
         return;
     }
 

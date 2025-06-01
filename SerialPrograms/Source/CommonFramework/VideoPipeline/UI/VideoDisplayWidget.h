@@ -9,7 +9,7 @@
 
 //#include "Common/Cpp/ValueDebouncer.h"
 #include "Common/Qt/WidgetStackFixedAspectRatio.h"
-#include "VideoWidget.h"
+#include "CommonFramework/VideoPipeline/VideoSession.h"
 #include "VideoOverlayWidget.h"
 
 class QLineEdit;
@@ -60,15 +60,16 @@ private:
 
 
 //  The widget that owns the video window.
-//  It consists of a VideoWidget that loads the video content from Switch and a VideoOverlayWidget
-//  that renders inference boxes and other visualizations on top of the video content.
-class VideoDisplayWidget : public WidgetStackFixedAspectRatio{
+//  It consists of a VideoWidget that loads the video content from Switch and a
+//  VideoOverlayWidget that renders inference boxes and other visualizations on
+//  top of the video content.
+class VideoDisplayWidget : public WidgetStackFixedAspectRatio, private VideoSession::StateListener{
 public:
     VideoDisplayWidget(
         QWidget& parent, QLayout& holder,
         size_t id,
         CommandReceiver& command_receiver,
-        CameraSession& camera,
+        VideoSession& video_session,
         VideoOverlaySession& overlay
     );
     ~VideoDisplayWidget();
@@ -86,11 +87,22 @@ public:
     void move_back_from_window();
 
 protected:
+    virtual void post_startup(VideoSource* source) override;
+    virtual void pre_shutdown() override;
+
     // Override QWidget::mouseDoubleClickEvent().
     // When double click, call move_to_new_window() to move to a new window to be ready for full screen.
     virtual void mouseDoubleClickEvent(QMouseEvent *event) override;
+
+    virtual void mousePressEvent(QMouseEvent* event) override;
+    virtual void mouseReleaseEvent(QMouseEvent* event) override;
+    virtual void mouseMoveEvent(QMouseEvent* event) override;
+
     virtual void paintEvent(QPaintEvent*) override;
     virtual void resizeEvent(QResizeEvent* event) override;
+
+private:
+    void clear_video_source();
 
 private:
     friend class VideoSourceFPS;
@@ -99,9 +111,10 @@ private:
     QLayout& m_holder;
     const size_t m_id;
     CommandReceiver& m_command_receiver;
+    VideoSession& m_video_session;
     VideoOverlaySession& m_overlay_session;
 
-    VideoWidget* m_video = nullptr;
+    QWidget* m_video = nullptr;
     VideoOverlayWidget* m_overlay = nullptr;
 
     QWidget* m_underlay = nullptr;
