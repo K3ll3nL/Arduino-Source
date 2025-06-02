@@ -6,6 +6,7 @@
 #include "Common/Cpp/Options/StringOption.h"
 #include "CommonFramework/Notifications/EventNotificationsTable.h"
 #include "NintendoSwitch/NintendoSwitch_SingleSwitchProgram.h"
+#include "PokemonHome/Programs/HomeEnvironment/PokemonHome_HomeEnvironment.h"
 
 namespace PokemonAutomation{
 namespace NintendoSwitch{
@@ -32,10 +33,10 @@ public:
 
     void home_put_away_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&, Game&, bool);
     void home_dispose_of_go(SingleSwitchProgramEnvironment&, ProControllerContext&);
-    bool initialize_home(SingleSwitchProgramEnvironment&, ProControllerContext&);
-    void block1(SingleSwitchProgramEnvironment&, ProControllerContext&, std::vector<Game>&);
-    void block2(SingleSwitchProgramEnvironment&, ProControllerContext&, bool&, bool&);
-    void block3(SingleSwitchProgramEnvironment&, ProControllerContext&, std::vector<Game>&);
+    bool wipe_markings(SingleSwitchProgramEnvironment&, ProControllerContext&, PokemonHome_HomeEnvironment&);
+    void initialize_home(SingleSwitchProgramEnvironment&, ProControllerContext&, PokemonHome_HomeEnvironment&, std::vector<Game>&);
+    void sort_all_boxes(SingleSwitchProgramEnvironment&, ProControllerContext&, PokemonHome_HomeEnvironment&, bool&, bool&);
+    void enrich_with_games(SingleSwitchProgramEnvironment&, ProControllerContext&, PokemonHome_HomeEnvironment&, std::vector<Game>&);
     virtual void program(SingleSwitchProgramEnvironment&, ProControllerContext&) override;
 
 private:

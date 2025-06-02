@@ -23,6 +23,7 @@ enum class BoxSortingSortType
     Gigantamax,
     Ball_Slug,
     Gender,
+    Level,
 };
 
 struct BoxSortingSelection

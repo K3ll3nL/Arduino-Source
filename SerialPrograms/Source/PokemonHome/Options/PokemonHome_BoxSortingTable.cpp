@@ -18,6 +18,7 @@ const EnumDropdownDatabase<BoxSortingSortType>& BallType_Database(){
         {BoxSortingSortType::Gigantamax,    "gigantamax",    "Gigantamax"},
         {BoxSortingSortType::Ball_Slug,    "ball_slug",    "Ball Type"},
         {BoxSortingSortType::Gender,    "gender",    "Gender (Male, Female, Genderless)"},
+        {BoxSortingSortType::Level,    "level",    "Level"},
     });
     return database;
 }

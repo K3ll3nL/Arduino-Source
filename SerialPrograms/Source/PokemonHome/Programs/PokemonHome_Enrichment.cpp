@@ -2406,7 +2406,7 @@ void switch_close_game_and_open(SingleSwitchProgramEnvironment& env, ProControll
     throw;
 }
 
-void Enrichment::block1(SingleSwitchProgramEnvironment& env, ProControllerContext& context, std::vector<Game>& game_list){
+void Enrichment::initialize_home(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PokemonHome_HomeEnvironment& home_manager, std::vector<Game>& game_list){
     ImageFloatBox game_checker(0.0455, 0.244, 0.442, 0.057);
     VideoSnapshot screen = env.console.video().snapshot();
 
@@ -2414,58 +2414,12 @@ void Enrichment::block1(SingleSwitchProgramEnvironment& env, ProControllerContex
 
     std::ostringstream ss;
 
-    // Set up Pokémon Home
-    bool setup = true;
-    if(!SKIP_SETUP){
 
-        HomeApplicationWatcher homeWatcher(COLOR_BLUE);
-        int ret = wait_until(
-            env.console, context, 5000ms,
-            {
-                homeWatcher
-            }
-        );
-
-        switch(ret){
-        case 0:
-            env.console.log("Found Pokemon Home appliciation open");
-            send_program_notification(
-                env, NOTIFICATION_ERROR_RECOVERABLE,
-                COLOR_GREEN,
-                "Found Pokemon Home application",
-                {}, "",
-                screen
-            );
-            pbf_press_button(context, BUTTON_B, 10, 35);
-            break;
-        default:
-            env.console.log("Did not find Pokemon Home application open");
-            send_program_notification(
-                env, NOTIFICATION_ERROR_FATAL,
-                COLOR_RED,
-                "Did not find Pokemon Home application",
-                {}, "",
-                screen
-            );
-            switch_close_game_and_open(env, context, "Pokémon HOME");
-            break;
-        }
-
-
-        if(DISPOSE_GOS)home_dispose_of_go(env, context);
-
-        if(EMERGENCY_DELOAD){
-            home_navigate_to_game(env, context, game_list[0]);
-            home_put_away_pokemon(env,context, game_list[0],!NORMAL_DELOAD);
-        }
-        do{
-            // setup=initialize_home(env, context);
-        }while(!setup);
-
-    }
+    // TODO: Set up Go disposal
+    // home_dispose_of_go(env, context);
 }
 
-void Enrichment::block2(SingleSwitchProgramEnvironment& env, ProControllerContext& context, bool& started, bool& swaps_made){
+void Enrichment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PokemonHome_HomeEnvironment& home_manager, bool& started, bool& swaps_made){
     Game pokemon_home("Start without connecting a game", -1, false);
     home_navigate_to_game(env, context, pokemon_home);
     // bool skips_made = false;
@@ -2659,7 +2613,7 @@ void Enrichment::block2(SingleSwitchProgramEnvironment& env, ProControllerContex
     home_exit_home(env, context);
 }
 
-void Enrichment::block3(SingleSwitchProgramEnvironment& env, ProControllerContext& context, std::vector<Game>& game_list){
+void Enrichment::enrich_with_games(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PokemonHome_HomeEnvironment& home_manager, std::vector<Game>& game_list){
     for(auto game: game_list){
         int pokemon = 30;
         if(!SKIP_SETUP)home_navigate_to_game(env, context, game);
@@ -2970,29 +2924,31 @@ void Enrichment::home_dispose_of_go(SingleSwitchProgramEnvironment& env, ProCont
 
 }
 
-bool Enrichment::initialize_home(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+bool Enrichment::wipe_markings(SingleSwitchProgramEnvironment& env, ProControllerContext& context,PokemonHome_HomeEnvironment& home_manager){
 
-    VideoOverlaySet box_render(env.console);
+    // VideoOverlaySet box_render(env.console);
 
-    // Navigate to Pokémon Home for initial setup
-    Game pokemon_home("Start without connecting a game", -1, false);
-    home_navigate_to_game(env, context, pokemon_home);
+    // // Navigate to Pokémon Home for initial setup
+    // Game pokemon_home("Start without connecting a game", -1, false);
+    // home_navigate_to_game(env, context, pokemon_home);
 
-    home_navigate_to_box(env, context, HOME_FIRST_BOX,true);
-    size_t home_box = HOME_FIRST_BOX;
+    // home_navigate_to_box(env, context, HOME_FIRST_BOX,true);
+    // size_t home_box = HOME_FIRST_BOX;
 
-    box_render.clear();
+    // box_render.clear();
 
-    if(WIPE_MARKINGS){
-        while(home_box<=HOME_LAST_BOX){
-            home_scan_box(env, context, env.console.video().snapshot(), WIPE_MARKINGS);
-            context.wait_for_all_requests();
-            pbf_press_button(context, BUTTON_R, 10, 47);
-            home_box++;
-        }
-    }
+    // if(WIPE_MARKINGS){
+    //     while(home_box<=HOME_LAST_BOX){
+    //         home_scan_box(env, context, env.console.video().snapshot(), WIPE_MARKINGS);
+    //         context.wait_for_all_requests();
+    //         pbf_press_button(context, BUTTON_R, 10, 47);
+    //         home_box++;
+    //     }
+    // }
 
-    return home_exit_home(env, context);
+    // return home_exit_home(env, context);
+
+    return false;
 }
 
 void Enrichment::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
@@ -3009,130 +2965,14 @@ void Enrichment::program(SingleSwitchProgramEnvironment& env, ProControllerConte
 
     std::ostringstream ss;
 
-    PokemonHome_HomeEnvironment(env, context);
+    PokemonHome_HomeEnvironment home_manager(env, context);
 
-    ImageFloatBox top_white(0.36, 0.076, 0.001, 0.001);
-    FloatPixel current_box_value = image_stats(extract_box_reference(screen, top_white)).average;
-    // std::string help_box = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(env.console.video().snapshot(), top_green)));
-    box_render.add(COLOR_GREEN, top_white);
+    home_manager.navigate_to(env, context, PageID::BOX_VIEW, GameStatus::POKEMON_HOME);
+    home_manager.navigate_to(env, context, PageID::LIST_VIEW, GameStatus::POKEMON_PLA);
 
 
-    env.console.log(std::to_string(current_box_value.r)+" "+std::to_string(current_box_value.g)+" "+std::to_string(current_box_value.b));
-
-    pbf_wait(context, 2000ms);
-
-    context.wait_for_all_requests();
-    box_render.clear();
-
-
-
-
-    HomeTitleScreenWatcher titleWatcher(COLOR_BLUE);
-    HomeMainMenuWatcher mainMenuWatcher(COLOR_BLUE);
-    HomeGameSelectWatcher gameSelectWatcher(COLOR_BLUE);
-    HomeListViewWatcher listWatcher(COLOR_BLUE);
-    HomeSummaryViewWatcher summaryWatcher(COLOR_BLUE);
-    HomeMarkingsViewWatcher markingsWatcher(COLOR_BLUE);
-    HomeBoxViewWatcher boxWatcher(COLOR_BLUE);
-    int ret = wait_until(
-        env.console, context, 5000ms,
-        {
-            titleWatcher,
-            mainMenuWatcher,
-            gameSelectWatcher,
-            listWatcher,
-            summaryWatcher,
-            markingsWatcher,
-            boxWatcher
-        }
-    );
-
-    switch(ret){
-    case 0:
-        env.console.log("Found title screen");
-        send_program_notification(
-            env, NOTIFICATION_ERROR_RECOVERABLE,
-            COLOR_GREEN,
-            "Found title screen",
-            {}, "",
-            screen
-        );
-        break;
-    case 1:
-        env.console.log("Found main menu");
-        send_program_notification(
-            env, NOTIFICATION_ERROR_RECOVERABLE,
-            COLOR_GREEN,
-            "Found main menu",
-            {}, "",
-            screen
-            );
-        break;
-    case 2:
-        env.console.log("Found game select screen");
-        send_program_notification(
-            env, NOTIFICATION_ERROR_RECOVERABLE,
-            COLOR_GREEN,
-            "Found game select screen",
-            {}, "",
-            screen
-            );
-        break;
-    case 3:
-        env.console.log("Found list view screen");
-        send_program_notification(
-            env, NOTIFICATION_ERROR_RECOVERABLE,
-            COLOR_GREEN,
-            "Found list view screen",
-            {}, "",
-            screen
-            );
-        break;
-    case 4:
-        env.console.log("Found summary view screen");
-        send_program_notification(
-            env, NOTIFICATION_ERROR_RECOVERABLE,
-            COLOR_GREEN,
-            "Found list view screen",
-            {}, "",
-            screen
-            );
-        break;
-    case 5:
-        env.console.log("Found markings screen");
-        send_program_notification(
-            env, NOTIFICATION_ERROR_RECOVERABLE,
-            COLOR_GREEN,
-            "Found markings screen",
-            {}, "",
-            screen
-            );
-        break;
-    case 6:
-        env.console.log("Found box view");
-        send_program_notification(
-            env, NOTIFICATION_ERROR_RECOVERABLE,
-            COLOR_GREEN,
-            "Found box view",
-            {}, "",
-            screen
-            );
-        break;
-    default:
-        env.console.log("Did not find Pokemon Home application open");
-        send_program_notification(
-            env, NOTIFICATION_ERROR_FATAL,
-            COLOR_RED,
-            "Did not find Pokemon Home application",
-            {}, "",
-            screen
-        );
-        break;
-    }
-
-
-    // block1(env, context, game_list);
-    // block2(env, context, started, swaps_made);
+    // initialize_home(env, context, home_manager, game_list);
+    // sort_all_boxes(env, context, home_manager, started, swaps_made);
     // send_program_notification(
     //         env, NOTIFICATION_ERROR_FATAL,
     //         COLOR_GREEN,
@@ -3140,7 +2980,7 @@ void Enrichment::program(SingleSwitchProgramEnvironment& env, ProControllerConte
     //         {}, "",
     //         screen
     //     );
-    // block3(env, context, game_list);
+    // enrich_with_games(env, context, home_manager, game_list);
     // send_program_notification(
     //     env, NOTIFICATION_ERROR_FATAL,
     //     COLOR_GREEN,
@@ -3149,7 +2989,7 @@ void Enrichment::program(SingleSwitchProgramEnvironment& env, ProControllerConte
     //     screen
     //     );
 
-    // block2(env, context, started, swaps_made);
+    // sort_all_boxes(env, context, home_manager, started, swaps_made);
 
     // pbf_press_button(context, BUTTON_HOME,10, 150);
     // pbf_press_button(context, BUTTON_X, 10, 20);
