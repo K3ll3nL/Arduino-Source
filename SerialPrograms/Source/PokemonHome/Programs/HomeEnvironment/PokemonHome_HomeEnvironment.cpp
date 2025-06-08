@@ -342,9 +342,8 @@ void PokemonHome_HomeEnvironment::initialize_navigation_map(SingleSwitchProgramE
                     break;
             }
 
+            // Navigate to correct game
             char chars[] = "\n\r—";
-
-
             ImageFloatBox game_checker(0.0455, 0.244, 0.435, 0.057);
             std::string text = OCR::ocr_read(Language::English, extract_box_reference(env.console.video().snapshot(), game_checker));
             for(auto a:chars){text.erase(std::remove(text.begin(),text.end(), a),text.end());}
@@ -403,6 +402,8 @@ void PokemonHome_HomeEnvironment::initialize_navigation_map(SingleSwitchProgramE
 
             pbf_press_button(context, BUTTON_A, 10, 100);
 
+            context.wait_for_all_requests();
+
             ret = wait_until(
                 env.console, context, 5000ms, {
                     mainMenuWatcher
@@ -434,41 +435,120 @@ void PokemonHome_HomeEnvironment::initialize_navigation_map(SingleSwitchProgramE
 
             if(ret!=0){
                 throw;
-            }        }},
+            }
+        }},
         {PageID::MARKINGS_VIEW,
          [](SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
-             // Open menu, then go to markings. Assumes cursor is in the right position.
+            HomeMarkingsViewWatcher markingsWatcher(COLOR_BLUE);
+
+            // Open menu, then go to markings. Assumes cursor is in the right position. (Use other code to check if the correct button is orange later)
             env.console.log("Press A, then down, then down, then a");
+
+            pbf_press_button(context, BUTTON_A, 10, 40);
+            pbf_press_button(context, BUTTON_DOWN, 10, 40);
+            pbf_press_button(context, BUTTON_DOWN, 10, 40);
+            pbf_press_button(context, BUTTON_A, 10, 40);
+
+            context.wait_for_all_requests();
+
+            int ret = wait_until(
+                env.console, context, 5000ms, {
+                    markingsWatcher
+                });
+
+            if(ret!=0){
+                throw;
+            }
         }},
         {PageID::LIST_VIEW,
          [](SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
-            // Press Y
-            env.console.log("Press Y");
+            HomeListViewWatcher listWatcher(COLOR_BLUE);
+
+            // Press X
+            env.console.log("Press X");
+
+            pbf_press_button(context, BUTTON_X, 10, 40);
+
+            context.wait_for_all_requests();
+
+            int ret = wait_until(
+                env.console, context, 5000ms, {
+                    listWatcher
+                });
+
+            if(ret!=0){
+                throw;
+            }
         }},
     };
 
     navigation_map[PageID::SUMMARY_VIEW] = {
         {PageID::BOX_VIEW,
          [](SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
+            HomeBoxViewWatcher boxWatcher(COLOR_BLUE);
+
             // Press B
             env.console.log("Press B");
+
+            pbf_press_button(context, BUTTON_B, 10, 40);
+
+            context.wait_for_all_requests();
+
+            int ret = wait_until(
+                env.console, context, 5000ms, {
+                    boxWatcher
+                });
+
+            if(ret!=0){
+                throw;
+            }
          }},
     };
 
     navigation_map[PageID::MARKINGS_VIEW] = {
         {PageID::BOX_VIEW,
          [](SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
-            // Press B
+            HomeBoxViewWatcher boxWatcher(COLOR_BLUE);
+
+             //Press B
             env.console.log("Press B");
-         }},
+
+            pbf_press_button(context, BUTTON_B, 10, 40);
+
+            context.wait_for_all_requests();
+
+            int ret = wait_until(
+                env.console, context, 5000ms, {
+                    boxWatcher
+                });
+
+            if(ret!=0){
+                throw;
+            }
+        }},
     };
 
     navigation_map[PageID::LIST_VIEW] = {
         {PageID::BOX_VIEW,
          [](SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
-            //PressB
+            HomeBoxViewWatcher boxWatcher(COLOR_BLUE);
+
+            //Press B
             env.console.log("Press B");
-         }},
+
+            pbf_press_button(context, BUTTON_B, 10, 40);
+
+            context.wait_for_all_requests();
+
+            int ret = wait_until(
+                env.console, context, 5000ms, {
+                    boxWatcher
+                });
+
+            if(ret!=0){
+                throw;
+            }
+        }},
     };
 }
 
