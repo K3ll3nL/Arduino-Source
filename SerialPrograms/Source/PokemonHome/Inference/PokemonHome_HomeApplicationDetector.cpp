@@ -444,6 +444,96 @@ bool HomeBoxViewWatcher::process_frame(const ImageViewRGB32& screen, WallClock t
 
 
 
+HomeLoginDialogueDetector::~HomeLoginDialogueDetector() = default;
+
+HomeLoginDialogueDetector::HomeLoginDialogueDetector(Color color)
+    : m_color(color)
+{}
+
+void HomeLoginDialogueDetector::make_overlays(VideoOverlaySet& items) const{
+    items.add(m_color, m_box);
+}
+
+bool HomeLoginDialogueDetector::detect(const ImageViewRGB32& screen) const{
+
+    char chars[] = "\n\r—";
+
+    // Search for the dialogue text to say, "Logging into Pokémon HOME..."
+    ImageFloatBox login_dialogue(0.155, 0.82, 0.37, 0.06);
+    std::string login_text = OCR::ocr_read(Language::English, extract_box_reference(screen, login_dialogue));
+    for(auto a:chars){login_text.erase(std::remove(login_text.begin(),login_text.end(), a),login_text.end());}
+    if(login_text == "Logging into Pokémon HOME..."){
+        return true;
+    }
+
+    // No other instances found, did not detect
+    return false;
+}
+
+
+
+HomeLoginDialogueWatcher::~HomeLoginDialogueWatcher() = default;
+
+HomeLoginDialogueWatcher::HomeLoginDialogueWatcher(Color color)
+    : VisualInferenceCallback("HomeApplicationWatcher")
+    , m_detector(color)
+{}
+
+void HomeLoginDialogueWatcher::make_overlays(VideoOverlaySet& items) const{
+    m_detector.make_overlays(items);
+}
+
+bool HomeLoginDialogueWatcher::process_frame(const ImageViewRGB32& screen, WallClock timestamp){
+
+    return m_detector.detect(screen);
+}
+
+
+HomeLogoutDialogueDetector::~HomeLogoutDialogueDetector() = default;
+
+HomeLogoutDialogueDetector::HomeLogoutDialogueDetector(Color color)
+    : m_color(color)
+{}
+
+void HomeLogoutDialogueDetector::make_overlays(VideoOverlaySet& items) const{
+    items.add(m_color, m_box);
+}
+
+bool HomeLogoutDialogueDetector::detect(const ImageViewRGB32& screen) const{
+
+    char chars[] = "\n\r—";
+
+    // Search for the dialogue text to say, "Logging into Pokémon HOME..."
+    ImageFloatBox login_dialogue(0.155, 0.82, 0.37, 0.06);
+    std::string login_text = OCR::ocr_read(Language::English, extract_box_reference(screen, login_dialogue));
+    for(auto a:chars){login_text.erase(std::remove(login_text.begin(),login_text.end(), a),login_text.end());}
+    if(login_text == "Your Boxes have been saved!"){
+        return true;
+    }
+
+    // No other instances found, did not detect
+    return false;
+}
+
+
+
+HomeLogoutDialogueWatcher::~HomeLogoutDialogueWatcher() = default;
+
+HomeLogoutDialogueWatcher::HomeLogoutDialogueWatcher(Color color)
+    : VisualInferenceCallback("HomeApplicationWatcher")
+    , m_detector(color)
+{}
+
+void HomeLogoutDialogueWatcher::make_overlays(VideoOverlaySet& items) const{
+    m_detector.make_overlays(items);
+}
+
+bool HomeLogoutDialogueWatcher::process_frame(const ImageViewRGB32& screen, WallClock timestamp){
+
+    return m_detector.detect(screen);
+}
+
+
 }
 }
 }

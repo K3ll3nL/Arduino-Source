@@ -51,3 +51,5 @@ SerialPrograms/CMakeLists.txt.user
 
 # Python cache
 __pycache__
+3rdPartyBinaries/opencv_world4110d.dll
+3rdPartyBinaries/opencv_world460d.dll

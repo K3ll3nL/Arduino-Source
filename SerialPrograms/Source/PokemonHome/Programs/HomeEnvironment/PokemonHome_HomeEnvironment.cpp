@@ -2,6 +2,8 @@
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonFramework/VideoPipeline/VideoFeed.h"
 #include "CommonTools/Async/InferenceRoutines.h"
+#include "CommonTools/OCR/OCR_RawOCR.h"
+#include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "PokemonHome/Inference/PokemonHome_HomeApplicationDetector.h"
 #include <chrono>
 #include <queue>
@@ -236,43 +238,203 @@ void PokemonHome_HomeEnvironment::initialize_navigation_map(SingleSwitchProgramE
     navigation_map[PageID::TITLE_SCREEN] = {
         {PageID::MAIN_MENU,
          [](SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
+
+            HomeLoginDialogueWatcher loginWatcher(COLOR_BLUE);
+            HomeMainMenuWatcher mainMenuWatcher(COLOR_BLUE);
+
             // Press A
             env.console.log("Press A");
+            pbf_press_button(context, BUTTON_A, 10, 100);
+
+            context.wait_for_all_requests();
+
+            // Check for LoginDialogueDetector == 0
+            int ret = wait_until(
+                env.console, context, 5000ms, {
+                    loginWatcher
+                });
+
+            // If true, wait for Main Menu (Finished logging in, we can wait 2.5 mins)
+            if(ret==0){
+                ret = wait_until(
+                    env.console, context, 150000ms, {
+                        mainMenuWatcher
+                    });
+
+                // If true, wait for LoginDialogueDetector!=0 (Finished logging in)
+                if(ret!=0){
+                    throw;
+                }
+            }
+            // Else, error out
+            else{
+                throw;
+            }
+
         }},
     };
 
     navigation_map[PageID::MAIN_MENU] = {
         {PageID::GAME_SELECTION,
          [](SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
-            // Press A
+
+            HomeGameSelectWatcher gameSelectWatcher(COLOR_BLUE);
+
+            // Press A, then verify we are at the game selection screen
             env.console.log("Press A");
+            pbf_press_button(context, BUTTON_A, 10, 100);
+
+            context.wait_for_all_requests();
+
+            int ret = wait_until(
+                env.console, context, 5000ms, {
+                    gameSelectWatcher
+                });
+
+            // If true, wait for LoginDialogueDetector!=0 (Finished logging in)
+            if(ret!=0){
+                throw;
+            }
         }},
     };
 
     navigation_map[PageID::GAME_SELECTION] = {
         {PageID::MAIN_MENU,
          [](SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
-            // Press B
+
+            HomeMainMenuWatcher mainMenuWatcher(COLOR_BLUE);
+
+            // Press B, then verify we are at the game selection screen
             env.console.log("Press B");
+            pbf_press_button(context, BUTTON_B, 10, 100);
+
+            context.wait_for_all_requests();
+
+            int ret = wait_until(
+                env.console, context, 5000ms, {
+                    mainMenuWatcher
+                });
+
+            // If true, wait for LoginDialogueDetector!=0 (Finished logging in)
+            if(ret!=0){
+                throw;
+            }
         }},
         {PageID::BOX_VIEW,
-         [](SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
+         [this](SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
+            HomeBoxViewWatcher boxWatcher(COLOR_BLUE);
+
             // Cycle through games until we see the correct game on screen, then press A and wait for login.
-            env.console.log("Press A (maybe more)");
+            std::string target_name;
+            switch(game_open){
+                case GameStatus::NONE: target_name = "Start without connecting a game"; break;
+                case GameStatus::POKEMON_HOME: target_name = "Start without connecting a game"; break;
+                case GameStatus::POKEMON_PLA: target_name = "Pokémon Legends: Arceus"; break;
+                case GameStatus::POKEMON_PIKACHU: target_name = "Pokémon: Let's Go, Pikachu!"; break;
+                case GameStatus::POKEMON_EEVEE: target_name = "Pokémon: Let's Go, Eevee!"; break;
+                case GameStatus::POKEMON_DIAMOND: target_name = "Pokémon Brilliant Diamond"; break;
+                case GameStatus::POKEMON_PEARL: target_name = "Pokémon Shining Pearl"; break;
+                case GameStatus::POKEMON_SWORD: target_name = "Pokémon Sword"; break;
+                case GameStatus::POKEMON_SHIELD: target_name = "Pokémon Shield"; break;
+                case GameStatus::POKEMON_SCARLET: target_name = "Pokémon Scarlet"; break;
+                case GameStatus::POKEMON_VIOLET: target_name = "Pokémon Violet";
+                default: throw;
+                    break;
+            }
+
+            char chars[] = "\n\r—";
+
+
+            ImageFloatBox game_checker(0.0455, 0.244, 0.435, 0.057);
+            std::string text = OCR::ocr_read(Language::English, extract_box_reference(env.console.video().snapshot(), game_checker));
+            for(auto a:chars){text.erase(std::remove(text.begin(),text.end(), a),text.end());}
+            VideoOverlaySet box_render(env.console);
+
+            while (text != target_name){
+                env.console.log("Found game " + text + OCR::ocr_read(Language::English, extract_box_reference(env.console.video().snapshot(), game_checker)));
+                pbf_press_dpad(context, DPAD_RIGHT, 10, 20);
+
+                context.wait_for_all_requests();
+                text = OCR::ocr_read(Language::English, extract_box_reference(env.console.video().snapshot(), game_checker));
+                for(auto a:chars){text.erase(std::remove(text.begin(),text.end(), a),text.end());}
+            } ;
+
+
+            // Press A twice, then verify we are at the Box View screen
+            env.console.log("Press A");
+            pbf_press_button(context, BUTTON_A, 10, 100);
+            pbf_press_button(context, BUTTON_A, 10, 100);
+
+            context.wait_for_all_requests();
+
+            int ret = wait_until(
+                env.console, context, 150000ms, {
+                    boxWatcher
+                });
+
+            if(ret!=0){
+                throw;
+            }
         }},
     };
 
     navigation_map[PageID::BOX_VIEW] = {
         {PageID::MAIN_MENU,
          [](SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
+            HomeLogoutDialogueWatcher logoutWatcher(COLOR_BLUE);
+            HomeMainMenuWatcher mainMenuWatcher(COLOR_BLUE);
+
             // Press Plus, then trigger logout sequence
             env.console.log("Press Plus");
+            env.console.log("Press A");
+            pbf_press_button(context, BUTTON_PLUS, 10, 150);
+            pbf_press_button(context, BUTTON_A, 10, 100);
+
+            context.wait_for_all_requests();
+
+            int ret = wait_until(
+                env.console, context, 150000ms, {
+                logoutWatcher
+            });
+
+            if(ret!=0){
+                throw;
+            }
+
+            pbf_press_button(context, BUTTON_A, 10, 100);
+
+            ret = wait_until(
+                env.console, context, 5000ms, {
+                    mainMenuWatcher
+                });
+
+            if(ret!=0){
+                throw;
+            }
+
+            context.wait_for_all_requests();
+
         }},
         {PageID::SUMMARY_VIEW,
          [](SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
-            // Open menu, then go to summary. Assumes cursor is in the right position.
+            HomeSummaryViewWatcher summaryWatcher(COLOR_BLUE);
+
+            // Open menu, then go to summary. Assumes cursor is in the right position. (Use other code to check if the correct button is orange later)
             env.console.log("Press A, then down, then A");
-        }},
+            pbf_press_button(context, BUTTON_A, 10, 40);
+            pbf_press_button(context, BUTTON_DOWN, 10, 40);
+            pbf_press_button(context, BUTTON_A, 10, 40);
+
+            context.wait_for_all_requests();
+
+            int ret = wait_until(
+                env.console, context, 5000ms, {
+                    summaryWatcher
+                });
+
+            if(ret!=0){
+                throw;
+            }        }},
         {PageID::MARKINGS_VIEW,
          [](SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
              // Open menu, then go to markings. Assumes cursor is in the right position.

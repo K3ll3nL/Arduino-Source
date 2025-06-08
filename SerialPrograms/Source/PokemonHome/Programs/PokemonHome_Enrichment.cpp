@@ -2967,7 +2967,10 @@ void Enrichment::program(SingleSwitchProgramEnvironment& env, ProControllerConte
 
     PokemonHome_HomeEnvironment home_manager(env, context);
 
-    home_manager.navigate_to(env, context, PageID::BOX_VIEW, GameStatus::POKEMON_HOME);
+    HomeLoginDialogueWatcher loginWatcher(COLOR_BLUE);
+
+
+    home_manager.navigate_to(env, context, PageID::SUMMARY_VIEW, GameStatus::POKEMON_HOME);
     home_manager.navigate_to(env, context, PageID::LIST_VIEW, GameStatus::POKEMON_PLA);
 
 

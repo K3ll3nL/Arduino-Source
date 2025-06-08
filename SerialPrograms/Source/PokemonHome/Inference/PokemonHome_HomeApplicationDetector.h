@@ -284,6 +284,70 @@ protected:
 };
 
 
+class HomeLoginDialogueDetector : public StaticScreenDetector{
+public:
+    HomeLoginDialogueDetector(Color color);
+    virtual ~HomeLoginDialogueDetector();
+
+    virtual void make_overlays(VideoOverlaySet& items) const override;
+    virtual bool detect(const ImageViewRGB32& screen) const override;
+
+    std::vector<ImageFloatBox> detect_all(const ImageViewRGB32& screen) const;
+
+protected:
+    Color m_color;
+    ImageFloatBox m_box;
+};
+
+
+
+class HomeLoginDialogueWatcher : public VisualInferenceCallback{
+public:
+    HomeLoginDialogueWatcher(Color color);
+    virtual ~HomeLoginDialogueWatcher();
+
+    virtual void make_overlays(VideoOverlaySet& items) const override;
+    virtual bool process_frame(const ImageViewRGB32& frame, WallClock timestamp) override;
+
+
+protected:
+    HomeLoginDialogueDetector m_detector;
+    FixedLimitVector<OverlayBoxScope> m_hits;
+};
+
+
+class HomeLogoutDialogueDetector : public StaticScreenDetector{
+public:
+    HomeLogoutDialogueDetector(Color color);
+    virtual ~HomeLogoutDialogueDetector();
+
+    virtual void make_overlays(VideoOverlaySet& items) const override;
+    virtual bool detect(const ImageViewRGB32& screen) const override;
+
+    std::vector<ImageFloatBox> detect_all(const ImageViewRGB32& screen) const;
+
+protected:
+    Color m_color;
+    ImageFloatBox m_box;
+};
+
+
+
+class HomeLogoutDialogueWatcher : public VisualInferenceCallback{
+public:
+    HomeLogoutDialogueWatcher(Color color);
+    virtual ~HomeLogoutDialogueWatcher();
+
+    virtual void make_overlays(VideoOverlaySet& items) const override;
+    virtual bool process_frame(const ImageViewRGB32& frame, WallClock timestamp) override;
+
+
+protected:
+    HomeLogoutDialogueDetector m_detector;
+    FixedLimitVector<OverlayBoxScope> m_hits;
+};
+
+
 }
 }
 }
