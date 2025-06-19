@@ -14,11 +14,14 @@
 #include "CommonFramework/Globals.h"
 #include "CommonFramework/VideoPipeline/VideoOverlaySession.h"
 #include "Controllers/ControllerSession.h"
+#include "NintendoSwitch/Options/NintendoSwitch_ModelType.h"
 
 namespace PokemonAutomation{
 namespace NintendoSwitch{
 
 
+// UI that shows the checkerboxes to control whether to show video overlay elements.
+// e.g. checkerbox to toggle on/off overlay boxes
 class CommandRow :
     public QWidget,
     public VideoOverlaySession::ContentListener,
@@ -32,6 +35,7 @@ public:
         QWidget& parent,
         ControllerSession& controller,
         VideoOverlaySession& session,
+        ConsoleModelCell& console_type,
         bool allow_commands_while_running
     );
 
@@ -50,10 +54,11 @@ public:
     void on_state_changed(ProgramState state);
 
 private:
-    virtual void enabled_boxes(bool enabled) override;
-    virtual void enabled_text (bool enabled) override;
-    virtual void enabled_log  (bool enabled) override;
-    virtual void enabled_stats(bool enabled) override;
+    virtual void on_overlay_enabled_boxes  (bool enabled) override;
+    virtual void on_overlay_enabled_text   (bool enabled) override;
+    virtual void on_overlay_enabled_images (bool enabled) override;
+    virtual void on_overlay_enabled_log    (bool enabled) override;
+    virtual void on_overlay_enabled_stats  (bool enabled) override;
     virtual void ready_changed(bool ready) override;
 
 private:
@@ -65,6 +70,7 @@ private:
 
     QCheckBox* m_overlay_log;
     QCheckBox* m_overlay_text;
+    QCheckBox* m_overlay_images;
     QCheckBox* m_overlay_boxes;
     QCheckBox* m_overlay_stats;
 

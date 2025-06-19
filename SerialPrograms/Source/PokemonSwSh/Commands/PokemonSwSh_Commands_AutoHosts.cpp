@@ -14,6 +14,10 @@
 #include "PokemonSwSh_Commands_AutoHosts.h"
 //#include "PokemonSwSh_Messages_AutoHosts.h"
 
+//#include <iostream>
+//using std::cout;
+//using std::endl;
+
 namespace PokemonAutomation{
 namespace NintendoSwitch{
 namespace PokemonSwSh{
@@ -44,6 +48,8 @@ void home_to_add_friends(
     uint8_t scroll_down,
     bool fix_cursor
 ){
+//    cout << "scroll_down = " << (int)scroll_down << endl;
+
     //  Scroll to correct user.
     //  Do 2 up-scrolls instead of one. In the event that an error leaves you in
     //  the game instead of the Switch Home, these button presses will actually
@@ -56,7 +62,7 @@ void home_to_add_friends(
     ssf_issue_scroll_ptv(context, SSF_SCROLL_UP);
 
     //  Enter user profile.
-    ssf_press_button_ptv(context, BUTTON_A, 1600ms);
+    ssf_press_button_ptv(context, BUTTON_A, 2000ms);
 
     if (fix_cursor){
         //  Force cursor to bottom, then up one to FRs.
@@ -73,7 +79,7 @@ void home_to_add_friends(
     }
 }
 void accept_FRs(
-    VideoStream& stream, ProControllerContext& context,
+    ConsoleHandle& console, ProControllerContext& context,
     uint8_t slot, bool fix_cursor,
     Milliseconds game_to_home_delay_safe,
     Milliseconds auto_fr_duration,
@@ -92,12 +98,12 @@ void accept_FRs(
     pbf_mash_button(context, BUTTON_A, auto_fr_duration);
 
     //  Return to Switch Home menu. (or game)
-    if (stream.video().snapshot()){
-        stream.log("Entering game using inference...");
+    if (console.video().snapshot()){
+        console.log("Entering game using inference...");
         pbf_press_button(context, BUTTON_HOME, 20, 180);
-        NintendoSwitch::resume_game_from_home(stream, context);
+        NintendoSwitch::resume_game_from_home(console, context);
     }else{
-        stream.log("Entering game without inference...", COLOR_RED);
+        console.log("Entering game without inference...", COLOR_RED);
         settings_to_enter_game_den_lobby(
             context,
             tolerate_system_update_window_slow, false,

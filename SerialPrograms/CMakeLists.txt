@@ -871,6 +871,12 @@ file(GLOB MAIN_SOURCES
     Source/Kernels/Waterfill/Kernels_Waterfill_Session.h
     Source/Kernels/Waterfill/Kernels_Waterfill_Session.tpp
     Source/Kernels/Waterfill/Kernels_Waterfill_Types.h
+    Source/ML/DataLabeling/SegmentAnythingModel.cpp
+    Source/ML/DataLabeling/SegmentAnythingModel.h
+    Source/ML/ML_Panels.cpp
+    Source/ML/ML_Panels.h
+    Source/ML/Programs/ML_LabelImages.cpp
+    Source/ML/Programs/ML_LabelImages.h
     Source/NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.cpp
     Source/NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h
     Source/NintendoSwitch/Commands/NintendoSwitch_Commands_Routines.cpp
@@ -947,12 +953,24 @@ file(GLOB MAIN_SOURCES
     Source/NintendoSwitch/Framework/UI/NintendoSwitch_SingleSwitchProgramWidget.h
     Source/NintendoSwitch/Framework/UI/NintendoSwitch_SwitchSystemWidget.cpp
     Source/NintendoSwitch/Framework/UI/NintendoSwitch_SwitchSystemWidget.h
-    Source/NintendoSwitch/Inference/NintendoSwitch_DateReader.cpp
-    Source/NintendoSwitch/Inference/NintendoSwitch_DateReader.h
+    Source/NintendoSwitch/Inference/NintendoSwitch_ConsoleTypeDetector.cpp
+    Source/NintendoSwitch/Inference/NintendoSwitch_ConsoleTypeDetector.h
+    Source/NintendoSwitch/Inference/NintendoSwitch_DateChangeDetector.cpp
+    Source/NintendoSwitch/Inference/NintendoSwitch_DateChangeDetector.h
     Source/NintendoSwitch/Inference/NintendoSwitch_DetectHome.cpp
     Source/NintendoSwitch/Inference/NintendoSwitch_DetectHome.h
+    Source/NintendoSwitch/Inference/NintendoSwitch_HomeMenuDetector.cpp
+    Source/NintendoSwitch/Inference/NintendoSwitch_HomeMenuDetector.h
+    Source/NintendoSwitch/Inference/NintendoSwitch_SelectedSettingDetector.cpp
+    Source/NintendoSwitch/Inference/NintendoSwitch_SelectedSettingDetector.h
+    Source/NintendoSwitch/Inference/NintendoSwitch_StartGameUserSelectDetector.cpp
+    Source/NintendoSwitch/Inference/NintendoSwitch_StartGameUserSelectDetector.h
+    Source/NintendoSwitch/Inference/NintendoSwitch_UpdatePopupDetector.cpp
+    Source/NintendoSwitch/Inference/NintendoSwitch_UpdatePopupDetector.h
     Source/NintendoSwitch/NintendoSwitch_ConsoleHandle.cpp
     Source/NintendoSwitch/NintendoSwitch_ConsoleHandle.h
+    Source/NintendoSwitch/NintendoSwitch_ConsoleState.cpp
+    Source/NintendoSwitch/NintendoSwitch_ConsoleState.h
     Source/NintendoSwitch/NintendoSwitch_MultiSwitchProgram.cpp
     Source/NintendoSwitch/NintendoSwitch_MultiSwitchProgram.h
     Source/NintendoSwitch/NintendoSwitch_Panels.cpp
@@ -967,23 +985,43 @@ file(GLOB MAIN_SOURCES
     Source/NintendoSwitch/Options/NintendoSwitch_FriendCodeListOption.h
     Source/NintendoSwitch/Options/NintendoSwitch_GoHomeWhenDoneOption.cpp
     Source/NintendoSwitch/Options/NintendoSwitch_GoHomeWhenDoneOption.h
+    Source/NintendoSwitch/Options/NintendoSwitch_ModelType.h
     Source/NintendoSwitch/Options/NintendoSwitch_StartInGripMenuOption.h
     Source/NintendoSwitch/Options/TurboMacroTable.cpp
     Source/NintendoSwitch/Options/TurboMacroTable.h
     Source/NintendoSwitch/Options/UI/NintendoSwitch_FriendCodeListWidget.cpp
     Source/NintendoSwitch/Options/UI/NintendoSwitch_FriendCodeListWidget.h
+    Source/NintendoSwitch/Programs/DateManip/NintendoSwitch_DateManip.cpp
+    Source/NintendoSwitch/Programs/DateManip/NintendoSwitch_DateManip.h
+    Source/NintendoSwitch/Programs/DateManip/NintendoSwitch_DateManipBase.h
+    Source/NintendoSwitch/Programs/DateManip/NintendoSwitch_DateManipTools.cpp
+    Source/NintendoSwitch/Programs/DateManip/NintendoSwitch_DateManipTools.h
+    Source/NintendoSwitch/Programs/DateManip/NintendoSwitch_DateManip_24h.cpp
+    Source/NintendoSwitch/Programs/DateManip/NintendoSwitch_DateManip_24h.h
+    Source/NintendoSwitch/Programs/DateManip/NintendoSwitch_DateManip_US.cpp
+    Source/NintendoSwitch/Programs/DateManip/NintendoSwitch_DateManip_US.h
+    Source/NintendoSwitch/Programs/DateSpam/NintendoSwitch_HomeToDateTime.cpp
+    Source/NintendoSwitch/Programs/DateSpam/NintendoSwitch_HomeToDateTime.h
+    Source/NintendoSwitch/Programs/DateSpam/NintendoSwitch_NeutralDateSkip.cpp
+    Source/NintendoSwitch/Programs/DateSpam/NintendoSwitch_NeutralDateSkip.h
+    Source/NintendoSwitch/Programs/DateSpam/NintendoSwitch_RollDateBackwardN.cpp
+    Source/NintendoSwitch/Programs/DateSpam/NintendoSwitch_RollDateBackwardN.h
+    Source/NintendoSwitch/Programs/DateSpam/NintendoSwitch_RollDateForward1.cpp
+    Source/NintendoSwitch/Programs/DateSpam/NintendoSwitch_RollDateForward1.h
+    Source/NintendoSwitch/Programs/FastCodeEntry/NintendoSwitch_CodeEntryTools.cpp
+    Source/NintendoSwitch/Programs/FastCodeEntry/NintendoSwitch_CodeEntryTools.h
+    Source/NintendoSwitch/Programs/FastCodeEntry/NintendoSwitch_KeyboardCodeEntry.cpp
+    Source/NintendoSwitch/Programs/FastCodeEntry/NintendoSwitch_KeyboardCodeEntry.h
+    Source/NintendoSwitch/Programs/FastCodeEntry/NintendoSwitch_NumberCodeEntry.cpp
+    Source/NintendoSwitch/Programs/FastCodeEntry/NintendoSwitch_NumberCodeEntry.h
     Source/NintendoSwitch/Programs/NintendoSwitch_FriendCodeAdder.cpp
     Source/NintendoSwitch/Programs/NintendoSwitch_FriendCodeAdder.h
     Source/NintendoSwitch/Programs/NintendoSwitch_FriendDelete.cpp
     Source/NintendoSwitch/Programs/NintendoSwitch_FriendDelete.h
     Source/NintendoSwitch/Programs/NintendoSwitch_GameEntry.cpp
     Source/NintendoSwitch/Programs/NintendoSwitch_GameEntry.h
-    Source/NintendoSwitch/Programs/NintendoSwitch_KeyboardCodeEntry.cpp
-    Source/NintendoSwitch/Programs/NintendoSwitch_KeyboardCodeEntry.h
-    Source/NintendoSwitch/Programs/NintendoSwitch_Navigation.cpp
-    Source/NintendoSwitch/Programs/NintendoSwitch_Navigation.h
-    Source/NintendoSwitch/Programs/NintendoSwitch_NumberCodeEntry.cpp
-    Source/NintendoSwitch/Programs/NintendoSwitch_NumberCodeEntry.h
+    Source/NintendoSwitch/Programs/NintendoSwitch_MenuStabilityTester.cpp
+    Source/NintendoSwitch/Programs/NintendoSwitch_MenuStabilityTester.h
     Source/NintendoSwitch/Programs/NintendoSwitch_PreventSleep.cpp
     Source/NintendoSwitch/Programs/NintendoSwitch_PreventSleep.h
     Source/NintendoSwitch/Programs/NintendoSwitch_PushJoySticks.cpp
@@ -1021,6 +1059,8 @@ file(GLOB MAIN_SOURCES
     Source/Pokemon/Inference/Pokemon_TrainPokemonOCR.cpp
     Source/Pokemon/Inference/Pokemon_TrainPokemonOCR.h
     Source/Pokemon/Options/Pokemon_EncounterBotOptions.h
+    Source/Pokemon/Options/Pokemon_HomeSpriteSelectOption.cpp
+    Source/Pokemon/Options/Pokemon_HomeSpriteSelectOption.h
     Source/Pokemon/Options/Pokemon_IvJudgeOption.cpp
     Source/Pokemon/Options/Pokemon_IvJudgeOption.h
     Source/Pokemon/Options/Pokemon_NameSelectOption.cpp
@@ -1056,6 +1096,10 @@ file(GLOB MAIN_SOURCES
     Source/Pokemon/Resources/Pokemon_EggSteps.h
     Source/Pokemon/Resources/Pokemon_PokeballNames.cpp
     Source/Pokemon/Resources/Pokemon_PokeballNames.h
+    Source/Pokemon/Resources/Pokemon_PokemonForms.cpp
+    Source/Pokemon/Resources/Pokemon_PokemonForms.h
+    Source/Pokemon/Resources/Pokemon_PokemonHomeSprites.cpp
+    Source/Pokemon/Resources/Pokemon_PokemonHomeSprites.h
     Source/Pokemon/Resources/Pokemon_PokemonNames.cpp
     Source/Pokemon/Resources/Pokemon_PokemonNames.h
     Source/Pokemon/Resources/Pokemon_PokemonSlugs.cpp
@@ -2185,6 +2229,8 @@ file(GLOB MAIN_SOURCES
     Source/PokemonSwSh/Programs/RNG/PokemonSwSh_BasicRNG.h
     Source/PokemonSwSh/Programs/RNG/PokemonSwSh_CramomaticRNG.cpp
     Source/PokemonSwSh/Programs/RNG/PokemonSwSh_CramomaticRNG.h
+    Source/PokemonSwSh/Programs/RNG/PokemonSwSh_DailyHighlightRNG.cpp
+    Source/PokemonSwSh/Programs/RNG/PokemonSwSh_DailyHighlightRNG.h
     Source/PokemonSwSh/Programs/RNG/PokemonSwSh_SeedFinder.cpp
     Source/PokemonSwSh/Programs/RNG/PokemonSwSh_SeedFinder.h
     Source/PokemonSwSh/Programs/ShinyHuntAutonomous/PokemonSwSh_ShinyHuntAutonomous-BerryTree.cpp
@@ -2223,6 +2269,8 @@ file(GLOB MAIN_SOURCES
     Source/PokemonSwSh/Programs/ShinyHuntUnattended/PokemonSwSh_ShinyHuntUnattended-SwordsOfJustice.h
     Source/PokemonSwSh/Programs/TestPrograms/PokemonSwSh_ShinyEncounterTester.cpp
     Source/PokemonSwSh/Programs/TestPrograms/PokemonSwSh_ShinyEncounterTester.h
+    Source/PokemonSwSh/Resources/PokemonSwSh_DailyHighlightDatabase.cpp
+    Source/PokemonSwSh/Resources/PokemonSwSh_DailyHighlightDatabase.h
     Source/PokemonSwSh/Resources/PokemonSwSh_MaxLairDatabase.cpp
     Source/PokemonSwSh/Resources/PokemonSwSh_MaxLairDatabase.h
     Source/PokemonSwSh/Resources/PokemonSwSh_NameDatabase.cpp
@@ -2412,7 +2460,7 @@ if (MSVC)
         PA_DPP
     )
 
-    target_compile_options(SerialPrograms PRIVATE /FAs /FaAssembly/ /MP /W4 /WX /utf-8)
+    target_compile_options(SerialPrograms PRIVATE /FAs /FaAssembly/ /MP /W4 /WX /external:anglebrackets /external:W0 /utf-8)
     target_compile_options(SerialPrograms PRIVATE /wd5054)  # Deprecated enum arithemtic
     target_compile_options(SerialPrograms PRIVATE /wd4505)  # unreferenced local function has been removed
 
@@ -2514,7 +2562,7 @@ else() # macOS and Linux
         # /usr/local/Cellar/opencv/4.5.5_3/include/opencv4/opencv2/core/mat.inl.hpp:2116:9: error: '_Atomic' is a C11 extension
         # when compiling OpenCV
         # target_compile_options(SerialPrograms PRIVATE -Wall -Wextra -Wpedantic -Werror -Wno-c11-extensions)
-        target_compile_options(SerialPrograms PRIVATE -Wall -Wextra -Wpedantic -Werror)
+        target_compile_options(SerialPrograms PRIVATE -Wall -Wextra -Wpedantic -Werror -Wshorten-64-to-32)
     else()
         # Assume GCC
         target_compile_options(SerialPrograms PRIVATE -Wall -Wextra -Wpedantic -Werror -fno-strict-aliasing)

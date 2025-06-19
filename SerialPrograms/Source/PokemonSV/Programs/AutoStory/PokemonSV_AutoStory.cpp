@@ -439,7 +439,7 @@ AutoStory::AutoStory()
     PA_ADD_OPTION(NOTIFICATIONS);
 
 
-    AutoStory::value_changed(this);
+    AutoStory::on_config_value_changed(this);
 
     STORY_SECTION.add_listener(*this);
     STARTPOINT_TUTORIAL.add_listener(*this);
@@ -455,7 +455,7 @@ AutoStory::AutoStory()
     TEST_CHANGE_DIRECTION.add_listener(*this);
 }
 
-void AutoStory::value_changed(void* object){
+void AutoStory::on_config_value_changed(void* object){
     ConfigOptionState state = (STARTPOINT_TUTORIAL.index() <= 1)
         ? ConfigOptionState::ENABLED
         : ConfigOptionState::HIDDEN;
@@ -632,14 +632,14 @@ void AutoStory::test_checkpoints(
             for (int i = 0; i < loop; i++){
                 if (i > 0){
                     try {
-                        reset_game(env.program_info(), stream, context);
+                        reset_game(env.program_info(), env.console, context);
                         enter_menu_from_overworld(env.program_info(), env.console, context, -1, MenuSide::NONE, has_minimap);
                         // we wait 5 seconds then save, so that the initial conditions are slightly different on each reset.
                         env.log("Wait 5 seconds.");
                         context.wait_for(Milliseconds(5 * 1000));
                     }catch(...){
                         // try one more time
-                        reset_game(env.program_info(), stream, context);
+                        reset_game(env.program_info(), env.console, context);
                         enter_menu_from_overworld(env.program_info(), env.console, context, -1, MenuSide::NONE, has_minimap);
                         // we wait 5 seconds then save, so that the initial conditions are slightly different on each reset.
                         env.log("Wait 5 seconds.");

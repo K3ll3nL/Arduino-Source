@@ -9,7 +9,8 @@
 
 #include "Common/Cpp/Containers/FixedLimitVector.h"
 #include "NintendoSwitch/Controllers/NintendoSwitch_ProController.h"
-#include "NintendoSwitch/Programs/NintendoSwitch_KeyboardCodeEntry.h"
+#include "NintendoSwitch/Options/NintendoSwitch_CodeEntrySettingsOption.h"
+#include "NintendoSwitch/NintendoSwitch_ConsoleHandle.h"
 
 namespace PokemonAutomation{
     class CancellableScope;
@@ -60,7 +61,7 @@ struct FastCodeEntrySettings{
 const char* normalize_code(std::string& normalized_code, const std::string& code, bool override_mode = false);
 
 void enter_code(
-    Logger& logger, ProControllerContext& context,
+    ConsoleHandle& console, ProControllerContext& context,
     KeyboardLayout keyboard_layout,
     const std::string& normalized_code, bool force_keyboard_mode,
     bool include_plus,

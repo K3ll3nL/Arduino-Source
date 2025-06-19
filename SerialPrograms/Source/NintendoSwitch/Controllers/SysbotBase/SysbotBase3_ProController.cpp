@@ -4,6 +4,7 @@
  *
  */
 
+#include "Common/Cpp/Exceptions.h"
 //#include "Common/Cpp/Concurrency/ReverseLockGuard.h"
 #include "CommonFramework/GlobalSettingsPanel.h"
 #include "Controllers/JoystickTools.h"
@@ -36,10 +37,10 @@ ProController_SysbotBase3::~ProController_SysbotBase3(){
 
 const ControllerFeatures& ProController_SysbotBase3::controller_features() const{
     static const ControllerFeatures features{
-//        ControllerFeature::TickPrecise,   //  TODO: Prove it is tick precise.
+        ControllerFeature::TickPrecise,   //  TODO: Prove it is tick precise.
         ControllerFeature::TimingFlexibleMilliseconds,
         ControllerFeature::NintendoSwitch_ProController,
-//        ControllerFeature::NintendoSwitch_DateSkip,   //  TODO: Prove this works
+        ControllerFeature::NintendoSwitch_DateSkip,   //  TODO: Prove this works
     };
     return features;
 }
@@ -47,7 +48,7 @@ const ControllerFeatures& ProController_SysbotBase3::controller_features() const
 void ProController_SysbotBase3::cancel_all_commands(){
     std::lock_guard<std::mutex> lg(m_state_lock);
     if (m_stopping){
-        throw InvalidConnectionStateException();
+        throw InvalidConnectionStateException("");
     }
 
     uint64_t queued = m_next_seqnum - m_next_expected_seqnum_ack;
@@ -62,7 +63,7 @@ void ProController_SysbotBase3::cancel_all_commands(){
 void ProController_SysbotBase3::replace_on_next_command(){
     std::lock_guard<std::mutex> lg(m_state_lock);
     if (m_stopping){
-        throw InvalidConnectionStateException();
+        throw InvalidConnectionStateException("");
     }
 
     uint64_t queued = m_next_seqnum - m_next_expected_seqnum_ack;
@@ -78,7 +79,7 @@ void ProController_SysbotBase3::wait_for_all(const Cancellable* cancellable){
     std::unique_lock<std::mutex> lg(m_state_lock);
     while (true){
         if (m_stopping){
-            throw InvalidConnectionStateException();
+            throw InvalidConnectionStateException("");
         }
         if (cancellable){
             cancellable->throw_if_cancelled();
@@ -90,9 +91,9 @@ void ProController_SysbotBase3::wait_for_all(const Cancellable* cancellable){
     }
 }
 
-void ProController_SysbotBase3::on_receive_data(const void* data, size_t bytes){
+
+void ProController_SysbotBase3::on_message(const std::string& message){
     const std::string TOKEN = "cqCommandFinished";
-    std::string message((const char*)data, bytes);
     auto pos = message.find(TOKEN);
     if (pos == std::string::npos){
         return;
@@ -143,7 +144,7 @@ void ProController_SysbotBase3::push_state(const Cancellable* cancellable, WallD
         cancellable->throw_if_cancelled();
     }
     if (m_stopping){
-        throw InvalidConnectionStateException();
+        throw InvalidConnectionStateException("");
     }
 
     //  Flags map to: https://github.com/switchbrew/libnx/blob/master/nx/include/switch/services/hid.h#L584
@@ -165,7 +166,7 @@ void ProController_SysbotBase3::push_state(const Cancellable* cancellable, WallD
     if (m_buttons[14].is_busy()) nx_button |= (uint64_t)1 << 13;    //  Up
     if (m_buttons[15].is_busy()) nx_button |= (uint64_t)1 << 14;    //  Right
     if (m_buttons[16].is_busy()) nx_button |= (uint64_t)1 << 15;    //  Down
-    if (m_buttons[17].is_busy()) nx_button |= (uint64_t)1 << 16;    //  Left
+    if (m_buttons[17].is_busy()) nx_button |= (uint64_t)1 << 12;    //  Left
 #if 0   //  Don't exist on pro controller.
     if (m_buttons[18].is_busy()) nx_button |= (uint64_t)1 << 24;    //  Left SL
     if (m_buttons[19].is_busy()) nx_button |= (uint64_t)1 << 25;    //  Left SR
@@ -179,7 +180,7 @@ void ProController_SysbotBase3::push_state(const Cancellable* cancellable, WallD
         if (split_dpad.up)    nx_button |= (uint64_t)1 << 13;
         if (split_dpad.right) nx_button |= (uint64_t)1 << 14;
         if (split_dpad.down)  nx_button |= (uint64_t)1 << 15;
-        if (split_dpad.left)  nx_button |= (uint64_t)1 << 16;
+        if (split_dpad.left)  nx_button |= (uint64_t)1 << 12;
     }
 
     int16_t left_x = 0;
@@ -228,6 +229,7 @@ void ProController_SysbotBase3::push_state(const Cancellable* cancellable, WallD
     message.resize(64);
     command.write_to_hex(message.data());
     message = "cqControllerState " + message + "\r\n";
+
     m_connection.write_data(message);
 
     if (GlobalSettings::instance().LOG_EVERYTHING){

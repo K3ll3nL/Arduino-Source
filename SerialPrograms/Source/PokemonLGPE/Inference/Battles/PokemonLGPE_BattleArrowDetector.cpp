@@ -32,7 +32,7 @@ BattleArrowDetector::BattleArrowDetector(Color color, const ImageFloatBox& box)
 void BattleArrowDetector::make_overlays(VideoOverlaySet& items) const{
     items.add(m_color, m_box);
 }
-bool BattleArrowDetector::detect(const ImageViewRGB32& screen) const{
+bool BattleArrowDetector::detect(const ImageViewRGB32& screen){
     using namespace Kernels::Waterfill;
 
     ImageViewRGB32 region = extract_box_reference(screen, m_box);
@@ -54,7 +54,7 @@ bool BattleArrowDetector::detect(const ImageViewRGB32& screen) const{
         //cropped.save("test-object-" + std::to_string(c++) + ".png");
         double rmsd = matcher.rmsd(cropped);
         //cout << rmsd << endl;
-        if (rmsd < 110){
+        if (rmsd < 116){
             return true;
         }
     }

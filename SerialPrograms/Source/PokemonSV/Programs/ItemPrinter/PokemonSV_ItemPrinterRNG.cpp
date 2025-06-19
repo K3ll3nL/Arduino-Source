@@ -16,9 +16,9 @@
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
-#include "NintendoSwitch/Inference/NintendoSwitch_DateReader.h"
 #include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
-#include "NintendoSwitch/Programs/NintendoSwitch_Navigation.h"
+#include "NintendoSwitch/Programs/DateSpam/NintendoSwitch_HomeToDateTime.h"
+#include "NintendoSwitch/Programs/DateManip/NintendoSwitch_DateManip.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSwSh/Inference/PokemonSwSh_IvJudgeReader.h"
 #include "PokemonSV/PokemonSV_Settings.h"
@@ -221,7 +221,7 @@ ItemPrinterRNG::ItemPrinterRNG()
 
     PA_ADD_OPTION(NOTIFICATIONS);
 
-    ItemPrinterRNG::value_changed(this);
+    ItemPrinterRNG::on_config_value_changed(this);
 //    AUTO_MATERIAL_FARMING.add_listener(*this);
     DATE_SEED_TABLE.add_listener(*this);
     MODE.add_listener(*this);
@@ -229,7 +229,7 @@ ItemPrinterRNG::ItemPrinterRNG()
     MATERIAL_FARMER_TRIGGER.add_listener(*this);
 }
 
-void ItemPrinterRNG::value_changed(void* object){
+void ItemPrinterRNG::on_config_value_changed(void* object){
 
     NUM_ITEM_PRINTER_ROUNDS.set_visibility(
         MODE == ItemPrinterMode::AUTO_MODE ? ConfigOptionState::HIDDEN : ConfigOptionState::ENABLED
@@ -328,7 +328,7 @@ ItemPrinterPrizeResult ItemPrinterRNG::run_print_at_date(
         OverworldWatcher overworld(env.console, COLOR_BLUE);
         AdvanceDialogWatcher dialog(COLOR_RED);
         PromptDialogWatcher prompt(COLOR_GREEN);
-        DateChangeWatcher date_reader;
+        DateChangeWatcher date_reader(env.console);
         WhiteButtonWatcher material(COLOR_GREEN, WhiteButton::ButtonX, {0.63, 0.93, 0.17, 0.06});
         int ret = wait_until(
             env.console, context, next_wait_time,
@@ -360,7 +360,7 @@ ItemPrinterPrizeResult ItemPrinterRNG::run_print_at_date(
         case 2:{
             env.log("Detected prompt dialog.");
             pbf_press_button(context, BUTTON_HOME, 80ms, GameSettings::instance().GAME_TO_HOME_DELAY1);
-            home_to_date_time(context, true, false);
+            home_to_date_time(env.console, context, true);
             pbf_press_button(context, BUTTON_A, 10, 30);
             context.wait_for_all_requests();
             next_wait_time = std::chrono::seconds(5);
@@ -953,7 +953,7 @@ uint32_t ItemPrinterRNG::check_num_happiny_dust(
         OverworldWatcher overworld(env.console, COLOR_BLUE);
         AdvanceDialogWatcher dialog(COLOR_RED);
         PromptDialogWatcher prompt(COLOR_GREEN);
-        DateChangeWatcher date_reader;
+        DateChangeWatcher date_reader(env.console);
         ItemPrinterMenuWatcher material(COLOR_GREEN);
         int ret = wait_until(
             env.console, context, std::chrono::seconds(120),
@@ -1032,7 +1032,7 @@ void ItemPrinterRNG::program(SingleSwitchProgramEnvironment& env, ProControllerC
 
     if (FIX_TIME_WHEN_DONE){
         pbf_press_button(context, BUTTON_HOME, 80ms, GameSettings::instance().GAME_TO_HOME_DELAY1);
-        home_to_date_time(context, false, false);
+        home_to_date_time(env.console, context, false);
         pbf_press_button(context, BUTTON_A, 20, 105);
         pbf_press_button(context, BUTTON_A, 20, 105);
         pbf_press_button(context, BUTTON_HOME, 160ms, ConsoleSettings::instance().SETTINGS_TO_HOME_DELAY0);

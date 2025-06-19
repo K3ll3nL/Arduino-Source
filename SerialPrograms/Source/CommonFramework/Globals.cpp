@@ -25,8 +25,8 @@ namespace PokemonAutomation{
 
 const bool IS_BETA_VERSION = true;
 const int PROGRAM_VERSION_MAJOR = 0;
-const int PROGRAM_VERSION_MINOR = 53;
-const int PROGRAM_VERSION_PATCH = 5;
+const int PROGRAM_VERSION_MINOR = 54;
+const int PROGRAM_VERSION_PATCH = 2;
 
 const std::string PROGRAM_VERSION_BASE =
     "v" + std::to_string(PROGRAM_VERSION_MAJOR) +
@@ -200,7 +200,10 @@ const std::string& TRAINING_PATH(){
     return path;
 }
 
-
+const std::string& ML_ANNOTATION_PATH(){
+    static const std::string path = RUNTIME_BASE_PATH() + "DataAnnotation/";
+    return path;
+}
 
 }
 

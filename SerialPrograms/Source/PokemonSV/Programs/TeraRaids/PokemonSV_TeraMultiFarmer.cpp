@@ -88,9 +88,9 @@ TeraFarmerPerConsoleOptions::TeraFarmerPerConsoleOptions(std::string label, cons
 }
 void TeraFarmerPerConsoleOptions::set_host(bool is_host){
     this->is_host = is_host;
-    TeraFarmerPerConsoleOptions::value_changed(this);
+    TeraFarmerPerConsoleOptions::on_config_value_changed(this);
 }
-void TeraFarmerPerConsoleOptions::value_changed(void* object){
+void TeraFarmerPerConsoleOptions::on_config_value_changed(void* object){
     if (this->is_host){
         is_host_label.set_visibility(ConfigOptionState::ENABLED);
         catch_on_win.set_visibility(ConfigOptionState::DISABLED);
@@ -230,7 +230,7 @@ TeraMultiFarmer::TeraMultiFarmer()
 
     PA_ADD_OPTION(NOTIFICATIONS);
 
-    TeraMultiFarmer::value_changed(this);
+    TeraMultiFarmer::on_config_value_changed(this);
 
     HOSTING_SWITCH.add_listener(*this);
     HOSTING_MODE.add_listener(*this);
@@ -240,7 +240,7 @@ void TeraMultiFarmer::update_active_consoles(size_t switch_count){
         PLAYERS[c]->set_visibility(c < switch_count ? ConfigOptionState::ENABLED : ConfigOptionState::HIDDEN);
     }
 }
-void TeraMultiFarmer::value_changed(void* object){
+void TeraMultiFarmer::on_config_value_changed(void* object){
     size_t host = HOSTING_SWITCH.current_value();
     for (size_t c = 0; c < 4; c++){
         PLAYERS[c]->set_host(host == c);
@@ -255,20 +255,20 @@ void TeraMultiFarmer::value_changed(void* object){
 }
 
 
-void TeraMultiFarmer::reset_host(const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+void TeraMultiFarmer::reset_host(const ProgramInfo& info, ConsoleHandle& console, ProControllerContext& context){
     pbf_press_button(context, BUTTON_HOME, 160ms, GameSettings::instance().GAME_TO_HOME_DELAY1);
     if (ROLLOVER_PREVENTION){
         WallClock now = current_time();
         if (m_last_time_fix == WallClock::min() || now - m_last_time_fix > std::chrono::hours(4)){
-            set_time_to_12am_from_home(info, stream, context);
+            set_time_to_12am_from_home(info, console, context);
             m_last_time_fix = now;
         }
     }
-    reset_game_from_home(info, stream, context, 5 * TICKS_PER_SECOND);
+    reset_game_from_home(info, console, context, 5 * TICKS_PER_SECOND);
 }
-void TeraMultiFarmer::reset_joiner(const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+void TeraMultiFarmer::reset_joiner(const ProgramInfo& info, ConsoleHandle& console, ProControllerContext& context){
     pbf_press_button(context, BUTTON_HOME, 160ms, GameSettings::instance().GAME_TO_HOME_DELAY1);
-    reset_game_from_home(info, stream, context, 5 * TICKS_PER_SECOND);
+    reset_game_from_home(info, console, context, 5 * TICKS_PER_SECOND);
 }
 bool TeraMultiFarmer::run_raid_host(ProgramEnvironment& env, ConsoleHandle& console, ProControllerContext& context){
     TeraMultiFarmer_Descriptor::Stats& stats = env.current_stats<TeraMultiFarmer_Descriptor::Stats>();

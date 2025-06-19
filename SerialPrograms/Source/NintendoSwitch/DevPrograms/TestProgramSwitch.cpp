@@ -46,8 +46,8 @@
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
 #include "NintendoSwitch/NintendoSwitch_Settings.h"
-#include "NintendoSwitch/Inference/NintendoSwitch_DateReader.h"
-#include "NintendoSwitch/Programs/NintendoSwitch_KeyboardCodeEntry.h"
+#include "NintendoSwitch/Programs/DateManip/NintendoSwitch_DateManip.h"
+#include "NintendoSwitch/Programs/FastCodeEntry/NintendoSwitch_KeyboardCodeEntry.h"
 #include "PokemonSV/PokemonSV_Settings.h"
 #include "PokemonLA/Programs/PokemonLA_GameEntry.h"
 #include "PokemonSV/Programs/PokemonSV_GameEntry.h"
@@ -99,7 +99,6 @@
 #include "PokemonSwSh/Inference/PokemonSwSh_ReceivePokemonDetector.h"
 #include "PokemonSV/Inference/PokemonSV_PokemonSummaryReader.h"
 #include "PokemonSV/Programs/Battles/PokemonSV_SinglesBattler.h"
-#include "NintendoSwitch/Inference/NintendoSwitch_DateReader.h"
 #include "PokemonSV/Inference/ItemPrinter/PokemonSV_ItemPrinterPrizeReader.h"
 #include "PokemonSV/Inference/ItemPrinter/PokemonSV_ItemPrinterJobsDetector.h"
 #include "PokemonSV/Inference/ItemPrinter/PokemonSV_ItemPrinterMaterialDetector.h"
@@ -116,12 +115,20 @@
 #include "PokemonBDSP/Inference/PokemonBDSP_SelectionArrow.h"
 #include "PokemonSV/Programs/Farming/PokemonSV_MaterialFarmerTools.h"
 #include "PokemonSV/Programs/Farming/PokemonSV_TournamentFarmer.h"
-#include "NintendoSwitch/Programs/NintendoSwitch_NumberCodeEntry.h"
+#include "NintendoSwitch/Programs/FastCodeEntry/NintendoSwitch_NumberCodeEntry.h"
 #include "PokemonSV/Inference/ItemPrinter/PokemonSV_ItemPrinterMenuDetector.h"
 #include "PokemonSV/Inference/Picnics/PokemonSV_SandwichHandDetector.h"
 #include "PokemonSwSh/MaxLair/Inference/PokemonSwSh_MaxLair_Detect_PokemonSwapMenu.h"
 #include "CommonTools/Images/ImageFilter.h"
-
+#include "NintendoSwitch/Options/NintendoSwitch_ModelType.h"
+#include "NintendoSwitch/Programs/DateSpam/NintendoSwitch_HomeToDateTime.h"
+#include "NintendoSwitch/Inference/NintendoSwitch_ConsoleTypeDetector.h"
+#include "NintendoSwitch/Inference/NintendoSwitch_HomeMenuDetector.h"
+#include "NintendoSwitch/Inference/NintendoSwitch_StartGameUserSelectDetector.h"
+#include "NintendoSwitch/Inference/NintendoSwitch_UpdatePopupDetector.h"
+#include "NintendoSwitch/Programs/DateSpam/NintendoSwitch_RollDateForward1.h"
+#include "NintendoSwitch/Programs/DateManip/NintendoSwitch_DateManip_US.h"
+#include "NintendoSwitch/Programs/DateManip/NintendoSwitch_DateManip_24h.h"
 
 #include <QPixmap>
 #include <QVideoFrame>
@@ -176,6 +183,8 @@ public:
 private:
 
 };
+
+
 
 
 
@@ -261,6 +270,7 @@ TestProgram::TestProgram()
     PA_ADD_OPTION(BUTTON0);
     PA_ADD_OPTION(BUTTON1);
     PA_ADD_OPTION(LANGUAGE);
+//    PA_ADD_OPTION(CONSOLE_MODEL);
     PA_ADD_OPTION(IMAGE_PATH);
     PA_ADD_OPTION(STATIC_TEXT);
     PA_ADD_OPTION(SELECT);
@@ -315,11 +325,139 @@ void TestProgram::program(MultiSwitchProgramEnvironment& env, CancellableScope& 
     ProControllerContext context(scope, console.pro_controller());
     VideoOverlaySet overlays(overlay);
 
+
+
+#if 0
+//    ssf_issue_scroll(context, DPAD_LEFT, 48ms, 48ms, 24ms);
+    ssf_press_button(context, BUTTON_A, 96ms, 48ms, 24ms);
+    ssf_press_button(context, BUTTON_L, 0ms, 48ms, 24ms);
+    ssf_issue_scroll(context, DPAD_LEFT, 48ms, 48ms, 24ms);
+#endif
+
+#if 0
+    DateReader reader;
+    reader.make_overlays(overlays);
+    auto date = reader.read_date(logger, feed.snapshot());
+
+    cout << "date format = " << (int)date.first << endl;
+//    cout << "date  = " << (int)date.second << endl;
+#endif
+
+
+
+#if 0
+//    DateReader_Switch2_US reader(COLOR_RED);
+    DateReader_Switch2_JP reader(COLOR_RED);
+    reader.make_overlays(overlays);
+    DateTime date = reader.read_date(logger, feed.snapshot());
+
+    cout << "Month = " << (int)date.month << endl;
+    cout << "Day = " << (int)date.day << endl;
+    cout << "Year = " << (int)date.year << endl;
+    cout << "Hour = " << (int)date.hour << endl;
+    cout << "Minute = " << (int)date.minute << endl;
+#endif
+
+
+#if 0
+    DateChangeDetector_Switch2 detector(COLOR_RED);
+    detector.make_overlays(overlays);
+    cout << detector.detect(feed.snapshot()) << endl;
+#endif
+
+
+#if 0
+    DateReader reader(console);
+    reader.make_overlays(overlays);
+    DateTime date = reader.read_date(logger, feed.snapshot()).second;
+
+    cout << "Month = " << (int)date.month << endl;
+    cout << "Day = " << (int)date.day << endl;
+    cout << "Year = " << (int)date.year << endl;
+    cout << "Hour = " << (int)date.hour << endl;
+    cout << "Minute = " << (int)date.minute << endl;
+
+    while (true){
+        reader.set_date(env.program_info(), console, context, DATE0);
+        for (int c = 0; c < 7; c++){
+            ssf_issue_scroll_ptv(context, DPAD_LEFT);
+        }
+        reader.set_date(env.program_info(), console, context, DATE1);
+        for (int c = 0; c < 7; c++){
+            ssf_issue_scroll_ptv(context, DPAD_LEFT);
+        }
+    }
+#endif
+
+
+
+//    rollback_hours_from_home(console, context, 3, 500ms);
+
+
+
+#if 0
+    while (true){
+        roll_date_backward_N_Switch2_wired(context, 60);
+        for (size_t c = 0; c < 60; c++){
+            roll_date_forward_1(console, context, true);
+        }
+    }
+#endif
+
+
+
+#if 0
+    while (true){
+        home_to_date_time(console, context, true);
+//        home_to_date_time_Switch2_wired_blind(context, true);
+        ssf_do_nothing(context, 1000ms);
+        pbf_press_button(context, BUTTON_HOME, 200ms, 1800ms);
+    }
+#endif
+
+
+#if 0
+    HomeMenuDetector detector0;
+    StartGameUserSelectDetector detector1;
+    UpdatePopupDetector detector2;
+    detector0.make_overlays(overlays);
+    detector1.make_overlays(overlays);
+    detector2.make_overlays(overlays);
+    cout << detector1.detect(feed.snapshot()) << endl;
+#endif
+
+
+#if 0
+    ConsoleTypeDetector_Home detector(console);
+    detector.make_overlays(overlays);
+
+    cout << (int)detector.detect(feed.snapshot()) << endl;
+#endif
+
+
+
+#if 0
+    UpdatePopupDetector detector;
+    detector.make_overlays(overlays);
+
+    cout << detector.detect(feed.snapshot()) << endl;
+#endif
+
+
+
+
+
+#if 0
+    home_to_date_time(console, context, false);
+#endif
+
+#if 0
 //    std::terminate();
     ImageRGB32 image("20250503-121259857603.png");
 
     image = filter_rgb32_brightness(image, COLOR_RED, false, 0x00ffff01, 0, 200);
     image.save("temp.png");
+#endif
 
 
 #if 0
@@ -820,22 +958,6 @@ void TestProgram::program(MultiSwitchProgramEnvironment& env, CancellableScope& 
     reader.read(logger, env.inference_dispatcher(), feed.snapshot());
 #endif
 
-#if 0
-    DateReader reader;
-    reader.make_overlays(overlays);
-    DateTime date = reader.read_date(logger, feed.snapshot()).second;
-
-    cout << "Month = " << (int)date.month << endl;
-    cout << "Day = " << (int)date.day << endl;
-    cout << "Year = " << (int)date.year << endl;
-    cout << "Hour = " << (int)date.hour << endl;
-    cout << "Minute = " << (int)date.minute << endl;
-
-    while (true){
-        reader.set_date(env.program_info(), console, context, DATE0);
-        reader.set_date(env.program_info(), console, context, DATE1);
-    }
-#endif
 
 //    SinglesAIOption battle_AI;
 //    run_singles_battle(env, console, context, battle_AI, false);
@@ -2238,7 +2360,7 @@ void TestProgram::program(MultiSwitchProgramEnvironment& env, CancellableScope& 
 
 
 //    YCommMenuDetector detector(true);
-//    HomeDetector detector;
+//    HomeMenuDetector detector;
 //    cout << detector.detect(image) << endl;
 //    cout << detector.detect(feed.snapshot()) << endl;
 
@@ -2305,8 +2427,8 @@ void TestProgram::program(MultiSwitchProgramEnvironment& env, CancellableScope& 
 #if 0
     ImageRGB32 image("screenshot-20221107-210754107968.png");
 //    auto image = feed.snapshot();
-    HomeDetector detector;
-//    UpdateMenuDetector detector;
+    HomeMenuDetector detector;
+//    UpdatePopupDetector detector;
     VideoOverlaySet overlays(overlay);
     detector.make_overlays(overlays);
     cout << detector.detect(image) << endl;
@@ -2315,7 +2437,7 @@ void TestProgram::program(MultiSwitchProgramEnvironment& env, CancellableScope& 
 //    ImageRGB32 image("ExclamationFalsePositive.png");
 //    find_exclamation_marks(image);
 
-//    HomeDetector detector;
+//    HomeMenuDetector detector;
 //    cout << detector.detect(image) << endl;
 
 

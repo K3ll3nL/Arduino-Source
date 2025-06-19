@@ -56,6 +56,8 @@ bool load_slug_list(const std::string& filepath, std::vector<std::string>& sprit
 class DummyBotBase : public BotBaseController{
 public:
     DummyBotBase(Logger& logger) : m_logger(logger) {}
+
+    virtual void stop(std::string error_message) override{}
     
     virtual Logger& logger() override { return m_logger; }
 
@@ -113,6 +115,9 @@ public:
 
     virtual void add_text(const OverlayText& text) override{}
     virtual void remove_text(const OverlayText& text) override{}
+
+    virtual void add_image(const OverlayImage& image) override{}
+    virtual void remove_image(const OverlayImage& image) override{}
 
     virtual void add_log(std::string message, Color color) override{}
     virtual void clear_log() override{}

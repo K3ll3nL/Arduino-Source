@@ -4,7 +4,6 @@
 #include <QFileInfo>
 //#include <QTextStream>
 #include <QMessageBox>
-#include <dpp/DPP_SilenceWarnings.h>
 #include <Integrations/DppIntegration/DppClient.h>
 #include "Common/Cpp/Exceptions.h"
 #include "Common/Cpp/ImageResolution.h"
@@ -46,6 +45,13 @@ void set_working_directory(){
 
 int main(int argc, char *argv[]){
     setup_crash_handler();
+
+#if defined(__linux) || defined(__APPLE__)
+    // By default Qt uses native menubar but this only works on Windows.
+    // We use menubar in our ButtonDiagram window to choose which controller's button mapping image to show.
+    // So we fix it by don't using native menubar on non-Windows OS.
+    QCoreApplication::setAttribute(Qt::AA_DontUseNativeMenuBar);
+#endif
 
 //#if QT_VERSION_MAJOR == 5 // AA_EnableHighDpiScaling is deprecated in Qt6
 //    QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
@@ -115,7 +121,7 @@ int main(int argc, char *argv[]){
             Integration::DppClient::Client::instance().connect();
         }
 #endif
-        discord_settings.value_changed(nullptr);
+        discord_settings.on_config_value_changed(nullptr);
     }
 
     set_working_directory();

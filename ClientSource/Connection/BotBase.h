@@ -7,6 +7,7 @@
 #ifndef PokemonAutomation_AbstractBotBase_H
 #define PokemonAutomation_AbstractBotBase_H
 
+#include <string>
 #include "Common/Cpp/CancellableScope.h"
 
 namespace PokemonAutomation{
@@ -31,6 +32,7 @@ public:
 
 public:
     virtual ~BotBaseController() = default;
+    virtual void stop(std::string error_message = "") = 0;
 
     virtual Logger& logger() = 0;
     virtual State state() const = 0;

@@ -59,7 +59,7 @@ EditableTableWidget::EditableTableWidget(QWidget& parent, EditableTableOption& v
         header << QString::fromStdString(name);
     }
     header << "" << "" << "";
-    m_table->setColumnCount(header.size());
+    m_table->setColumnCount(int(header.size()));
     m_table->setHorizontalHeaderLabels(header);
 
     QFont font;
@@ -255,7 +255,7 @@ void EditableTableWidget::update_value(){
     }
 #endif
 }
-void EditableTableWidget::value_changed(void* object){
+void EditableTableWidget::on_config_value_changed(void* object){
     QMetaObject::invokeMethod(m_table, [this]{
         update_value();
     }, Qt::QueuedConnection);

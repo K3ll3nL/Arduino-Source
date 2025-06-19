@@ -57,8 +57,11 @@ const std::string& USER_FILE_PATH();
 // Resource folder path. Resources include JSON files, images, sound files and others required by
 // various automation programs.
 const std::string& RESOURCE_PATH();
-// Hold ML trainign data.
+// Hold ML training data.
 const std::string& TRAINING_PATH();
+
+// Folder path (end with "/") to hold data annotation for ML labeling programs
+const std::string& ML_ANNOTATION_PATH();
 
 
 enum class ProgramState{

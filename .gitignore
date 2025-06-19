@@ -48,8 +48,10 @@ SerialPrograms/*.lib
 .vs
 Resources/*
 SerialPrograms/CMakeLists.txt.user
+opencv_world4110d.dll
 
 # Python cache
 __pycache__
-3rdPartyBinaries/opencv_world4110d.dll
-3rdPartyBinaries/opencv_world460d.dll
+
+# Jupyter Notebooks
+*.ipynb

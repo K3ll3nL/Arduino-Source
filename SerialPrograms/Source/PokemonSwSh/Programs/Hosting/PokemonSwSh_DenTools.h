@@ -7,8 +7,8 @@
 #ifndef PokemonAutomation_PokemonSwSh_DenTools_H
 #define PokemonAutomation_PokemonSwSh_DenTools_H
 
-#include "CommonFramework/Tools/VideoStream.h"
 #include "NintendoSwitch/Controllers/NintendoSwitch_ProController.h"
+#include "NintendoSwitch/NintendoSwitch_ConsoleHandle.h"
 #include "PokemonSwSh/Options/PokemonSwSh_Catchability.h"
 
 namespace PokemonAutomation{
@@ -30,12 +30,15 @@ void enter_lobby(
 );
 
 void roll_den(
-    VideoStream& stream, ProControllerContext& context,
+    ConsoleHandle& console, ProControllerContext& context,
     Milliseconds ENTER_ONLINE_DEN_DELAY,
     Milliseconds OPEN_ONLINE_DEN_LOBBY_DELAY,
     uint8_t skips, Catchability catchability
 );
-void rollback_date_from_home(ProControllerContext& context, uint8_t skips);
+void rollback_date_from_home(
+    ConsoleHandle& console, ProControllerContext& context,
+    uint8_t skips
+);
 
 
 

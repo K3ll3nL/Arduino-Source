@@ -51,7 +51,7 @@ public:
     TeraFarmerPerConsoleOptions(std::string label, const LanguageSet& languages, bool host);
 
     void set_host(bool is_host);
-    virtual void value_changed(void* object) override;
+    virtual void on_config_value_changed(void* object) override;
 
 public:
     bool is_host;
@@ -83,11 +83,11 @@ public:
     virtual void update_active_consoles(size_t switch_count) override;
     virtual void program(MultiSwitchProgramEnvironment& env, CancellableScope& scope) override;
 
-    virtual void value_changed(void* object) override;
+    virtual void on_config_value_changed(void* object) override;
 
 private:
-    void reset_host(const ProgramInfo& info, VideoStream& stream, ProControllerContext& context);
-    void reset_joiner(const ProgramInfo& info, VideoStream& stream, ProControllerContext& context);
+    void reset_host(const ProgramInfo& info, ConsoleHandle& console, ProControllerContext& context);
+    void reset_joiner(const ProgramInfo& info, ConsoleHandle& console, ProControllerContext& context);
 
     bool run_raid_host(ProgramEnvironment& env, ConsoleHandle& console, ProControllerContext& context);
     void run_raid_joiner(ProgramEnvironment& env, ConsoleHandle& console, ProControllerContext& context);

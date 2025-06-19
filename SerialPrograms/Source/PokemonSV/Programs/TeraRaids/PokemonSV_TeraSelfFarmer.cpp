@@ -15,7 +15,7 @@
 #include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
-#include "NintendoSwitch/Programs/NintendoSwitch_Navigation.h"
+#include "NintendoSwitch/Programs/DateSpam/NintendoSwitch_HomeToDateTime.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "Pokemon/Inference/Pokemon_NameReader.h"
 #include "PokemonSV/PokemonSV_Settings.h"
@@ -158,7 +158,7 @@ TeraSelfFarmer::TeraSelfFarmer()
 
     CATCH_ON_WIN.add_listener(*this);
 }
-void TeraSelfFarmer::value_changed(void* object){
+void TeraSelfFarmer::on_config_value_changed(void* object){
     STOP_CONDITIONS.STOP_ON_SHINY.set_visibility(
         CATCH_ON_WIN.enabled() ? ConfigOptionState::ENABLED : ConfigOptionState::HIDDEN
     );
@@ -190,7 +190,7 @@ bool TeraSelfFarmer::run_raid(SingleSwitchProgramEnvironment& env, ProController
 
     if (CATCH_ON_WIN.FIX_TIME_ON_CATCH){
         pbf_press_button(context, BUTTON_HOME, 80ms, GameSettings::instance().GAME_TO_HOME_DELAY1);
-        home_to_date_time(context, false, false);
+        home_to_date_time(env.console, context, false);
         pbf_press_button(context, BUTTON_A, 20, 105);
         pbf_press_button(context, BUTTON_A, 20, 105);
         pbf_press_button(context, BUTTON_HOME, 160ms, ConsoleSettings::instance().SETTINGS_TO_HOME_DELAY0);

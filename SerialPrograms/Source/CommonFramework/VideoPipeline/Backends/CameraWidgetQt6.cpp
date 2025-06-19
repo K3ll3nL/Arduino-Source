@@ -162,6 +162,7 @@ CameraVideoSource::CameraVideoSource(
             WallClock now = current_time();
             {
                 WriteSpinLock lg(m_frame_lock);
+//                cout << now << endl;
                 m_last_frame = frame;
                 m_last_frame_timestamp = now;
                 uint64_t seqnum = m_last_frame_seqnum.load(std::memory_order_relaxed);
@@ -216,7 +217,8 @@ VideoSnapshot CameraVideoSource::snapshot(){
     m_last_image_seqnum = frame_seqnum;
 
     WallClock time1 = current_time();
-    m_stats_conversion.report_data(m_logger, std::chrono::duration_cast<std::chrono::microseconds>(time1 - time0).count());
+    const int64_t duration = std::chrono::duration_cast<std::chrono::microseconds>(time1 - time0).count();
+    m_stats_conversion.report_data(m_logger, uint32_t(duration));
 
     return VideoSnapshot(m_last_image, m_last_image_timestamp);
 }

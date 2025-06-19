@@ -5,6 +5,7 @@
  */
 
 #include <QHBoxLayout>
+#include "Common/Qt/Options/ConfigWidget.h"
 #include "CommonFramework/GlobalSettingsPanel.h"
 #include "CommonFramework/Options/Environment/ThemeSelectorOption.h"
 #include "CommonFramework/Recording/StreamHistoryOption.h"
@@ -26,6 +27,7 @@ CommandRow::CommandRow(
     QWidget& parent,
     ControllerSession& controller,
     VideoOverlaySession& session,
+    ConsoleModelCell& console_type,
     bool allow_commands_while_running
 )
     : QWidget(&parent)
@@ -38,47 +40,68 @@ CommandRow::CommandRow(
     QHBoxLayout* command_row = new QHBoxLayout(this);
     command_row->setContentsMargins(0, 0, 0, 0);
 
-    command_row->addWidget(new QLabel("<b>Keyboard Input:</b>", this), 2);
+    command_row->addWidget(new QLabel("<b>Console Type:</b>", this), 2);
     command_row->addSpacing(5);
+
+    ConfigWidget* console_type_box = console_type.make_QtWidget(*this);
+    command_row->addWidget(&console_type_box->widget(), 4);
+    command_row->addSpacing(5);
+
+    QHBoxLayout* row = new QHBoxLayout();
+    command_row->addLayout(row, 12);
+
+
+#if 0
+    row->addWidget(new QLabel("<b>Keyboard Input:</b>", this), 2);
+    row->addSpacing(5);
+#endif
+
+    row->addStretch(100);
 
     m_status = new QLabel(this);
-    command_row->addWidget(m_status, 12);
-    command_row->addSpacing(5);
+//    m_status->setVisible(false);
+    row->addWidget(m_status);
+    row->addSpacing(5);
 
-    command_row->addWidget(new QLabel("<b>Overlays:<b>", this));
+//    row->addWidget(new QLabel("<b>Overlays:<b>", this));
 
     m_overlay_boxes = new QCheckBox("Boxes", this);
     m_overlay_boxes->setChecked(session.enabled_boxes());
-    command_row->addWidget(m_overlay_boxes);
+    row->addWidget(m_overlay_boxes);
 
     m_overlay_text = new QCheckBox("Text", this);
     m_overlay_text->setHidden(true);    //  Nothing uses text overlay yet.
     m_overlay_text->setChecked(session.enabled_text());
-    command_row->addWidget(m_overlay_text);
+    row->addWidget(m_overlay_text);
+
+    m_overlay_images = new QCheckBox("Masks", this);
+    m_overlay_images->setChecked(session.enabled_images());
+    row->addWidget(m_overlay_images);
+
 
     m_overlay_log = new QCheckBox("Log", this);
     m_overlay_log->setChecked(session.enabled_log());
-    command_row->addWidget(m_overlay_log);
+    row->addWidget(m_overlay_log);
 
     m_overlay_stats = new QCheckBox("Stats", this);
     m_overlay_stats->setChecked(session.enabled_stats());
-    command_row->addWidget(m_overlay_stats);
+    row->addWidget(m_overlay_stats);
 
-    command_row->addSpacing(5);
+    row->addSpacing(5);
 
     m_load_profile_button = new QPushButton("Load Profile", this);
-    command_row->addWidget(m_load_profile_button, 2);
+    row->addWidget(m_load_profile_button, 2);
 
     m_save_profile_button = new QPushButton("Save Profile", this);
-    command_row->addWidget(m_save_profile_button, 2);
+    row->addWidget(m_save_profile_button, 2);
 
     m_screenshot_button = new QPushButton("Screenshot", this);
 //    m_screenshot_button->setToolTip("Take a screenshot of the console and save to disk.");
-    command_row->addWidget(m_screenshot_button, 2);
+    row->addWidget(m_screenshot_button, 2);
 
 
 //    m_test_button = new QPushButton("Test Button", this);
-//    command_row->addWidget(m_test_button, 3);
+//    row->addWidget(m_test_button, 3);
 
     update_ui();
 
@@ -92,6 +115,10 @@ CommandRow::CommandRow(
         this, [this](bool checked){ m_session.set_enabled_text(checked); }
     );
     connect(
+        m_overlay_images, &QCheckBox::stateChanged,
+        this, [this](bool checked){ m_session.set_enabled_images(checked); }
+    );
+    connect(
         m_overlay_log, &QCheckBox::stateChanged,
         this, [this](bool checked){ m_session.set_enabled_log(checked); }
     );
@@ -103,6 +130,10 @@ CommandRow::CommandRow(
     connect(
         m_overlay_text, &QCheckBox::checkStateChanged,
         this, [this](Qt::CheckState state){ m_session.set_enabled_text(state == Qt::Checked); }
+    );
+    connect(
+        m_overlay_images, &QCheckBox::checkStateChanged,
+        this, [this](Qt::CheckState state){ m_session.set_enabled_images(state == Qt::Checked); }
     );
     connect(
         m_overlay_log, &QCheckBox::checkStateChanged,
@@ -197,7 +228,7 @@ void CommandRow::update_ui(){
         if (!stopped){
             m_status->setText(
                 QString::fromStdString(
-                    html_color_text("Not Active. A program is running.", COLOR_PURPLE)
+                    "Keyboard: " + html_color_text("&#x2b24;", COLOR_PURPLE)
                 )
             );
             return;
@@ -208,7 +239,7 @@ void CommandRow::update_ui(){
     if (!m_controller.ready()){
         m_status->setText(
             QString::fromStdString(
-                html_color_text("The controller is not ready.", COLOR_RED)
+                "Keyboard: " + html_color_text("&#x2b24;", COLOR_RED)
             )
         );
         return;
@@ -223,7 +254,7 @@ void CommandRow::update_ui(){
     if (!m_last_known_focus){
         m_status->setText(
             QString::fromStdString(
-                html_color_text("Click on the video to enable.", COLOR_PURPLE)
+                "Keyboard: " + html_color_text("&#x2b24;", COLOR_PURPLE)
             )
         );
         return;
@@ -231,7 +262,7 @@ void CommandRow::update_ui(){
 
     m_status->setText(
         QString::fromStdString(
-            html_color_text("Keyboard Control Active!", COLOR_DARKGREEN)
+            "Keyboard: " + html_color_text("&#x2b24;", COLOR_DARKGREEN)
         )
     );
 }
@@ -248,22 +279,27 @@ void CommandRow::on_state_changed(ProgramState state){
 }
 
 
-void CommandRow::enabled_boxes(bool enabled){
+void CommandRow::on_overlay_enabled_boxes(bool enabled){
     QMetaObject::invokeMethod(this, [this, enabled]{
         this->m_overlay_boxes->setChecked(enabled);
     }, Qt::QueuedConnection);
 }
-void CommandRow::enabled_text(bool enabled){
+void CommandRow::on_overlay_enabled_text(bool enabled){
     QMetaObject::invokeMethod(this, [this, enabled]{
         this->m_overlay_text->setChecked(enabled);
     }, Qt::QueuedConnection);
 }
-void CommandRow::enabled_log(bool enabled){
+void CommandRow::on_overlay_enabled_images(bool enabled){
+    QMetaObject::invokeMethod(this, [this, enabled]{
+        this->m_overlay_images->setChecked(enabled);
+    }, Qt::QueuedConnection);
+}
+void CommandRow::on_overlay_enabled_log(bool enabled){
     QMetaObject::invokeMethod(this, [this, enabled]{
         this->m_overlay_log->setChecked(enabled);
     }, Qt::QueuedConnection);
 }
-void CommandRow::enabled_stats(bool enabled){
+void CommandRow::on_overlay_enabled_stats(bool enabled){
     QMetaObject::invokeMethod(this, [this, enabled]{
         this->m_overlay_stats->setChecked(enabled);
     }, Qt::QueuedConnection);

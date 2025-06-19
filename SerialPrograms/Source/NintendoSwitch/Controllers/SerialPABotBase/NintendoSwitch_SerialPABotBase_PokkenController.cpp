@@ -66,7 +66,7 @@ void SerialPABotBase_PokkenController::push_state(const Cancellable* cancellable
     //  Must be called inside "m_state_lock".
 
     if (!is_ready()){
-        throw InvalidConnectionStateException();
+        throw InvalidConnectionStateException(error_string());
     }
 
     int dpad_x = 0;
@@ -247,6 +247,67 @@ private:
 };
 
 
+#if 0
+class TickRateTracker{
+public:
+    TickRateTracker(double expected_ticks_per_second)
+        : m_expected_ticks_per_second(expected_ticks_per_second)
+//        , m_history(10)
+    {}
+
+
+    double push_ticks(uint64_t ticks){
+        WallClock now = current_time();
+
+//        if (m_history.full()){
+//            m_history.pop_front();
+//        }
+
+        if (ticks <= m_last_ticks){
+            m_last_push = WallClock::min();
+            m_last_ticks = 0;
+            m_consecutive_off = 0;
+        }
+
+        double ticks_per_second = 0;
+
+        if (m_last_push != WallClock::min()){
+            uint64_t elapsed_ticks = ticks - m_last_ticks;
+            double elapsed_seconds = std::chrono::duration_cast<std::chrono::microseconds>(now - m_last_push).count() * 0.000001;
+            ticks_per_second = elapsed_ticks / elapsed_seconds;
+//            m_history.push_back(ticks_per_second);
+
+            double rate_error = std::abs(ticks_per_second - m_expected_ticks_per_second) / m_expected_ticks_per_second;
+            if (rate_error > 0.1){
+                m_consecutive_off++;
+            }else{
+                m_consecutive_off = 0;
+            }
+
+        }
+
+        m_last_push = now;
+        m_last_ticks = ticks;
+
+        return ticks_per_second;
+    }
+
+    size_t consecutive_off_readings() const{
+        return m_consecutive_off;
+    }
+
+
+private:
+    double m_expected_ticks_per_second;
+    WallClock m_last_push = WallClock::min();
+    uint64_t m_last_ticks = 0;
+
+    size_t m_consecutive_off = 0;
+
+//    CircularBuffer<double> m_history;
+};
+#endif
+
 
 void SerialPABotBase_PokkenController::status_thread(){
     constexpr std::chrono::milliseconds PERIOD(1000);
@@ -261,7 +322,7 @@ void SerialPABotBase_PokkenController::status_thread(){
 
             auto last = current_time() - last_ack.load(std::memory_order_relaxed);
             std::chrono::duration<double> seconds = last;
-            if (last > 2 * PERIOD){
+            if (last > 2 * PERIOD && is_ready()){
                 std::string text = "Last Ack: " + tostr_fixed(seconds.count(), 3) + " seconds ago";
                 m_handle.set_status_line1(text, COLOR_RED);
 //                m_logger.log("Connection issue detected. Turning on all logging...");
@@ -284,6 +345,7 @@ void SerialPABotBase_PokkenController::status_thread(){
 
 
     ExtendedLengthCounter clock_tracker;
+//    TickRateTracker tick_rate_tracker(m_use_milliseconds ? 1000 : TICKS_PER_SECOND);
     WallClock next_ping = current_time();
     while (true){
         if (m_stopping.load(std::memory_order_relaxed) || !m_handle.is_ready()){
@@ -294,28 +356,48 @@ void SerialPABotBase_PokkenController::status_thread(){
         try{
             pabb_MsgAckRequestI32 response;
             m_serial->issue_request_and_wait(
+                SerialPABotBase::MessageControllerStatus(),
+                &m_scope
+            ).convert<PABB_MSG_ACK_REQUEST_I32>(m_logger, response);
+            last_ack.store(current_time(), std::memory_order_relaxed);
+
+            uint32_t status = response.data;
+            bool status_connected = status & 1;
+            bool status_ready     = status & 2;
+
+            std::string str;
+            str += "Connected: " + (status_connected
+                ? html_color_text("Yes", theme_friendly_darkblue())
+                : html_color_text("No", COLOR_RED)
+            );
+            str += " - Ready: " + (status_ready
+                ? html_color_text("Yes", theme_friendly_darkblue())
+                : html_color_text("No", COLOR_RED)
+            );
+
+            m_handle.set_status_line1(str);
+
+
+#if 0
+            pabb_MsgAckRequestI32 response;
+            m_serial->issue_request_and_wait(
                 SerialPABotBase::DeviceRequest_system_clock(),
                 &m_scope
             ).convert<PABB_MSG_ACK_REQUEST_I32>(logger(), response);
             last_ack.store(current_time(), std::memory_order_relaxed);
-            uint64_t wallclock = clock_tracker.push_short_value(response.data);
 
-            if (wallclock == 0){
-                m_handle.set_status_line1(
-                    "Not connected to Switch.",
-                    COLOR_RED
-                );
-            }else{
-                m_handle.set_status_line1(
-                    "Up Time: " + ticks_to_time(
-                        m_use_milliseconds
-                            ? 1000
-                            : NintendoSwitch::TICKS_PER_SECOND,
-                        wallclock
-                    ),
-                    theme_friendly_darkblue()
-                );
-            }
+            uint64_t wallclock = clock_tracker.push_short_value(response.data);
+//            double ticks_per_second = tick_rate_tracker.push_ticks(wallclock);
+            m_handle.set_status_line1(
+                "Device Clock: " + tostr_u_commas(wallclock),
+                theme_friendly_darkblue()
+            );
+#endif
+
+//            if (tick_rate_tracker.consecutive_off_readings() >= 10){
+//                error = "Tick rate is erratic. Arduino/Teensy is not reliable on Switch 2.";
+//            }
+
         }catch (OperationCancelledException&){
             break;
         }catch (InvalidConnectionStateException&){
@@ -329,6 +411,7 @@ void SerialPABotBase_PokkenController::status_thread(){
         }
         if (!error.empty()){
             m_handle.set_status_line1(error, COLOR_RED);
+            stop_with_error(std::move(error));
         }
 
 //        cout << "lock()" << endl;

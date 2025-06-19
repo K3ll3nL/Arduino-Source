@@ -194,13 +194,9 @@ CramomaticTarget CramomaticRNG::calculate_target(SingleSwitchProgramEnvironment&
     // priority_advances only starts counting up after the first good result is found
     while (priority_advances <= MAX_PRIORITY_ADVANCES){
         // calculate the result for the current temp_rng state
-        Xoroshiro128Plus temp_rng(rng.get_state());
+        Xoroshiro128PlusState temp_state = predict_state_after_menu_close(rng.get_state(), NUM_NPCS);
+        Xoroshiro128Plus temp_rng(temp_state);
 
-        for (size_t i = 0; i < NUM_NPCS; i++){
-            temp_rng.nextInt(91);
-        }
-        temp_rng.next();
-        temp_rng.nextInt(60);
 
         /*uint64_t item_roll =*/ temp_rng.nextInt(4);
         uint64_t ball_roll = temp_rng.nextInt(100);
@@ -443,7 +439,7 @@ void CramomaticRNG::program(SingleSwitchProgramEnvironment& env, ProControllerCo
         if (TOUCH_DATE_INTERVAL.ok_to_touch_now()){
             env.log("Touching date to prevent rollover.");
             ssf_press_button(context, BUTTON_HOME, GameSettings::instance().GAME_TO_HOME_DELAY_SAFE0, 160ms);
-            touch_date_from_home(context, ConsoleSettings::instance().SETTINGS_TO_HOME_DELAY0);
+            touch_date_from_home(env.console, context, ConsoleSettings::instance().SETTINGS_TO_HOME_DELAY0);
             resume_game_no_interact(env.console, context, ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST);
         }
 
