@@ -31,7 +31,7 @@ public:
     virtual ~HomeApplicationDetector();
     
     virtual void make_overlays(VideoOverlaySet& items) const override;
-    virtual bool detect(const ImageViewRGB32& screen) const override;
+    virtual bool detect(const ImageViewRGB32& screen) override;
     
     std::vector<ImageFloatBox> detect_all(const ImageViewRGB32& screen) const;
     
@@ -64,7 +64,7 @@ public:
     virtual ~HomeTitleScreenDetector();
 
     virtual void make_overlays(VideoOverlaySet& items) const override;
-    virtual bool detect(const ImageViewRGB32& screen) const override;
+    virtual bool detect(const ImageViewRGB32& screen) override;
 
     std::vector<ImageFloatBox> detect_all(const ImageViewRGB32& screen) const;
 
@@ -97,7 +97,7 @@ public:
     virtual ~HomeMainMenuDetector();
 
     virtual void make_overlays(VideoOverlaySet& items) const override;
-    virtual bool detect(const ImageViewRGB32& screen) const override;
+    virtual bool detect(const ImageViewRGB32& screen) override;
 
     std::vector<ImageFloatBox> detect_all(const ImageViewRGB32& screen) const;
 
@@ -130,7 +130,7 @@ public:
     virtual ~HomeGameSelectDetector();
 
     virtual void make_overlays(VideoOverlaySet& items) const override;
-    virtual bool detect(const ImageViewRGB32& screen) const override;
+    virtual bool detect(const ImageViewRGB32& screen) override;
 
     std::vector<ImageFloatBox> detect_all(const ImageViewRGB32& screen) const;
 
@@ -162,7 +162,7 @@ public:
     virtual ~HomeListViewDetector();
 
     virtual void make_overlays(VideoOverlaySet& items) const override;
-    virtual bool detect(const ImageViewRGB32& screen) const override;
+    virtual bool detect(const ImageViewRGB32& screen) override;
 
     std::vector<ImageFloatBox> detect_all(const ImageViewRGB32& screen) const;
 
@@ -194,7 +194,7 @@ public:
     virtual ~HomeSummaryViewDetector();
 
     virtual void make_overlays(VideoOverlaySet& items) const override;
-    virtual bool detect(const ImageViewRGB32& screen) const override;
+    virtual bool detect(const ImageViewRGB32& screen) override;
 
     std::vector<ImageFloatBox> detect_all(const ImageViewRGB32& screen) const;
 
@@ -226,7 +226,7 @@ public:
     virtual ~HomeMarkingsViewDetector();
 
     virtual void make_overlays(VideoOverlaySet& items) const override;
-    virtual bool detect(const ImageViewRGB32& screen) const override;
+    virtual bool detect(const ImageViewRGB32& screen) override;
 
     std::vector<ImageFloatBox> detect_all(const ImageViewRGB32& screen) const;
 
@@ -258,7 +258,7 @@ public:
     virtual ~HomeBoxViewDetector();
 
     virtual void make_overlays(VideoOverlaySet& items) const override;
-    virtual bool detect(const ImageViewRGB32& screen) const override;
+    virtual bool detect(const ImageViewRGB32& screen) override;
 
     std::vector<ImageFloatBox> detect_all(const ImageViewRGB32& screen) const;
 
@@ -290,7 +290,7 @@ public:
     virtual ~HomeLoginDialogueDetector();
 
     virtual void make_overlays(VideoOverlaySet& items) const override;
-    virtual bool detect(const ImageViewRGB32& screen) const override;
+    virtual bool detect(const ImageViewRGB32& screen) override;
 
     std::vector<ImageFloatBox> detect_all(const ImageViewRGB32& screen) const;
 
@@ -322,7 +322,7 @@ public:
     virtual ~HomeLogoutDialogueDetector();
 
     virtual void make_overlays(VideoOverlaySet& items) const override;
-    virtual bool detect(const ImageViewRGB32& screen) const override;
+    virtual bool detect(const ImageViewRGB32& screen) override;
 
     std::vector<ImageFloatBox> detect_all(const ImageViewRGB32& screen) const;
 

@@ -8,7 +8,6 @@
 #include "CommonFramework/ImageTypes/ImageViewRGB32.h"
 #include "CommonFramework/VideoPipeline/VideoOverlayScopes.h"
 #include "CommonTools/OCR/OCR_RawOCR.h"
-#include <iostream>
 #include "PokemonHome_HomeApplicationDetector.h"
 
 //#include <iostream>
@@ -31,7 +30,7 @@ void HomeApplicationDetector::make_overlays(VideoOverlaySet& items) const{
     items.add(m_color, m_box);
 }
 
-bool HomeApplicationDetector::detect(const ImageViewRGB32& screen) const{
+bool HomeApplicationDetector::detect(const ImageViewRGB32& screen){
 
     // Title screen banner says "Push any button"
     ImageFloatBox title_screen_box(0.3, 0.8, 0.4, 0.075);
@@ -89,7 +88,7 @@ void HomeTitleScreenDetector::make_overlays(VideoOverlaySet& items) const{
     items.add(m_color, m_box);
 }
 
-bool HomeTitleScreenDetector::detect(const ImageViewRGB32& screen) const{
+bool HomeTitleScreenDetector::detect(const ImageViewRGB32& screen){
 
     // Title screen banner says "Push any button"
     ImageFloatBox title_screen_box(0.3, 0.8, 0.4, 0.075);
@@ -136,7 +135,7 @@ void HomeMainMenuDetector::make_overlays(VideoOverlaySet& items) const{
     items.add(m_color, m_box);
 }
 
-bool HomeMainMenuDetector::detect(const ImageViewRGB32& screen) const{
+bool HomeMainMenuDetector::detect(const ImageViewRGB32& screen){
 
     char chars[] = "\n\r—";
 
@@ -189,7 +188,7 @@ void HomeGameSelectDetector::make_overlays(VideoOverlaySet& items) const{
     items.add(m_color, m_box);
 }
 
-bool HomeGameSelectDetector::detect(const ImageViewRGB32& screen) const{
+bool HomeGameSelectDetector::detect(const ImageViewRGB32& screen){
 
     char chars[] = "\n\r—.,";
 
@@ -242,7 +241,7 @@ void HomeListViewDetector::make_overlays(VideoOverlaySet& items) const{
     items.add(m_color, m_box);
 }
 
-bool HomeListViewDetector::detect(const ImageViewRGB32& screen) const{
+bool HomeListViewDetector::detect(const ImageViewRGB32& screen){
 
     char chars[] = "\n\r—";
 
@@ -294,7 +293,7 @@ void HomeSummaryViewDetector::make_overlays(VideoOverlaySet& items) const{
     items.add(m_color, m_box);
 }
 
-bool HomeSummaryViewDetector::detect(const ImageViewRGB32& screen) const{
+bool HomeSummaryViewDetector::detect(const ImageViewRGB32& screen){
 
     char chars[] = "\n\r—";
 
@@ -346,7 +345,7 @@ void HomeMarkingsViewDetector::make_overlays(VideoOverlaySet& items) const{
     items.add(m_color, m_box);
 }
 
-bool HomeMarkingsViewDetector::detect(const ImageViewRGB32& screen) const{
+bool HomeMarkingsViewDetector::detect(const ImageViewRGB32& screen){
 
     char chars[] = "\n\r—";
 
@@ -401,7 +400,7 @@ void HomeBoxViewDetector::make_overlays(VideoOverlaySet& items) const{
     items.add(m_color, m_box);
 }
 
-bool HomeBoxViewDetector::detect(const ImageViewRGB32& screen) const{
+bool HomeBoxViewDetector::detect(const ImageViewRGB32& screen){
 
     char chars[] = "\n\r—";
 
@@ -454,7 +453,7 @@ void HomeLoginDialogueDetector::make_overlays(VideoOverlaySet& items) const{
     items.add(m_color, m_box);
 }
 
-bool HomeLoginDialogueDetector::detect(const ImageViewRGB32& screen) const{
+bool HomeLoginDialogueDetector::detect(const ImageViewRGB32& screen){
 
     char chars[] = "\n\r—";
 
@@ -499,7 +498,7 @@ void HomeLogoutDialogueDetector::make_overlays(VideoOverlaySet& items) const{
     items.add(m_color, m_box);
 }
 
-bool HomeLogoutDialogueDetector::detect(const ImageViewRGB32& screen) const{
+bool HomeLogoutDialogueDetector::detect(const ImageViewRGB32& screen){
 
     char chars[] = "\n\r—";
 
