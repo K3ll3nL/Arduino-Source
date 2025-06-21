@@ -84,7 +84,7 @@ std::vector<PageID> PokemonHome_HomeEnvironment::find_navigation_path(SingleSwit
         auto [current, current_path] = queue.front();
         queue.pop();
 
-        env.console.log("Looking at moves from " + to_string(current));
+        // env.console.log("Looking at moves from " + to_string(current));
 
 
         // If we've reached the target page, cache and return the path
@@ -97,7 +97,7 @@ std::vector<PageID> PokemonHome_HomeEnvironment::find_navigation_path(SingleSwit
         // Explore all transitions from the current page
         const auto& transitions = navigation_map[current];
         for (const auto& [next, _] : transitions) {
-            env.console.log("considering moving to " + to_string(next));
+            // env.console.log("considering moving to " + to_string(next));
 
             // Push the next node and path without using a visited set
             std::vector<PageID> new_path = current_path;
@@ -175,46 +175,47 @@ void PokemonHome_HomeEnvironment::detect_home(SingleSwitchProgramEnvironment& en
     case 0:
         current_view = PageID::TITLE_SCREEN;
         game_open = GameStatus::NONE;
-        env.console.log("At Title Screen");
+        // env.console.log("At Title Screen");
         break;
     case 1:
         current_view = PageID::MAIN_MENU;
         game_open = GameStatus::NONE;
-        env.console.log("At Main Menu");
+        // env.console.log("At Main Menu");
         break;
     case 2:
         current_view = PageID::GAME_SELECTION;
         game_open = GameStatus::NONE;
-        env.console.log("At Game Selection");
+        // env.console.log("At Game Selection");
         break;
     case 3:
         current_view = PageID::LIST_VIEW;
         game_open = GameStatus::UNKNOWN;
-        env.console.log("At List View");
+        // env.console.log("At List View");
         break;
     case 4:
         current_view = PageID::SUMMARY_VIEW;
         // TODO: Break out summary view into box version and list version
         game_open = GameStatus::UNKNOWN;
-        env.console.log("At Summary View");
+        // env.console.log("At Summary View");
         break;
     case 5:
         current_view = PageID::MARKINGS_VIEW;
         // TODO: Break out Markings view into box version and list version
         game_open = GameStatus::UNKNOWN;
-        env.console.log("At Markings View");
+        // env.console.log("At Markings View");
         break;
     case 6:
         current_view = PageID::BOX_VIEW;
         game_open = GameStatus::UNKNOWN;
+        // TODO: Implement primitive game status detection: Is the game icon slot green? if so, Home, else Unknown.
         // TODO: Implement game status detection
         // TODO: Get current home box as well as secondary box (if applicable)
-        env.console.log("At Box View");
+        // env.console.log("At Box View");
         break;
     default:
         current_view = PageID::UNKNOWN;
         game_open = GameStatus::UNKNOWN;
-        env.console.log("At Unknown");
+        // env.console.log("At Unknown");
         break;
     }
 }
@@ -261,7 +262,7 @@ void PokemonHome_HomeEnvironment::initialize_navigation_map(SingleSwitchProgramE
                         mainMenuWatcher
                     });
 
-                // If true, wait for LoginDialogueDetector!=0 (Finished logging in)
+                // Can't find main menu
                 if(ret!=0){
                     throw;
                 }
@@ -281,7 +282,7 @@ void PokemonHome_HomeEnvironment::initialize_navigation_map(SingleSwitchProgramE
             HomeGameSelectWatcher gameSelectWatcher(COLOR_BLUE);
 
             // Press A, then verify we are at the game selection screen
-            env.console.log("Press A");
+            // env.console.log("Press A");
             pbf_press_button(context, BUTTON_A, 10, 100);
 
             context.wait_for_all_requests();
@@ -305,7 +306,7 @@ void PokemonHome_HomeEnvironment::initialize_navigation_map(SingleSwitchProgramE
             HomeMainMenuWatcher mainMenuWatcher(COLOR_BLUE);
 
             // Press B, then verify we are at the game selection screen
-            env.console.log("Press B");
+            // env.console.log("Press B");
             pbf_press_button(context, BUTTON_B, 10, 100);
 
             context.wait_for_all_requests();
@@ -350,17 +351,18 @@ void PokemonHome_HomeEnvironment::initialize_navigation_map(SingleSwitchProgramE
             VideoOverlaySet box_render(env.console);
 
             while (text != target_name){
-                env.console.log("Found game " + text + OCR::ocr_read(Language::English, extract_box_reference(env.console.video().snapshot(), game_checker)));
+                // env.console.log("Found game " + text + OCR::ocr_read(Language::English, extract_box_reference(env.console.video().snapshot(), game_checker)));
                 pbf_press_dpad(context, DPAD_RIGHT, 10, 20);
 
                 context.wait_for_all_requests();
                 text = OCR::ocr_read(Language::English, extract_box_reference(env.console.video().snapshot(), game_checker));
                 for(auto a:chars){text.erase(std::remove(text.begin(),text.end(), a),text.end());}
-            } ;
+            };
 
+            // env.console.log("Found game " + text + OCR::ocr_read(Language::English, extract_box_reference(env.console.video().snapshot(), game_checker)));
 
             // Press A twice, then verify we are at the Box View screen
-            env.console.log("Press A");
+            // env.console.log("Press A");
             pbf_press_button(context, BUTTON_A, 10, 100);
             pbf_press_button(context, BUTTON_A, 10, 100);
 
@@ -384,8 +386,8 @@ void PokemonHome_HomeEnvironment::initialize_navigation_map(SingleSwitchProgramE
             HomeMainMenuWatcher mainMenuWatcher(COLOR_BLUE);
 
             // Press Plus, then trigger logout sequence
-            env.console.log("Press Plus");
-            env.console.log("Press A");
+            // env.console.log("Press Plus");
+            // env.console.log("Press A");
             pbf_press_button(context, BUTTON_PLUS, 10, 150);
             pbf_press_button(context, BUTTON_A, 10, 100);
 
@@ -421,7 +423,7 @@ void PokemonHome_HomeEnvironment::initialize_navigation_map(SingleSwitchProgramE
             HomeSummaryViewWatcher summaryWatcher(COLOR_BLUE);
 
             // Open menu, then go to summary. Assumes cursor is in the right position. (Use other code to check if the correct button is orange later)
-            env.console.log("Press A, then down, then A");
+            // env.console.log("Press A, then down, then A");
             pbf_press_button(context, BUTTON_A, 10, 40);
             pbf_press_button(context, BUTTON_DOWN, 10, 40);
             pbf_press_button(context, BUTTON_A, 10, 40);
@@ -442,7 +444,7 @@ void PokemonHome_HomeEnvironment::initialize_navigation_map(SingleSwitchProgramE
             HomeMarkingsViewWatcher markingsWatcher(COLOR_BLUE);
 
             // Open menu, then go to markings. Assumes cursor is in the right position. (Use other code to check if the correct button is orange later)
-            env.console.log("Press A, then down, then down, then a");
+            // env.console.log("Press A, then down, then down, then a");
 
             pbf_press_button(context, BUTTON_A, 10, 40);
             pbf_press_button(context, BUTTON_DOWN, 10, 40);
@@ -465,7 +467,7 @@ void PokemonHome_HomeEnvironment::initialize_navigation_map(SingleSwitchProgramE
             HomeListViewWatcher listWatcher(COLOR_BLUE);
 
             // Press X
-            env.console.log("Press X");
+            // env.console.log("Press X");
 
             pbf_press_button(context, BUTTON_X, 10, 40);
 
@@ -488,7 +490,7 @@ void PokemonHome_HomeEnvironment::initialize_navigation_map(SingleSwitchProgramE
             HomeBoxViewWatcher boxWatcher(COLOR_BLUE);
 
             // Press B
-            env.console.log("Press B");
+            // env.console.log("Press B");
 
             pbf_press_button(context, BUTTON_B, 10, 40);
 
@@ -511,7 +513,7 @@ void PokemonHome_HomeEnvironment::initialize_navigation_map(SingleSwitchProgramE
             HomeBoxViewWatcher boxWatcher(COLOR_BLUE);
 
              //Press B
-            env.console.log("Press B");
+            // env.console.log("Press B");
 
             pbf_press_button(context, BUTTON_B, 10, 40);
 
@@ -534,7 +536,7 @@ void PokemonHome_HomeEnvironment::initialize_navigation_map(SingleSwitchProgramE
             HomeBoxViewWatcher boxWatcher(COLOR_BLUE);
 
             //Press B
-            env.console.log("Press B");
+            // env.console.log("Press B");
 
             pbf_press_button(context, BUTTON_B, 10, 40);
 
