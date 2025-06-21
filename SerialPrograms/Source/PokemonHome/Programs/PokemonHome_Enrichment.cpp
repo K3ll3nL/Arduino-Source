@@ -21,6 +21,7 @@
 #include "PokemonSV/Inference/Dialogs/PokemonSV_DialogDetector.h"
 #include "PokemonSV/Inference/Dialogs/PokemonSV_DialogArrowDetector.h"
 #include <iostream>
+#include <qdir.h>
 #include <qobject.h>
 #include <unordered_set>
 #include <cmath>
@@ -137,6 +138,7 @@ Enrichment::Enrichment()
     PA_ADD_OPTION(NORMAL_DELOAD);     //pokemon sv start at desk
     PA_ADD_OPTION(SKIP_SETUP);          //pokemon sv start at desk
     PA_ADD_OPTION(NOTIFICATIONS);
+    QDir().mkpath("Home Storage");
 
 }
 
@@ -429,6 +431,40 @@ public:
         }
         return ss.str();
     }
+
+    JsonValue to_json(){
+        JsonObject pokemon;
+        pokemon["national_dex_number"] = national_dex_number;
+        pokemon["shiny"] = shiny;
+        pokemon["gmax"] = gmax;
+        switch(gender){
+        case StatsHuntGenderFilter::Any: pokemon["gender"] = "Any";
+            case StatsHuntGenderFilter::Male: pokemon["gender"] = "Male";
+            case StatsHuntGenderFilter::Female: pokemon["gender"] = "Female";
+            case StatsHuntGenderFilter::Genderless: pokemon["gender"] = "Genderless";
+            break;
+        }
+        pokemon["level"] = level;
+        pokemon["form_id"] = form_id;
+        pokemon["type1"] = type1;
+        pokemon["type2"] = type2;
+
+        JsonObject pokemon_color;
+        pokemon_color["r"] = color.r;
+        pokemon_color["g"] = color.g;
+        pokemon_color["b"] = color.b;
+        pokemon["color"] = JsonValue(std::move(pokemon_color));
+
+
+        JsonObject quick_color_obj;
+        quick_color_obj["r"] = quick_color.r;
+        quick_color_obj["g"] = quick_color.g;
+        quick_color_obj["b"] = quick_color.b;
+        pokemon["quick_color"] = JsonValue(std::move(quick_color_obj));
+
+        return pokemon;
+    }
+
 };
 
 class PokemonBox {
@@ -457,6 +493,10 @@ public:
         grid[row][col]->current_col = col;
 
         update_stats();
+    }
+
+    bool is_empty() const {
+        return grid.empty();
     }
 
     // Overloaded function to add a Pokemon based on its attributes.
@@ -550,6 +590,27 @@ public:
         return ss.str();
     }
 
+    void output_boxes_data_json(size_t box_num){
+        JsonArray pokemon_data;
+        for (size_t poke_nb = 0; poke_nb < 30; poke_nb++){
+            JsonObject pokemon;
+            size_t row = poke_nb / 6;
+            size_t col = poke_nb % 6;
+
+            pokemon["row"] = row;
+            pokemon["column"] = col;
+
+            if(grid[row][col].has_value()){
+                pokemon["Pokemon"] = grid[row][col]->to_json();
+            }else{
+                pokemon["Pokemon"] = "blank";
+            }
+            pokemon_data.push_back(std::move(pokemon));
+
+        }
+        pokemon_data.dump("Home Storage\\" + std::to_string(box_num) + ".json");
+    }
+
     size_t pokemon_count;
     size_t blanks;
     size_t consecutive_blanks;
@@ -565,31 +626,29 @@ public:
     }
 
 
-    void add_box(size_t index, std::optional<PokemonBox> box) {
+    void add_box(size_t index, PokemonBox box) {
         if (index >= layout.size()) {
             throw std::out_of_range("Index out of bounds.");
         }
         layout[index] = std::move(box); // Transfer ownership
     }
 
-    void update_box(size_t index, std::optional<PokemonBox> new_box) {
+    void update_box(size_t index, PokemonBox new_box) {
         if (index >= layout.size()) {
             throw std::out_of_range("Index out of bounds.");
-        }
-        if (!layout[index]) {
-            throw std::runtime_error("Cannot update an empty slot.");
         }
         layout[index] = std::move(new_box);
     }
 
-    const std::optional<PokemonBox>& get_box(size_t index) const {
+
+    const PokemonBox& get_box(size_t index) const {
         if (index >= layout.size()) {
             throw std::out_of_range("Index out of bounds.");
         }
         return layout[index];
     }
 
-    std::optional<PokemonBox>& get_box_mutable(size_t index) {
+    PokemonBox& get_box_mutable(size_t index) {
         if (index >= layout.size()) {
             throw std::out_of_range("Index out of bounds.");
         }
@@ -624,7 +683,7 @@ public:
 
 private:
 
-    std::vector<std::optional<PokemonBox>> layout;
+    std::vector<PokemonBox> layout;
     std::vector<bool> sorted;
 };
 
@@ -1638,7 +1697,7 @@ bool home_reconcile_spaces(SingleSwitchProgramEnvironment& env, ProControllerCon
 }
 
 
-bool home_sort_box(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PokemonBox box, std::pair<size_t,size_t>& cursor) {
+bool home_sort_box(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PokemonBox& box, std::pair<size_t,size_t>& cursor) {
     bool touched = false;
     size_t rows = MAX_ROWS;
     size_t cols = MAX_COLUMNS;
@@ -1681,15 +1740,15 @@ bool home_sort_box(SingleSwitchProgramEnvironment& env, ProControllerContext& co
 
 
             // set up easy swapping, given that there are no blank spaces
-            if(reverse && !box->grid[slot2.first][slot2.second]){
+            if(reverse && !box.grid[slot2.first][slot2.second]){
                 reverse = false;
-            }else if (!reverse && !box->grid[slot1.first][slot1.second]){
+            }else if (!reverse && !box.grid[slot1.first][slot1.second]){
                 reverse = true;
 
             }
 
             // For time saving, if the swap spot is next, don't reverse (don't trigger if current spot is blank, uncommon)
-            if(reverse && i + 1 == min_idx && box->grid[slot1.first][slot1.second].has_value()){
+            if(reverse && i + 1 == min_idx && box.grid[slot1.first][slot1.second].has_value()){
                 reverse = false;
             }
 
@@ -1709,11 +1768,11 @@ bool home_sort_box(SingleSwitchProgramEnvironment& env, ProControllerContext& co
 
 
             // Swap in the box
-            box->swap_pokemon(swap_row, swap_col, min_row, min_col);
+            box.swap_pokemon(swap_row, swap_col, min_row, min_col);
         }
     }
 
-    box->update_stats();
+    box.update_stats();
 
     context.wait_for_all_requests();
 
@@ -1722,7 +1781,7 @@ bool home_sort_box(SingleSwitchProgramEnvironment& env, ProControllerContext& co
     return touched;
 }
 
-size_t home_dirty_swap_window_size(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PokemonBox left, PokemonBox right){
+size_t home_dirty_swap_window_size(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PokemonBox& left, PokemonBox& right){
     size_t window_size = 0;
     for(size_t i = 0; i < 30; i++){
         for(size_t j = 0; j <= i; j++){
@@ -1740,7 +1799,7 @@ size_t home_dirty_swap_window_size(SingleSwitchProgramEnvironment& env, ProContr
     return window_size;
 }
 
-size_t home_dirty_swap_window_size_v2(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PokemonBox left, PokemonBox right){
+size_t home_dirty_swap_window_size_v2(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PokemonBox& left, PokemonBox& right){
     size_t window_size = 0;
     for(size_t i = 0; i < 30; i++){
         for(size_t j = 0; j <=i; j++){
@@ -1966,7 +2025,7 @@ bool home_do_dirty_swap_v2(SingleSwitchProgramEnvironment& env, ProControllerCon
     return window>0;
 }
 
-bool home_dirty_swap_check(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PokemonBox left, PokemonBox right, size_t diff = 0){
+bool home_dirty_swap_check(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PokemonBox& left, PokemonBox& right, size_t diff = 0){
     // Change this function to calculate sliding window size instead of spread away from middle so that stuff isn't inverted randomly
 
     if(!left.grid[(size_t)(29-diff)/6][(29-diff)%6]) return true;
@@ -2510,8 +2569,8 @@ void Enrichment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControll
 
         home_navigate_to_box(env, context, HOME_FIRST_BOX, true);
         std::pair<size_t,size_t> cursor = {0,0};
-        std::optional<PokemonBox> left = home_build_box(env, context, cursor, HOME_FIRST_BOX);
-        std::optional<PokemonBox> right;
+        PokemonBox left = home_build_box(env, context, cursor, HOME_FIRST_BOX);
+        PokemonBox right;
 
         Home.add_box(HOME_FIRST_BOX, left);
 
@@ -2539,7 +2598,7 @@ void Enrichment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControll
 
             // Load the right box
             right = Home.get_box(right_box);
-            if (!right.has_value()) {
+            if (!right.is_empty()) {
                 right = home_build_box(env, context, cursor, right_box);
                 Home.add_box(right_box, right);
             }
@@ -2547,7 +2606,7 @@ void Enrichment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControll
             env.console.log(std::to_string(Home.is_sorted(right_box)));
 
             // Run easy swaps, if possible
-            bool swapped = home_make_easy_swaps(env, context, *left, *right, cursor, false);
+            bool swapped = home_make_easy_swaps(env, context, left, right, cursor, false);
 
             if(!swapped && !Home.is_sorted(left_box)){
                 pbf_press_button(context, BUTTON_L, 10, 35);
@@ -2562,9 +2621,9 @@ void Enrichment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControll
             env.console.log("Validating blanks");
             move_cursor_to(env, context, cursor, {0,0});
             cursor = {0,0};
-            if(!home_reconcile_spaces(env, context, *right)){
+            if(!home_reconcile_spaces(env, context, right)){
                 env.console.log("Validation failed. Rebuilding box.");
-                std::optional<PokemonBox> temp = home_build_box(env, context, cursor, left_box+1);
+                PokemonBox temp = home_build_box(env, context, cursor, left_box+1);
                 Home.update_box(left_box+1, temp); // Yes this is correct. left_box has not been incremented yet
             }else{
                 env.console.log("Validation succeeded. Continuing.");
@@ -2612,12 +2671,12 @@ void Enrichment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControll
 
             // Load the left box
             left = Home.get_box(left_box);
-            if (!left.has_value()) {
+            if (!left.is_empty()) {
                 left = home_build_box(env, context, cursor, left_box);
                 Home.add_box(left_box, left);
             }
 
-            bool swapped = home_make_easy_swaps(env, context, *left, *right, cursor, true);
+            bool swapped = home_make_easy_swaps(env, context, left, right, cursor, true);
             pbf_press_button(context, BUTTON_L, 10, 35);
 
             if(!swapped && !Home.is_sorted(right_box)){
@@ -2632,9 +2691,9 @@ void Enrichment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControll
             env.console.log("Validating blanks");
             move_cursor_to(env, context, cursor, {0,0});
             cursor = {0,0};
-            if(!home_reconcile_spaces(env, context, *left)){
+            if(!home_reconcile_spaces(env, context, left)){
                 env.console.log("Validation failed. Rebuilding box.");
-                std::optional<PokemonBox> temp = home_build_box(env, context, cursor, right_box-1);
+                PokemonBox temp = home_build_box(env, context, cursor, right_box-1);
                 Home.update_box(right_box-1, temp);
             }else{
                 env.console.log("Validation succeeded. Continuing.");
@@ -2991,8 +3050,8 @@ void Enrichment::program(SingleSwitchProgramEnvironment& env, ProControllerConte
 
     std::vector<Game> game_list = {Game(GameStatus::POKEMON_VIOLET,0,false)/*,Game(GameStatus::POKEMON_SWORD,3,false),Game(GameStatus::POKEMON_PLA,1,false),Game("GameStatus::POKEMON_EEVEE",4,false)*/};
 
-    bool started = false;
-    bool swaps_made = true;
+    // bool started = false;
+    // bool swaps_made = true;
 
     VideoSnapshot screen = env.console.video().snapshot();
 
@@ -3000,37 +3059,37 @@ void Enrichment::program(SingleSwitchProgramEnvironment& env, ProControllerConte
 
     std::ostringstream ss;
 
-    PokemonHome_HomeEnvironment home_manager(env, context);
+    // PokemonHome_HomeEnvironment home_manager(env, context);
 
-    HomeLoginDialogueWatcher loginWatcher(COLOR_BLUE);
+    // HomeLoginDialogueWatcher loginWatcher(COLOR_BLUE);
 
-    initialize_home(env, context, home_manager, game_list);
-    sort_all_boxes(env, context, home_manager, started, swaps_made);
-    send_program_notification(
-            env, NOTIFICATION_ERROR_FATAL,
-            COLOR_GREEN,
-            "Finished Sorting Pokemon",
-            {}, "",
-            screen
-        );
-    enrich_with_games(env, context, home_manager, game_list);
-    send_program_notification(
-        env, NOTIFICATION_ERROR_FATAL,
-        COLOR_GREEN,
-        "Finished Running Enhancements",
-        {}, "",
-        screen
-        );
+    // initialize_home(env, context, home_manager, game_list);
+    // sort_all_boxes(env, context, home_manager, started, swaps_made);
+    // send_program_notification(
+    //         env, NOTIFICATION_ERROR_FATAL,
+    //         COLOR_GREEN,
+    //         "Finished Sorting Pokemon",
+    //         {}, "",
+    //         screen
+    //     );
+    // enrich_with_games(env, context, home_manager, game_list);
+    // send_program_notification(
+    //     env, NOTIFICATION_ERROR_FATAL,
+    //     COLOR_GREEN,
+    //     "Finished Running Enhancements",
+    //     {}, "",
+    //     screen
+    //     );
 
-    sort_all_boxes(env, context, home_manager, started, swaps_made);
+    // sort_all_boxes(env, context, home_manager, started, swaps_made);
 
-    pbf_press_button(context, BUTTON_HOME,10, 150);
-    pbf_press_button(context, BUTTON_X, 10, 20);
-    pbf_press_button(context, BUTTON_A, 10, 320);
-    pbf_press_button(context, BUTTON_A, 10, 3150);
-    pbf_press_button(context, BUTTON_A, 10, 3150);
+    // pbf_press_button(context, BUTTON_HOME,10, 150);
+    // pbf_press_button(context, BUTTON_X, 10, 20);
+    // pbf_press_button(context, BUTTON_A, 10, 320);
+    // pbf_press_button(context, BUTTON_A, 10, 3150);
+    // pbf_press_button(context, BUTTON_A, 10, 3150);
 
-    send_program_finished_notification(env, NOTIFICATION_PROGRAM_FINISH);
+    // send_program_finished_notification(env, NOTIFICATION_PROGRAM_FINISH);
 
     // ImageFloatBox r_button(0.87, 0.11, 0.001, 0.001);
     // FloatPixel pixel = image_stats(extract_box_reference(screen, r_button)).average;
@@ -3045,14 +3104,14 @@ void Enrichment::program(SingleSwitchProgramEnvironment& env, ProControllerConte
     // }
 
 
-    // std::pair<size_t, size_t> cursor = {0, 0};
-    // std::optional<PokemonBox> temp = home_build_box(env, context, cursor, 109);
+    std::pair<size_t, size_t> cursor = {0, 0};
+    PokemonBox temp = home_build_box(env, context, cursor, 82);
 
-    // home_sort_box(env, context, temp, cursor);
+    home_sort_box(env, context, temp, cursor);
 
-    // env.console.log(std::to_string(home_reconcile_spaces(env, context, *temp)));
+    env.console.log(std::to_string(home_reconcile_spaces(env, context, temp)));
 
-
+    temp.output_boxes_data_json(82);
 
 }
 
