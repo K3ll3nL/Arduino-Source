@@ -58,14 +58,16 @@ PokemonHome_HomeEnvironment::PokemonHome_HomeEnvironment(SingleSwitchProgramEnvi
 
 void PokemonHome_HomeEnvironment::navigate_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const PageID destination, const GameStatus game, const std::pair<size_t, size_t> cursor, const size_t box){
     std::vector<PageID> steps;
-    if ((game != GameStatus::CURRENT && game != GameStatus::NONE && game != game_open) && current_view != PageID::GAME_SELECTION) {
-        steps = find_navigation_path(env, context, current_view, PageID::GAME_SELECTION);
+    if ((game != GameStatus::CURRENT && game != GameStatus::NONE && game != game_open)) {
+        if( current_view != PageID::GAME_SELECTION){
+            steps = find_navigation_path(env, context, current_view, PageID::GAME_SELECTION);
+            perform_navigation_steps(env, context, steps);
+            // Open desired game
+            game_open = game;
+        }
+        steps = find_navigation_path(env, context, current_view, destination);
         perform_navigation_steps(env, context, steps);
-        // Open desired game
-        game_open = game;
     }
-    steps = find_navigation_path(env, context, current_view, destination);
-    perform_navigation_steps(env, context, steps);
 }
 
 std::vector<PageID> PokemonHome_HomeEnvironment::find_navigation_path(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PageID from, PageID to){
@@ -206,7 +208,7 @@ void PokemonHome_HomeEnvironment::detect_home(SingleSwitchProgramEnvironment& en
         break;
     case 6:
         current_view = PageID::BOX_VIEW;
-        game_open = GameStatus::UNKNOWN;
+        game_open = GameStatus::POKEMON_HOME;
         // TODO: Implement primitive game status detection: Is the game icon slot green? if so, Home, else Unknown.
         // TODO: Implement game status detection
         // TODO: Get current home box as well as secondary box (if applicable)

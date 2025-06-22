@@ -161,14 +161,15 @@ public:
 
 class Pokemon {
 public:
+    const char* type1;
+    const char* type2;
     float national_dex_number;
     bool shiny;
     bool gmax;
     StatsHuntGenderFilter gender;
     uint16_t level;
     size_t form_id;
-    const char* type1;
-    const char* type2;
+
     FloatPixel color;
     FloatPixel quick_color;
 
@@ -178,8 +179,8 @@ public:
 
     // Default constructor
     Pokemon()
-        : national_dex_number(0), shiny(false), gmax(false), gender(StatsHuntGenderFilter::Genderless),
-        level(0), form_id(0), type1("None"), type2("None"), color(), current_box(0), current_row(0), current_col(0) {}
+        : type1("None"), type2("None"), national_dex_number(0), shiny(false), gmax(false), gender(StatsHuntGenderFilter::Genderless),
+        level(0), form_id(0), color(), current_box(0), current_row(0), current_col(0) {}
 
     // Shared gender-specific IDs across all Pokemon
     static const std::unordered_set<float>& gender_specific_ids() {
@@ -441,8 +442,8 @@ public:
         pokemon["gender"] = gender_to_string(gender);
         pokemon["level"] = level;
         pokemon["form_id"] = form_id;
-        pokemon["type1"] = type1;
-        pokemon["type2"] = type2;
+        pokemon["type1"] = std::string(type1);
+        pokemon["type2"] = std::string(type2);
 
         JsonObject pokemon_color;
         pokemon_color["r"] = color.r;
@@ -621,6 +622,29 @@ public:
     }
 
 
+    bool is_sorted() const {
+        // Placeholder to compare the last encountered Pokémon.
+        std::optional<Pokemon> last_pokemon;
+
+        // Iterate through the rows.
+        for (const auto& row : grid) {
+            // Iterate through the columns in the row.
+            for (const auto& pokemon_opt : row) {
+                if (pokemon_opt.has_value()) {
+                    // If there is a previous Pokémon, compare their sorting property.
+                    if (last_pokemon.has_value() &&
+                        last_pokemon->national_dex_number > pokemon_opt->national_dex_number) {
+                        return false; // Not sorted.
+                    }
+                    // Update the last encountered Pokémon.
+                    last_pokemon = pokemon_opt;
+                }
+            }
+        }
+        return true; // The grid is sorted.
+    }
+
+
     // Print the current state of the box for debugging purposes.
     std::string print_box(SingleSwitchProgramEnvironment* env = nullptr, bool log_to_env = false) const {
         std::ostringstream ss;
@@ -642,6 +666,69 @@ public:
         }
         return ss.str();
     }
+
+    void dump_each_pokemon_attribute(const JsonObject& pokemon_json) {
+        try {
+            // Iterate through each key-value pair in the "Pokemon" JsonObject
+            for (const auto& [key, value] : pokemon_json) {
+                try {
+                    value.dump("Home Storage\\pokemon_attribute.json");
+                } catch (const std::exception& e) {
+                    std::cerr << "Error dumping value for key '" << key << "': " << e.what() << std::endl;
+                }
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "Error iterating through 'Pokemon' attributes: " << e.what() << std::endl;
+            throw;
+        }
+    }
+
+
+    void dump_each_attribute(const JsonObject& json_object) {
+        for (const auto& [key, value] : json_object) {
+            try {
+                value.dump("Home Storage\\attribute.json");
+            } catch (const std::exception& e) {
+                std::cerr << "Error dumping attribute " << key << ": " << e.what() << std::endl;
+                if(key=="Pokemon"){
+                    dump_each_pokemon_attribute(value.to_object_throw());
+                }
+                throw;
+            }
+        }
+    }
+
+
+    void dump_each_pokemon(){
+        for (size_t poke_nb = 0; poke_nb < 30; poke_nb++) {
+            JsonObject pokemon;
+            size_t row = poke_nb / 6;
+            size_t col = poke_nb % 6;
+
+            pokemon["row"] = row;
+            pokemon["column"] = col;
+
+            if (grid[row][col].has_value()) {
+                try {
+                    pokemon["Pokemon"] = grid[row][col]->to_json();
+                } catch (const std::exception& e) {
+                    std::cerr << "Error converting Pokemon to JSON at row " << row
+                              << ", column " << col << ": " << e.what() << std::endl;
+                    pokemon["Pokemon"] = "error";
+                }
+            } else {
+                pokemon["Pokemon"] = "blank";
+            }
+
+            try {
+                pokemon.dump("Home Storage\\pokemon.json");
+            } catch (const std::exception& e) {
+                std::cerr << "Error dumping Pokemon at {" << row << ", " << col << "}: " << e.what() << std::endl;
+                dump_each_attribute(pokemon);
+            }
+        }
+    }
+
 
     void output_boxes_data_json(size_t box_num) {
         JsonArray pokemon_data;
@@ -670,6 +757,7 @@ public:
                 pokemon_data.push_back(std::move(pokemon));
             } catch (const std::exception& e) {
                 std::cerr << "Error adding Pokemon to JSON array: " << e.what() << std::endl;
+                dump_each_pokemon();
             }
         }
 
@@ -722,10 +810,12 @@ public:
         // }
 
         try {
-            pokemon_data.dump("Home Storage\\" + std::to_string(box_num) + ".json");
+            pokemon_data.dump("Home Storage\\" + std::to_string(box_num) + "1.json");
             std::cout << "successfully dumped box " << std::to_string(box_num) << std::endl;
         } catch (const std::exception& e) {
             std::cerr << "Error dumping JSON array to file: " << e.what() << std::endl;
+
+            dump_each_pokemon();
         }
     }
 
@@ -776,7 +866,7 @@ class BoxLayout {
 
 
 public:
-    BoxLayout() : layout(200), sorted(200, false) {
+    BoxLayout() : layout(200), sorted(200, false), exists(200, false) {
     }
 
 
@@ -785,6 +875,7 @@ public:
             throw std::out_of_range("Index out of bounds.");
         }
         layout[index] = std::move(box); // Transfer ownership
+        exists[index] = true;
     }
 
     void update_box(size_t index, PokemonBox new_box) {
@@ -792,6 +883,7 @@ public:
             throw std::out_of_range("Index out of bounds.");
         }
         layout[index] = std::move(new_box);
+        exists[index] = true;
     }
 
 
@@ -823,12 +915,19 @@ public:
         return sorted[index];
     }
 
+    bool box_exists(size_t index) const {
+        if (index >= sorted.size()) {
+            throw std::out_of_range("Index out of bounds.");
+        }
+        return exists[index];
+    }
+
     bool important_sorted(size_t start, size_t end) const {
         if (start > end || end >= sorted.size()) {
             throw std::out_of_range("Invalid range.");
         }
         for (size_t i = start; i <= end; ++i) {
-            if (!sorted[i]) {
+            if (layout[i].is_sorted()) {
                 return false;
             }
         }
@@ -839,6 +938,7 @@ private:
 
     std::vector<PokemonBox> layout;
     std::vector<bool> sorted;
+    std::vector<bool> exists;
 };
 
 
@@ -861,7 +961,7 @@ const char* closest_type(const FloatPixel& color_box){
     };
 
     double min_distance = std::numeric_limits<double>::max();
-    const char* closest_type = nullptr;
+    const char* closest_type = "None";
 
     for (const auto& [type, color] : type_color_list) {
         double distance = euclidean_distance(color_box, color);
@@ -879,7 +979,7 @@ Pokemon home_read_pokemon_summary(SingleSwitchProgramEnvironment& env, ProContro
     Pokemon pokemon;
 
     while (true) {
-        pokemon = Pokemon();
+        // pokemon = Pokemon();
         pokemon.current_box = box;
         pokemon.current_row = row;
         pokemon.current_col = col;
@@ -1226,86 +1326,93 @@ void home_navigate_to_box(SingleSwitchProgramEnvironment& env, ProControllerCont
 
     size_t home_box;
 
-    if(hard_check){
-        // env.console.log("Running hard check");
-        context.wait_for_all_requests();
-        VideoSnapshot screen = env.console.video().snapshot();
-        home_box = std::stoull(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker))));
-
-        if(home_box >= target){
-            // env.console.log("Initial read to right of target box "+std::to_string(target));
-            size_t home_box2;
-            size_t home_box3;
-            do{
-                context.wait_for_all_requests();
-                screen = env.console.video().snapshot();
-                home_box = std::stoull(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker))));
-
-                pbf_press_button(context, BUTTON_L, 10, 47);
-                context.wait_for_all_requests();
-
-                screen = env.console.video().snapshot();
-                home_box2 = std::stoull(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker))));
-                pbf_press_button(context, BUTTON_L, 10, 47);
-
-                context.wait_for_all_requests();
-                screen = env.console.video().snapshot();
-                home_box3 = std::stoull(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker))));
-                // env.console.log("testing "+std::to_string(home_box2)+ "=="+std::to_string(home_box-1)+" && "+std::to_string(home_box3)+"=="+std::to_string(home_box-2));
-            }while(!(home_box2==home_box-1&&home_box3==home_box-2));
-            home_box-=2;
-        }else{
-            env.console.log("Initial read to left of target box "+std::to_string(target));
-            size_t home_box2;
-            size_t home_box3;
-            do{
-                context.wait_for_all_requests();
-                screen = env.console.video().snapshot();
-                home_box = std::stoull(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker))));
-
-                pbf_press_button(context, BUTTON_R, 10, 47);
-                context.wait_for_all_requests();
-
-                screen = env.console.video().snapshot();
-                home_box2 = std::stoull(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker))));
-                pbf_press_button(context, BUTTON_R, 10, 47);
-
-                context.wait_for_all_requests();
-                screen = env.console.video().snapshot();
-                home_box3 = std::stoull(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker))));
-                env.console.log("testing "+std::to_string(home_box2)+ "=="+std::to_string(home_box+1)+" && "+std::to_string(home_box3)+"=="+std::to_string(home_box+2));
-            }while(!(home_box2==home_box+1&&home_box3==home_box+2));
-            home_box+=2;
-        }
-    }else{
-        context.wait_for_all_requests();
-        VideoSnapshot screen = env.console.video().snapshot();
-        home_box = std::stoull(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker))));
-    }
-
-    while(home_box!=target){
-        while((home_box>200)){
-            pbf_wait(context, 300);
-            context.wait_for_all_requests();
+    try{
+        if(hard_check){
+            // env.console.log("Running hard check");
             context.wait_for_all_requests();
             VideoSnapshot screen = env.console.video().snapshot();
-            home_box = std::stoull(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker))));            }
-        env.console.log("Home_box is " + std::to_string(home_box));
-        context.wait_for_all_requests();
-        box_render.clear();
-        while(home_box<target){
-            pbf_press_button(context, BUTTON_R, 10, 47);
-            home_box++;
+            home_box = std::stoull(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker))));
+
+            if(home_box >= target){
+                // env.console.log("Initial read to right of target box "+std::to_string(target));
+                size_t home_box2;
+                size_t home_box3;
+                do{
+                    context.wait_for_all_requests();
+                    screen = env.console.video().snapshot();
+                    home_box = std::stoull(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker))));
+
+                    pbf_press_button(context, BUTTON_L, 10, 47);
+                    context.wait_for_all_requests();
+
+                    screen = env.console.video().snapshot();
+                    home_box2 = std::stoull(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker))));
+                    pbf_press_button(context, BUTTON_L, 10, 47);
+
+                    context.wait_for_all_requests();
+                    screen = env.console.video().snapshot();
+                    home_box3 = std::stoull(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker))));
+                    // env.console.log("testing "+std::to_string(home_box2)+ "=="+std::to_string(home_box-1)+" && "+std::to_string(home_box3)+"=="+std::to_string(home_box-2));
+                }while(!(home_box2==home_box-1&&home_box3==home_box-2));
+                home_box-=2;
+            }else{
+                env.console.log("Initial read to left of target box "+std::to_string(target));
+                size_t home_box2;
+                size_t home_box3;
+                do{
+                    context.wait_for_all_requests();
+                    screen = env.console.video().snapshot();
+                    home_box = std::stoull(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker))));
+
+                    pbf_press_button(context, BUTTON_R, 10, 47);
+                    context.wait_for_all_requests();
+
+                    screen = env.console.video().snapshot();
+                    home_box2 = std::stoull(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker))));
+                    pbf_press_button(context, BUTTON_R, 10, 47);
+
+                    context.wait_for_all_requests();
+                    screen = env.console.video().snapshot();
+                    home_box3 = std::stoull(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker))));
+                    env.console.log("testing "+std::to_string(home_box2)+ "=="+std::to_string(home_box+1)+" && "+std::to_string(home_box3)+"=="+std::to_string(home_box+2));
+                }while(!(home_box2==home_box+1&&home_box3==home_box+2));
+                home_box+=2;
+            }
+        }else{
+            context.wait_for_all_requests();
+            VideoSnapshot screen = env.console.video().snapshot();
+            home_box = std::stoull(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker))));
         }
-        while(home_box>target){
-            pbf_press_button(context, BUTTON_L, 10, 47);
-            home_box--;
+
+        while(home_box!=target){
+            while((home_box>200)){
+                pbf_wait(context, 300);
+                context.wait_for_all_requests();
+                context.wait_for_all_requests();
+                VideoSnapshot screen = env.console.video().snapshot();
+                home_box = std::stoull(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker))));            }
+            env.console.log("Home_box is " + std::to_string(home_box));
+            context.wait_for_all_requests();
+            box_render.clear();
+            while(home_box<target){
+                pbf_press_button(context, BUTTON_R, 10, 47);
+                home_box++;
+            }
+            while(home_box>target){
+                pbf_press_button(context, BUTTON_L, 10, 47);
+                home_box--;
+            }
+            context.wait_for_all_requests();
+            box_render.add(COLOR_RED, home_box_checker);
+            context.wait_for_all_requests();
+            VideoSnapshot screen = env.console.video().snapshot();
+            home_box = std::stoull(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker))));
         }
+    }catch(...){
+        pbf_wait(context, 100ms);
         context.wait_for_all_requests();
-        box_render.add(COLOR_RED, home_box_checker);
-        context.wait_for_all_requests();
-        VideoSnapshot screen = env.console.video().snapshot();
-        home_box = std::stoull(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker))));
+
+        home_navigate_to_box(env, context, target, hard_check);
     }
 }
 
@@ -1706,6 +1813,7 @@ int home_fill_boxes_to_game(SingleSwitchProgramEnvironment& env, ProControllerCo
 }
 
 PokemonBox home_build_box(SingleSwitchProgramEnvironment& env, ProControllerContext& context, std::pair<size_t, size_t>& cursor, size_t box_num = 0) {
+    pbf_wait(context, 250ms);
     context.wait_for_all_requests();
 
     VideoOverlaySet box_render(env.console);
@@ -1725,16 +1833,21 @@ PokemonBox home_build_box(SingleSwitchProgramEnvironment& env, ProControllerCont
 
     FloatPixel pixel_data[5][6] = {};  // Initialize to default values
 
+    // retake a screenshot now that cursor is at (0,0) and is not interfering with coloration
+    context.wait_for_all_requests();
+    screen = env.console.video().snapshot();
+
     // Scan the screen for Pokémon presence and colors
     for (size_t row = 0; row < 5; row++) {
         for (size_t column = 0; column < 6; column++) {
             ImageFloatBox slot_box(0.06 + (0.072 * column), 0.2 + (0.1035 * row), 0.03, 0.057);
+            ImageFloatBox slot_box2(0.059400 + (0.071861 * column), 0.198700 + (0.105544 * row), 0.03, 0.057);
             int current_box_value = (int)image_stddev(extract_box_reference(screen, slot_box)).sum();
 
             if (current_box_value < 5) {
                 box_render.add(COLOR_RED, slot_box);
             } else {
-                pixel_data[row][column] = image_stats(extract_box_reference(screen, slot_box)).average;
+                pixel_data[row][column] = image_stats(extract_box_reference(screen, slot_box2)).average;
                 box_render.add(COLOR_GREEN, slot_box);
                 pokemon_count++;
                 if (!find_first_poke) {
@@ -1821,7 +1934,8 @@ PokemonBox home_build_box(SingleSwitchProgramEnvironment& env, ProControllerCont
     return tempbox;
 }
 
-bool home_reconcile_spaces(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PokemonBox& box){
+bool home_reconcile_spaces(SingleSwitchProgramEnvironment& env, ProControllerContext& context, std::pair<size_t, size_t>& cursor, PokemonBox& box){
+    move_cursor_to(env, context, cursor, std::pair<size_t, size_t>{0,0});
     VideoSnapshot screen = env.console.video().snapshot();
 
     // size_t blanks = 0;
@@ -1836,10 +1950,13 @@ bool home_reconcile_spaces(SingleSwitchProgramEnvironment& env, ProControllerCon
 
             if(!box.grid[row][column]){ // blank pokemon space
                 if(current_box_value>=5){
+                    env.console.log("Box " + std::to_string(box.grid[box.first_poke_slot.first][box.first_poke_slot.second]->current_box)+" was not reconciled");
                     return false;
                 }
             }else{
-                if(euclidean_distance(box.grid[row][column]->quick_color,color_value)>=0.324452){
+                double euc_dist = euclidean_distance(box.grid[row][column]->quick_color,color_value);
+                if(euc_dist>=22.5f){
+                    env.console.log("Box " + std::to_string(box.grid[box.first_poke_slot.first][box.first_poke_slot.second]->current_box)+" was not reconciled at {" + std::to_string(row) + ", " + std::to_string(column) + "}. Euclidian distance was "+std::to_string(euclidean_distance(box.grid[row][column]->quick_color,color_value)));
                     return false;
                 }
             }
@@ -1866,7 +1983,7 @@ PokemonBox home_load_box(SingleSwitchProgramEnvironment& env, ProControllerConte
 
         box.parse_pokemon_box(json_value);
 
-        if(!home_reconcile_spaces(env, context, box))throw;
+        if(!home_reconcile_spaces(env, context, cursor, box))throw std::runtime_error("Space reconciliation failed for box " + std::to_string(box_num));
 
         pbf_wait(context, 2000ms);
         context.wait_for_all_requests();
@@ -1880,6 +1997,53 @@ PokemonBox home_load_box(SingleSwitchProgramEnvironment& env, ProControllerConte
 
     return box;
 }
+
+PokemonBox home_load_box(SingleSwitchProgramEnvironment& env, ProControllerContext& context, std::pair<size_t, size_t>& cursor, size_t box_num, BoxLayout& boxes){
+    env.console.log("running home_load_box on box " + std::to_string(box_num));
+
+    home_navigate_to_box(env, context, box_num);
+
+    PokemonBox box;
+
+    // Check if the box exists in the provided BoxLayout
+    JsonValue json_value;
+    try {
+        if (boxes.box_exists(box_num)) {
+            box = boxes.get_box(box_num);
+            env.console.log("Using cached box from BoxLayout for box " + std::to_string(box_num));
+        }
+        else {
+            context.wait_for_all_requests();
+
+            json_value = load_json_file("Home Storage\\" + std::to_string(box_num) + ".json");
+
+            pbf_wait(context, 125ms);
+            context.wait_for_all_requests();
+
+            box.parse_pokemon_box(json_value);
+
+            pbf_wait(context, 2000ms);
+            context.wait_for_all_requests();
+        }
+        // Reconcile spaces
+        if (!home_reconcile_spaces(env, context, cursor, box)) {
+            env.log("Space reconciliation failed; rebuilding box.", COLOR_RED);
+            box = home_build_box(env, context, cursor, box_num);
+            box.output_boxes_data_json(box_num);
+        }
+    } catch (...) {
+        env.log("Failed to load JSON file or parse box", COLOR_RED);
+        box = home_build_box(env, context, cursor, box_num);
+        box.output_boxes_data_json(box_num);
+    }
+
+
+
+    return box;
+}
+
+
+
 
 bool home_sort_box(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PokemonBox& box, std::pair<size_t,size_t>& cursor) {
     bool touched = false;
@@ -2269,8 +2433,8 @@ bool home_do_dirty_swap(SingleSwitchProgramEnvironment& env, ProControllerContex
 
 bool home_make_easy_swaps(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PokemonBox& left, PokemonBox& right, std::pair<size_t, size_t>& cursor, bool leftBox = true){
 
-    env.console.log("Left blanks = "+std::to_string(left.blanks));
-    env.console.log("Right blanks = "+std::to_string(right.blanks));
+    // env.console.log("Left blanks = "+std::to_string(left.blanks));
+    // env.console.log("Right blanks = "+std::to_string(right.blanks));
 
 
     if(left.blanks==30){
@@ -2334,8 +2498,8 @@ bool home_make_easy_swaps(SingleSwitchProgramEnvironment& env, ProControllerCont
             }
         }
 
-        if(highestLeft.has_value())highestLeft->log_details(&env, true);
-        if(lowestRight.has_value())lowestRight->log_details(&env, true);
+        // if(highestLeft.has_value())highestLeft->log_details(&env, true);
+        // if(lowestRight.has_value())lowestRight->log_details(&env, true);
 
         if(!lowestRight.has_value() || (highestLeft.has_value() && *(highestLeft)<=*(lowestRight)))break;
 
@@ -2745,6 +2909,7 @@ void Enrichment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControll
     // bool skips_made = false;
 
     BoxLayout Home;
+    std::pair<size_t,size_t> cursor = {0,0};
 
     do {
         swaps_made = false;
@@ -2752,7 +2917,6 @@ void Enrichment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControll
         env.console.log("Starting from box " + std::to_string(HOME_FIRST_BOX));
 
         home_navigate_to_box(env, context, HOME_FIRST_BOX, true);
-        std::pair<size_t,size_t> cursor = {0,0};
         PokemonBox left = home_load_box(env, context, cursor, HOME_FIRST_BOX);
         PokemonBox right;
 
@@ -2760,18 +2924,18 @@ void Enrichment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControll
 
         pbf_press_button(context, BUTTON_R, 10, 150); // Move to the right box
 
-        for (size_t left_box = HOME_FIRST_BOX; left_box < HOME_LAST_BOX; ++left_box) {
+        for (size_t left_box = HOME_FIRST_BOX; left_box < HOME_LAST_BOX - 1; ++left_box) {
             size_t right_box = left_box + 1;
 
-            if(left_box%10==0){
-                send_program_notification(
-                    env, NOTIFICATION_ERROR_FATAL,
-                    COLOR_GREEN,
-                    "scanned up to box "+std::to_string(left_box),
-                    {}, "",
-                    {}
-                    );
-            }
+            // if(left_box%10==0){
+            //     send_program_notification(
+            //         env, NOTIFICATION_ERROR_FATAL,
+            //         COLOR_GREEN,
+            //         "scanned up to box "+std::to_string(left_box),
+            //         {}, "",
+            //         {}
+            //         );
+            // }
 
             if (right_box > HOME_LAST_BOX) break; // Prevent out-of-bounds access
 
@@ -2779,29 +2943,33 @@ void Enrichment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControll
             home_navigate_to_box(env, context, right_box);
             right = Home.get_box(right_box);
             if (!right.is_empty()) {
-                right = home_load_box(env, context, cursor, right_box);
+                right = home_load_box(env, context, cursor, right_box, Home);
                 Home.add_box(right_box, right);
             }
 
-            env.console.log(std::to_string(Home.is_sorted(right_box)));
+            // env.console.log(std::to_string(Home.is_sorted(right_box)));
 
             // Run easy swaps
-            home_make_easy_swaps(env, context, left, right, cursor, false);
+            bool swaps = home_make_easy_swaps(env, context, left, right, cursor, false);
 
-            // Before moving on, make sure the blanks are where they should be. If the next function returns false, we have a huge problem.
-            env.console.log("Validating spaces");
-            move_cursor_to(env, context, cursor, {0,0});
-            cursor = {0,0};
-            if(!home_reconcile_spaces(env, context, right)){
-                env.console.log("Validation failed. Rebuilding box.");
-                PokemonBox temp = home_build_box(env, context, cursor, left_box+1);
-                Home.update_box(left_box+1, temp); // Yes this is correct. left_box has not been incremented yet
-                pbf_wait(context, 1000ms);
-                context.wait_for_all_requests();
-            }else{
-                env.console.log("Validation succeeded. Continuing.");
+            if(swaps){
+                // Before moving on, make sure the blanks are where they should be. If the next function returns false, we have a huge problem.
+                env.console.log("Validating spaces");
+                move_cursor_to(env, context, cursor, {0,0});
+                cursor = {0,0};
+                if(!home_reconcile_spaces(env, context, cursor, right)){
+                    env.console.log("Validation failed. Rebuilding box.");
+                    PokemonBox temp = home_build_box(env, context, cursor, left_box+1);
+                    Home.update_box(left_box+1, temp); // Yes this is correct. left_box has not been incremented yet
+                    pbf_wait(context, 1000ms);
+                    context.wait_for_all_requests();
+                }else{
+                    env.console.log("Validation succeeded. Continuing.");
+                }
             }
             left.output_boxes_data_json(left_box);
+            pbf_wait(context, 2000ms);
+            context.wait_for_all_requests();
             left = right;
 
 
@@ -2818,23 +2986,23 @@ void Enrichment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControll
 
         started=true;
 
-        home_navigate_to_box(env, context, HOME_LAST_BOX, true);
+        home_navigate_to_box(env, context, HOME_LAST_BOX-1, true);
 
 
-        for (size_t right_box = HOME_LAST_BOX; right_box > HOME_FIRST_BOX; --right_box) {
+        for (size_t right_box = HOME_LAST_BOX; right_box > HOME_FIRST_BOX + 1; --right_box) {
             size_t left_box = right_box - 1;
 
             if (left_box < HOME_FIRST_BOX) break; // Prevent out-of-bounds access
 
-            if(right_box%10==0){
-                send_program_notification(
-                    env, NOTIFICATION_ERROR_FATAL,
-                    COLOR_GREEN,
-                    "scanned down to box "+std::to_string(right_box),
-                    {}, "",
-                    {}
-                    );
-            }
+            // if(right_box%10==0){
+            //     send_program_notification(
+            //         env, NOTIFICATION_ERROR_FATAL,
+            //         COLOR_GREEN,
+            //         "scanned down to box "+std::to_string(right_box),
+            //         {}, "",
+            //         {}
+            //         );
+            // }
 
             env.console.log("Checking boxes " + std::to_string(left_box) + " and " + std::to_string(right_box));
 
@@ -2845,26 +3013,33 @@ void Enrichment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControll
             home_navigate_to_box(env, context, left_box);
             left = Home.get_box(left_box);
             if (!left.is_empty()) {
-                left = home_load_box(env, context, cursor, left_box);
+                left = home_load_box(env, context, cursor, left_box, Home);
                 Home.add_box(left_box, left);
             }
 
-            home_make_easy_swaps(env, context, left, right, cursor, true);
-            env.console.log("Validating blanks");
-            move_cursor_to(env, context, cursor, {0,0});
-            cursor = {0,0};
-            if(!home_reconcile_spaces(env, context, left)){
-                env.console.log("Validation failed. Rebuilding box.");
-                PokemonBox temp = home_build_box(env, context, cursor, right_box-1);
-                Home.update_box(right_box-1, temp);
-                pbf_wait(context, 1000ms);
-                context.wait_for_all_requests();
-            }else{
-                env.console.log("Validation succeeded. Continuing.");
+            // Run easy swaps
+            bool swaps = home_make_easy_swaps(env, context, left, right, cursor, true);
+
+            if(swaps){
+                pbf_press_button(context, BUTTON_L, 10, 150); // Move to the left box again
+                env.console.log("Validating blanks");
+                move_cursor_to(env, context, cursor, {0,0});
+                cursor = {0,0};
+                if(!home_reconcile_spaces(env, context, cursor, left)){
+                    env.console.log("Validation failed. Rebuilding box.");
+                    PokemonBox temp = home_build_box(env, context, cursor, right_box-1);
+                    Home.update_box(right_box-1, temp);
+                    pbf_wait(context, 1000ms);
+                    context.wait_for_all_requests();
+                }else{
+                    env.console.log("Validation succeeded. Continuing.");
+                }
             }
             pbf_press_button(context, BUTTON_L, 10, 150);
 
             right.output_boxes_data_json(right_box);
+            pbf_wait(context, 2000ms);
+            context.wait_for_all_requests();
             right = left;
 
         }
@@ -2881,6 +3056,16 @@ void Enrichment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControll
             {}
             );
     } while (!Home.important_sorted(HOME_FIRST_BOX, HOME_LAST_BOX));
+
+    // Now, we fine sort each box sinze every pokemon is in its respective box.
+    for(size_t i = HOME_FIRST_BOX; i < HOME_LAST_BOX; i++){
+        home_navigate_to_box(env, context, i);
+
+        home_sort_box(env, context, Home.get_box_mutable(i), cursor);
+
+        Home.set_sorted(i, true);
+    }
+
     home_manager.navigate_to(env, context, PageID::MAIN_MENU);
 }
 
