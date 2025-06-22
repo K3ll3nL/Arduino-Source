@@ -532,6 +532,7 @@ public:
         : pokemon_count(0),
         blanks(MAX_ROWS * MAX_COLUMNS),
         consecutive_blanks(MAX_ROWS * MAX_COLUMNS),
+        box_num(0),
         grid(MAX_ROWS, std::vector<std::optional<Pokemon>>(MAX_COLUMNS)) {}
 
     // Function to add a Pokemon at a specific row and column.
@@ -730,7 +731,7 @@ public:
     }
 
 
-    void output_boxes_data_json(size_t box_num) {
+    void output_boxes_data_json() {
         JsonArray pokemon_data;
 
         for (size_t poke_nb = 0; poke_nb < 30; poke_nb++) {
@@ -858,6 +859,7 @@ public:
     size_t pokemon_count;
     size_t blanks;
     size_t consecutive_blanks;
+    size_t box_num;
     std::vector<std::vector<std::optional<Pokemon>>> grid;
     std::pair<size_t, size_t> first_poke_slot;
 };
@@ -1826,6 +1828,8 @@ PokemonBox home_build_box(SingleSwitchProgramEnvironment& env, ProControllerCont
     bool find_first_poke = false;
     size_t pokemon_count = 0;
 
+    tempbox.box_num = box_num;
+
     move_cursor_to(env, context, cursor, {0, 0});
     cursor = {0, 0};
 
@@ -1857,6 +1861,7 @@ PokemonBox home_build_box(SingleSwitchProgramEnvironment& env, ProControllerCont
             }
         }
     }
+
 
     if (!find_first_poke) {
         tempbox.update_stats();
@@ -1940,7 +1945,7 @@ bool home_reconcile_spaces(SingleSwitchProgramEnvironment& env, ProControllerCon
 
     // size_t blanks = 0;
 
-    home_navigate_to_box(env, context, box.grid[box.first_poke_slot.first][box.first_poke_slot.second]->current_box);
+    home_navigate_to_box(env, context, box.box_num);
 
     for (size_t row = 0; row < 5; row++){
         for (size_t column = 0; column < 6; column++){
@@ -1950,19 +1955,19 @@ bool home_reconcile_spaces(SingleSwitchProgramEnvironment& env, ProControllerCon
 
             if(!box.grid[row][column]){ // blank pokemon space
                 if(current_box_value>=5){
-                    env.console.log("Box " + std::to_string(box.grid[box.first_poke_slot.first][box.first_poke_slot.second]->current_box)+" was not reconciled");
+                    env.console.log("Box " + std::to_string(box.box_num)+" was not reconciled");
                     return false;
                 }
             }else{
                 double euc_dist = euclidean_distance(box.grid[row][column]->quick_color,color_value);
                 if(euc_dist>=22.5f){
-                    env.console.log("Box " + std::to_string(box.grid[box.first_poke_slot.first][box.first_poke_slot.second]->current_box)+" was not reconciled at {" + std::to_string(row) + ", " + std::to_string(column) + "}. Euclidian distance was "+std::to_string(euclidean_distance(box.grid[row][column]->quick_color,color_value)));
+                    env.console.log("Box " + std::to_string(box.box_num)+" was not reconciled at {" + std::to_string(row) + ", " + std::to_string(column) + "}. Euclidian distance was "+std::to_string(euclidean_distance(box.grid[row][column]->quick_color,color_value)));
                     return false;
                 }
             }
         }
     }
-    env.console.log("Box " + std::to_string(box.grid[box.first_poke_slot.first][box.first_poke_slot.second]->current_box)+" successfully reconciled");
+    env.console.log("Box " + std::to_string(box.box_num)+" successfully reconciled");
     return true;
 }
 
@@ -1973,6 +1978,8 @@ PokemonBox home_load_box(SingleSwitchProgramEnvironment& env, ProControllerConte
 
     JsonValue json_value;
     PokemonBox box;
+
+    box.box_num = box_num;
     try {
         context.wait_for_all_requests();
 
@@ -1991,7 +1998,7 @@ PokemonBox home_load_box(SingleSwitchProgramEnvironment& env, ProControllerConte
     } catch (...) {
         env.log("Failed to load JSON file", COLOR_RED);
         box = home_build_box(env, context, cursor, box_num);
-        box.output_boxes_data_json(box_num);    }
+        box.output_boxes_data_json();    }
 
 
 
@@ -2004,6 +2011,7 @@ PokemonBox home_load_box(SingleSwitchProgramEnvironment& env, ProControllerConte
     home_navigate_to_box(env, context, box_num);
 
     PokemonBox box;
+    box.box_num = box_num;
 
     // Check if the box exists in the provided BoxLayout
     JsonValue json_value;
@@ -2029,12 +2037,12 @@ PokemonBox home_load_box(SingleSwitchProgramEnvironment& env, ProControllerConte
         if (!home_reconcile_spaces(env, context, cursor, box)) {
             env.log("Space reconciliation failed; rebuilding box.", COLOR_RED);
             box = home_build_box(env, context, cursor, box_num);
-            box.output_boxes_data_json(box_num);
+            box.output_boxes_data_json();
         }
     } catch (...) {
         env.log("Failed to load JSON file or parse box", COLOR_RED);
         box = home_build_box(env, context, cursor, box_num);
-        box.output_boxes_data_json(box_num);
+        box.output_boxes_data_json();
     }
 
 
@@ -2127,308 +2135,6 @@ bool home_sort_box(SingleSwitchProgramEnvironment& env, ProControllerContext& co
 
 
     return touched;
-}
-
-size_t home_dirty_swap_window_size(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PokemonBox& left, PokemonBox& right){
-    size_t window_size = 0;
-    for(size_t i = 0; i < 30; i++){
-        for(size_t j = 0; j <= i; j++){
-            if(!left.grid[(size_t)(29-i+j)/6][(29-i+j)%6].has_value())continue;
-            if(!right.grid[(size_t)(0+j)/6][(0+j)%6].has_value())return window_size;
-            if(*(left.grid[(size_t)(29-i+j)/6][(29-i+j)%6])<*(right.grid[(size_t)(0+j)/6][(0+j)%6])){
-                return window_size;
-            }else{
-                env.console.log(left.grid[(size_t)(29-i+j)/6][(29-i+j)%6]->log_details(&env));
-                env.console.log(right.grid[(size_t)(0+j)/6][(0+j)%6]->log_details(&env));
-            }
-        }
-        window_size++;
-    }
-    return window_size;
-}
-
-size_t home_dirty_swap_window_size_v2(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PokemonBox& left, PokemonBox& right){
-    size_t window_size = 0;
-    for(size_t i = 0; i < 30; i++){
-        for(size_t j = 0; j <=i; j++){
-            if(!left.grid[(size_t)(29-i+j)/6][(29-i+j)%6].has_value())continue;
-            if(!right.grid[(size_t)(0+j)/6][(0+j)%6].has_value())return window_size;
-            if(*(left.grid[(size_t)(29-i)/6][(29-i)%6])<=*(right.grid[(size_t)(0+j)/6][(0+j)%6])){
-                return window_size;
-            }else{
-                env.console.log(left.grid[(size_t)(29-i+j)/6][(29-i+j)%6]->log_details(&env));
-                env.console.log(right.grid[(size_t)(0+j)/6][(0+j)%6]->log_details(&env));
-            }
-        }
-        window_size++;
-    }
-    return window_size;
-}
-
-bool home_sort_box_v2(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PokemonBox& left, PokemonBox& right, bool sort_left) {
-    bool touched = false;
-    size_t rows = MAX_ROWS;
-    size_t cols = MAX_COLUMNS;
-
-    bool reverse = false;
-
-    // Optional to track the last cursor position
-    std::optional<std::pair<size_t, size_t>> last_position;
-
-    PokemonBox& box= sort_left?left:right;
-
-    PokemonBox temp = sort_left?right:left;
-
-    // Step 1: Flatten the grid into a single vector of shared pointers to Pokémon
-    std::vector<std::optional<Pokemon>> allPokemons;
-    for (auto& row : temp.grid) {
-        allPokemons.insert(allPokemons.end(), row.begin(), row.end());
-    }
-
-    // Step 2: Sort the vector of Pokémon
-    std::sort(allPokemons.begin(), allPokemons.end(), [](const std::optional<Pokemon>& a, const std::optional<Pokemon>& b) {
-        return *a < *b; // Sorting by Pokémon object, assuming operator< is defined for Pokémon
-    });
-
-    // Step 3: Rebuild the grid with the sorted Pokémon
-    auto it = allPokemons.begin();
-    for (auto& row : temp.grid) {
-        for (auto& pokemon : row) {
-            pokemon = *it; // Assign the sorted Pokémon back to the grid
-            ++it;
-        }
-    }
-
-    temp.print_box(&env);
-
-    size_t final_window_size = home_dirty_swap_window_size_v2(env, context, sort_left?temp:left, sort_left?right:temp);
-    env.console.log("final window size is "+std::to_string(final_window_size));
-    if(final_window_size==0||final_window_size==30){
-        env.console.log("quitting early");
-        return true;
-    }
-
-
-    env.console.log("In the loop");
-
-    // Perform a selection sort on the grid
-    for (size_t i = 0; i < rows * cols - 1; ++i) {
-        size_t min_idx = i;
-        size_t min_row = i / cols;
-        size_t min_col = i % cols;
-
-        // Find the "smallest" Pokémon (by national dex, level, etc.)
-        for (size_t j = i; j < rows * cols; ++j) {
-            size_t row = j / cols;
-            size_t col = j % cols;
-
-            // Comparison logic:
-            if (!box.grid[min_row][min_col] ||
-                (box.grid[row][col] &&
-                 (!box.grid[min_row][min_col] || *box.grid[row][col] < *box.grid[min_row][min_col]))) {
-                min_idx = j;
-                min_row = row;
-                min_col = col;
-            }
-
-        }
-
-        // If the min_idx is different from the current index, swap them
-        if (min_idx != i) {
-            touched = true;
-            env.console.log("Starting swap");
-            size_t swap_row = i / cols;
-            size_t swap_col = i % cols;
-
-            // Define slots for swapping
-            std::pair<size_t, size_t> slot1 = {swap_row, swap_col};
-            std::pair<size_t, size_t> slot2 = {min_row, min_col};
-
-            if(!box.grid[slot1.first][slot1.second].has_value() && !box.grid[slot2.first][slot2.second].has_value())continue;
-
-            env.console.log("Swapping in home {" + std::to_string(slot1.first) + ", " + std::to_string(slot1.second) + "} and {" + std::to_string(slot2.first) + ", " + std::to_string(slot2.second) + "}");
-
-            // set up easy swapping, given that there are no blank spaces
-            if(reverse && !box.grid[slot2.first][slot2.second].has_value()){
-                reverse = false;
-            }else if (!reverse && !box.grid[slot1.first][slot1.second].has_value()){
-                reverse = true;
-
-            }
-
-            // For time saving, if the swap spot is next, don't reverse (don't trigger if current spot is blank, uncommon)
-            if(reverse && i + 1 == min_idx && box.grid[slot1.first][slot1.second].has_value()){
-                reverse = false;
-            }
-
-            // I think this is where the consecutive blanks logic goes if at all (in an else block, separating out the nullptr check?)
-
-            // Call home_swap_pokemon using last_position if available
-            if (last_position) {
-                if (reverse) {
-                    home_swap_pokemon(env, context, slot2, slot1, *last_position);
-                } else {
-                    home_swap_pokemon(env, context, slot1, slot2, *last_position);
-                }
-            } else {
-                if (reverse) {
-                    home_swap_pokemon(env, context, slot2, slot1);
-                } else {
-                    home_swap_pokemon(env, context, slot1, slot2);
-                }
-            }
-
-            // Update the last position to slot2 after the swap
-            last_position = reverse ? slot1 : slot2;
-
-            reverse = !reverse;
-
-            env.console.log("Swapping in box");
-
-            // Swap in the box
-            box.swap_pokemon(swap_row, swap_col, min_row, min_col);
-
-            if(home_dirty_swap_window_size_v2(env, context, sort_left?box:left, sort_left?right:box)){
-                env.console.log("quitting early");
-                return true;
-            }
-        }
-    }
-
-    // After sorting, loop through the box to count consecutive blanks from the end
-    size_t consecutive_blanks = 0;
-    for (size_t row = rows - 1; row < rows; --row) {
-        for (size_t col = cols - 1; col < cols; --col) {
-            if (!box.grid[row][col].has_value()) {
-                ++consecutive_blanks;
-            } else {
-                break; // Stop if we encounter a non-blank Pokémon
-            }
-        }
-    }
-
-    if(touched)move_cursor_to(env, context, *last_position, {4,5});
-    context.wait_for_all_requests();
-    box.consecutive_blanks = consecutive_blanks;
-    return touched;
-}
-
-bool home_do_dirty_swap_v2(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PokemonBox& left, PokemonBox& right, std::pair<size_t, size_t> cursor = {4, 5}) {
-    size_t window = home_dirty_swap_window_size_v2(env, context, left, right);
-    context.wait_for_all_requests();
-    std::pair<size_t, size_t> last_position = cursor;
-
-    bool right_box = true;
-
-    for(size_t i = 0; i < window; i++){
-        size_t left_index = 30 - window + i;
-        size_t right_index = 0 + i;
-
-        size_t left_row = left_index / 6;
-        size_t left_col = left_index % 6;
-        size_t right_row = right_index / 6;
-        size_t right_col = right_index % 6;
-
-        env.console.log(std::to_string(left.grid[left_row][left_col].has_value()));
-        env.console.log(std::to_string(i%2==1));
-        env.console.log(std::to_string(!(left.grid[left_row][left_col].has_value()) != !(i%2==1)));
-
-        // set up easy swapping, given that there are no blank spaces
-        if(right_box && !right.grid[right_row][right_col].has_value()){
-            pbf_press_button(context, BUTTON_L, 10, 150);
-            right_box = false;
-        }else if (!right_box && !left.grid[left_row][left_col].has_value()){
-            pbf_press_button(context, BUTTON_R, 10, 150);
-            right_box = true;
-        }else if (!right.grid[right_row][right_col].has_value() && !left.grid[left_row][left_col].has_value())continue;
-
-        // Do easy swapping, knowing what box we are starting from
-        if(right_box){
-            move_cursor_to(env, context, last_position, {right_row, right_col});
-            home_pick_up_pokemon(env, context, {right_row, right_col});
-            pbf_press_button(context, BUTTON_L, 10, 100);
-            move_cursor_to(env, context, {right_row, right_col}, {left_row, left_col});
-            pbf_press_button(context, BUTTON_Y, 10, 70);
-            last_position = {left_row, left_col};
-            right_box = false;
-        } else {
-            move_cursor_to(env, context, last_position, {left_row, left_col});
-            home_pick_up_pokemon(env, context, {left_row, left_col});
-            pbf_press_button(context, BUTTON_R, 10, 100);
-            move_cursor_to(env, context, {left_row, left_col}, {right_row, right_col});
-            pbf_press_button(context, BUTTON_Y, 10, 70);
-            last_position = {right_row, right_col};
-            right_box = true;
-        }
-
-        std::swap(left.grid[left_row][left_col], right.grid[right_row][right_col]);
-
-    }
-
-    // Return to right box
-    if(!right_box){
-        pbf_press_button(context, BUTTON_R, 10, 100);
-    }
-
-    return window>0;
-}
-
-bool home_dirty_swap_check(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PokemonBox& left, PokemonBox& right, size_t diff = 0){
-    // Change this function to calculate sliding window size instead of spread away from middle so that stuff isn't inverted randomly
-
-    if(!left.grid[(size_t)(29-diff)/6][(29-diff)%6]) return true;
-    if(!right.grid[(size_t)(0+diff)/6][(0+diff)%6]) return false;
-    env.console.log("At box " + std::to_string(left.grid[(size_t)(29-diff)/6][(29-diff)%6]->current_box) + " ("+std::to_string((size_t)(0+diff)/6)+", "+std::to_string((0+diff)%6)+")");
-    env.console.log("At box " + std::to_string(right.grid[(size_t)(0+diff)/6][(0+diff)%6]->current_box) + " ("+std::to_string((size_t)(29-diff)/6)+", "+std::to_string((29-diff)%6)+")");
-    env.console.log(std::to_string(*(right.grid[(size_t)(0+diff)/6][(0+diff)%6]) < *(left.grid[(size_t)(29-diff)/6][(29-diff)%6]))+left.grid[(size_t)(29-diff)/6][(29-diff)%6]->log_details()+right.grid[(size_t)(0+diff)/6][(0+diff)%6]->log_details());
-    if(*(right.grid[(size_t)(0+diff)/6][(0+diff)%6])<*(left.grid[(size_t)(29-diff)/6][(29-diff)%6])) return true;
-    return false;
-}
-
-bool home_do_dirty_swap(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PokemonBox& left, PokemonBox& right, std::pair<size_t, size_t> cursor = {4, 5}) {
-    bool ret = home_dirty_swap_check(env, context, left, right);
-    context.wait_for_all_requests();
-    size_t iterations = 0;
-
-    std::pair<size_t, size_t> last_position = cursor;
-
-    if (ret) {
-        do {
-            size_t left_index = 29 - iterations;
-            size_t right_index = 0 + iterations;
-
-            size_t left_row = left_index / 6;
-            size_t left_col = left_index % 6;
-            size_t right_row = right_index / 6;
-            size_t right_col = right_index % 6;
-
-            if (left.grid[left_row][left_col].has_value()) {
-                pbf_press_button(context, BUTTON_L, 10, 150);
-                move_cursor_to(env, context, last_position, {left_row, left_col});
-                home_pick_up_pokemon(env, context, {left_row, left_col});
-                pbf_press_button(context, BUTTON_R, 10, 100);
-                move_cursor_to(env, context, {left_row, left_col}, {right_row, right_col});
-                pbf_press_button(context, BUTTON_Y, 10, 70);
-                last_position = {right_row, right_col};
-            } else {
-                move_cursor_to(env, context, last_position, {right_row, right_col});
-                home_pick_up_pokemon(env, context, {right_row, right_col});
-                pbf_press_button(context, BUTTON_L, 10, 100);
-                move_cursor_to(env, context, {right_row, right_col}, {left_row, left_col});
-                pbf_press_button(context, BUTTON_Y, 10, 70);
-                pbf_press_button(context, BUTTON_R, 10, 100);
-                last_position = {left_row, left_col};
-            }
-
-            // Perform the swap in the actual grid
-            std::swap(left.grid[left_row][left_col], right.grid[right_row][right_col]);
-
-
-        } while (++iterations < 29 && home_dirty_swap_check(env, context, left, right, iterations));
-    }
-
-    context.wait_for_all_requests();
-    return ret;
 }
 
 bool home_make_easy_swaps(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PokemonBox& left, PokemonBox& right, std::pair<size_t, size_t>& cursor, bool leftBox = true){
@@ -2536,14 +2242,14 @@ bool home_make_easy_swaps(SingleSwitchProgramEnvironment& env, ProControllerCont
         if(lowestRight.has_value()){
             left.grid[left_row][left_col]->current_col = right_col;
             left.grid[left_row][left_col]->current_row = right_row;
-            left.grid[left_row][left_col]->current_box--;
+            left.grid[left_row][left_col]->current_box = right.box_num;
         }else{
             pbf_press_button(context, BUTTON_B, 10, 35);
         }
         if(highestLeft.has_value()){
             right.grid[right_row][right_col]->current_col = left_col;
             right.grid[right_row][right_col]->current_row = left_row;
-            right.grid[right_row][right_col]->current_box++;
+            right.grid[right_row][right_col]->current_box = left.box_num;
         }else{
             pbf_press_button(context, BUTTON_B, 10, 35);
         }
@@ -2967,7 +2673,7 @@ void Enrichment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControll
                     env.console.log("Validation succeeded. Continuing.");
                 }
             }
-            left.output_boxes_data_json(left_box);
+            left.output_boxes_data_json();
             pbf_wait(context, 2000ms);
             context.wait_for_all_requests();
             left = right;
@@ -3037,7 +2743,7 @@ void Enrichment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControll
             }
             pbf_press_button(context, BUTTON_L, 10, 150);
 
-            right.output_boxes_data_json(right_box);
+            right.output_boxes_data_json();
             pbf_wait(context, 2000ms);
             context.wait_for_all_requests();
             right = left;
@@ -3464,7 +3170,7 @@ void Enrichment::program(SingleSwitchProgramEnvironment& env, ProControllerConte
 
     // env.console.log(std::to_string(home_reconcile_spaces(env, context, temp)));
 
-    // temp.output_boxes_data_json(82);
+    // temp.output_boxes_data_json();
 
 
     // JsonValue str = load_json_file("Home Storage\\82.json");
