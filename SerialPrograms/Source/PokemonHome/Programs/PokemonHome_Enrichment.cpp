@@ -810,7 +810,7 @@ public:
         // }
 
         try {
-            pokemon_data.dump("Home Storage\\" + std::to_string(box_num) + "1.json");
+            pokemon_data.dump("Home Storage\\" + std::to_string(box_num) + ".json");
             std::cout << "successfully dumped box " << std::to_string(box_num) << std::endl;
         } catch (const std::exception& e) {
             std::cerr << "Error dumping JSON array to file: " << e.what() << std::endl;
