@@ -15,6 +15,7 @@
 #include "CommonTools/OCR/OCR_RawOCR.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "Pokemon/Pokemon_Strings.h"
+#include "Pokemon/Pokemon_Types.h"
 #include "PokemonHome/Inference/PokemonHome_BoxGenderDetector.h"
 #include "PokemonHome/Inference/PokemonHome_HomeApplicationDetector.h"
 #include "PokemonHome/Programs/HomeEnvironment/PokemonHome_HomeEnvironment.h"
@@ -149,6 +150,31 @@ Enrichment::Enrichment()
 #include <stdexcept>
 #include <memory>
 
+std::string type_to_string(PokemonType type){
+    const char * types[] = {
+        "None",
+        "Normal",
+        "Fire",
+        "Fighting",
+        "Water",
+        "Flying",
+        "Grass",
+        "Poison",
+        "Electric",
+        "Ground",
+        "Psychic",
+        "Rock",
+        "Ice",
+        "Bug",
+        "Dragon",
+        "Ghost",
+        "Dark",
+        "Steel",
+        "Fairy",
+    };
+    return types[int(type)];
+}
+
 class PokemonMinimal {
 public:
     float national_dex_number;
@@ -156,13 +182,13 @@ public:
     std::string type2;
 
     PokemonMinimal()
-        : national_dex_number(0), type1("None"), type2("None") {}
+        : national_dex_number(0), type1("NONE"), type2("NONE") {}
 };
 
 class Pokemon {
 public:
-    const char* type1;
-    const char* type2;
+    PokemonType type1;
+    PokemonType type2;
     float national_dex_number;
     bool shiny;
     bool gmax;
@@ -179,7 +205,7 @@ public:
 
     // Default constructor
     Pokemon()
-        : type1("None"), type2("None"), national_dex_number(0), shiny(false), gmax(false), gender(StatsHuntGenderFilter::Genderless),
+        : type1(PokemonType::NONE), type2(PokemonType::NONE), national_dex_number(0), shiny(false), gmax(false), gender(StatsHuntGenderFilter::Genderless),
         level(0), form_id(0), color(), current_box(0), current_row(0), current_col(0) {}
 
     // Shared gender-specific IDs across all Pokemon
@@ -227,66 +253,66 @@ public:
     }
 
     void update_national_id(){
-        static std::unordered_map<size_t, std::vector<std::pair<std::string, std::string>>> regional_codes = {
-            {19, {{"Normal", "None"}, {"Dark", "Normal"}}},
-            {20, {{"Normal", "None"}, {"Dark", "Normal"}}},
-            {26, {{"Electric", "None"}, {"Electric", "Psychic"}}},
-            {27, {{"Ground", "None"}, {"Ice", "Steel"}}},
-            {28, {{"Ground", "None"}, {"Ice", "Steel"}}},
-            {37, {{"Fire", "None"}, {"Ice", "None"}}},
-            {38, {{"Fire", "None"}, {"Ice", "Fairy"}}},
-            {50, {{"Ground", "None"}, {"Ground", "Steel"}}},
-            {51, {{"Ground", "None"}, {"Ground", "Steel"}}},
-            {52, {{"Normal", "None"}, {"Dark", "None"}, {"Steel", "None"}}},
-            {53, {{"Normal", "None"}, {"Dark", "None"}}},
-            {58, {{"Fire", "None"}, {"Fire", "Rock"}}},
-            {59, {{"Fire", "None"}, {"Fire", "Rock"}}},
-            {74, {{"Rock", "Ground"}, {"Rock", "Electric"}}},
-            {75, {{"Rock", "Ground"}, {"Rock", "Electric"}}},
-            {76, {{"Rock", "Ground"}, {"Rock", "Electric"}}},
-            {77, {{"Fire", "None"}, {"Psychic", "None"}}},
-            {78, {{"Fire", "None"}, {"Psychic", "Fairy"}}},
-            {79, {{"Water", "Psychic"}, {"Psychic", "None"}}},
-            {80, {{"Water", "Psychic"}, {"Poison", "Psychic"}}},
-            {83, {{"Normal", "Flying"}, {"Fighting", "None"}}},
-            {88, {{"Poison", "None"}, {"Poison", "Dark"}}},
-            {89, {{"Poison", "None"}, {"Poison", "Dark"}}},
-            {100, {{"Electric", "None"}, {"Electric", "Grass"}}},
-            {101, {{"Electric", "None"}, {"Electric", "Grass"}}},
-            {103, {{"Grass", "Psychic"}, {"Grass", "Dragon"}}},
-            {105, {{"Ground", "None"}, {"Fire", "Ghost"}}},
-            {110, {{"Poison", "None"}, {"Poison", "Fairy"}}},
-            {122, {{"Psychic", "Fairy"}, {"Ice", "Psychic"}}},
-            {128, {{"Normal", "None"}, {"Fighting", "None"}, {"Fighting", "Fire"}, {"Fighting", "Water"}}},
-            {144, {{"Ice", "Flying"}, {"Psychic", "Flying"}}},
-            {145, {{"Electric", "Flying"}, {"Fighting", "Flying"}}},
-            {146, {{"Fire", "Flying"}, {"Dark", "Flying"}}},
-            {157, {{"Fire", "None"}, {"Fire", "Ghost"}}},
-            {194, {{"Water", "Ground"}, {"Poison", "Ground"}}},
-            {199, {{"Water", "Psychic"}, {"Poison", "Psychic"}}},
-            {211, {{"Water", "Poison"}, {"Dark", "Poison"}}},
-            {215, {{"Dark", "Ice"}, {"Fighting", "Poison"}}},
-            {222, {{"Water", "Rock"}, {"Ghost", "None"}}},
-            {263, {{"Normal", "None"}, {"Dark", "Normal"}}},
-            {264, {{"Normal", "None"}, {"Dark", "Normal"}}},
-            {479, {{"Electric", "Ghost"}, {"Electric", "Fire"}, {"Electric", "Water"}, {"Electric", "Ice"}, {"Electric", "Flying"}, {"Electric", "Grass"}}},
-            {492, {{"Grass", "None"}, {"Grass", "Flying"}}},
-            {503, {{"Water", "None"}, {"Water", "Dark"}}},
-            {549, {{"Grass", "None"}, {"Grass", "Fighting"}}},
-            {554, {{"Fire", "None"}, {"Ice", "None"}}},
-            {555, {{"Fire", "None"}, {"Ice", "None"}}},
-            {556, {{"Fire", "Psychic"}, {"Ice", "Fire"}}},
-            {562, {{"Ghost", "None"}, {"Ground", "Ghost"}}},
-            {570, {{"Dark", "None"}, {"Normal", "Ghost"}}},
-            {571, {{"Dark", "None"}, {"Normal", "Ghost"}}},
-            {618, {{"Ground", "Electric"}, {"Ground", "Steel"}}},
-            {628, {{"Normal", "Flying"}, {"Psychic", "Flying"}}},
-            {648, {{"Normal", "Psychic"}, {"Normal", "Fighting"}}},
-            {705, {{"Dragon", "None"}, {"Steel", "Dragon"}}},
-            {706, {{"Dragon", "None"}, {"Steel", "Dragon"}}},
-            {713, {{"Ice", "None"}, {"Ice", "Rock"}}},
-            {724, {{"Grass", "Ghost"}, {"Grass", "Fighting"}}},
-            {741, {{"Fire", "Flying"}, {"Electric", "Flying"}, {"Psychic", "Flying"}, {"Ghost", "Flying"}}}
+        static std::unordered_map<size_t, std::vector<std::pair<PokemonType, PokemonType>>> regional_codes = {
+            {19, {{PokemonType::NORMAL, PokemonType::NONE}, {PokemonType::DARK, PokemonType::NORMAL}}},
+            {20, {{PokemonType::NORMAL, PokemonType::NONE}, {PokemonType::DARK, PokemonType::NORMAL}}},
+            {26, {{PokemonType::ELECTRIC, PokemonType::NONE}, {PokemonType::ELECTRIC, PokemonType::PSYCHIC}}},
+            {27, {{PokemonType::GROUND, PokemonType::NONE}, {PokemonType::ICE, PokemonType::STEEL}}},
+            {28, {{PokemonType::GROUND, PokemonType::NONE}, {PokemonType::ICE, PokemonType::STEEL}}},
+            {37, {{PokemonType::FIRE, PokemonType::NONE}, {PokemonType::ICE, PokemonType::NONE}}},
+            {38, {{PokemonType::FIRE, PokemonType::NONE}, {PokemonType::ICE, PokemonType::FAIRY}}},
+            {50, {{PokemonType::GROUND, PokemonType::NONE}, {PokemonType::GROUND, PokemonType::STEEL}}},
+            {51, {{PokemonType::GROUND, PokemonType::NONE}, {PokemonType::GROUND, PokemonType::STEEL}}},
+            {52, {{PokemonType::NORMAL, PokemonType::NONE}, {PokemonType::DARK, PokemonType::NONE}, {PokemonType::STEEL, PokemonType::NONE}}},
+            {53, {{PokemonType::NORMAL, PokemonType::NONE}, {PokemonType::DARK, PokemonType::NONE}}},
+            {58, {{PokemonType::FIRE, PokemonType::NONE}, {PokemonType::FIRE, PokemonType::ROCK}}},
+            {59, {{PokemonType::FIRE, PokemonType::NONE}, {PokemonType::FIRE, PokemonType::ROCK}}},
+            {74, {{PokemonType::ROCK, PokemonType::GROUND}, {PokemonType::ROCK, PokemonType::ELECTRIC}}},
+            {75, {{PokemonType::ROCK, PokemonType::GROUND}, {PokemonType::ROCK, PokemonType::ELECTRIC}}},
+            {76, {{PokemonType::ROCK, PokemonType::GROUND}, {PokemonType::ROCK, PokemonType::ELECTRIC}}},
+            {77, {{PokemonType::FIRE, PokemonType::NONE}, {PokemonType::PSYCHIC, PokemonType::NONE}}},
+            {78, {{PokemonType::FIRE, PokemonType::NONE}, {PokemonType::PSYCHIC, PokemonType::FAIRY}}},
+            {79, {{PokemonType::WATER, PokemonType::PSYCHIC}, {PokemonType::PSYCHIC, PokemonType::NONE}}},
+            {80, {{PokemonType::WATER, PokemonType::PSYCHIC}, {PokemonType::POISON, PokemonType::PSYCHIC}}},
+            {83, {{PokemonType::NORMAL, PokemonType::FLYING}, {PokemonType::FIGHTING, PokemonType::NONE}}},
+            {88, {{PokemonType::POISON, PokemonType::NONE}, {PokemonType::POISON, PokemonType::DARK}}},
+            {89, {{PokemonType::POISON, PokemonType::NONE}, {PokemonType::POISON, PokemonType::DARK}}},
+            {100, {{PokemonType::ELECTRIC, PokemonType::NONE}, {PokemonType::ELECTRIC, PokemonType::GRASS}}},
+            {101, {{PokemonType::ELECTRIC, PokemonType::NONE}, {PokemonType::ELECTRIC, PokemonType::GRASS}}},
+            {103, {{PokemonType::GRASS, PokemonType::PSYCHIC}, {PokemonType::GRASS, PokemonType::DRAGON}}},
+            {105, {{PokemonType::GROUND, PokemonType::NONE}, {PokemonType::FIRE, PokemonType::GHOST}}},
+            {110, {{PokemonType::POISON, PokemonType::NONE}, {PokemonType::POISON, PokemonType::FAIRY}}},
+            {122, {{PokemonType::PSYCHIC, PokemonType::FAIRY}, {PokemonType::ICE, PokemonType::PSYCHIC}}},
+            {128, {{PokemonType::NORMAL, PokemonType::NONE}, {PokemonType::FIGHTING, PokemonType::NONE}, {PokemonType::FIGHTING, PokemonType::FIRE}, {PokemonType::FIGHTING, PokemonType::WATER}}},
+            {144, {{PokemonType::ICE, PokemonType::FLYING}, {PokemonType::PSYCHIC, PokemonType::FLYING}}},
+            {145, {{PokemonType::ELECTRIC, PokemonType::FLYING}, {PokemonType::FIGHTING, PokemonType::FLYING}}},
+            {146, {{PokemonType::FIRE, PokemonType::FLYING}, {PokemonType::DARK, PokemonType::FLYING}}},
+            {157, {{PokemonType::FIRE, PokemonType::NONE}, {PokemonType::FIRE, PokemonType::GHOST}}},
+            {194, {{PokemonType::WATER, PokemonType::GROUND}, {PokemonType::POISON, PokemonType::GROUND}}},
+            {199, {{PokemonType::WATER, PokemonType::PSYCHIC}, {PokemonType::POISON, PokemonType::PSYCHIC}}},
+            {211, {{PokemonType::WATER, PokemonType::POISON}, {PokemonType::DARK, PokemonType::POISON}}},
+            {215, {{PokemonType::DARK, PokemonType::ICE}, {PokemonType::FIGHTING, PokemonType::POISON}}},
+            {222, {{PokemonType::WATER, PokemonType::ROCK}, {PokemonType::GHOST, PokemonType::NONE}}},
+            {263, {{PokemonType::NORMAL, PokemonType::NONE}, {PokemonType::DARK, PokemonType::NORMAL}}},
+            {264, {{PokemonType::NORMAL, PokemonType::NONE}, {PokemonType::DARK, PokemonType::NORMAL}}},
+            {479, {{PokemonType::ELECTRIC, PokemonType::GHOST}, {PokemonType::ELECTRIC, PokemonType::FIRE}, {PokemonType::ELECTRIC, PokemonType::WATER}, {PokemonType::ELECTRIC, PokemonType::ICE}, {PokemonType::ELECTRIC, PokemonType::FLYING}, {PokemonType::ELECTRIC, PokemonType::GRASS}}},
+            {492, {{PokemonType::GRASS, PokemonType::NONE}, {PokemonType::GRASS, PokemonType::FLYING}}},
+            {503, {{PokemonType::WATER, PokemonType::NONE}, {PokemonType::WATER, PokemonType::DARK}}},
+            {549, {{PokemonType::GRASS, PokemonType::NONE}, {PokemonType::GRASS, PokemonType::FIGHTING}}},
+            {554, {{PokemonType::FIRE, PokemonType::NONE}, {PokemonType::ICE, PokemonType::NONE}}},
+            {555, {{PokemonType::FIRE, PokemonType::NONE}, {PokemonType::ICE, PokemonType::NONE}}},
+            {556, {{PokemonType::FIRE, PokemonType::PSYCHIC}, {PokemonType::ICE, PokemonType::FIRE}}},
+            {562, {{PokemonType::GHOST, PokemonType::NONE}, {PokemonType::GROUND, PokemonType::GHOST}}},
+            {570, {{PokemonType::DARK, PokemonType::NONE}, {PokemonType::NORMAL, PokemonType::GHOST}}},
+            {571, {{PokemonType::DARK, PokemonType::NONE}, {PokemonType::NORMAL, PokemonType::GHOST}}},
+            {618, {{PokemonType::GROUND, PokemonType::ELECTRIC}, {PokemonType::GROUND, PokemonType::STEEL}}},
+            {628, {{PokemonType::NORMAL, PokemonType::FLYING}, {PokemonType::PSYCHIC, PokemonType::FLYING}}},
+            {648, {{PokemonType::NORMAL, PokemonType::PSYCHIC}, {PokemonType::NORMAL, PokemonType::FIGHTING}}},
+            {705, {{PokemonType::DRAGON, PokemonType::NONE}, {PokemonType::STEEL, PokemonType::DRAGON}}},
+            {706, {{PokemonType::DRAGON, PokemonType::NONE}, {PokemonType::STEEL, PokemonType::DRAGON}}},
+            {713, {{PokemonType::ICE, PokemonType::NONE}, {PokemonType::ICE, PokemonType::ROCK}}},
+            {724, {{PokemonType::GRASS, PokemonType::GHOST}, {PokemonType::GRASS, PokemonType::FIGHTING}}},
+            {741, {{PokemonType::FIRE, PokemonType::FLYING}, {PokemonType::ELECTRIC, PokemonType::FLYING}, {PokemonType::PSYCHIC, PokemonType::FLYING}, {PokemonType::GHOST, PokemonType::FLYING}}}
             // Urshifu
 
         };
@@ -442,8 +468,8 @@ public:
         pokemon["gender"] = gender_to_string(gender);
         pokemon["level"] = level;
         pokemon["form_id"] = form_id;
-        pokemon["type1"] = std::string(type1);
-        pokemon["type2"] = std::string(type2);
+        pokemon["type1"] = type_to_string(type1);
+        pokemon["type2"] = type_to_string(type2);
 
         JsonObject pokemon_color;
         pokemon_color["r"] = color.r;
@@ -500,6 +526,98 @@ public:
             throw std::runtime_error("Invalid gender value: " + gender_str);
         }
 
+        PokemonType type1;
+        std::string type1_str = pokemon_obj->get_string_throw("type1");
+
+        if (type1_str == "None") {
+            type1 = PokemonType::NONE;
+        } else if (type1_str == "Normal") {
+            type1 = PokemonType::NORMAL;
+        } else if (type1_str == "Fire") {
+            type1 = PokemonType::FIRE;
+        } else if (type1_str == "Fighting") {
+            type1 = PokemonType::FIGHTING;
+        } else if (type1_str == "Water") {
+            type1 = PokemonType::WATER;
+        } else if (type1_str == "Flying") {
+            type1 = PokemonType::FLYING;
+        } else if (type1_str == "Grass") {
+            type1 = PokemonType::GRASS;
+        } else if (type1_str == "Poison") {
+            type1 = PokemonType::POISON;
+        } else if (type1_str == "Electric") {
+            type1 = PokemonType::ELECTRIC;
+        } else if (type1_str == "Ground") {
+            type1 = PokemonType::GROUND;
+        } else if (type1_str == "Psychic") {
+            type1 = PokemonType::PSYCHIC;
+        } else if (type1_str == "Rock") {
+            type1 = PokemonType::ROCK;
+        } else if (type1_str == "Ice") {
+            type1 = PokemonType::ICE;
+        } else if (type1_str == "Bug") {
+            type1 = PokemonType::BUG;
+        } else if (type1_str == "Dragon") {
+            type1 = PokemonType::DRAGON;
+        } else if (type1_str == "Ghost") {
+            type1 = PokemonType::GHOST;
+        } else if (type1_str == "Dark") {
+            type1 = PokemonType::DARK;
+        } else if (type1_str == "Steel") {
+            type1 = PokemonType::STEEL;
+        } else if (type1_str == "Fairy") {
+            type1 = PokemonType::FAIRY;
+        } else {
+            // Handle unknown or invalid gender strings (optional)
+            throw std::runtime_error("Invalid type value: " + type1_str);
+        }
+
+        PokemonType type2;
+        std::string type2_str = pokemon_obj->get_string_throw("type2");
+
+        if (type2_str == "None") {
+            type2 = PokemonType::NONE;
+        } else if (type2_str == "Normal") {
+            type2 = PokemonType::NORMAL;
+        } else if (type2_str == "Fire") {
+            type2 = PokemonType::FIRE;
+        } else if (type2_str == "Fighting") {
+            type2 = PokemonType::FIGHTING;
+        } else if (type2_str == "Water") {
+            type2 = PokemonType::WATER;
+        } else if (type2_str == "Flying") {
+            type2 = PokemonType::FLYING;
+        } else if (type2_str == "Grass") {
+            type2 = PokemonType::GRASS;
+        } else if (type2_str == "Poison") {
+            type2 = PokemonType::POISON;
+        } else if (type2_str == "Electric") {
+            type2 = PokemonType::ELECTRIC;
+        } else if (type2_str == "Ground") {
+            type2 = PokemonType::GROUND;
+        } else if (type2_str == "Psychic") {
+            type2 = PokemonType::PSYCHIC;
+        } else if (type2_str == "Rock") {
+            type2 = PokemonType::ROCK;
+        } else if (type2_str == "Ice") {
+            type2 = PokemonType::ICE;
+        } else if (type2_str == "Bug") {
+            type2 = PokemonType::BUG;
+        } else if (type2_str == "Dragon") {
+            type2 = PokemonType::DRAGON;
+        } else if (type2_str == "Ghost") {
+            type2 = PokemonType::GHOST;
+        } else if (type2_str == "Dark") {
+            type2 = PokemonType::DARK;
+        } else if (type2_str == "Steel") {
+            type2 = PokemonType::STEEL;
+        } else if (type2_str == "Fairy") {
+            type2 = PokemonType::FAIRY;
+        } else {
+            // Handle unknown or invalid gender strings (optional)
+            throw std::runtime_error("Invalid type value: " + type2_str);
+        }
+
         Pokemon pokemon;
         pokemon.national_dex_number = static_cast<float>(pokemon_obj->get_double_throw("national_dex_number"));
         pokemon.shiny = pokemon_obj->get_boolean_throw("shiny");
@@ -510,8 +628,8 @@ public:
         pokemon.current_box = static_cast<size_t>(pokemon_obj->get_integer_throw("current_box"));  // Ensure correct type
         pokemon.current_row = static_cast<size_t>(pokemon_obj->get_integer_throw("current_row"));  // Ensure correct type
         pokemon.current_col = static_cast<size_t>(pokemon_obj->get_integer_throw("current_col"));  // Ensure correct type
-        pokemon.type1 = pokemon_obj->get_string_throw("type1").c_str();
-        pokemon.type2 = pokemon_obj->get_string_throw("type2").c_str();
+        pokemon.type1 = type1;
+        pokemon.type2 = type2;
         pokemon.color = color;
         pokemon.quick_color = quick_color;
 
@@ -552,6 +670,10 @@ public:
 
     bool is_empty() const {
         return grid.empty();
+    }
+
+    std::optional<Pokemon>& get_pokemon(const size_t row, const size_t col){
+        return grid[row][col];
     }
 
     // Overloaded function to add a Pokemon based on its attributes.
@@ -762,57 +884,9 @@ public:
             }
         }
 
-        // std::cout << "dumping box " << std::to_string(box_num) << std::endl;
-
-        // try {
-        //     for (size_t i = 0; i < pokemon_data.size(); ++i) {
-        //         try {
-        //             // std::cout << "Serializing entry " << i << "...\n";
-
-        //             // Access the entry.
-        //             JsonObject& entry = pokemon_data[i].to_object_throw("Entry must be an object");
-
-        //             // Log the raw data for inspection.
-        //             // std::cout << "Raw data: " << entry.dump() << std::endl;
-
-        //             // Check the "Pokemon" field if it exists.
-        //             auto pokemon_iter = entry.find("Pokemon");
-        //             if (pokemon_iter != entry.end()) {
-        //                 try {
-        //                     // std::cout << "'Pokemon' field: " << pokemon_iter->second.dump() << std::endl;
-        //                 } catch (const std::exception& e) {
-        //                     // std::cerr << "Error dumping 'Pokemon' field in entry " << i << ": " << e.what() << std::endl;
-        //                 }
-        //             } else {
-        //                 // std::cout << "'Pokemon' field does not exist in entry " << i << ".\n";
-        //             }
-
-        //             // Serialize the entire entry.
-        //             // std::cout << "Serialized entry " << i << ": " << pokemon_data[i].dump() << std::endl;
-
-        //         } catch (const std::exception& e) {
-        //             // std::cerr << "Error serializing entry " << i << ": " << e.what() << std::endl;
-
-        //             // Additional context: Row and column.
-        //             try {
-        //                 JsonObject& entry = pokemon_data[i].to_object_throw("Entry must be an object");
-        //                 size_t row = entry.get_integer_throw("row");
-        //                 size_t col = entry.get_integer_throw("column");
-        //                 // std::cerr << "Problematic entry at row: " << row << ", column: " << col << std::endl;
-        //             } catch (...) {
-        //                 // std::cerr << "Could not extract row and column for entry " << i << std::endl;
-        //             }
-        //         }
-
-        //     }
-        // } catch (const std::exception& e) {
-        //     // std::cerr << "Error dumping JSON array to string: " << e.what() << std::endl;
-        //     return; // Exit early if serialization fails.
-        // }
-
         try {
             pokemon_data.dump("Home Storage\\" + std::to_string(box_num) + ".json");
-            std::cout << "successfully dumped box " << std::to_string(box_num) << std::endl;
+            // std::cout << "successfully dumped box " << std::to_string(box_num) << std::endl;
         } catch (const std::exception& e) {
             std::cerr << "Error dumping JSON array to file: " << e.what() << std::endl;
 
@@ -889,14 +963,7 @@ public:
     }
 
 
-    const PokemonBox& get_box(size_t index) const {
-        if (index >= layout.size()) {
-            throw std::out_of_range("Index out of bounds.");
-        }
-        return layout[index];
-    }
-
-    PokemonBox& get_box_mutable(size_t index) {
+    PokemonBox& get_box(size_t index) {
         if (index >= layout.size()) {
             throw std::out_of_range("Index out of bounds.");
         }
@@ -950,20 +1017,20 @@ std::string sanitize_OCR(std::string str){
     return str;
 }
 
-const char* closest_type(const FloatPixel& color_box){
+PokemonType closest_type(const FloatPixel& color_box){
     // Use string literals directly as keys
-    static const std::pair<const char*, Color> type_color_list[] = {
-        {"Grass", Color(62, 180, 86)}, {"Fire", Color(201, 106, 83)}, {"Water", Color(31, 161, 243)},
-        {"Electric", Color(202, 207, 66)}, {"Rock", Color(164, 201, 169)}, {"Ground", Color(145, 130, 78)},
-        {"Poison", Color(142, 125, 234)}, {"Dark", Color(86, 118, 113)}, {"Steel", Color(91, 188, 211)},
-        {"Flying", Color(112, 206, 242)}, {"Normal", Color(146, 190, 186)}, {"Fighting", Color(203, 173, 82)},
-        {"Ghost", Color(116, 125, 157)}, {"Dragon", Color(80, 145, 241)}, {"Ice", Color(44, 224, 243)},
-        {"Fairy", Color(202, 166, 242)}, {"Bug", Color(140, 188, 87)}, {"Psychic", Color(202, 128, 156)},
-        {"None", Color(20, 191, 195)}
+    static const std::pair<PokemonType, Color> type_color_list[] = {
+        {PokemonType::GRASS, Color(62, 180, 86)}, {PokemonType::FIRE, Color(201, 106, 83)}, {PokemonType::WATER, Color(31, 161, 243)},
+        {PokemonType::ELECTRIC, Color(202, 207, 66)}, {PokemonType::ROCK, Color(164, 201, 169)}, {PokemonType::GROUND, Color(145, 130, 78)},
+        {PokemonType::POISON, Color(142, 125, 234)}, {PokemonType::DARK, Color(86, 118, 113)}, {PokemonType::STEEL, Color(91, 188, 211)},
+        {PokemonType::FLYING, Color(112, 206, 242)}, {PokemonType::NORMAL, Color(146, 190, 186)}, {PokemonType::FIGHTING, Color(203, 173, 82)},
+        {PokemonType::GHOST, Color(116, 125, 157)}, {PokemonType::DRAGON, Color(80, 145, 241)}, {PokemonType::ICE, Color(44, 224, 243)},
+        {PokemonType::FAIRY, Color(202, 166, 242)}, {PokemonType::BUG, Color(140, 188, 87)}, {PokemonType::PSYCHIC, Color(202, 128, 156)},
+        {PokemonType::NONE, Color(20, 191, 195)}
     };
 
     double min_distance = std::numeric_limits<double>::max();
-    const char* closest_type = "None";
+    PokemonType closest_type = PokemonType::NONE;
 
     for (const auto& [type, color] : type_color_list) {
         double distance = euclidean_distance(color_box, color);
@@ -1061,7 +1128,6 @@ Pokemon home_read_pokemon_summary(SingleSwitchProgramEnvironment& env, ProContro
     return pokemon;
 }
 
-
 std::pair<size_t,size_t> home_locate_home_position(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     int col;
     int row;
@@ -1074,9 +1140,9 @@ std::pair<size_t,size_t> home_locate_home_position(SingleSwitchProgramEnvironmen
 
     for(int i = 0; i<5; i++){
         for(int j = 0; j<6; j++){
-            ImageFloatBox slot_box(0.0735 + (0.072 * j), 0.165 + (0.1035 * i), 0.0055, 0.004);
-            box_render.add(COLOR_RED, slot_box);
-            FloatPixel current_box_value = image_stats(extract_box_reference(screen, slot_box)).average;
+            ImageFloatBox pointer_box(0.0735 + (0.072 * j), 0.165 + (0.1035 * i), 0.0055, 0.004);
+            box_render.add(COLOR_RED, pointer_box);
+            FloatPixel current_box_value = image_stats(extract_box_reference(screen, pointer_box)).average;
             // env.console.log(std::to_string(current_box_value.r)+" "+std::to_string(current_box_value.g)+" "+std::to_string(current_box_value.b));
             temp[i][j] = current_box_value;
         }
@@ -1086,9 +1152,9 @@ std::pair<size_t,size_t> home_locate_home_position(SingleSwitchProgramEnvironmen
     screen = env.console.video().snapshot();
     for(int i = 0; i<5; i++){
         for(int j = 0; j<6; j++){
-            ImageFloatBox slot_box(0.0735 + (0.072 * j), 0.165 + (0.1035 * i), 0.0055, 0.004);
-            box_render.add(COLOR_RED, slot_box);
-            FloatPixel current_box_value = image_stats(extract_box_reference(screen, slot_box)).average;
+            ImageFloatBox pointer_box(0.0735 + (0.072 * j), 0.165 + (0.1035 * i), 0.0055, 0.004);
+            box_render.add(COLOR_RED, pointer_box);
+            FloatPixel current_box_value = image_stats(extract_box_reference(screen, pointer_box)).average;
             if(temp[i][j].r != current_box_value.r &&temp[i][j].g != current_box_value.g && temp[i][j].b != current_box_value.b){
                 row = i;
                 col = j;
@@ -1168,9 +1234,7 @@ void move_cursor_to(SingleSwitchProgramEnvironment& env, ProControllerContext& c
             }
         }
     }
-
-    context.wait_for_all_requests();
-    }
+}
 
 void validate_cursor(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const std::pair<size_t, size_t>& cursor){
     VideoSnapshot screen = env.console.video().snapshot();
@@ -1178,10 +1242,52 @@ void validate_cursor(SingleSwitchProgramEnvironment& env, ProControllerContext& 
     ImageFloatBox slot_box(0.0735 + (0.072 * cursor.second), 0.165 + (0.1035 * cursor.first), 0.0055, 0.004);
     FloatPixel predicted_slot = image_stats(extract_box_reference(screen, slot_box)).average;
 
+    ImageFloatBox select_check(0.495, 0.0045, 0.01, 0.005); // square color to check which mode is active
+    FloatPixel image_value = image_stats(extract_box_reference(screen, select_check)).average;
+
+
+    if(image_value.r <= image_value.g || predicted_slot.r <= predicted_slot.g){
+        FloatPixel temp[5][6];
+        int col;
+        int row;
+
+        for(int i = 0; i<5; i++){
+            for(int j = 0; j<6; j++){
+                ImageFloatBox pointer_box(0.0735 + (0.072 * j), 0.165 + (0.1035 * i), 0.0055, 0.004);
+                FloatPixel current_box_value = image_stats(extract_box_reference(screen, pointer_box)).average;
+                temp[i][j] = current_box_value;
+            }
+        }
+
+        if(image_value.r <= image_value.g){ // scroll one left to get to red
+            pbf_press_button(context, BUTTON_ZL, 10, 30);
+        }else{                              // scroll one right to get to red
+            pbf_press_button(context, BUTTON_ZR, 10, 30);
+        }
+        context.wait_for_all_requests();
+        screen = env.console.video().snapshot();
+        for(int i = 0; i<5; i++){
+            for(int j = 0; j<6; j++){
+                ImageFloatBox pointer_box(0.0735 + (0.072 * j), 0.165 + (0.1035 * i), 0.0055, 0.004);
+                FloatPixel current_box_value = image_stats(extract_box_reference(screen, pointer_box)).average;
+                if(temp[i][j].r != current_box_value.r &&temp[i][j].g != current_box_value.g && temp[i][j].b != current_box_value.b){
+                    row = i;
+                    col = j;
+                }
+            }
+        }
+
+        move_cursor_to(env, context, {row, col}, cursor);
+    }else{
+        std::pair<size_t,size_t> temp = home_locate_home_position(env, context);
+
+        move_cursor_to(env, context, temp, cursor);
+    }
+
+
     bool b_pressed = false;
     int selection_modes = 0;
-    while(predicted_slot.r <= predicted_slot.b+predicted_slot.g){ // Validate that expected spot is red
-
+    while(predicted_slot.r <= predicted_slot.b || predicted_slot.r <= predicted_slot.g){ // Validate that expected spot is red
         if(selection_modes++==2){   // Scroll through 3 selection modes to find red
             pbf_press_button(context, BUTTON_ZR, 10, 35);
             if(!b_pressed){         // After 3 scrolls, assume we are holding a pokemon. Press b.
@@ -1205,26 +1311,10 @@ void validate_cursor(SingleSwitchProgramEnvironment& env, ProControllerContext& 
 // Helps pick up the pokemon at the expected spot. Corrects for already holding a pokemon, not being in red selection mode, and cursor not being in the correct place.
 void home_pick_up_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const std::pair<size_t, size_t>& cursor){
 
-    VideoSnapshot screen = env.console.video().snapshot();
 
-    ImageFloatBox slot_box(0.0735 + (0.072 * cursor.second), 0.165 + (0.1035 * cursor.first), 0.0055, 0.004);
-    FloatPixel predicted_slot = image_stats(extract_box_reference(screen, slot_box)).average;
+    pbf_press_button(context, BUTTON_Y, 10, 70);    // press y button
 
-    validate_cursor(env, context, cursor);
 
-    FloatPixel predicted_slot2;
-
-    do{
-        pbf_press_button(context, BUTTON_Y, 10, 35);    // press y button
-
-        // validate that expected spot is now white
-
-        context.wait_for_all_requests();
-
-        screen = env.console.video().snapshot();
-        predicted_slot2 = image_stats(extract_box_reference(screen, slot_box)).average;  // Update screen
-
-    }while(euclidean_distance(predicted_slot, predicted_slot2)==0);
 }
 
 // Need to build home_put_down_pokemon
@@ -1413,6 +1503,8 @@ void home_navigate_to_box(SingleSwitchProgramEnvironment& env, ProControllerCont
     }catch(...){
         pbf_wait(context, 100ms);
         context.wait_for_all_requests();
+
+        pbf_press_button(context, BUTTON_UP, 10, 30);
 
         home_navigate_to_box(env, context, target, hard_check);
     }
@@ -1605,6 +1697,116 @@ void home_swap_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext
     pbf_press_button(context, BUTTON_Y, 10, 80);
 
     context.wait_for_all_requests();
+}
+
+void home_swap_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const std::pair<size_t, size_t>& slot1, PokemonBox& box1 , const std::pair<size_t, size_t>& slot2, PokemonBox& box2, std::pair<size_t, size_t>& cursor, size_t& current_box){
+    // Check if both slots are empty
+
+    std::optional<Pokemon>& pokemon1 = box1.get_pokemon(slot1.first, slot1.second);
+    std::optional<Pokemon>& pokemon2 = box2.get_pokemon(slot2.first, slot2.second);
+    if(!pokemon1.has_value() && !pokemon2.has_value()){
+        return;
+    }
+
+    // Check if just one slot is empty
+    if(!pokemon1.has_value()){
+        // Go to pokemon 2
+        move_cursor_to(env, context, cursor, slot2);
+        // Pick it up
+        home_pick_up_pokemon(env, context, slot2);
+        // go to slot 1
+        home_navigate_to_box(env, context, box1.box_num);
+        move_cursor_to(env, context, slot2, slot1);
+        // Press y
+        pbf_press_button(context, BUTTON_Y, 10, 70);
+        // Swap the pokemon pointers and row, col, box
+        pokemon1 = std::move(pokemon2.value());  // Move the real value into pokemon1
+        pokemon2.reset();                       // Clear pokemon2 to make it blank
+        pokemon1->current_box = box1.box_num;
+        pokemon1->current_row = slot1.first;
+        pokemon1->current_col = slot1.second;
+        // Set cursor position
+        cursor = slot1;
+        current_box = box1.box_num;
+    }else if (!pokemon2.has_value()){
+        // Go to pokemon 1
+        move_cursor_to(env, context, cursor, slot1);
+        // Pick it up
+        home_pick_up_pokemon(env, context, slot1);
+        // go to slot 2
+        home_navigate_to_box(env, context, box2.box_num);
+        move_cursor_to(env, context, slot1, slot2);
+        // Press y
+        pbf_press_button(context, BUTTON_Y, 20, 70);
+        // Swap the pokemon pointers and row, col, box
+        pokemon2 = std::move(pokemon1.value());  // Move the real value into pokemon2
+        pokemon1.reset();                        // Clear pokemon1 to make it blank
+        pokemon2->current_box = box2.box_num;
+        pokemon2->current_row = slot2.first;
+        pokemon2->current_col = slot2.second;
+        // Set cursor position
+        cursor = slot2;
+        current_box = box2.box_num;
+    }else{      // Both exist, move to the closest one and swap them
+        if(std::fabs(box1.box_num-current_box)<std::fabs(box2.box_num-current_box)){      // Left is closest
+            // Go to pokemon 1
+            move_cursor_to(env, context, cursor, slot1);
+            // Pick it up
+            home_pick_up_pokemon(env, context, slot1);
+            // go to slot 2
+            home_navigate_to_box(env, context, box2.box_num);
+            move_cursor_to(env, context, slot1, slot2);
+            // Press y
+            pbf_press_button(context, BUTTON_Y, 20, 70);
+            // Swap the pokemon pointers and row, col, box
+            std::swap(*pokemon2, *pokemon1);
+            std::swap(pokemon2->current_box, pokemon1->current_box);
+            std::swap(pokemon2->current_col, pokemon1->current_col);
+            std::swap(pokemon2->current_row, pokemon1->current_row);
+            // Set cursor position
+            cursor = slot2;
+            current_box = box2.box_num;
+        }else if(std::fabs(box2.box_num-current_box)<std::fabs(box1.box_num-current_box)){                                                          // Right is closest
+            // Go to pokemon 2
+            move_cursor_to(env, context, cursor, slot2);
+            // Pick it up
+            home_pick_up_pokemon(env, context, slot2);
+            // go to slot 1
+            home_navigate_to_box(env, context, box1.box_num);
+            move_cursor_to(env, context, slot2, slot1);
+            // Press y
+            pbf_press_button(context, BUTTON_Y, 10, 70);
+            // Swap the pokemon pointers and row, col, box
+            std::swap(*pokemon1, *pokemon2);
+            std::swap(pokemon1->current_box, pokemon2->current_box);
+            std::swap(pokemon1->current_col, pokemon2->current_col);
+            std::swap(pokemon1->current_row, pokemon2->current_row);
+            // Set cursor position
+            cursor = slot1;
+            current_box = box1.box_num;
+        }else{ // Same box, calculate movement distances (just go to slot 1 for now)
+            // Go to pokemon 1
+            move_cursor_to(env, context, cursor, {pokemon1->current_row, pokemon1->current_col});
+            // Pick it up
+            home_pick_up_pokemon(env, context, {pokemon1->current_row, pokemon1->current_col});
+            // go to slot 2
+            home_navigate_to_box(env, context, box1.box_num);
+            move_cursor_to(env, context, {pokemon1->current_row, pokemon1->current_col}, slot2);
+            // Press y
+            pbf_press_button(context, BUTTON_Y, 20, 15);
+            // Swap the pokemon pointers and row, col, box
+            std::swap(*pokemon2, *pokemon1);
+            std::swap(pokemon2->current_box, pokemon1->current_box);
+            std::swap(pokemon2->current_col, pokemon1->current_col);
+            std::swap(pokemon2->current_row, pokemon1->current_row);
+            // Set cursor position
+            cursor = slot2;
+            current_box = box2.box_num;
+        }
+    }
+
+
+
 }
 
 bool home_request_next(SingleSwitchProgramEnvironment& env, ProControllerContext& context, Game& game){
@@ -1940,18 +2142,19 @@ PokemonBox home_build_box(SingleSwitchProgramEnvironment& env, ProControllerCont
 }
 
 bool home_reconcile_spaces(SingleSwitchProgramEnvironment& env, ProControllerContext& context, std::pair<size_t, size_t>& cursor, PokemonBox& box){
-    move_cursor_to(env, context, cursor, std::pair<size_t, size_t>{0,0});
+    context.wait_for_all_requests();
+
     VideoSnapshot screen = env.console.video().snapshot();
 
     // size_t blanks = 0;
 
-    home_navigate_to_box(env, context, box.box_num);
 
     for (size_t row = 0; row < 5; row++){
         for (size_t column = 0; column < 6; column++){
             ImageFloatBox slot_box(0.06 + (0.072 * column), 0.2 + (0.1035 * row), 0.03, 0.057);
+            ImageFloatBox slot_box2(0.059400 + (0.071861 * column), 0.1987 + (0.105544 * row), 0.03, 0.057);
             int current_box_value = (int)image_stddev(extract_box_reference(screen, slot_box)).sum();
-            FloatPixel color_value = image_stats(extract_box_reference(screen, slot_box)).average;
+            FloatPixel color_value = image_stats(extract_box_reference(screen, slot_box2)).average;
 
             if(!box.grid[row][column]){ // blank pokemon space
                 if(current_box_value>=5){
@@ -1960,7 +2163,7 @@ bool home_reconcile_spaces(SingleSwitchProgramEnvironment& env, ProControllerCon
                 }
             }else{
                 double euc_dist = euclidean_distance(box.grid[row][column]->quick_color,color_value);
-                if(euc_dist>=22.5f){
+                if(euc_dist>=4.5f){
                     env.console.log("Box " + std::to_string(box.box_num)+" was not reconciled at {" + std::to_string(row) + ", " + std::to_string(column) + "}. Euclidian distance was "+std::to_string(euclidean_distance(box.grid[row][column]->quick_color,color_value)));
                     return false;
                 }
@@ -1976,45 +2179,48 @@ PokemonBox home_load_box(SingleSwitchProgramEnvironment& env, ProControllerConte
 
     home_navigate_to_box(env, context, box_num);
 
+    move_cursor_to(env, context, cursor, std::pair<size_t,size_t>{0,0});
+
+    context.wait_for_all_requests();
+
     JsonValue json_value;
     PokemonBox box;
 
     box.box_num = box_num;
     try {
-        context.wait_for_all_requests();
 
         json_value = load_json_file("Home Storage\\" + std::to_string(box_num) +".json");
 
-        pbf_wait(context,125ms);
-        context.wait_for_all_requests();
-
         box.parse_pokemon_box(json_value);
 
+        box.output_boxes_data_json();
+
         if(!home_reconcile_spaces(env, context, cursor, box))throw std::runtime_error("Space reconciliation failed for box " + std::to_string(box_num));
-
-        pbf_wait(context, 2000ms);
-        context.wait_for_all_requests();
-
     } catch (...) {
         env.log("Failed to load JSON file", COLOR_RED);
         box = home_build_box(env, context, cursor, box_num);
         box.output_boxes_data_json();    }
 
-
+    box.update_stats();
 
     return box;
 }
 
 PokemonBox home_load_box(SingleSwitchProgramEnvironment& env, ProControllerContext& context, std::pair<size_t, size_t>& cursor, size_t box_num, BoxLayout& boxes){
-    env.console.log("running home_load_box on box " + std::to_string(box_num));
+    env.console.log("running home_load_box on box "+std::to_string(box_num));
 
     home_navigate_to_box(env, context, box_num);
 
+    move_cursor_to(env, context, cursor, std::pair<size_t,size_t>{0,0});
+
+    context.wait_for_all_requests();
+
+    JsonValue json_value;
     PokemonBox box;
+
     box.box_num = box_num;
 
     // Check if the box exists in the provided BoxLayout
-    JsonValue json_value;
     try {
         if (boxes.box_exists(box_num)) {
             box = boxes.get_box(box_num);
@@ -2025,13 +2231,9 @@ PokemonBox home_load_box(SingleSwitchProgramEnvironment& env, ProControllerConte
 
             json_value = load_json_file("Home Storage\\" + std::to_string(box_num) + ".json");
 
-            pbf_wait(context, 125ms);
-            context.wait_for_all_requests();
-
             box.parse_pokemon_box(json_value);
 
-            pbf_wait(context, 2000ms);
-            context.wait_for_all_requests();
+            box.output_boxes_data_json();
         }
         // Reconcile spaces
         if (!home_reconcile_spaces(env, context, cursor, box)) {
@@ -2045,13 +2247,10 @@ PokemonBox home_load_box(SingleSwitchProgramEnvironment& env, ProControllerConte
         box.output_boxes_data_json();
     }
 
-
+    box.update_stats();
 
     return box;
 }
-
-
-
 
 bool home_sort_box(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PokemonBox& box, std::pair<size_t,size_t>& cursor) {
     bool touched = false;
@@ -2059,6 +2258,7 @@ bool home_sort_box(SingleSwitchProgramEnvironment& env, ProControllerContext& co
     size_t cols = MAX_COLUMNS;
 
     bool reverse = false;
+
 
     // Perform a selection sort on the grid
     for (size_t i = 0; i < rows * cols - 1; ++i) {
@@ -2137,16 +2337,15 @@ bool home_sort_box(SingleSwitchProgramEnvironment& env, ProControllerContext& co
     return touched;
 }
 
-bool home_make_easy_swaps(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PokemonBox& left, PokemonBox& right, std::pair<size_t, size_t>& cursor, bool leftBox = true){
+bool home_make_easy_swaps(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PokemonBox& left, PokemonBox& right, std::pair<size_t, size_t>& cursor, size_t& current_box){
+    size_t initial_box = current_box;
 
-    // env.console.log("Left blanks = "+std::to_string(left.blanks));
-    // env.console.log("Right blanks = "+std::to_string(right.blanks));
+    env.console.log("Left blanks = "+std::to_string(left.blanks));
+    env.console.log("Right blanks = "+std::to_string(right.blanks));
 
 
     if(left.blanks==30){
-        if(leftBox){
-            pbf_press_button(context, BUTTON_R, 10, 35);
-        }
+        pbf_press_button(context, BUTTON_R, 10, 35);
         move_cursor_to(env, context, cursor, {0,0});
         pbf_press_button(context, BUTTON_ZR, 10, 35);
         pbf_press_button(context, BUTTON_A, 10, 35);
@@ -2163,10 +2362,23 @@ bool home_make_easy_swaps(SingleSwitchProgramEnvironment& env, ProControllerCont
         pbf_press_button(context, BUTTON_L, 10, 35);
         pbf_press_button(context, BUTTON_A, 10, 35);
         pbf_press_button(context, BUTTON_ZL, 10, 35);
-        if(leftBox)pbf_press_button(context, BUTTON_R, 10, 35);
+        pbf_press_button(context, BUTTON_R, 10, 35);
 
+        std::swap(left.grid, right.grid);
 
-        std::swap(left, right);
+        // Update Pokémon metadata after grid swap
+        for (size_t i = 0; i < left.grid.size(); ++i) {
+            for (size_t j = 0; j < left.grid[i].size(); ++j) {
+                    left.grid[i][j]->current_box = left.box_num;
+                    left.grid[i][j]->current_col = j;
+                }
+                if (right.grid[i][j]) {
+                    right.grid[i][j]->current_box = right.box_num;
+                    right.grid[i][j]->current_row = i;
+                    right.grid[i][j]->current_col = j;
+                }
+            }
+        }
 
         cursor = {0, 0};
 
@@ -2176,31 +2388,42 @@ bool home_make_easy_swaps(SingleSwitchProgramEnvironment& env, ProControllerCont
         return true;
     }
 
-
-
     size_t runs = 0;
     for(; runs < 30; runs++){
-        std::optional<Pokemon> highestLeft = left.grid[0][0];
-        std::optional<Pokemon> lowestRight = right.grid[0][0];
 
-        size_t left_row = 0;
-        size_t left_col = 0;
-        size_t right_row = 0;
-        size_t right_col = 0;
+        std::optional<Pokemon> highestLeft;
+        size_t left_row = 0, left_col = 0;
+        bool found_blank_on_left = false;
 
-        for(size_t i = 1; i < 30; i++){
-            auto& leftPokemon = left.grid[(size_t)i / 6][(size_t)i % 6];
-            if(highestLeft.has_value() && (!leftPokemon.has_value() || !(*leftPokemon <= *highestLeft))) {
-                highestLeft = leftPokemon;
-                left_row = i/6;
-                left_col = i%6;
+        std::optional<Pokemon> lowestRight;
+        size_t right_row = 0, right_col = 0;
+
+        for (size_t i = 0; i < 30; i++) {
+            auto& leftPokemon = left.grid[i / 6][i % 6];
+            if (!leftPokemon.has_value()) {
+                // Keep track that we found a blank
+                if(!found_blank_on_left){
+                    highestLeft = leftPokemon;
+                    left_row = i / 6;
+                    left_col = i % 6;
+                    found_blank_on_left = true;
+                }
+            } else if (!found_blank_on_left) {
+                // Only update highestLeft if we haven't found any blank so far
+                if (!highestLeft.has_value() || highestLeft.value() < leftPokemon.value()) {
+                    highestLeft = leftPokemon;
+                    left_row = i / 6;
+                    left_col = i % 6;
+                }
             }
 
-            auto& rightPokemon = right.grid[(size_t)i / 6][(size_t)i % 6];
-            if (!lowestRight.has_value() || (rightPokemon.has_value() && *rightPokemon < *lowestRight)) {
-                lowestRight = rightPokemon;
-                right_row = i/6;
-                right_col = i%6;
+            auto& rightPokemon = right.grid[i / 6][i % 6];
+            if (rightPokemon.has_value()) {
+                if (!lowestRight.has_value() || rightPokemon.value() < lowestRight.value()) {
+                    lowestRight = rightPokemon;
+                    right_row = i / 6;
+                    right_col = i % 6;
+                }
             }
         }
 
@@ -2210,49 +2433,7 @@ bool home_make_easy_swaps(SingleSwitchProgramEnvironment& env, ProControllerCont
         if(!lowestRight.has_value() || (highestLeft.has_value() && *(highestLeft)<=*(lowestRight)))break;
 
 
-        // set up easy swapping
-        if (!right.grid[right_row][right_col].has_value() && !left.grid[left_row][left_col].has_value())continue;
-        else if(!leftBox && !right.grid[right_row][right_col].has_value()){
-            pbf_press_button(context, BUTTON_L, 10, 150);
-            leftBox = true;
-        }else if (leftBox && !left.grid[left_row][left_col].has_value()){
-            pbf_press_button(context, BUTTON_R, 10, 150);
-            leftBox = false;
-        }
-
-
-        if(leftBox){
-            move_cursor_to(env, context, cursor, {left_row, left_col});
-            home_pick_up_pokemon(env, context, {left_row, left_col});
-            pbf_press_button(context, BUTTON_R, 10, 35);
-            move_cursor_to(env, context, {left_row,left_col}, {right_row, right_col});
-            pbf_press_button(context, BUTTON_Y, 10, 40);
-            cursor = {right_row,right_col};
-            leftBox=false;
-        }else{
-            move_cursor_to(env, context, cursor, {right_row, right_col});
-            home_pick_up_pokemon(env, context, {right_row, right_col});
-            pbf_press_button(context, BUTTON_L, 10, 35);
-            move_cursor_to(env, context, {right_row,right_col}, {left_row, left_col});
-            pbf_press_button(context, BUTTON_Y, 10, 40);
-            cursor = {left_row,left_col};
-            leftBox=true;
-        }
-        std::swap(left.grid[left_row][left_col], right.grid[right_row][right_col]);
-        if(lowestRight.has_value()){
-            left.grid[left_row][left_col]->current_col = right_col;
-            left.grid[left_row][left_col]->current_row = right_row;
-            left.grid[left_row][left_col]->current_box = right.box_num;
-        }else{
-            pbf_press_button(context, BUTTON_B, 10, 35);
-        }
-        if(highestLeft.has_value()){
-            right.grid[right_row][right_col]->current_col = left_col;
-            right.grid[right_row][right_col]->current_row = left_row;
-            right.grid[right_row][right_col]->current_box = left.box_num;
-        }else{
-            pbf_press_button(context, BUTTON_B, 10, 35);
-        }
+        home_swap_pokemon(env, context, {left_row, left_col}, left, {right_row, right_col}, right, cursor, current_box);
 
         left.update_stats();
         right.update_stats();
@@ -2260,9 +2441,17 @@ bool home_make_easy_swaps(SingleSwitchProgramEnvironment& env, ProControllerCont
 
     }
 
-    if(leftBox)pbf_press_button(context, BUTTON_R, 10, 35);
+    if(initial_box!=current_box){
+        home_navigate_to_box(env, context, initial_box);
+    }
 
-    return runs>0;
+    if(runs>0){
+        left.output_boxes_data_json();
+        right.output_boxes_data_json();
+        return true;
+    }else{
+        return false;
+    }
 }
 
 bool home_read_main_menu(SingleSwitchProgramEnvironment& env, ProControllerContext& context, std::string target){
@@ -2612,10 +2801,10 @@ void Enrichment::initialize_home(SingleSwitchProgramEnvironment& env, ProControl
 
 void Enrichment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PokemonHome_HomeEnvironment& home_manager, bool& started, bool& swaps_made){
     home_manager.navigate_to(env, context, PageID::BOX_VIEW, GameStatus::POKEMON_HOME);
-    // bool skips_made = false;
 
     BoxLayout Home;
-    std::pair<size_t,size_t> cursor = {0,0};
+    std::pair<size_t,size_t> cursor = {0, 0};
+    // validate_cursor(env, context, std::pair<size_t, size_t>{0,0});
 
     do {
         swaps_made = false;
@@ -2628,9 +2817,8 @@ void Enrichment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControll
 
         Home.add_box(HOME_FIRST_BOX, left);
 
-        pbf_press_button(context, BUTTON_R, 10, 150); // Move to the right box
 
-        for (size_t left_box = HOME_FIRST_BOX; left_box < HOME_LAST_BOX - 1; ++left_box) {
+        for (size_t left_box = HOME_FIRST_BOX; left_box < HOME_LAST_BOX; ++left_box) {
             size_t right_box = left_box + 1;
 
             // if(left_box%10==0){
@@ -2646,7 +2834,8 @@ void Enrichment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControll
             if (right_box > HOME_LAST_BOX) break; // Prevent out-of-bounds access
 
             // navigate to and load the right box
-            home_navigate_to_box(env, context, right_box);
+            // home_navigate_to_box(env, context, right_box);
+            pbf_press_button(context, BUTTON_R, 10,35);
             right = Home.get_box(right_box);
             if (!right.is_empty()) {
                 right = home_load_box(env, context, cursor, right_box, Home);
@@ -2656,7 +2845,9 @@ void Enrichment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControll
             // env.console.log(std::to_string(Home.is_sorted(right_box)));
 
             // Run easy swaps
-            bool swaps = home_make_easy_swaps(env, context, left, right, cursor, false);
+            bool swaps = home_make_easy_swaps(env, context, left, right, cursor, right.box_num);
+
+            swaps_made = swaps_made || swaps ;
 
             if(swaps){
                 // Before moving on, make sure the blanks are where they should be. If the next function returns false, we have a huge problem.
@@ -2673,9 +2864,6 @@ void Enrichment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControll
                     env.console.log("Validation succeeded. Continuing.");
                 }
             }
-            left.output_boxes_data_json();
-            pbf_wait(context, 2000ms);
-            context.wait_for_all_requests();
             left = right;
 
 
@@ -2690,12 +2878,9 @@ void Enrichment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControll
             {}
             );
 
-        started=true;
-
-        home_navigate_to_box(env, context, HOME_LAST_BOX-1, true);
 
 
-        for (size_t right_box = HOME_LAST_BOX; right_box > HOME_FIRST_BOX + 1; --right_box) {
+        for (size_t right_box = HOME_LAST_BOX; right_box > HOME_FIRST_BOX; --right_box) {
             size_t left_box = right_box - 1;
 
             if (left_box < HOME_FIRST_BOX) break; // Prevent out-of-bounds access
@@ -2710,13 +2895,9 @@ void Enrichment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControll
             //         );
             // }
 
-            env.console.log("Checking boxes " + std::to_string(left_box) + " and " + std::to_string(right_box));
-
-            env.console.log("box_sorted[" + std::to_string(left_box) + "] = " + (Home.is_sorted(left_box) ? "true" : "false"));
-            env.console.log("box_sorted[" + std::to_string(right_box) + "] = " + (Home.is_sorted(right_box) ? "true" : "false"));
-
             // navigate to and load the left box
-            home_navigate_to_box(env, context, left_box);
+            // home_navigate_to_box(env, context, left_box);
+            pbf_press_button(context, BUTTON_L, 10,35);
             left = Home.get_box(left_box);
             if (!left.is_empty()) {
                 left = home_load_box(env, context, cursor, left_box, Home);
@@ -2724,10 +2905,11 @@ void Enrichment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControll
             }
 
             // Run easy swaps
-            bool swaps = home_make_easy_swaps(env, context, left, right, cursor, true);
+            bool swaps = home_make_easy_swaps(env, context, left, right, cursor, left.box_num);
+
+            swaps_made = swaps_made || swaps ;
 
             if(swaps){
-                pbf_press_button(context, BUTTON_L, 10, 150); // Move to the left box again
                 env.console.log("Validating blanks");
                 move_cursor_to(env, context, cursor, {0,0});
                 cursor = {0,0};
@@ -2741,18 +2923,9 @@ void Enrichment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControll
                     env.console.log("Validation succeeded. Continuing.");
                 }
             }
-            pbf_press_button(context, BUTTON_L, 10, 150);
-
-            right.output_boxes_data_json();
-            pbf_wait(context, 2000ms);
-            context.wait_for_all_requests();
             right = left;
 
         }
-
-
-
-        move_cursor_to(env, context, home_locate_home_position(env, context), {0,0});
 
         send_program_notification(
             env, NOTIFICATION_ERROR_FATAL,
@@ -2761,13 +2934,15 @@ void Enrichment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControll
             {}, "",
             {}
             );
-    } while (!Home.important_sorted(HOME_FIRST_BOX, HOME_LAST_BOX));
+    } while (swaps_made);
 
     // Now, we fine sort each box sinze every pokemon is in its respective box.
-    for(size_t i = HOME_FIRST_BOX; i < HOME_LAST_BOX; i++){
+    for(size_t i = HOME_FIRST_BOX; i <= HOME_LAST_BOX; i++){
         home_navigate_to_box(env, context, i);
 
-        home_sort_box(env, context, Home.get_box_mutable(i), cursor);
+        home_sort_box(env, context, Home.get_box(i), cursor);
+
+        Home.get_box(i).output_boxes_data_json();
 
         Home.set_sorted(i, true);
     }
@@ -2781,6 +2956,7 @@ void Enrichment::enrich_with_games(SingleSwitchProgramEnvironment& env, ProContr
         do{
             switch(game.game){
                 case GameStatus::POKEMON_VIOLET:
+                home_manager.navigate_to(env, context, PageID::BOX_VIEW, GameStatus::POKEMON_VIOLET);
                     pokemon = home_fill_boxes_to_game(env, context, game, SV_BOX_NAME);
                     if(pokemon==0)continue;
                     switch_close_game_and_open(env, context, "Pokémon Violet", home_manager);
