@@ -1711,6 +1711,7 @@ void home_swap_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext
     // Check if just one slot is empty
     if(!pokemon1.has_value()){
         // Go to pokemon 2
+        home_navigate_to_box(env, context, box2.box_num);
         move_cursor_to(env, context, cursor, slot2);
         // Pick it up
         home_pick_up_pokemon(env, context, slot2);
@@ -1730,6 +1731,7 @@ void home_swap_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext
         current_box = box1.box_num;
     }else if (!pokemon2.has_value()){
         // Go to pokemon 1
+        home_navigate_to_box(env, context, box1.box_num);
         move_cursor_to(env, context, cursor, slot1);
         // Pick it up
         home_pick_up_pokemon(env, context, slot1);
@@ -1750,6 +1752,7 @@ void home_swap_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext
     }else{      // Both exist, move to the closest one and swap them
         if(std::fabs(box1.box_num-current_box)<std::fabs(box2.box_num-current_box)){      // Left is closest
             // Go to pokemon 1
+            home_navigate_to_box(env, context, box1.box_num);
             move_cursor_to(env, context, cursor, slot1);
             // Pick it up
             home_pick_up_pokemon(env, context, slot1);
@@ -1768,6 +1771,7 @@ void home_swap_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext
             current_box = box2.box_num;
         }else if(std::fabs(box2.box_num-current_box)<std::fabs(box1.box_num-current_box)){                                                          // Right is closest
             // Go to pokemon 2
+            home_navigate_to_box(env, context, box2.box_num);
             move_cursor_to(env, context, cursor, slot2);
             // Pick it up
             home_pick_up_pokemon(env, context, slot2);
@@ -1786,6 +1790,7 @@ void home_swap_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext
             current_box = box1.box_num;
         }else{ // Same box, calculate movement distances (just go to slot 1 for now)
             // Go to pokemon 1
+            home_navigate_to_box(env, context, box1.box_num);
             move_cursor_to(env, context, cursor, {pokemon1->current_row, pokemon1->current_col});
             // Pick it up
             home_pick_up_pokemon(env, context, {pokemon1->current_row, pokemon1->current_col});
@@ -2390,6 +2395,8 @@ bool home_make_easy_swaps(SingleSwitchProgramEnvironment& env, ProControllerCont
         return true;
     }
 
+    cursor = home_locate_home_position(env, context);
+
     size_t runs = 0;
     for(; runs < 30; runs++){
 
@@ -2958,7 +2965,7 @@ void Enrichment::enrich_with_games(SingleSwitchProgramEnvironment& env, ProContr
         do{
             switch(game.game){
                 case GameStatus::POKEMON_VIOLET:
-                home_manager.navigate_to(env, context, PageID::BOX_VIEW, GameStatus::POKEMON_VIOLET);
+                    home_manager.navigate_to(env, context, PageID::BOX_VIEW, GameStatus::POKEMON_VIOLET);
                     pokemon = home_fill_boxes_to_game(env, context, game, SV_BOX_NAME);
                     if(pokemon==0)continue;
                     switch_close_game_and_open(env, context, "Pokémon Violet", home_manager);
