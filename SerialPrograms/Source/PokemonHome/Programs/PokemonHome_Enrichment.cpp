@@ -2369,7 +2369,9 @@ bool home_make_easy_swaps(SingleSwitchProgramEnvironment& env, ProControllerCont
         // Update Pokémon metadata after grid swap
         for (size_t i = 0; i < left.grid.size(); ++i) {
             for (size_t j = 0; j < left.grid[i].size(); ++j) {
+                if (left.grid[i][j]) {
                     left.grid[i][j]->current_box = left.box_num;
+                    left.grid[i][j]->current_row = i;
                     left.grid[i][j]->current_col = j;
                 }
                 if (right.grid[i][j]) {
