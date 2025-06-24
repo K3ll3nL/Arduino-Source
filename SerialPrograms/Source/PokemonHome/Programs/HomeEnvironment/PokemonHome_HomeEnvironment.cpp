@@ -1,17 +1,30 @@
 #include "PokemonHome_HomeEnvironment.h"
+#include "CommonFramework/ImageTools/ImageStats.h"
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonFramework/VideoPipeline/VideoFeed.h"
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "CommonTools/OCR/OCR_RawOCR.h"
+#include "CommonFramework/Tools/ErrorDumper.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/NintendoSwitch_SingleSwitchProgram.h"
 #include "PokemonHome/Inference/PokemonHome_HomeApplicationDetector.h"
 #include <chrono>
+#include <iostream>
 #include <queue>
 
 
 namespace PokemonAutomation{
 namespace NintendoSwitch{
 namespace PokemonHome{
+using namespace Pokemon;
+
+static size_t MAX_RETRIES = 5;
+
+std::string sanitize_OCR2(std::string str){
+    char chars[] = "\n\r—.,";
+    for(auto a:chars){str.erase(std::remove(str.begin(),str.end(), a),str.end());}
+    return str;
+}
 
 std::string to_string(PageID page) {
     switch (page) {
@@ -27,36 +40,396 @@ std::string to_string(PageID page) {
     }
 }
 
-HomeCursor::HomeCursor(SingleSwitchProgramEnvironment& env, ProControllerContext&){
+HomeCursor::HomeCursor(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+    identify_page(env, context, true);
 
+    // Find cursor. Until then, assume it's at (0, 0)
 }
 
-void HomeCursor::locate_position(){
-    // TODO: Implement locate_position logic
+HomeCursor::HomeCursor(size_t row, size_t col, size_t box){
+    this->row = row;
+    this->col = col;
+    this->box = box;
 }
 
-void HomeCursor::move_cursor_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const std::pair<size_t, size_t> cursor){
+
+
+CursorActionResponse HomeCursor::move_cursor_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const HomeCursor& cursor){
     // TODO: Implement cursor movement logic
+    auto response = position_cursor(env, context, cursor);
+    return response;
 }
 
-void HomeCursor::pick_up_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+CursorActionResponse HomeCursor::pick_up_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     // TODO: Implement pick up logic
+    return {CursorActionResult::FAILURE, "Function still undefined"};
 }
 
-void HomeCursor::put_down_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+CursorActionResponse HomeCursor::put_down_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     // TODO: Implement put down logic
+    return {CursorActionResult::FAILURE, "Function still undefined"};
 }
+
+CursorActionResponse HomeCursor::align_col(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const HomeCursor& dest_cursor){
+    context.wait_for_all_requests();
+    VideoSnapshot screen = env.console.video().snapshot();
+
+    ImageFloatBox space_box(0.0735 + (0.072 * dest_cursor.col), 0.165 + (0.1035 * row), 0.0055, 0.004);
+
+    FloatPixel pixels_before = image_stats(extract_box_reference(screen, space_box)).average;
+
+    // direct nav forward or backward through cols
+    if ((dest_cursor.col > col && dest_cursor.col - col <= 3) || (col > dest_cursor.col && col - dest_cursor.col <= 3)) {
+        for (size_t i = col; i < dest_cursor.col; ++i) {
+            pbf_press_dpad(context, DPAD_RIGHT, 10, 30);
+        }
+        for (size_t i = dest_cursor.col; i < col; ++i) {
+            pbf_press_dpad(context, DPAD_LEFT, 10, 30);
+        }
+    } else { // wrap around is faster if direct movement is more than 3 away
+        if (dest_cursor.col > col) {
+            for (size_t i = 0; i < MAX_COLUMNS - (dest_cursor.col - col); ++i) {
+                pbf_press_dpad(context, DPAD_LEFT, 10, 30);
+            }
+        }
+        if (col > dest_cursor.col) {
+            for (size_t i = 0; i < MAX_COLUMNS - (col - dest_cursor.col); ++i) {
+                pbf_press_dpad(context, DPAD_RIGHT, 10, 30);
+            }
+        }
+    }
+
+    context.wait_for_all_requests();
+
+    screen = env.console.video().snapshot();
+
+    FloatPixel pixels_after = image_stats(extract_box_reference(screen, space_box)).average;
+
+    pbf_wait(context, 250ms);
+    context.wait_for_all_requests();
+    if(euclidean_distance(pixels_before,pixels_after)>0){
+        return {CursorActionResult::SUCCESS, "Found cursor at ("+std::to_string(row)+", "+std::to_string(dest_cursor.col)+")"};
+    }else{
+        return {CursorActionResult::FAILURE, "Could not find cursor at ("+std::to_string(row)+", "+std::to_string(dest_cursor.col)+")"};
+    }
+}
+
+CursorActionResponse HomeCursor::align_col(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const size_t& new_col){
+    context.wait_for_all_requests();
+    VideoSnapshot screen = env.console.video().snapshot();
+
+    ImageFloatBox space_box(0.0735 + (0.072 * new_col), 0.165 + (0.1035 * row), 0.0055, 0.004);
+
+    FloatPixel pixels_before = image_stats(extract_box_reference(screen, space_box)).average;
+
+    // direct nav forward or backward through cols
+    if ((new_col > col && new_col - col <= 3) || (col > new_col && col - new_col <= 3)) {
+        for (size_t i = col; i < new_col; ++i) {
+            pbf_press_dpad(context, DPAD_RIGHT, 10, 30);
+        }
+        for (size_t i = new_col; i < col; ++i) {
+            pbf_press_dpad(context, DPAD_LEFT, 10, 30);
+        }
+    } else { // wrap around is faster if direct movement is more than 3 away
+        if (new_col > col) {
+            for (size_t i = 0; i < MAX_COLUMNS - (new_col - col); ++i) {
+                pbf_press_dpad(context, DPAD_LEFT, 10, 30);
+            }
+        }
+        if (col > new_col) {
+            for (size_t i = 0; i < MAX_COLUMNS - (col - new_col); ++i) {
+                pbf_press_dpad(context, DPAD_RIGHT, 10, 30);
+            }
+        }
+    }
+
+    context.wait_for_all_requests();
+
+    screen = env.console.video().snapshot();
+
+    FloatPixel pixels_after = image_stats(extract_box_reference(screen, space_box)).average;
+
+    pbf_wait(context, 250ms);
+    context.wait_for_all_requests();
+    if(euclidean_distance(pixels_before,pixels_after)>0){
+        return {CursorActionResult::SUCCESS, "Found cursor at ("+std::to_string(row)+", "+std::to_string(new_col)+")"};
+    }else{
+        return {CursorActionResult::FAILURE, "Could not find cursor at ("+std::to_string(row)+", "+std::to_string(new_col)+")"};
+    }
+}
+
+CursorActionResponse HomeCursor::align_row(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const HomeCursor& dest_cursor){
+    context.wait_for_all_requests();
+    VideoSnapshot screen = env.console.video().snapshot();
+
+    ImageFloatBox space_box(0.0735 + (0.072 * col), 0.165 + (0.1035 * dest_cursor.row), 0.0055, 0.004);
+
+    FloatPixel pixels_before = image_stats(extract_box_reference(screen, space_box)).average;
+
+    // direct nav up or down through rows
+    if (!(row == 0 && dest_cursor.row == 4) && !(dest_cursor.row == 0 && row == 4)) {
+        for (size_t i = row; i < dest_cursor.row; ++i) {
+            pbf_press_dpad(context, DPAD_DOWN, 10, 30);
+        }
+        for (size_t i = dest_cursor.row; i < row; ++i) {
+            pbf_press_dpad(context, DPAD_UP, 10, 30);
+        }
+    } else { // wrap around is faster to move between row or last row
+        if (row == 0 && dest_cursor.row == 4) {
+            for (size_t i = 0; i <= 2; ++i) {
+                pbf_press_dpad(context, DPAD_UP, 10, 30);
+            }
+        } else {
+            for (size_t i = 0; i <= 2; ++i) {
+                pbf_press_dpad(context, DPAD_DOWN, 10, 30);
+            }
+        }
+    }
+
+    context.wait_for_all_requests();
+
+    screen = env.console.video().snapshot();
+
+    FloatPixel pixels_after = image_stats(extract_box_reference(screen, space_box)).average;
+
+    pbf_wait(context, 250ms);
+    context.wait_for_all_requests();
+    if(euclidean_distance(pixels_before,pixels_after)>0){
+        return {CursorActionResult::SUCCESS, "Found cursor at ("+std::to_string(dest_cursor.row)+", "+std::to_string(col)+")"};
+    }else{
+        return {CursorActionResult::FAILURE, "Could not find cursor at ("+std::to_string(dest_cursor.row)+", "+std::to_string(col)+")"};
+    }
+}
+
+CursorActionResponse HomeCursor::align_row(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const size_t& new_row){
+    context.wait_for_all_requests();
+    VideoSnapshot screen = env.console.video().snapshot();
+
+    ImageFloatBox space_box(0.0735 + (0.072 * col), 0.165 + (0.1035 * new_row), 0.0055, 0.004);
+
+    FloatPixel pixels_before = image_stats(extract_box_reference(screen, space_box)).average;
+
+    // direct nav up or down through rows
+    if (!(row == 0 && new_row == 4) && !(new_row == 0 && row == 4)) {
+        for (size_t i = row; i < new_row; ++i) {
+            pbf_press_dpad(context, DPAD_DOWN, 10, 30);
+        }
+        for (size_t i = new_row; i < row; ++i) {
+            pbf_press_dpad(context, DPAD_UP, 10, 30);
+        }
+    } else { // wrap around is faster to move between row or last row
+        if (row == 0 && new_row == 4) {
+            for (size_t i = 0; i <= 2; ++i) {
+                pbf_press_dpad(context, DPAD_UP, 10, 30);
+            }
+        } else {
+            for (size_t i = 0; i <= 2; ++i) {
+                pbf_press_dpad(context, DPAD_DOWN, 10, 30);
+            }
+        }
+    }
+
+    context.wait_for_all_requests();
+
+    screen = env.console.video().snapshot();
+
+    FloatPixel pixels_after = image_stats(extract_box_reference(screen, space_box)).average;
+
+    pbf_wait(context, 250ms);
+    context.wait_for_all_requests();
+    if(euclidean_distance(pixels_before,pixels_after)>0){
+        return {CursorActionResult::SUCCESS, "Found cursor at ("+std::to_string(new_row)+", "+std::to_string(col)+")"};
+    }else{
+        return {CursorActionResult::FAILURE, "Could not find cursor at ("+std::to_string(new_row)+", "+std::to_string(col)+")"};
+    }
+}
+
+CursorActionResponse HomeCursor::position_cursor(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const HomeCursor& dest_cursor, size_t retry_count){
+    if (retry_count > MAX_RETRIES) {
+        return {CursorActionResult::ERROR_RECOVERABLE, "Reached maximum retry attempts"};
+    }
+
+    // Align column
+    auto result = align_col(env, context, dest_cursor);
+    switch(result.result){
+        case CursorActionResult::SUCCESS:
+            col = dest_cursor.col;
+            break;
+        case CursorActionResult::FAILURE:
+            std::cout<< "Here1" << std::endl;
+            return {CursorActionResult::FAILURE, "Could not align column"};
+            break;
+        default:
+            return result;
+            break;
+    }
+
+        std::cout<< "Here" <<std::endl;
+
+    // Align row
+    result = align_row(env, context, dest_cursor);
+    switch(result.result){
+    case CursorActionResult::SUCCESS:
+        row = dest_cursor.row;
+        break;
+    case CursorActionResult::FAILURE:
+        return {CursorActionResult::FAILURE, "Could not align row"};
+        break;
+    default:
+        return result;
+        break;
+    }
+
+    return {CursorActionResult::SUCCESS, "Successfully moved cursor to ("+std::to_string(row)+", "+std::to_string(col)+")"};
+}
+
+CursorActionResponse HomeCursor::identify_page(SingleSwitchProgramEnvironment& env, ProControllerContext& context, bool hard_check = false){
+    VideoSnapshot screen = env.console.video().snapshot();
+
+    VideoOverlaySet box_render(env.console);
+
+    std::ostringstream ss;
+
+    ImageFloatBox box_name_box(0.135, 0.105, 0.24, 0.04);
+    ImageFloatBox home_box_checker(0.075, 0.72, 0.03205, 0.04);
+
+    std::string temp;
+
+    temp = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(screen, box_name_box)));
+    size_t box_name_top;
+    try{box_name_top = std::stoull(temp.substr(temp.find_last_of(' ') + 1));}catch(...){box_name_top = 0;}
+    temp = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker)));
+    size_t box_name_bottom;
+    try{box_name_bottom = std::stoull(temp.substr(0, temp.find_last_of('/')));}catch(...){box_name_bottom = 0;}
+
+    env.console.log(std::to_string(box_name_top)+"/"+std::to_string(box_name_bottom));
+
+    if(hard_check) {
+        size_t matches = 0;
+
+        if(box_name_bottom == 200 || box_name_top == 200) {
+            pbf_press_button(context, BUTTON_L, 10, 35);
+
+            context.wait_for_all_requests();
+            screen = env.console.video().snapshot();
+
+            temp = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(screen, box_name_box)));
+            size_t box_name_top2 = 0;
+            try{box_name_top2 = std::stoull(temp.substr(temp.find_last_of(' ') + 1));}catch(...){box_name_top2 = 0;}
+            temp = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker)));
+            size_t box_name_bottom2 = 0;
+            try{box_name_bottom2 = std::stoull(temp.substr(0, temp.find_last_of('/')));}catch(...){box_name_bottom2 = 0;}
+
+            env.console.log(std::to_string(box_name_top2)+"/"+std::to_string(box_name_bottom2));
+
+            // Count matches
+            if(box_name_top == box_name_bottom) matches++;
+            if(box_name_bottom == box_name_top2 + 1) matches++;
+            if(box_name_top2 == box_name_bottom2) matches++;
+
+            if(matches >= 3) {
+                box = box_name_top2;
+                return {CursorActionResult::SUCCESS, "Successfully identified page as " + std::to_string(box) + " after a hard check"};
+            }
+
+            pbf_press_button(context, BUTTON_L, 10, 70);
+
+            context.wait_for_all_requests();
+            screen = env.console.video().snapshot();
+
+            temp = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(screen, box_name_box)));
+            size_t box_name_top3 = 0;
+            try{box_name_top3 = std::stoull(temp.substr(temp.find_last_of(' ') + 1));}catch(...){box_name_bottom2 = 0;}
+            temp = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker)));
+            size_t box_name_bottom3 = 0;
+            try{box_name_bottom3 = std::stoull(temp.substr(0, temp.find_last_of('/')));}catch(...){box_name_bottom3 = 0;}
+
+            env.console.log(std::to_string(box_name_top3)+"/"+std::to_string(box_name_bottom3));
+
+            // Count matches
+            if(box_name_bottom2 == box_name_top3 + 1) matches++;
+            if(box_name_top3 == box_name_bottom3) matches++;
+
+            if(matches >= 3) {
+                box = box_name_top3;
+                return {CursorActionResult::SUCCESS, "Successfully identified page as " + std::to_string(box) + " after a hard check"};
+            } else {
+                return {CursorActionResult::FAILURE, "Could not identify page on a hard check"};
+            }
+
+        } else {
+            pbf_press_button(context, BUTTON_R, 10, 70);
+
+            context.wait_for_all_requests();
+            screen = env.console.video().snapshot();
+
+            temp = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(screen, box_name_box)));
+            size_t box_name_top2 = 0;
+            try{box_name_top2 = std::stoull(temp.substr(temp.find_last_of(' ') + 1));}catch(...){box_name_top2 = 0;}
+            temp = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker)));
+            size_t box_name_bottom2 = 0;
+            try{box_name_bottom2 = std::stoull(temp.substr(0, temp.find_last_of('/')));}catch(...){box_name_bottom2 = 0;}
+
+            env.console.log(std::to_string(box_name_top2)+"/"+std::to_string(box_name_bottom2));
+
+            // Count matches
+            matches = 0;
+            if(box_name_top == box_name_bottom) matches++;
+            if(box_name_bottom == box_name_top2 - 1) matches++;
+            if(box_name_top2 == box_name_bottom2) matches++;
+
+            if(matches >= 3) {
+                box = box_name_top2;
+                return {CursorActionResult::SUCCESS, "Successfully identified page as " + std::to_string(box) + " after a hard check"};
+            }
+
+            pbf_press_button(context, BUTTON_R, 10, 70);
+
+            context.wait_for_all_requests();
+            screen = env.console.video().snapshot();
+
+            temp = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(screen, box_name_box)));
+            size_t box_name_top3 = 0;
+            try{box_name_top3 = std::stoull(temp.substr(temp.find_last_of(' ') + 1));}catch(...){box_name_bottom2 = 0;}
+            temp = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker)));
+            size_t box_name_bottom3 = 0;
+            try{box_name_bottom3 = std::stoull(temp.substr(0, temp.find_last_of('/')));}catch(...){box_name_bottom3 = 0;}
+
+            env.console.log(std::to_string(box_name_top3)+"/"+std::to_string(box_name_bottom3));
+
+            // Count matches
+            if(box_name_bottom2 == box_name_top3 -1 ) matches++;
+            if(box_name_top3 == box_name_bottom3) matches++;
+
+            if(matches >= 3) {
+                box = box_name_top3;
+                return {CursorActionResult::SUCCESS, "Successfully identified page as " + std::to_string(box) + " after a hard check"};
+            } else {
+                return {CursorActionResult::FAILURE, "Could not identify page on a hard check"};
+            }
+        }
+    }else{
+        if(box_name_top == box_name_bottom){
+            return {CursorActionResult::SUCCESS, "Successfully identified page as " + std::to_string(box)};
+        }else{
+            return {CursorActionResult::FAILURE, "Could not identify page"};
+        }
+    }
+
+}
+
 
 
 
 PokemonHome_HomeEnvironment::PokemonHome_HomeEnvironment(SingleSwitchProgramEnvironment& env, ProControllerContext& context)
-    : cursor(env, context)
+    : cursor(HomeCursor(env, context))
 {
     detect_home(env, context);
     initialize_navigation_map(env, context);
+
 }
 
-void PokemonHome_HomeEnvironment::navigate_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const PageID destination, const GameStatus game, const std::pair<size_t, size_t> cursor, const size_t box){
+void PokemonHome_HomeEnvironment::navigate_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const PageID destination, const GameStatus game, const HomeCursor& cursor){
     std::vector<PageID> steps;
     if ((game != GameStatus::CURRENT && game != GameStatus::NONE && game != game_open)) {
         if( current_view != PageID::GAME_SELECTION){
@@ -68,9 +441,18 @@ void PokemonHome_HomeEnvironment::navigate_to(SingleSwitchProgramEnvironment& en
         steps = find_navigation_path(env, context, current_view, destination);
         perform_navigation_steps(env, context, steps);
     }
+
+    auto response = this->cursor.move_cursor_to(env, context, cursor);
+    if(response.result!=CursorActionResult::SUCCESS){
+        handle_errors(env, context, response);
+    }
 }
 
 std::vector<PageID> PokemonHome_HomeEnvironment::find_navigation_path(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PageID from, PageID to){
+    if (to == PageID::CURRENT){
+        return {};
+    }
+
     // Check the cache for a precomputed path
     std::pair<PageID, PageID> key = {from, to};
     auto it = navigation_cache.find(key);
@@ -149,7 +531,6 @@ void PokemonHome_HomeEnvironment::perform_navigation_steps(SingleSwitchProgramEn
     steps= {};
 }
 
-
 void PokemonHome_HomeEnvironment::detect_home(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     VideoSnapshot screen = env.console.video().snapshot();
 
@@ -224,6 +605,7 @@ void PokemonHome_HomeEnvironment::detect_home(SingleSwitchProgramEnvironment& en
 
 std::string PokemonHome_HomeEnvironment::get_view(){
     switch(current_view){
+        case PageID::CURRENT: return "Current";
         case PageID::TITLE_SCREEN: return "Title Screen";
         case PageID::MAIN_MENU: return "Main Menu";
         case PageID::GAME_SELECTION: return "Game Selection";
@@ -235,6 +617,19 @@ std::string PokemonHome_HomeEnvironment::get_view(){
         break;
     }
         return "failed";
+}
+
+CursorActionResponse PokemonHome_HomeEnvironment::handle_errors(SingleSwitchProgramEnvironment& env, ProControllerContext& context, CursorActionResponse& response){
+
+    send_program_notification(
+        env, NOTIFICATION_ERROR_RECOVERABLE,
+        COLOR_GREEN,
+        "scanned down to box ",
+        {}, "",
+        env.console.video().snapshot()
+        );
+
+    return response;
 }
 
 void PokemonHome_HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
@@ -340,7 +735,7 @@ void PokemonHome_HomeEnvironment::initialize_navigation_map(SingleSwitchProgramE
                 case GameStatus::POKEMON_SWORD: target_name = "Pokémon Sword"; break;
                 case GameStatus::POKEMON_SHIELD: target_name = "Pokémon Shield"; break;
                 case GameStatus::POKEMON_SCARLET: target_name = "Pokémon Scarlet"; break;
-                case GameStatus::POKEMON_VIOLET: target_name = "Pokémon Violet";
+                case GameStatus::POKEMON_VIOLET: target_name = "Pokémon Violet"; break;
                 default: throw;
                     break;
             }

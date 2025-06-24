@@ -10,7 +10,6 @@
 #include "CommonFramework/Tools/ErrorDumper.h"
 #include "CommonFramework/VideoPipeline/VideoOverlayScopes.h"
 #include "CommonFramework/VideoPipeline/VideoFeed.h"
-#include "CommonTools/Async/InferenceRoutines.h"
 #include "CommonTools/OCR/OCR_NumberReader.h"
 #include "CommonTools/OCR/OCR_RawOCR.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
@@ -1510,6 +1509,108 @@ void home_navigate_to_box(SingleSwitchProgramEnvironment& env, ProControllerCont
     }
 }
 
+void home_navigate_to_box(SingleSwitchProgramEnvironment& env, ProControllerContext& context, size_t current_box, size_t target, bool hard_check = false){
+    ImageFloatBox home_box_checker(0.075, 0.72, 0.03205, 0.04);
+    VideoOverlaySet box_render(env.console);
+
+    // Go to the first box in the program
+    box_render.add(COLOR_RED, home_box_checker);
+
+    size_t home_box;
+
+    try{
+        if(hard_check){
+            // env.console.log("Running hard check");
+            context.wait_for_all_requests();
+            VideoSnapshot screen = env.console.video().snapshot();
+            home_box = std::stoull(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker))));
+
+            if(home_box >= target){
+                // env.console.log("Initial read to right of target box "+std::to_string(target));
+                size_t home_box2;
+                size_t home_box3;
+                do{
+                    context.wait_for_all_requests();
+                    screen = env.console.video().snapshot();
+                    home_box = std::stoull(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker))));
+
+                    pbf_press_button(context, BUTTON_L, 10, 47);
+                    context.wait_for_all_requests();
+
+                    screen = env.console.video().snapshot();
+                    home_box2 = std::stoull(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker))));
+                    pbf_press_button(context, BUTTON_L, 10, 47);
+
+                    context.wait_for_all_requests();
+                    screen = env.console.video().snapshot();
+                    home_box3 = std::stoull(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker))));
+                    // env.console.log("testing "+std::to_string(home_box2)+ "=="+std::to_string(home_box-1)+" && "+std::to_string(home_box3)+"=="+std::to_string(home_box-2));
+                }while(!(home_box2==home_box-1&&home_box3==home_box-2));
+                home_box-=2;
+            }else{
+                env.console.log("Initial read to left of target box "+std::to_string(target));
+                size_t home_box2;
+                size_t home_box3;
+                do{
+                    context.wait_for_all_requests();
+                    screen = env.console.video().snapshot();
+                    home_box = std::stoull(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker))));
+
+                    pbf_press_button(context, BUTTON_R, 10, 47);
+                    context.wait_for_all_requests();
+
+                    screen = env.console.video().snapshot();
+                    home_box2 = std::stoull(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker))));
+                    pbf_press_button(context, BUTTON_R, 10, 47);
+
+                    context.wait_for_all_requests();
+                    screen = env.console.video().snapshot();
+                    home_box3 = std::stoull(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker))));
+                    env.console.log("testing "+std::to_string(home_box2)+ "=="+std::to_string(home_box+1)+" && "+std::to_string(home_box3)+"=="+std::to_string(home_box+2));
+                }while(!(home_box2==home_box+1&&home_box3==home_box+2));
+                home_box+=2;
+            }
+        }else{
+            home_box = current_box;
+        }
+
+        env.console.log("Moving from box "+std::to_string(home_box)+" to box "+std::to_string(target));
+
+        while(home_box!=target){
+            while((home_box>200)){
+                pbf_wait(context, 300);
+                context.wait_for_all_requests();
+                context.wait_for_all_requests();
+                VideoSnapshot screen = env.console.video().snapshot();
+                home_box = std::stoull(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker))));            }
+            env.console.log("Home_box is " + std::to_string(home_box));
+            context.wait_for_all_requests();
+            box_render.clear();
+            while(home_box<target){
+                pbf_press_button(context, BUTTON_R, 10, 47);
+                home_box++;
+            }
+            while(home_box>target){
+                pbf_press_button(context, BUTTON_L, 10, 47);
+                home_box--;
+            }
+            context.wait_for_all_requests();
+            box_render.add(COLOR_RED, home_box_checker);
+            context.wait_for_all_requests();
+            VideoSnapshot screen = env.console.video().snapshot();
+            home_box = std::stoull(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker))));
+        }
+    }catch(...){
+        pbf_wait(context, 100ms);
+        context.wait_for_all_requests();
+
+        pbf_press_button(context, BUTTON_UP, 10, 30);
+
+        home_navigate_to_box(env, context, target, hard_check);
+    }
+}
+
+
 void home_navigate_to_box_secondary(SingleSwitchProgramEnvironment& env, ProControllerContext& context, std::string target){
     ImageFloatBox home_box_checker_secondary(0.62, 0.105, 0.255, 0.04);
     VideoOverlaySet box_render(env.console);
@@ -1711,12 +1812,12 @@ void home_swap_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext
     // Check if just one slot is empty
     if(!pokemon1.has_value()){
         // Go to pokemon 2
-        home_navigate_to_box(env, context, box2.box_num);
+        home_navigate_to_box(env, context, current_box, box2.box_num);
         move_cursor_to(env, context, cursor, slot2);
         // Pick it up
         home_pick_up_pokemon(env, context, slot2);
         // go to slot 1
-        home_navigate_to_box(env, context, box1.box_num);
+        home_navigate_to_box(env, context, box2.box_num, box1.box_num);
         move_cursor_to(env, context, slot2, slot1);
         // Press y
         pbf_press_button(context, BUTTON_Y, 10, 70);
@@ -1731,12 +1832,12 @@ void home_swap_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext
         current_box = box1.box_num;
     }else if (!pokemon2.has_value()){
         // Go to pokemon 1
-        home_navigate_to_box(env, context, box1.box_num);
+        home_navigate_to_box(env, context, current_box, box1.box_num);
         move_cursor_to(env, context, cursor, slot1);
         // Pick it up
         home_pick_up_pokemon(env, context, slot1);
         // go to slot 2
-        home_navigate_to_box(env, context, box2.box_num);
+        home_navigate_to_box(env, context, box1.box_num, box2.box_num);
         move_cursor_to(env, context, slot1, slot2);
         // Press y
         pbf_press_button(context, BUTTON_Y, 20, 70);
@@ -1752,12 +1853,12 @@ void home_swap_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext
     }else{      // Both exist, move to the closest one and swap them
         if(std::fabs(box1.box_num-current_box)<std::fabs(box2.box_num-current_box)){      // Left is closest
             // Go to pokemon 1
-            home_navigate_to_box(env, context, box1.box_num);
+            home_navigate_to_box(env, context, current_box, box1.box_num);
             move_cursor_to(env, context, cursor, slot1);
             // Pick it up
             home_pick_up_pokemon(env, context, slot1);
             // go to slot 2
-            home_navigate_to_box(env, context, box2.box_num);
+            home_navigate_to_box(env, context, box1.box_num, box2.box_num);
             move_cursor_to(env, context, slot1, slot2);
             // Press y
             pbf_press_button(context, BUTTON_Y, 20, 70);
@@ -1771,12 +1872,12 @@ void home_swap_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext
             current_box = box2.box_num;
         }else if(std::fabs(box2.box_num-current_box)<std::fabs(box1.box_num-current_box)){                                                          // Right is closest
             // Go to pokemon 2
-            home_navigate_to_box(env, context, box2.box_num);
+            home_navigate_to_box(env, context, current_box, box2.box_num);
             move_cursor_to(env, context, cursor, slot2);
             // Pick it up
             home_pick_up_pokemon(env, context, slot2);
             // go to slot 1
-            home_navigate_to_box(env, context, box1.box_num);
+            home_navigate_to_box(env, context, box2.box_num, box1.box_num);
             move_cursor_to(env, context, slot2, slot1);
             // Press y
             pbf_press_button(context, BUTTON_Y, 10, 70);
@@ -1790,12 +1891,12 @@ void home_swap_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext
             current_box = box1.box_num;
         }else{ // Same box, calculate movement distances (just go to slot 1 for now)
             // Go to pokemon 1
-            home_navigate_to_box(env, context, box1.box_num);
+            home_navigate_to_box(env, context, current_box, box1.box_num);
             move_cursor_to(env, context, cursor, {pokemon1->current_row, pokemon1->current_col});
             // Pick it up
             home_pick_up_pokemon(env, context, {pokemon1->current_row, pokemon1->current_col});
             // go to slot 2
-            home_navigate_to_box(env, context, box1.box_num);
+            home_navigate_to_box(env, context, box1.box_num, box1.box_num);
             move_cursor_to(env, context, {pokemon1->current_row, pokemon1->current_col}, slot2);
             // Press y
             pbf_press_button(context, BUTTON_Y, 20, 15);
@@ -2345,8 +2446,10 @@ bool home_sort_box(SingleSwitchProgramEnvironment& env, ProControllerContext& co
 bool home_make_easy_swaps(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PokemonBox& left, PokemonBox& right, std::pair<size_t, size_t>& cursor, size_t& current_box){
     size_t initial_box = current_box;
 
-    env.console.log("Left blanks = "+std::to_string(left.blanks));
-    env.console.log("Right blanks = "+std::to_string(right.blanks));
+    env.console.log("Left box " +std::to_string(left.box_num)+" blanks = "+std::to_string(left.blanks));
+    env.console.log("Right box " +std::to_string(right.box_num)+"  blanks = "+std::to_string(right.blanks));
+
+    bool box_confirmed = false;
 
 
     if(left.blanks==30){
@@ -2441,6 +2544,10 @@ bool home_make_easy_swaps(SingleSwitchProgramEnvironment& env, ProControllerCont
 
         if(!lowestRight.has_value() || (highestLeft.has_value() && *(highestLeft)<=*(lowestRight)))break;
 
+        if(!box_confirmed){
+            box_confirmed = true;
+            home_navigate_to_box(env, context, current_box, true);
+        }
 
         home_swap_pokemon(env, context, {left_row, left_col}, left, {right_row, right_col}, right, cursor, current_box);
 
@@ -2451,7 +2558,7 @@ bool home_make_easy_swaps(SingleSwitchProgramEnvironment& env, ProControllerCont
     }
 
     if(initial_box!=current_box){
-        home_navigate_to_box(env, context, initial_box);
+        home_navigate_to_box(env, context, initial_box, true);
     }
 
     if(runs>0){
@@ -2845,7 +2952,6 @@ void Enrichment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControll
             // navigate to and load the right box
             // home_navigate_to_box(env, context, right_box);
             pbf_press_button(context, BUTTON_R, 10,35);
-            right = Home.get_box(right_box);
             if (!right.is_empty()) {
                 right = home_load_box(env, context, cursor, right_box, Home);
                 Home.add_box(right_box, right);
@@ -2966,6 +3072,7 @@ void Enrichment::enrich_with_games(SingleSwitchProgramEnvironment& env, ProContr
             switch(game.game){
                 case GameStatus::POKEMON_VIOLET:
                     home_manager.navigate_to(env, context, PageID::BOX_VIEW, GameStatus::POKEMON_VIOLET);
+                    context.wait_for_all_requests();
                     pokemon = home_fill_boxes_to_game(env, context, game, SV_BOX_NAME);
                     if(pokemon==0)continue;
                     switch_close_game_and_open(env, context, "Pokémon Violet", home_manager);
@@ -3264,27 +3371,26 @@ void Enrichment::home_dispose_of_go(SingleSwitchProgramEnvironment& env, ProCont
 
 bool Enrichment::wipe_markings(SingleSwitchProgramEnvironment& env, ProControllerContext& context,PokemonHome_HomeEnvironment& home_manager){
 
-    // VideoOverlaySet box_render(env.console);
+    VideoOverlaySet box_render(env.console);
 
-    // // Navigate to Pokémon Home for initial setup
-    // Game pokemon_home("Start without connecting a game", -1, false);
-    // home_navigate_to_game(env, context, pokemon_home);
+    // Navigate to Pokémon Home for initial setup
+    home_manager.navigate_to(env, context, PageID::BOX_VIEW, GameStatus::POKEMON_HOME);
 
-    // home_navigate_to_box(env, context, HOME_FIRST_BOX,true);
-    // size_t home_box = HOME_FIRST_BOX;
+    home_navigate_to_box(env, context, HOME_FIRST_BOX,true);
+    size_t home_box = HOME_FIRST_BOX;
 
-    // box_render.clear();
+    box_render.clear();
 
-    // if(WIPE_MARKINGS){
-    //     while(home_box<=HOME_LAST_BOX){
-    //         home_scan_box(env, context, env.console.video().snapshot(), WIPE_MARKINGS);
-    //         context.wait_for_all_requests();
-    //         pbf_press_button(context, BUTTON_R, 10, 47);
-    //         home_box++;
-    //     }
-    // }
+    if(WIPE_MARKINGS){
+        while(home_box<=HOME_LAST_BOX){
+            home_scan_box(env, context, env.console.video().snapshot(), WIPE_MARKINGS);
+            context.wait_for_all_requests();
+            pbf_press_button(context, BUTTON_R, 10, 47);
+            home_box++;
+        }
+    }
 
-    // return home_exit_home(env, context);
+    return home_exit_home(env, context);
 
     return false;
 }
@@ -3294,8 +3400,8 @@ void Enrichment::program(SingleSwitchProgramEnvironment& env, ProControllerConte
 
     std::vector<Game> game_list = {Game(GameStatus::POKEMON_VIOLET,0,false)/*,Game(GameStatus::POKEMON_SWORD,3,false),Game(GameStatus::POKEMON_PLA,1,false),Game("GameStatus::POKEMON_EEVEE",4,false)*/};
 
-    bool started = false;
-    bool swaps_made = true;
+    // bool started = false;
+    // bool swaps_made = true;
 
     VideoSnapshot screen = env.console.video().snapshot();
 
@@ -3305,35 +3411,39 @@ void Enrichment::program(SingleSwitchProgramEnvironment& env, ProControllerConte
 
     PokemonHome_HomeEnvironment home_manager(env, context);
 
-    HomeLoginDialogueWatcher loginWatcher(COLOR_BLUE);
+    // HomeLoginDialogueWatcher loginWatcher(COLOR_BLUE);
 
-    initialize_home(env, context, home_manager, game_list);
-    sort_all_boxes(env, context, home_manager, started, swaps_made);
-    send_program_notification(
-            env, NOTIFICATION_ERROR_FATAL,
-            COLOR_GREEN,
-            "Finished Sorting Pokemon",
-            {}, "",
-            screen
-        );
-    enrich_with_games(env, context, home_manager, game_list);
-    send_program_notification(
-        env, NOTIFICATION_ERROR_FATAL,
-        COLOR_GREEN,
-        "Finished Running Enhancements",
-        {}, "",
-        screen
-        );
+    // initialize_home(env, context, home_manager, game_list);
+    // sort_all_boxes(env, context, home_manager, started, swaps_made);
+    // send_program_notification(
+    //         env, NOTIFICATION_ERROR_FATAL,
+    //         COLOR_GREEN,
+    //         "Finished Sorting Pokemon",
+    //         {}, "",
+    //         screen
+    //     );
+    // enrich_with_games(env, context, home_manager, game_list);
+    // send_program_notification(
+    //     env, NOTIFICATION_ERROR_FATAL,
+    //     COLOR_GREEN,
+    //     "Finished Running Enhancements",
+    //     {}, "",
+    //     screen
+    //     );
 
-    sort_all_boxes(env, context, home_manager, started, swaps_made);
+    // sort_all_boxes(env, context, home_manager, started, swaps_made);
 
-    pbf_press_button(context, BUTTON_HOME,10, 150);
-    pbf_press_button(context, BUTTON_X, 10, 20);
-    pbf_press_button(context, BUTTON_A, 10, 320);
-    pbf_press_button(context, BUTTON_A, 10, 3150);
-    pbf_press_button(context, BUTTON_A, 10, 3150);
+    // pbf_press_button(context, BUTTON_HOME,10, 150);
+    // pbf_press_button(context, BUTTON_X, 10, 20);
+    // pbf_press_button(context, BUTTON_A, 10, 320);
+    // pbf_press_button(context, BUTTON_A, 10, 3150);
+    // pbf_press_button(context, BUTTON_A, 10, 3150);
 
-    send_program_finished_notification(env, NOTIFICATION_PROGRAM_FINISH);
+    // send_program_finished_notification(env, NOTIFICATION_PROGRAM_FINISH);
+
+    // home_manager.navigate_to(env, context, PageID::CURRENT, GameStatus::CURRENT, {3,4,5});
+
+    // env.console.log(home_manager.cursor.identify_page(env, context, true).message);
 
     // ImageFloatBox r_button(0.87, 0.11, 0.001, 0.001);
     // FloatPixel pixel = image_stats(extract_box_reference(screen, r_button)).average;
