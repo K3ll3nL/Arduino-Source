@@ -283,140 +283,117 @@ CursorActionResponse HomeCursor::position_cursor(SingleSwitchProgramEnvironment&
     return {CursorActionResult::SUCCESS, "Successfully moved cursor to ("+std::to_string(row)+", "+std::to_string(col)+")"};
 }
 
-CursorActionResponse HomeCursor::identify_page(SingleSwitchProgramEnvironment& env, ProControllerContext& context, bool hard_check = false){
+/**
+* Identifies the current page in the game by analyzing the screen and extracting relevant information.
+* This function is used by the PokemonHome class via the HomeCursor class.
+* It captures screen data from the bottom-left display and the box name,
+* and updates the HomeCursor's `box` attribute with the consensus result.
+*
+* Note: For optimal performance, ensure the cursor is positioned at (0, 0) before calling this function.
+*
+* Optional Parameter:
+* - `hard_check`: When enabled, the function collects data from at least two separate pages
+* and determines the current page based on a >50% consensus.
+*/
+
+CursorActionResponse HomeCursor::identify_page(SingleSwitchProgramEnvironment& env, ProControllerContext& context, bool hard_check = false) {
     VideoSnapshot screen = env.console.video().snapshot();
-
     VideoOverlaySet box_render(env.console);
-
     std::ostringstream ss;
 
     ImageFloatBox box_name_box(0.135, 0.105, 0.24, 0.04);
     ImageFloatBox home_box_checker(0.075, 0.72, 0.03205, 0.04);
 
-    std::string temp;
+    size_t box_name_top = 0, box_name_bottom = 0;
 
-    temp = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(screen, box_name_box)));
-    size_t box_name_top;
-    try{box_name_top = std::stoull(temp.substr(temp.find_last_of(' ') + 1));}catch(...){box_name_top = 0;}
-    temp = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker)));
-    size_t box_name_bottom;
-    try{box_name_bottom = std::stoull(temp.substr(0, temp.find_last_of('/')));}catch(...){box_name_bottom = 0;}
-
-    env.console.log(std::to_string(box_name_top)+"/"+std::to_string(box_name_bottom));
-
-    if(hard_check) {
-        size_t matches = 0;
-
-        if(box_name_bottom == 200 || box_name_top == 200) {
-            pbf_press_button(context, BUTTON_L, 10, 35);
-
-            context.wait_for_all_requests();
-            screen = env.console.video().snapshot();
-
-            temp = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(screen, box_name_box)));
-            size_t box_name_top2 = 0;
-            try{box_name_top2 = std::stoull(temp.substr(temp.find_last_of(' ') + 1));}catch(...){box_name_top2 = 0;}
-            temp = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker)));
-            size_t box_name_bottom2 = 0;
-            try{box_name_bottom2 = std::stoull(temp.substr(0, temp.find_last_of('/')));}catch(...){box_name_bottom2 = 0;}
-
-            env.console.log(std::to_string(box_name_top2)+"/"+std::to_string(box_name_bottom2));
-
-            // Count matches
-            if(box_name_top == box_name_bottom) matches++;
-            if(box_name_bottom == box_name_top2 + 1) matches++;
-            if(box_name_top2 == box_name_bottom2) matches++;
-
-            if(matches >= 3) {
-                box = box_name_top2;
-                return {CursorActionResult::SUCCESS, "Successfully identified page as " + std::to_string(box) + " after a hard check"};
-            }
-
-            pbf_press_button(context, BUTTON_L, 10, 70);
-
-            context.wait_for_all_requests();
-            screen = env.console.video().snapshot();
-
-            temp = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(screen, box_name_box)));
-            size_t box_name_top3 = 0;
-            try{box_name_top3 = std::stoull(temp.substr(temp.find_last_of(' ') + 1));}catch(...){box_name_bottom2 = 0;}
-            temp = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker)));
-            size_t box_name_bottom3 = 0;
-            try{box_name_bottom3 = std::stoull(temp.substr(0, temp.find_last_of('/')));}catch(...){box_name_bottom3 = 0;}
-
-            env.console.log(std::to_string(box_name_top3)+"/"+std::to_string(box_name_bottom3));
-
-            // Count matches
-            if(box_name_bottom2 == box_name_top3 + 1) matches++;
-            if(box_name_top3 == box_name_bottom3) matches++;
-
-            if(matches >= 3) {
-                box = box_name_top3;
-                return {CursorActionResult::SUCCESS, "Successfully identified page as " + std::to_string(box) + " after a hard check"};
-            } else {
-                return {CursorActionResult::FAILURE, "Could not identify page on a hard check"};
-            }
-
-        } else {
-            pbf_press_button(context, BUTTON_R, 10, 70);
-
-            context.wait_for_all_requests();
-            screen = env.console.video().snapshot();
-
-            temp = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(screen, box_name_box)));
-            size_t box_name_top2 = 0;
-            try{box_name_top2 = std::stoull(temp.substr(temp.find_last_of(' ') + 1));}catch(...){box_name_top2 = 0;}
-            temp = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker)));
-            size_t box_name_bottom2 = 0;
-            try{box_name_bottom2 = std::stoull(temp.substr(0, temp.find_last_of('/')));}catch(...){box_name_bottom2 = 0;}
-
-            env.console.log(std::to_string(box_name_top2)+"/"+std::to_string(box_name_bottom2));
-
-            // Count matches
-            matches = 0;
-            if(box_name_top == box_name_bottom) matches++;
-            if(box_name_bottom == box_name_top2 - 1) matches++;
-            if(box_name_top2 == box_name_bottom2) matches++;
-
-            if(matches >= 3) {
-                box = box_name_top2;
-                return {CursorActionResult::SUCCESS, "Successfully identified page as " + std::to_string(box) + " after a hard check"};
-            }
-
-            pbf_press_button(context, BUTTON_R, 10, 70);
-
-            context.wait_for_all_requests();
-            screen = env.console.video().snapshot();
-
-            temp = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(screen, box_name_box)));
-            size_t box_name_top3 = 0;
-            try{box_name_top3 = std::stoull(temp.substr(temp.find_last_of(' ') + 1));}catch(...){box_name_bottom2 = 0;}
-            temp = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(screen, home_box_checker)));
-            size_t box_name_bottom3 = 0;
-            try{box_name_bottom3 = std::stoull(temp.substr(0, temp.find_last_of('/')));}catch(...){box_name_bottom3 = 0;}
-
-            env.console.log(std::to_string(box_name_top3)+"/"+std::to_string(box_name_bottom3));
-
-            // Count matches
-            if(box_name_bottom2 == box_name_top3 -1 ) matches++;
-            if(box_name_top3 == box_name_bottom3) matches++;
-
-            if(matches >= 3) {
-                box = box_name_top3;
-                return {CursorActionResult::SUCCESS, "Successfully identified page as " + std::to_string(box) + " after a hard check"};
-            } else {
-                return {CursorActionResult::FAILURE, "Could not identify page on a hard check"};
-            }
+    auto extract_box_data = [&](VideoSnapshot& snapshot) {
+        std::string temp;
+        try {
+            temp = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(snapshot, box_name_box)));
+            box_name_top = std::stoull(temp.substr(temp.find_last_of(' ') + 1));
+        } catch (...) {
+            box_name_top = 0;
         }
-    }else{
-        if(box_name_top == box_name_bottom){
+
+        try {
+            temp = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(snapshot, home_box_checker)));
+            box_name_bottom = std::stoull(temp.substr(0, temp.find_last_of('/')));
+        } catch (...) {
+            box_name_bottom = 0;
+        }
+    };
+
+    extract_box_data(screen);
+    env.console.log(std::to_string(box_name_top) + "/" + std::to_string(box_name_bottom));
+
+    if (!hard_check) {
+        if (box_name_top == box_name_bottom) {
+            box = box_name_top;
             return {CursorActionResult::SUCCESS, "Successfully identified page as " + std::to_string(box)};
-        }else{
+        } else {
             return {CursorActionResult::FAILURE, "Could not identify page"};
         }
     }
 
+    // Hard check logic
+    std::unordered_map<size_t, size_t> page_counts;
+    size_t total_observations = 0;
+    int page_offset = 0;
+
+    auto adjust_for_wraparound = [](size_t page) {
+        if (page > 200) return page - 200;
+        if (page < 1) return page + 200;
+        return page;
+    };
+
+    auto update_page_counts = [&]() {
+        size_t adjusted_top = adjust_for_wraparound(box_name_top - page_offset);
+        size_t adjusted_bottom = adjust_for_wraparound(box_name_bottom - page_offset);
+        page_counts[adjusted_top]++;
+        page_counts[adjusted_bottom]++;
+        total_observations+=2;
+    };
+
+    update_page_counts();
+
+    while (std::fabs(page_offset) < 10) {
+        // Determine most common page and its frequency
+        size_t most_common_page = 0, most_common_count = 0;
+        for (const auto& [page, count] : page_counts) {
+            if (count > most_common_count) {
+                most_common_page = page;
+                most_common_count = count;
+            }
+        }
+
+
+        if(static_cast<double>(most_common_count) / total_observations > 0.5 && std::fabs(page_offset) > 0) {
+            box = adjust_for_wraparound (most_common_page + page_offset);
+            return {CursorActionResult::SUCCESS, "Successfully identified page as " + std::to_string(box) + " after a hard check"};
+        }
+
+        // Explore a new page
+        if (page_offset < 0 || (page_offset == 0 && (box_name_top == 199 || box_name_bottom == 199))) {
+            pbf_press_button(context, BUTTON_L, 10, 50);
+            page_offset--;
+        } else {
+            pbf_press_button(context, BUTTON_R, 10, 50);
+            page_offset++;
+        }
+
+        context.wait_for_all_requests();
+        screen = env.console.video().snapshot();
+        extract_box_data(screen);
+        env.console.log(std::to_string(box_name_top) + "/" + std::to_string(box_name_bottom));
+
+        update_page_counts();
+
+    }
+
+    return {CursorActionResult::FAILURE, "Could not identify page after extensive hard check"};
+
 }
+
 
 
 
