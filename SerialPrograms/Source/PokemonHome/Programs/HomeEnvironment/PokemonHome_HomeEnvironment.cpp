@@ -41,11 +41,9 @@ std::string to_string(PageID page) {
 }
 
 HomeCursor::HomeCursor(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
-    locate_position(env, context);
-
-    position_cursor(env, context, {0, 0, 0});
     identify_page(env, context, true);
 
+    locate_position(env, context);
 }
 
 HomeCursor::HomeCursor(size_t row, size_t col, size_t box)
@@ -268,35 +266,37 @@ CursorActionResponse HomeCursor::position_cursor(SingleSwitchProgramEnvironment&
         return {CursorActionResult::ERROR_RECOVERABLE, "Reached maximum retry attempts"};
     }
 
-    // Align column
-    auto result = align_col(env, context, dest_cursor);
-    switch(result.result){
+    // Align column if not already aligned
+    if(dest_cursor.col!=col){
+        auto result = align_col(env, context, dest_cursor);
+        switch(result.result){
+            case CursorActionResult::SUCCESS:
+                col = dest_cursor.col;
+                break;
+            case CursorActionResult::FAILURE:
+                return locate_position(env, context);
+                break;
+            default:
+                return result;
+                break;
+        }
+    }
+
+
+    // Align row if not already aligned
+    if(dest_cursor.row!=row){
+        auto result = align_row(env, context, dest_cursor);
+        switch(result.result){
         case CursorActionResult::SUCCESS:
-            col = dest_cursor.col;
+            row = dest_cursor.row;
             break;
         case CursorActionResult::FAILURE:
-            std::cout<< "Here1" << std::endl;
-            return {CursorActionResult::FAILURE, "Could not align column"};
+            return locate_position(env, context);
             break;
         default:
             return result;
             break;
-    }
-
-        std::cout<< "Here" <<std::endl;
-
-    // Align row
-    result = align_row(env, context, dest_cursor);
-    switch(result.result){
-    case CursorActionResult::SUCCESS:
-        row = dest_cursor.row;
-        break;
-    case CursorActionResult::FAILURE:
-        return {CursorActionResult::FAILURE, "Could not align row"};
-        break;
-    default:
-        return result;
-        break;
+        }
     }
 
     return {CursorActionResult::SUCCESS, "Successfully moved cursor to ("+std::to_string(row)+", "+std::to_string(col)+")"};
@@ -309,23 +309,47 @@ CursorActionResponse HomeCursor::navigate_to_page(SingleSwitchProgramEnvironment
 
     CursorActionResponse last_move;
 
+    env.console.log("moving to box " + std::to_string(dest_cursor.box)+" from box "+std::to_string(box));
+
     if(dest_cursor.box == box){ // on current page
         last_move = identify_page(env, context, false);
     }else if(dest_cursor.box>box){ // Navigating right
         while(box<dest_cursor.box){
-            pbf_press_button(context, BUTTON_R, 10, 35);
-            last_move = identify_page(env, context, false);
-            if(last_move.result != CursorActionResult::SUCCESS){
-                box++;
+            pbf_press_button(context, BUTTON_R, 10, 0);
+            HomePageRightMoveWatcher rightWatcher(COLOR_BLUE);
+            int ret = wait_until(env.console, context, 2000ms,
+                {
+                    rightWatcher
+                }
+            );
+            switch (ret){
+            case 0:
+                last_move = {CursorActionResult::SUCCESS, "Watched page turn"};
+                break;
+            default:
+                return {CursorActionResult::FAILURE, "Could not observe page traversal to the right"};
+                break;
             }
+            box++;
         }
     }else{ // navigating left
         while(box>dest_cursor.box){
-            pbf_press_button(context, BUTTON_L, 10, 35);
-            last_move = identify_page(env, context, false);
-            if(last_move.result != CursorActionResult::SUCCESS){
-                box++;
+            pbf_press_button(context, BUTTON_L, 10, 0);
+            HomePageLeftMoveWatcher leftWatcher(COLOR_BLUE);
+            int ret = wait_until(env.console, context, 2000ms,
+                {
+                    leftWatcher
+                }
+            );
+            switch (ret){
+            case 0:
+                last_move = {CursorActionResult::SUCCESS, "Watched page turn"};
+                break;
+            default:
+                return {CursorActionResult::FAILURE, "Could not observe page traversal to the left"};
+                break;
             }
+            box--;
         }
     }
 
@@ -505,8 +529,8 @@ PokemonHome_HomeEnvironment::PokemonHome_HomeEnvironment(SingleSwitchProgramEnvi
 
 void PokemonHome_HomeEnvironment::navigate_menus_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const PageID destination, const GameStatus game){
     std::vector<PageID> steps;
-    if ((game != GameStatus::CURRENT && game != GameStatus::NONE && game != game_open)) {
-        if( current_view != PageID::GAME_SELECTION){
+    if ((game != GameStatus::NONE && game != game_open)) {
+        if( game != GameStatus::CURRENT && current_view != PageID::GAME_SELECTION){
             steps = find_navigation_path(env, context, current_view, PageID::GAME_SELECTION);
             perform_navigation_steps(env, context, steps);
             // Open desired game
@@ -519,8 +543,7 @@ void PokemonHome_HomeEnvironment::navigate_menus_to(SingleSwitchProgramEnvironme
 
 void PokemonHome_HomeEnvironment::navigate_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const HomeCursor& dest_cursor){
     if(!cursor.has_value()){
-        handle_errors(env, context, {CursorActionResult::SUCCESS, "Cannot move a cursor that does not exist"});
-        throw;
+        cursor.emplace(env, context);
     }
 
     auto response = this->cursor->move_cursor_to(env, context, dest_cursor);
@@ -733,8 +756,8 @@ CursorActionResponse PokemonHome_HomeEnvironment::handle_errors(SingleSwitchProg
 
     send_program_notification(
         env, NOTIFICATION_ERROR_RECOVERABLE,
-        COLOR_GREEN,
-        "scanned down to box ",
+        COLOR_RED,
+        response.message,
         {}, "",
         env.console.video().snapshot()
         );
