@@ -322,6 +322,8 @@ CursorActionResponse HomeCursor::navigate_to_page(SingleSwitchProgramEnvironment
                     rightWatcher
                 }
             );
+            pbf_wait(context, 10);
+            context.wait_for_all_requests();
             switch (ret){
             case 0:
                 last_move = {CursorActionResult::SUCCESS, "Watched page turn"};
@@ -341,6 +343,8 @@ CursorActionResponse HomeCursor::navigate_to_page(SingleSwitchProgramEnvironment
                     leftWatcher
                 }
             );
+            pbf_wait(context, 10);
+            context.wait_for_all_requests();
             switch (ret){
             case 0:
                 last_move = {CursorActionResult::SUCCESS, "Watched page turn"};
