@@ -10,6 +10,7 @@
 #include <vector>
 #include "Common/Cpp/Color.h"
 #include "Common/Cpp/Containers/FixedLimitVector.h"
+#include "CommonFramework/ImageTools/FloatPixel.h"
 #include "CommonFramework/ImageTools/ImageBoxes.h"
 #include "CommonFramework/VideoPipeline/VideoOverlayScopes.h"
 #include "CommonTools/InferenceCallbacks/VisualInferenceCallback.h"
@@ -344,6 +345,104 @@ public:
 
 protected:
     HomeLogoutDialogueDetector m_detector;
+    FixedLimitVector<OverlayBoxScope> m_hits;
+};
+
+
+
+class HomePageRightMoveDetector : public StaticScreenDetector{
+public:
+    HomePageRightMoveDetector(Color color);
+    virtual ~HomePageRightMoveDetector();
+
+    virtual void make_overlays(VideoOverlaySet& items) const override;
+    virtual bool detect(const ImageViewRGB32& screen) override;
+
+    std::vector<ImageFloatBox> detect_all(const ImageViewRGB32& screen) const;
+
+protected:
+    Color m_color;
+    ImageFloatBox m_box;
+};
+
+
+class HomePageRightMoveWatcher : public VisualInferenceCallback{
+public:
+    HomePageRightMoveWatcher(Color color);
+    virtual ~HomePageRightMoveWatcher();
+
+    virtual void make_overlays(VideoOverlaySet& items) const override;
+    virtual bool process_frame(const ImageViewRGB32& frame, WallClock timestamp) override;
+
+
+protected:
+    HomePageRightMoveDetector m_detector;
+    bool m_prev_detected;
+    FixedLimitVector<OverlayBoxScope> m_hits;
+};
+
+
+class HomePageLeftMoveDetector : public StaticScreenDetector{
+public:
+    HomePageLeftMoveDetector(Color color);
+    virtual ~HomePageLeftMoveDetector();
+
+    virtual void make_overlays(VideoOverlaySet& items) const override;
+    virtual bool detect(const ImageViewRGB32& screen) override;
+
+    std::vector<ImageFloatBox> detect_all(const ImageViewRGB32& screen) const;
+
+protected:
+    Color m_color;
+    ImageFloatBox m_box;
+};
+
+
+class HomePageLeftMoveWatcher : public VisualInferenceCallback{
+public:
+    HomePageLeftMoveWatcher(Color color);
+    virtual ~HomePageLeftMoveWatcher();
+
+    virtual void make_overlays(VideoOverlaySet& items) const override;
+    virtual bool process_frame(const ImageViewRGB32& frame, WallClock timestamp) override;
+
+
+protected:
+    HomePageLeftMoveDetector m_detector;
+    bool m_prev_detected;
+    FixedLimitVector<OverlayBoxScope> m_hits;
+};
+
+
+class HomeSummarySettledDetector : public StaticScreenDetector{
+public:
+    HomeSummarySettledDetector(Color color);
+    virtual ~HomeSummarySettledDetector();
+
+    virtual void make_overlays(VideoOverlaySet& items) const override;
+    virtual bool detect(const ImageViewRGB32& screen) override;
+
+    std::vector<ImageFloatBox> detect_all(const ImageViewRGB32& screen) const;
+
+protected:
+    Color m_color;
+    FloatPixel m_prev_color;
+    ImageFloatBox m_box;
+};
+
+
+class HomeSummarySettledWatcher : public VisualInferenceCallback{
+public:
+    HomeSummarySettledWatcher(Color color);
+    virtual ~HomeSummarySettledWatcher();
+
+    virtual void make_overlays(VideoOverlaySet& items) const override;
+    virtual bool process_frame(const ImageViewRGB32& frame, WallClock timestamp) override;
+
+
+protected:
+    HomeSummarySettledDetector m_detector;
+    bool m_prev_detected;
     FixedLimitVector<OverlayBoxScope> m_hits;
 };
 

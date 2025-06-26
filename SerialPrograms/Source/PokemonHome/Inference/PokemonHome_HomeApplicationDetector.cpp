@@ -8,6 +8,7 @@
 #include "CommonFramework/ImageTypes/ImageViewRGB32.h"
 #include "CommonFramework/VideoPipeline/VideoOverlayScopes.h"
 #include "CommonTools/OCR/OCR_RawOCR.h"
+#include <iostream>
 #include "PokemonHome_HomeApplicationDetector.h"
 
 //#include <iostream>
@@ -532,6 +533,164 @@ bool HomeLogoutDialogueWatcher::process_frame(const ImageViewRGB32& screen, Wall
     return m_detector.detect(screen);
 }
 
+
+HomePageRightMoveDetector::~HomePageRightMoveDetector() = default;
+
+HomePageRightMoveDetector::HomePageRightMoveDetector(Color color)
+    : m_color(color)
+{}
+
+void HomePageRightMoveDetector::make_overlays(VideoOverlaySet& items) const{
+    items.add(m_color, m_box);
+}
+
+bool HomePageRightMoveDetector::detect(const ImageViewRGB32& screen){
+
+    ImageFloatBox page_r_button(0.41, 0.13, 0.001, 0.001);
+    FloatPixel pixel = image_stats(extract_box_reference(screen, page_r_button)).average;
+
+    if (pixel.r >= 50) {
+        return true;
+    }
+
+    return false;
+}
+
+
+
+HomePageRightMoveWatcher::~HomePageRightMoveWatcher() = default;
+
+HomePageRightMoveWatcher::HomePageRightMoveWatcher(Color color)
+    : VisualInferenceCallback("HomeApplicationWatcher")
+    , m_detector(color)
+{
+    m_prev_detected = false;
+}
+
+void HomePageRightMoveWatcher::make_overlays(VideoOverlaySet& items) const{
+    m_detector.make_overlays(items);
+}
+
+bool HomePageRightMoveWatcher::process_frame(const ImageViewRGB32& screen, WallClock timestamp){
+
+    if(!m_prev_detected){
+        m_prev_detected = m_detector.detect(screen);
+        return false;
+    }else{
+        return !m_detector.detect(screen);
+    }}
+
+
+HomePageLeftMoveDetector::~HomePageLeftMoveDetector() = default;
+
+HomePageLeftMoveDetector::HomePageLeftMoveDetector(Color color)
+    : m_color(color)
+{}
+
+void HomePageLeftMoveDetector::make_overlays(VideoOverlaySet& items) const{
+    items.add(m_color, m_box);
+}
+
+bool HomePageLeftMoveDetector::detect(const ImageViewRGB32& screen){
+
+    ImageFloatBox page_l_button(0.1, 0.13, 0.001, 0.001);
+    FloatPixel pixel = image_stats(extract_box_reference(screen, page_l_button)).average;
+
+    if (pixel.r >= 50) {
+        return true;
+    }
+
+    return false;
+}
+
+
+HomePageLeftMoveWatcher::~HomePageLeftMoveWatcher() = default;
+
+HomePageLeftMoveWatcher::HomePageLeftMoveWatcher(Color color)
+    : VisualInferenceCallback("HomeApplicationWatcher")
+    , m_detector(color)
+{
+    m_prev_detected = false;
+}
+
+void HomePageLeftMoveWatcher::make_overlays(VideoOverlaySet& items) const{
+    m_detector.make_overlays(items);
+}
+
+bool HomePageLeftMoveWatcher::process_frame(const ImageViewRGB32& screen, WallClock timestamp){
+
+    if(!m_prev_detected){
+        m_prev_detected = m_detector.detect(screen);
+        return false;
+    }else{
+        return !m_detector.detect(screen);
+    }
+
+}
+
+
+HomeSummarySettledDetector::~HomeSummarySettledDetector() = default;
+
+HomeSummarySettledDetector::HomeSummarySettledDetector(Color color)
+    : m_color(color)
+{
+    m_prev_color = FloatPixel(-1,-1,-1);
+}
+
+void HomeSummarySettledDetector::make_overlays(VideoOverlaySet& items) const{
+    items.add(m_color, m_box);
+}
+
+bool HomeSummarySettledDetector::detect(const ImageViewRGB32& screen){
+
+
+    ImageFloatBox pokemon_box_small(0.76, 0.295, 0.14, 0.23);
+    FloatPixel m_color = image_stats(extract_box_reference(screen, pokemon_box_small)).average;
+
+    std::cout << std::to_string(m_color.r) << std::to_string(m_color.g) << std::to_string(m_color.b) << std::endl;
+    std::cout << std::to_string(m_prev_color.r) << std::to_string(m_prev_color.g) << std::to_string(m_prev_color.b) << std::endl;
+    std::cout<< std::to_string(euclidean_distance(m_color,m_prev_color)) << std::endl;
+
+
+    if(euclidean_distance(m_prev_color,FloatPixel(-1,-1,-1))==0){
+        std::cout << "went to force false" << std::endl;
+        m_prev_color = m_color;
+        return false;
+    }
+
+    if (euclidean_distance(m_color,m_prev_color)>0) {
+        std::cout << "actual comparison" << std::endl;
+        m_prev_color = m_color;
+        return true;
+    }
+
+    // No other instances found, did not detect
+    return false;
+}
+
+
+
+HomeSummarySettledWatcher::~HomeSummarySettledWatcher() = default;
+
+HomeSummarySettledWatcher::HomeSummarySettledWatcher(Color color)
+    : VisualInferenceCallback("HomeApplicationWatcher")
+    , m_detector(color)
+{
+    m_prev_detected = false;
+}
+
+void HomeSummarySettledWatcher::make_overlays(VideoOverlaySet& items) const{
+    m_detector.make_overlays(items);
+}
+
+bool HomeSummarySettledWatcher::process_frame(const ImageViewRGB32& screen, WallClock timestamp){
+
+    if(!m_prev_detected){
+        m_prev_detected = m_detector.detect(screen);
+        return false;
+    }else{
+        return !m_detector.detect(screen);
+    }}
 
 }
 }
