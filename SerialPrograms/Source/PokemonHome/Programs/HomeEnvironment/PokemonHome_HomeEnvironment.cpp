@@ -44,20 +44,31 @@ HomeCursor::HomeCursor(SingleSwitchProgramEnvironment& env, ProControllerContext
     identify_page(env, context, true);
 
     // Find cursor. Until then, assume it's at (0, 0)
+    row = 0;
+    col = 0;
 }
 
-HomeCursor::HomeCursor(size_t row, size_t col, size_t box){
-    this->row = row;
-    this->col = col;
-    this->box = box;
-}
+HomeCursor::HomeCursor(size_t row, size_t col, size_t box)
+    : row(row), col(col), box(box) {}
+
+HomeCursor::HomeCursor(std::tuple<size_t, size_t, size_t> data)
+    : row(std::get<0>(data)), col(std::get<1>(data)), box(std::get<2>(data)) {}
 
 
 
-CursorActionResponse HomeCursor::move_cursor_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const HomeCursor& cursor){
+CursorActionResponse HomeCursor::move_cursor_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const HomeCursor& dest_cursor){
     // TODO: Implement cursor movement logic
-    auto response = position_cursor(env, context, cursor);
-    return response;
+    auto response = position_cursor(env, context, dest_cursor);
+    if(response.result!=CursorActionResult::SUCCESS){
+        return {response.result, response.message+" in movement to ("+std::to_string(dest_cursor.row)+", "+std::to_string(dest_cursor.col)+"), box "+std::to_string(dest_cursor.box)};
+    }
+
+    response = navigate_to_page(env, context, dest_cursor);
+    if(response.result!=CursorActionResult::SUCCESS){
+        return {response.result, response.message+" in movement to ("+std::to_string(dest_cursor.row)+", "+std::to_string(dest_cursor.col)+"), box "+std::to_string(dest_cursor.box)};
+    }
+
+    return {CursorActionResult::SUCCESS, "Successfully navigated to ("+std::to_string(dest_cursor.row)+", "+std::to_string(dest_cursor.col)+"), box "+std::to_string(dest_cursor.box)};
 }
 
 CursorActionResponse HomeCursor::pick_up_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
@@ -245,6 +256,14 @@ CursorActionResponse HomeCursor::align_row(SingleSwitchProgramEnvironment& env, 
 }
 
 CursorActionResponse HomeCursor::position_cursor(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const HomeCursor& dest_cursor, size_t retry_count){
+    if(dest_cursor.row>MAX_ROWS){
+        return {CursorActionResult::FAILURE, "row "+std::to_string(dest_cursor.row)+" out of scope"};
+    }
+    if(dest_cursor.col>MAX_COLUMNS){
+        return {CursorActionResult::FAILURE, "column "+std::to_string(dest_cursor.col)+" out of scope"};
+    }
+
+
     if (retry_count > MAX_RETRIES) {
         return {CursorActionResult::ERROR_RECOVERABLE, "Reached maximum retry attempts"};
     }
@@ -283,6 +302,37 @@ CursorActionResponse HomeCursor::position_cursor(SingleSwitchProgramEnvironment&
     return {CursorActionResult::SUCCESS, "Successfully moved cursor to ("+std::to_string(row)+", "+std::to_string(col)+")"};
 }
 
+CursorActionResponse HomeCursor::navigate_to_page(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const HomeCursor& dest_cursor){
+    if(dest_cursor.row>200){
+        return {CursorActionResult::FAILURE, "box "+std::to_string(dest_cursor.box)+" out of scope"};
+    }
+
+    CursorActionResponse last_move;
+
+    if(dest_cursor.box == box){ // on current page
+        last_move = identify_page(env, context, false);
+    }else if(dest_cursor.box>box){ // Navigating right
+        while(box<dest_cursor.box){
+            pbf_press_button(context, BUTTON_R, 10, 35);
+            last_move = identify_page(env, context, false);
+            if(last_move.result != CursorActionResult::SUCCESS){
+                box++;
+            }
+        }
+    }else{ // navigating left
+        while(box>dest_cursor.box){
+            pbf_press_button(context, BUTTON_L, 10, 35);
+            last_move = identify_page(env, context, false);
+            if(last_move.result != CursorActionResult::SUCCESS){
+                box++;
+            }
+        }
+    }
+
+    return {last_move.result, last_move.message+" while navigating to page "+std::to_string(dest_cursor.box)};
+}
+
+
 /**
 * Identifies the current page in the game by analyzing the screen and extracting relevant information.
 * This function is used by the PokemonHome class via the HomeCursor class.
@@ -297,6 +347,8 @@ CursorActionResponse HomeCursor::position_cursor(SingleSwitchProgramEnvironment&
 */
 
 CursorActionResponse HomeCursor::identify_page(SingleSwitchProgramEnvironment& env, ProControllerContext& context, bool hard_check = false) {
+    context.wait_for_all_requests();
+
     VideoSnapshot screen = env.console.video().snapshot();
     VideoOverlaySet box_render(env.console);
     std::ostringstream ss;
@@ -394,19 +446,22 @@ CursorActionResponse HomeCursor::identify_page(SingleSwitchProgramEnvironment& e
 
 }
 
+size_t HomeCursor::get_page() {
+    return box;
+}
 
 
 
 
 PokemonHome_HomeEnvironment::PokemonHome_HomeEnvironment(SingleSwitchProgramEnvironment& env, ProControllerContext& context)
-    : cursor(HomeCursor(env, context))
+    : cursor(std::nullopt)
 {
     detect_home(env, context);
     initialize_navigation_map(env, context);
 
 }
 
-void PokemonHome_HomeEnvironment::navigate_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const PageID destination, const GameStatus game, const HomeCursor& cursor){
+void PokemonHome_HomeEnvironment::navigate_menus_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const PageID destination, const GameStatus game){
     std::vector<PageID> steps;
     if ((game != GameStatus::CURRENT && game != GameStatus::NONE && game != game_open)) {
         if( current_view != PageID::GAME_SELECTION){
@@ -418,8 +473,39 @@ void PokemonHome_HomeEnvironment::navigate_to(SingleSwitchProgramEnvironment& en
         steps = find_navigation_path(env, context, current_view, destination);
         perform_navigation_steps(env, context, steps);
     }
+}
 
-    auto response = this->cursor.move_cursor_to(env, context, cursor);
+void PokemonHome_HomeEnvironment::navigate_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const HomeCursor& dest_cursor){
+    if(!cursor.has_value()){
+        handle_errors(env, context, {CursorActionResult::SUCCESS, "Cannot move a cursor that does not exist"});
+        throw;
+    }
+
+    auto response = this->cursor->move_cursor_to(env, context, dest_cursor);
+    if(response.result!=CursorActionResult::SUCCESS){
+        handle_errors(env, context, response);
+    }
+}
+
+void PokemonHome_HomeEnvironment::navigate_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const std::pair<size_t, size_t>& position){
+    if(!cursor.has_value()){
+        handle_errors(env, context, {CursorActionResult::SUCCESS, "Cannot move a cursor that does not exist"});
+        throw;
+    }
+
+    auto response = this->cursor->move_cursor_to(env, context, {position.first, position.second, cursor.value().get_page()});
+    if(response.result!=CursorActionResult::SUCCESS){
+        handle_errors(env, context, response);
+    }
+}
+
+void PokemonHome_HomeEnvironment::navigate_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const std::pair<size_t, size_t>& position, size_t box_num){
+    if(!cursor.has_value()){
+        handle_errors(env, context, {CursorActionResult::SUCCESS, "Cannot move a cursor that does not exist"});
+        throw;
+    }
+
+    auto response = this->cursor->move_cursor_to(env, context, {position.first, position.second, box_num});
     if(response.result!=CursorActionResult::SUCCESS){
         handle_errors(env, context, response);
     }
@@ -567,6 +653,7 @@ void PokemonHome_HomeEnvironment::detect_home(SingleSwitchProgramEnvironment& en
     case 6:
         current_view = PageID::BOX_VIEW;
         game_open = GameStatus::POKEMON_HOME;
+        cursor.emplace(env, context);
         // TODO: Implement primitive game status detection: Is the game icon slot green? if so, Home, else Unknown.
         // TODO: Implement game status detection
         // TODO: Get current home box as well as secondary box (if applicable)
@@ -596,7 +683,11 @@ std::string PokemonHome_HomeEnvironment::get_view(){
         return "failed";
 }
 
-CursorActionResponse PokemonHome_HomeEnvironment::handle_errors(SingleSwitchProgramEnvironment& env, ProControllerContext& context, CursorActionResponse& response){
+size_t PokemonHome_HomeEnvironment::get_box(){
+    return cursor.value().get_page();
+}
+
+CursorActionResponse PokemonHome_HomeEnvironment::handle_errors(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const CursorActionResponse& response){
 
     send_program_notification(
         env, NOTIFICATION_ERROR_RECOVERABLE,
