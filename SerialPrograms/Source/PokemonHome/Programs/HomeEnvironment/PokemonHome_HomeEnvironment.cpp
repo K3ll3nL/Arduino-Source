@@ -41,11 +41,11 @@ std::string to_string(PageID page) {
 }
 
 HomeCursor::HomeCursor(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+    locate_position(env, context);
+
+    position_cursor(env, context, {0, 0, 0});
     identify_page(env, context, true);
 
-    // Find cursor. Until then, assume it's at (0, 0)
-    row = 0;
-    col = 0;
 }
 
 HomeCursor::HomeCursor(size_t row, size_t col, size_t box)
@@ -331,6 +331,48 @@ CursorActionResponse HomeCursor::navigate_to_page(SingleSwitchProgramEnvironment
 
     return {last_move.result, last_move.message+" while navigating to page "+std::to_string(dest_cursor.box)};
 }
+
+
+CursorActionResponse HomeCursor::locate_position(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+    FloatPixel temp[5][6];
+
+    context.wait_for_all_requests();
+
+    VideoSnapshot screen = env.console.video().snapshot();
+    VideoOverlaySet box_render(env.console);
+
+    for(int i = 0; i<5; i++){
+        for(int j = 0; j<6; j++){
+            ImageFloatBox pointer_box(0.0735 + (0.072 * j), 0.165 + (0.1035 * i), 0.0055, 0.004);
+            box_render.add(COLOR_RED, pointer_box);
+            FloatPixel current_box_value = image_stats(extract_box_reference(screen, pointer_box)).average;
+            // env.console.log(std::to_string(current_box_value.r)+" "+std::to_string(current_box_value.g)+" "+std::to_string(current_box_value.b));
+            temp[i][j] = current_box_value;
+        }
+    }
+    pbf_press_button(context, BUTTON_ZL, 10, 30);
+    context.wait_for_all_requests();
+    screen = env.console.video().snapshot();
+    for(int i = 0; i<5; i++){
+        for(int j = 0; j<6; j++){
+            ImageFloatBox pointer_box(0.0735 + (0.072 * j), 0.165 + (0.1035 * i), 0.0055, 0.004);
+            box_render.add(COLOR_RED, pointer_box);
+            FloatPixel current_box_value = image_stats(extract_box_reference(screen, pointer_box)).average;
+            if(temp[i][j].r != current_box_value.r &&temp[i][j].g != current_box_value.g && temp[i][j].b != current_box_value.b){
+                pbf_press_button(context, BUTTON_ZR, 10, 30);
+                box_render.clear();
+                row = i;
+                col = j;
+                return {CursorActionResult::SUCCESS, "Successfully located cursor at ("+std::to_string(row)+", "+std::to_string(col)+")"};
+            }
+        }
+    }
+
+    pbf_press_button(context, BUTTON_ZR, 10, 30);
+    box_render.clear();
+    return {CursorActionResult::FAILURE, "Could not locate cursor"};
+}
+
 
 
 /**

@@ -145,6 +145,7 @@ private:
     CursorActionResponse align_row(SingleSwitchProgramEnvironment&, ProControllerContext&, const size_t&);
     CursorActionResponse position_cursor(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&, size_t = 0);
     CursorActionResponse navigate_to_page(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&);
+    CursorActionResponse locate_position(SingleSwitchProgramEnvironment&, ProControllerContext&);
 
     size_t row;
     size_t col;
