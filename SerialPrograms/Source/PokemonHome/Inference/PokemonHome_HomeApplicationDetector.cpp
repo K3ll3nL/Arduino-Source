@@ -675,6 +675,7 @@ HomeSummarySettledWatcher::~HomeSummarySettledWatcher() = default;
 HomeSummarySettledWatcher::HomeSummarySettledWatcher(Color color)
     : VisualInferenceCallback("HomeApplicationWatcher")
     , m_detector(color)
+    , m_still_time(WallClock::min())
 {
     m_prev_detected = false;
 }
@@ -689,7 +690,16 @@ bool HomeSummarySettledWatcher::process_frame(const ImageViewRGB32& screen, Wall
         m_prev_detected = m_detector.detect(screen);
         return false;
     }else{
-        return !m_detector.detect(screen);
+        if(m_detector.detect(screen)){
+            return false;
+        }else{
+            if(m_still_time == WallClock::min()){
+                m_still_time = timestamp;
+                return false;
+            }else{
+                return timestamp - m_still_time >= std::chrono::milliseconds(20);
+            }
+        }
     }}
 
 }

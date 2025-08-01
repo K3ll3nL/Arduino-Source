@@ -443,6 +443,7 @@ public:
 protected:
     HomeSummarySettledDetector m_detector;
     bool m_prev_detected;
+    WallClock m_still_time;
     FixedLimitVector<OverlayBoxScope> m_hits;
 };
 
