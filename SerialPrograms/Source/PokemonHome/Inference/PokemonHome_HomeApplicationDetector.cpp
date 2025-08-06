@@ -7,7 +7,10 @@
 #include "CommonFramework/ImageTools/ImageStats.h"
 #include "CommonFramework/ImageTypes/ImageViewRGB32.h"
 #include "CommonFramework/VideoPipeline/VideoOverlayScopes.h"
+#include "CommonTools/ImageMatch/WaterfillTemplateMatcher.h"
+#include "CommonTools/Images/WaterfillUtilities.h"
 #include "CommonTools/OCR/OCR_RawOCR.h"
+#include "Kernels/Waterfill/Kernels_Waterfill_Types.h"
 #include <iostream>
 #include "PokemonHome_HomeApplicationDetector.h"
 
@@ -700,7 +703,154 @@ bool HomeSummarySettledWatcher::process_frame(const ImageViewRGB32& screen, Wall
                 return timestamp - m_still_time >= std::chrono::milliseconds(20);
             }
         }
-    }}
+    }
+}
+
+class HomeGrabbingCursorMatcher : public ImageMatch::WaterfillTemplateMatcher {
+public:
+    HomeGrabbingCursorMatcher() : WaterfillTemplateMatcher(
+              "PokemonHome/HomeGrabbingHand-Template.png",    // Use the same or replace with correct path
+              Color(250,250,250), Color(255, 255, 255), 50
+              ){
+        m_aspect_ratio_lower = 0.95;
+        m_aspect_ratio_upper = 1.05;
+        m_area_ratio_lower = 0.95;
+        m_area_ratio_upper = 1.05;
+    }
+
+    static const HomeGrabbingCursorMatcher& instance(){
+        static HomeGrabbingCursorMatcher matcher;
+        return matcher;
+    }
+};
+
+class HomeRedCursorMatcher : public ImageMatch::WaterfillTemplateMatcher {
+public:
+    HomeRedCursorMatcher() : WaterfillTemplateMatcher(
+              "PokemonHome/HomeRedHand-Template.png",    // Use the same or replace with correct path
+              Color(250, 85, 0), Color(255, 93, 5), 50
+              ){
+        m_aspect_ratio_lower = 0.8;
+        m_aspect_ratio_upper = 2;
+        m_area_ratio_lower = 0.8;
+        m_area_ratio_upper = 1.2;
+    }
+
+    static const HomeRedCursorMatcher& instance(){
+        static HomeRedCursorMatcher matcher;
+        return matcher;
+    }
+};
+
+HomeCursorLocator::HomeCursorLocator(HomeCursorType cursor_type, const ImageFloatBox& box, Color color)
+    : m_type(cursor_type), m_box(box), m_color(color)
+{}
+
+void HomeCursorLocator::make_overlays(VideoOverlaySet& items) const{
+    items.add(m_color, m_box);
+}
+
+std::pair<int, int> HomeCursorLocator::detect(const ImageViewRGB32& frame) const{
+    switch(m_type){
+        case HomeCursorType::RED:
+            return locate_red_hand(frame, m_box);
+            break;
+        case HomeCursorType::GREEN:
+        case HomeCursorType::BLUE:
+        case HomeCursorType::GRABBING:
+            return locate_grabbing_hand(frame, m_box);
+            break;
+        default:
+            return {-1, -1};
+    }
+}
+
+std::pair<int, int> HomeCursorLocator::locate_grabbing_hand(const ImageViewRGB32& frame, const ImageFloatBox& region) const{
+    const std::vector<std::pair<uint32_t, uint32_t>> filters = {
+        {combine_rgb(250,250,250), combine_rgb(255, 255, 255)}
+    };
+
+    const double screen_rel_size = (frame.height() / 1080.0);
+    const size_t min_size = static_cast<size_t>(screen_rel_size * screen_rel_size * 50.0);
+
+    std::pair<double, double> hand_loc(-1, -1);
+
+    ImagePixelBox pixel_box = floatbox_to_pixelbox(frame.width(), frame.height(), region);
+    match_template_by_waterfill(
+        extract_box_reference(frame, region),
+        HomeGrabbingCursorMatcher::instance(),
+        filters,
+        {min_size, SIZE_MAX},
+        80,
+        [&](Kernels::Waterfill::WaterfillObject& object) -> bool {
+            hand_loc = std::make_pair(
+                (object.center_of_gravity_x() + pixel_box.min_x) / static_cast<double>(frame.width()),
+                (object.center_of_gravity_y() + pixel_box.min_y) / static_cast<double>(frame.height())
+                );
+            return true;  // stop at first match
+        }
+        );
+
+    return {
+        (int)((hand_loc.first  - 0.07) / 0.0718714),
+        (int)((hand_loc.second - 0.15) / 0.10555925)
+    };
+
+
+}
+
+std::pair<int, int> HomeCursorLocator::locate_red_hand(const ImageViewRGB32& frame, const ImageFloatBox& region) const{
+    const std::vector<std::pair<uint32_t, uint32_t>> filters = {
+        {combine_rgb(250, 85, 0), combine_rgb(255, 93, 5)}
+    };
+
+    const double screen_rel_size = (frame.height() / 1080.0);
+    const size_t min_size = static_cast<size_t>(screen_rel_size * screen_rel_size * 50);
+
+    std::pair<double, double> hand_loc(-1, -1);
+
+    ImagePixelBox pixel_box = floatbox_to_pixelbox(frame.width(), frame.height(), region);
+    match_template_by_waterfill(
+        extract_box_reference(frame, region),
+        HomeRedCursorMatcher::instance(),
+        filters,
+        {min_size, SIZE_MAX},
+        40,
+        [&](Kernels::Waterfill::WaterfillObject& object) -> bool {
+            hand_loc = std::make_pair(
+                (object.center_of_gravity_x() + pixel_box.min_x) / static_cast<double>(frame.width()),
+                (object.center_of_gravity_y() + pixel_box.min_y) / static_cast<double>(frame.height())
+                );
+            return true;  // stop at first match
+        }
+        );
+
+    return {
+        (int)((hand_loc.first  - 0.07) / 0.0718714),
+        (int)((hand_loc.second - 0.15) / 0.10555925)
+    };
+
+
+}
+
+
+
+HomeCursorWatcher::HomeCursorWatcher(const HomeCursorType cursor_type, const ImageFloatBox& box, Color color)
+    : VisualInferenceCallback("HomeGrabbingHandWatcher")
+    , m_locator(cursor_type, box, color)
+    , m_location(-1, -1)
+{}
+
+void HomeCursorWatcher::make_overlays(VideoOverlaySet& items) const{
+    m_locator.make_overlays(items);
+}
+
+bool HomeCursorWatcher::process_frame(const ImageViewRGB32& frame, WallClock timestamp){
+    m_location = m_locator.detect(frame);
+    return m_location.first >= 0.0;
+}
+
+
 
 }
 }

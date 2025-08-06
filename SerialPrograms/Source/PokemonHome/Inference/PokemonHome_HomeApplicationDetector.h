@@ -447,6 +447,43 @@ protected:
     FixedLimitVector<OverlayBoxScope> m_hits;
 };
 
+enum class HomeCursorType{
+    RED,
+    GREEN,
+    BLUE,
+    GRABBING
+};
+
+class HomeCursorLocator{
+public:
+    HomeCursorLocator(const HomeCursorType cursor_type, const ImageFloatBox& box, Color color);
+
+    void make_overlays(VideoOverlaySet& items) const;
+    std::pair<int, int> detect(const ImageViewRGB32& frame) const;
+
+private:
+    std::pair<int, int> locate_grabbing_hand(const ImageViewRGB32& frame, const ImageFloatBox& region) const;
+    std::pair<int, int> locate_red_hand(const ImageViewRGB32& frame, const ImageFloatBox& region) const;
+
+private:
+    const HomeCursorType m_type;
+    const ImageFloatBox m_box;
+    const Color m_color;
+};
+
+class HomeCursorWatcher : public VisualInferenceCallback{
+public:
+    HomeCursorWatcher(const HomeCursorType cursor_type, const ImageFloatBox& box, Color color);
+
+    void make_overlays(VideoOverlaySet& items) const override;
+    virtual bool process_frame(const ImageViewRGB32& frame, WallClock timestamp) override;
+    std::pair<int, int> location() const{ return m_location; }
+
+private:
+    HomeCursorLocator m_locator;
+    std::pair<int, int> m_location;
+};
+
 
 }
 }

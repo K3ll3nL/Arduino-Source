@@ -41,16 +41,19 @@ std::string to_string(PageID page) {
 }
 
 HomeCursor::HomeCursor(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
-    identify_page(env, context, true);
+    holding_pokemon = false;
+
+    identify_page(env, context);
 
     locate_position(env, context);
+
 }
 
 HomeCursor::HomeCursor(size_t row, size_t col, size_t box)
-    : row(row), col(col), box(box) {}
+    : row(row), col(col), box(box), holding_pokemon(false) {}
 
 HomeCursor::HomeCursor(std::tuple<size_t, size_t, size_t> data)
-    : row(std::get<0>(data)), col(std::get<1>(data)), box(std::get<2>(data)) {}
+    : row(std::get<0>(data)), col(std::get<1>(data)), box(std::get<2>(data)), holding_pokemon(false) {}
 
 
 
@@ -71,65 +74,20 @@ CursorActionResponse HomeCursor::move_cursor_to(SingleSwitchProgramEnvironment& 
 
 CursorActionResponse HomeCursor::pick_up_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     // TODO: Implement pick up logic
-    return {CursorActionResult::FAILURE, "Function still undefined"};
+    //return {CursorActionResult::FAILURE, "Function still undefined"};
+    holding_pokemon = true;
+    return {CursorActionResult::SUCCESS, "Function still undefined"};
+
 }
 
 CursorActionResponse HomeCursor::put_down_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     // TODO: Implement put down logic
-    return {CursorActionResult::FAILURE, "Function still undefined"};
-}
-
-CursorActionResponse HomeCursor::align_col(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const HomeCursor& dest_cursor){
-    context.wait_for_all_requests();
-    VideoSnapshot screen = env.console.video().snapshot();
-
-    ImageFloatBox space_box(0.0735 + (0.072 * dest_cursor.col), 0.165 + (0.1035 * row), 0.0055, 0.004);
-
-    FloatPixel pixels_before = image_stats(extract_box_reference(screen, space_box)).average;
-
-    // direct nav forward or backward through cols
-    if ((dest_cursor.col > col && dest_cursor.col - col <= 3) || (col > dest_cursor.col && col - dest_cursor.col <= 3)) {
-        for (size_t i = col; i < dest_cursor.col; ++i) {
-            pbf_press_dpad(context, DPAD_RIGHT, 10, 30);
-        }
-        for (size_t i = dest_cursor.col; i < col; ++i) {
-            pbf_press_dpad(context, DPAD_LEFT, 10, 30);
-        }
-    } else { // wrap around is faster if direct movement is more than 3 away
-        if (dest_cursor.col > col) {
-            for (size_t i = 0; i < MAX_COLUMNS - (dest_cursor.col - col); ++i) {
-                pbf_press_dpad(context, DPAD_LEFT, 10, 30);
-            }
-        }
-        if (col > dest_cursor.col) {
-            for (size_t i = 0; i < MAX_COLUMNS - (col - dest_cursor.col); ++i) {
-                pbf_press_dpad(context, DPAD_RIGHT, 10, 30);
-            }
-        }
-    }
-
-    context.wait_for_all_requests();
-
-    screen = env.console.video().snapshot();
-
-    FloatPixel pixels_after = image_stats(extract_box_reference(screen, space_box)).average;
-
-    pbf_wait(context, 250ms);
-    context.wait_for_all_requests();
-    if(euclidean_distance(pixels_before,pixels_after)>0){
-        return {CursorActionResult::SUCCESS, "Found cursor at ("+std::to_string(row)+", "+std::to_string(dest_cursor.col)+")"};
-    }else{
-        return {CursorActionResult::FAILURE, "Could not find cursor at ("+std::to_string(row)+", "+std::to_string(dest_cursor.col)+")"};
-    }
+    // return {CursorActionResult::FAILURE, "Function still undefined"};
+    holding_pokemon = false;
+    return {CursorActionResult::SUCCESS, "Function still undefined"};
 }
 
 CursorActionResponse HomeCursor::align_col(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const size_t& new_col){
-    context.wait_for_all_requests();
-    VideoSnapshot screen = env.console.video().snapshot();
-
-    ImageFloatBox space_box(0.0735 + (0.072 * new_col), 0.165 + (0.1035 * row), 0.0055, 0.004);
-
-    FloatPixel pixels_before = image_stats(extract_box_reference(screen, space_box)).average;
 
     // direct nav forward or backward through cols
     if ((new_col > col && new_col - col <= 3) || (col > new_col && col - new_col <= 3)) {
@@ -154,69 +112,24 @@ CursorActionResponse HomeCursor::align_col(SingleSwitchProgramEnvironment& env, 
 
     context.wait_for_all_requests();
 
-    screen = env.console.video().snapshot();
+    ImageFloatBox hand_region = {0.03, 0.15, 0.45, 0.5};
+    HomeCursorWatcher handWatcher(holding_pokemon?HomeCursorType::GRABBING:HomeCursorType::RED, hand_region, COLOR_RED);
 
-    FloatPixel pixels_after = image_stats(extract_box_reference(screen, space_box)).average;
-
-    pbf_wait(context, 250ms);
-    context.wait_for_all_requests();
-    if(euclidean_distance(pixels_before,pixels_after)>0){
-        return {CursorActionResult::SUCCESS, "Found cursor at ("+std::to_string(row)+", "+std::to_string(new_col)+")"};
-    }else{
-        return {CursorActionResult::FAILURE, "Could not find cursor at ("+std::to_string(row)+", "+std::to_string(new_col)+")"};
-    }
-}
-
-CursorActionResponse HomeCursor::align_row(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const HomeCursor& dest_cursor){
-    context.wait_for_all_requests();
-    VideoSnapshot screen = env.console.video().snapshot();
-
-    ImageFloatBox space_box(0.0735 + (0.072 * col), 0.165 + (0.1035 * dest_cursor.row), 0.0055, 0.004);
-
-    FloatPixel pixels_before = image_stats(extract_box_reference(screen, space_box)).average;
-
-    // direct nav up or down through rows
-    if (!(row == 0 && dest_cursor.row == 4) && !(dest_cursor.row == 0 && row == 4)) {
-        for (size_t i = row; i < dest_cursor.row; ++i) {
-            pbf_press_dpad(context, DPAD_DOWN, 10, 30);
-        }
-        for (size_t i = dest_cursor.row; i < row; ++i) {
-            pbf_press_dpad(context, DPAD_UP, 10, 30);
-        }
-    } else { // wrap around is faster to move between row or last row
-        if (row == 0 && dest_cursor.row == 4) {
-            for (size_t i = 0; i <= 2; ++i) {
-                pbf_press_dpad(context, DPAD_UP, 10, 30);
-            }
-        } else {
-            for (size_t i = 0; i <= 2; ++i) {
-                pbf_press_dpad(context, DPAD_DOWN, 10, 30);
-            }
-        }
+    int ret = wait_until(env.console, context, 2000ms, {handWatcher});
+    if (ret != 0){
+        return {CursorActionResult::FAILURE, "Could not find cursor at (" + std::to_string(row) + ", " + std::to_string(new_col) + ")"};
     }
 
-    context.wait_for_all_requests();
-
-    screen = env.console.video().snapshot();
-
-    FloatPixel pixels_after = image_stats(extract_box_reference(screen, space_box)).average;
-
-    pbf_wait(context, 250ms);
-    context.wait_for_all_requests();
-    if(euclidean_distance(pixels_before,pixels_after)>0){
-        return {CursorActionResult::SUCCESS, "Found cursor at ("+std::to_string(dest_cursor.row)+", "+std::to_string(col)+")"};
-    }else{
-        return {CursorActionResult::FAILURE, "Could not find cursor at ("+std::to_string(dest_cursor.row)+", "+std::to_string(col)+")"};
+    auto [x, y] = handWatcher.location();
+    if ((size_t)y == row && (size_t)x == new_col){
+        return {CursorActionResult::SUCCESS, "Found cursor at (" + std::to_string(row) + ", " + std::to_string(new_col) + ")"};
+    } else {
+        return {CursorActionResult::FAILURE, "Could not find cursor at (" + std::to_string(row) + ", " + std::to_string(new_col) + ")"};
     }
+
 }
 
 CursorActionResponse HomeCursor::align_row(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const size_t& new_row){
-    context.wait_for_all_requests();
-    VideoSnapshot screen = env.console.video().snapshot();
-
-    ImageFloatBox space_box(0.0735 + (0.072 * col), 0.165 + (0.1035 * new_row), 0.0055, 0.004);
-
-    FloatPixel pixels_before = image_stats(extract_box_reference(screen, space_box)).average;
 
     // direct nav up or down through rows
     if (!(row == 0 && new_row == 4) && !(new_row == 0 && row == 4)) {
@@ -240,17 +153,23 @@ CursorActionResponse HomeCursor::align_row(SingleSwitchProgramEnvironment& env, 
 
     context.wait_for_all_requests();
 
-    screen = env.console.video().snapshot();
 
-    FloatPixel pixels_after = image_stats(extract_box_reference(screen, space_box)).average;
+    ImageFloatBox hand_region = {0.03, 0.15, 0.45, 0.5};
+    HomeCursorWatcher handWatcher(holding_pokemon?HomeCursorType::GRABBING:HomeCursorType::RED, hand_region, COLOR_RED);
 
-    pbf_wait(context, 250ms);
-    context.wait_for_all_requests();
-    if(euclidean_distance(pixels_before,pixels_after)>0){
-        return {CursorActionResult::SUCCESS, "Found cursor at ("+std::to_string(new_row)+", "+std::to_string(col)+")"};
-    }else{
-        return {CursorActionResult::FAILURE, "Could not find cursor at ("+std::to_string(new_row)+", "+std::to_string(col)+")"};
+    int ret = wait_until(env.console, context, 2000ms, {handWatcher});
+    if (ret != 0){
+        return {CursorActionResult::FAILURE, "Could not find cursor at (" + std::to_string(new_row) + ", " + std::to_string(col) + ")"};
     }
+
+    auto [x, y] = handWatcher.location();
+    if ((size_t)y == new_row && (size_t)x == col){
+        return {CursorActionResult::SUCCESS, "Found cursor at (" + std::to_string(new_row) + ", " + std::to_string(col) + ")"};
+    } else {
+        return {CursorActionResult::FAILURE, "Could not find cursor at (" + std::to_string(new_row) + ", " + std::to_string(col) + ")"};
+    }
+
+
 }
 
 CursorActionResponse HomeCursor::position_cursor(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const HomeCursor& dest_cursor, size_t retry_count){
@@ -266,15 +185,18 @@ CursorActionResponse HomeCursor::position_cursor(SingleSwitchProgramEnvironment&
         return {CursorActionResult::ERROR_RECOVERABLE, "Reached maximum retry attempts"};
     }
 
+
+
     // Align column if not already aligned
     if(dest_cursor.col!=col){
-        auto result = align_col(env, context, dest_cursor);
+        auto result = align_col(env, context, dest_cursor.col);
         switch(result.result){
             case CursorActionResult::SUCCESS:
                 col = dest_cursor.col;
                 break;
             case CursorActionResult::FAILURE:
-                return locate_position(env, context);
+                locate_position(env, context);
+                return position_cursor(env, context, dest_cursor, retry_count+1);
                 break;
             default:
                 return result;
@@ -282,16 +204,16 @@ CursorActionResponse HomeCursor::position_cursor(SingleSwitchProgramEnvironment&
         }
     }
 
-
     // Align row if not already aligned
     if(dest_cursor.row!=row){
-        auto result = align_row(env, context, dest_cursor);
+        auto result = align_row(env, context, dest_cursor.row);
         switch(result.result){
         case CursorActionResult::SUCCESS:
             row = dest_cursor.row;
             break;
         case CursorActionResult::FAILURE:
-            return locate_position(env, context);
+            locate_position(env, context);
+            return position_cursor(env, context, dest_cursor, retry_count+1);
             break;
         default:
             return result;
@@ -307,12 +229,20 @@ CursorActionResponse HomeCursor::navigate_to_page(SingleSwitchProgramEnvironment
         return {CursorActionResult::FAILURE, "box "+std::to_string(dest_cursor.box)+" out of scope"};
     }
 
+    // 20% chance to audit page, just to make sure the algorithms are working.
+    if(rand()*5==1){
+        auto response = identify_page(env, context, false);
+        if(response.result!=CursorActionResult::SUCCESS){
+            identify_page(env, context, true);
+        }
+    }
+
     CursorActionResponse last_move;
 
     env.console.log("moving to box " + std::to_string(dest_cursor.box)+" from box "+std::to_string(box));
 
     if(dest_cursor.box == box){ // on current page
-        last_move = identify_page(env, context, false);
+        last_move = {CursorActionResult::SUCCESS, "Starting on correct page"};
     }else if(dest_cursor.box>box){ // Navigating right
         while(box<dest_cursor.box){
             pbf_press_button(context, BUTTON_R, 10, 0);
@@ -322,7 +252,7 @@ CursorActionResponse HomeCursor::navigate_to_page(SingleSwitchProgramEnvironment
                     rightWatcher
                 }
             );
-            pbf_wait(context, 10);
+            pbf_wait(context, 12);
             context.wait_for_all_requests();
             switch (ret){
             case 0:
@@ -343,7 +273,7 @@ CursorActionResponse HomeCursor::navigate_to_page(SingleSwitchProgramEnvironment
                     leftWatcher
                 }
             );
-            pbf_wait(context, 10);
+            pbf_wait(context, 12);
             context.wait_for_all_requests();
             switch (ret){
             case 0:
@@ -362,43 +292,20 @@ CursorActionResponse HomeCursor::navigate_to_page(SingleSwitchProgramEnvironment
 
 
 CursorActionResponse HomeCursor::locate_position(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
-    FloatPixel temp[5][6];
+    // Special waterfill case for if holding pokemon, very reliable
+    ImageFloatBox hand_region = {0.03, 0.15, 0.45, 0.5};
+    HomeCursorWatcher handWatcher(holding_pokemon?HomeCursorType::GRABBING:HomeCursorType::RED, hand_region, COLOR_WHITE);
 
-    context.wait_for_all_requests();
-
-    VideoSnapshot screen = env.console.video().snapshot();
-    VideoOverlaySet box_render(env.console);
-
-    for(int i = 0; i<5; i++){
-        for(int j = 0; j<6; j++){
-            ImageFloatBox pointer_box(0.0735 + (0.072 * j), 0.165 + (0.1035 * i), 0.0055, 0.004);
-            box_render.add(COLOR_RED, pointer_box);
-            FloatPixel current_box_value = image_stats(extract_box_reference(screen, pointer_box)).average;
-            // env.console.log(std::to_string(current_box_value.r)+" "+std::to_string(current_box_value.g)+" "+std::to_string(current_box_value.b));
-            temp[i][j] = current_box_value;
-        }
+    int ret = wait_until(env.console, context, 2000ms, {handWatcher});
+    if (ret == 0){
+        auto [x, y] = handWatcher.location();
+        row = x;
+        col = y;
+        env.console.log("HERE");
+        return {CursorActionResult::SUCCESS, "Found cursor at ("+std::to_string(x)+", "+std::to_string(y)+")"};
+    }else{
+        return {CursorActionResult::FAILURE, "Could not locate cursor"};
     }
-    pbf_press_button(context, BUTTON_ZL, 10, 30);
-    context.wait_for_all_requests();
-    screen = env.console.video().snapshot();
-    for(int i = 0; i<5; i++){
-        for(int j = 0; j<6; j++){
-            ImageFloatBox pointer_box(0.0735 + (0.072 * j), 0.165 + (0.1035 * i), 0.0055, 0.004);
-            box_render.add(COLOR_RED, pointer_box);
-            FloatPixel current_box_value = image_stats(extract_box_reference(screen, pointer_box)).average;
-            if(temp[i][j].r != current_box_value.r &&temp[i][j].g != current_box_value.g && temp[i][j].b != current_box_value.b){
-                pbf_press_button(context, BUTTON_ZR, 10, 30);
-                box_render.clear();
-                row = i;
-                col = j;
-                return {CursorActionResult::SUCCESS, "Successfully located cursor at ("+std::to_string(row)+", "+std::to_string(col)+")"};
-            }
-        }
-    }
-
-    pbf_press_button(context, BUTTON_ZR, 10, 30);
-    box_render.clear();
-    return {CursorActionResult::FAILURE, "Could not locate cursor"};
 }
 
 
@@ -416,7 +323,7 @@ CursorActionResponse HomeCursor::locate_position(SingleSwitchProgramEnvironment&
 * and determines the current page based on a >50% consensus.
 */
 
-CursorActionResponse HomeCursor::identify_page(SingleSwitchProgramEnvironment& env, ProControllerContext& context, bool hard_check = false) {
+CursorActionResponse HomeCursor::identify_page(SingleSwitchProgramEnvironment& env, ProControllerContext& context, bool hard_check, size_t expected) {
     context.wait_for_all_requests();
 
     VideoSnapshot screen = env.console.video().snapshot();
@@ -449,11 +356,20 @@ CursorActionResponse HomeCursor::identify_page(SingleSwitchProgramEnvironment& e
     env.console.log(std::to_string(box_name_top) + "/" + std::to_string(box_name_bottom));
 
     if (!hard_check) {
-        if (box_name_top == box_name_bottom) {
-            box = box_name_top;
-            return {CursorActionResult::SUCCESS, "Successfully identified page as " + std::to_string(box)};
-        } else {
-            return {CursorActionResult::FAILURE, "Could not identify page"};
+        if(expected!=UINT_MAX){
+            if (box_name_top == static_cast<size_t>(expected) || box_name_bottom == static_cast<size_t>(expected)) {
+                box = box_name_top;
+                return {CursorActionResult::SUCCESS, "Successfully identified expected page as " + std::to_string(box)};
+            } else {
+                return {CursorActionResult::FAILURE, "Could not identify page. Expected was " + std::to_string(expected)};
+            }
+        }else{
+            if (box_name_top == box_name_bottom) {
+                box = box_name_top;
+                return {CursorActionResult::SUCCESS, "Successfully identified page as " + std::to_string(box)};
+            } else {
+                return {CursorActionResult::FAILURE, "Could not identify page"};
+            }
         }
     }
 
