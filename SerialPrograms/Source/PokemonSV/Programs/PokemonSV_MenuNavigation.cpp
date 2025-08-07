@@ -2,6 +2,7 @@
  *
  */
 
+#include "Common/Cpp/RecursiveThrottler.h"
 #include "CommonFramework/Exceptions/OperationFailedException.h"
 #include "CommonFramework/Exceptions/UnexpectedBattleException.h"
 #include "CommonTools/Async/InferenceRoutines.h"
@@ -10,6 +11,8 @@
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
 #include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "NintendoSwitch/Programs/DateSpam/NintendoSwitch_HomeToDateTime.h"
+//#include "NintendoSwitch/Programs/DateSpam/NintendoSwitch_RollDateForward1.h"
+//#include "NintendoSwitch/Programs/DateSpam/NintendoSwitch_NeutralDateSkip.h"
 #include "NintendoSwitch/Programs/DateManip/NintendoSwitch_DateManip.h"
 #include "PokemonSV/PokemonSV_Settings.h"
 #include "PokemonSV/Inference/Dialogs/PokemonSV_DialogDetector.h"
@@ -49,17 +52,19 @@ void set_time_to_12am_from_home(const ProgramInfo& info, ConsoleHandle& console,
 //    resume_game_from_home(console, context);
 }
 
-void day_skip_from_overworld(ConsoleHandle& console, ProControllerContext& context){
-    pbf_press_button(context, BUTTON_HOME, 80ms, GameSettings::instance().GAME_TO_HOME_DELAY1);
-    home_to_date_time(console, context, true);
+void neutral_day_skip_switch1(ConsoleHandle& console, ProControllerContext& context){
+    ThrottleScope scope(context->logging_throttler());
+    if (scope){
+        context->logger().log("PokemonSV::neutral_day_skip_switch1()");
+    }
 
     Milliseconds tv = context->timing_variation();
     if (tv == 0ms){
-        ssf_press_button(context, BUTTON_A, 20, 10);
+        ssf_press_button(context, BUTTON_A, 160ms, 80ms);
 
         //  Left scroll in case we missed the date menu and landed in the
         //  language change.
-        ssf_issue_scroll(context, DPAD_LEFT, 0ms);
+        ssf_issue_scroll(context, DPAD_LEFT, 0ms, 48ms, 24ms);
 
         ssf_press_button(context, BUTTON_A, 24ms);
         ssf_issue_scroll(context, DPAD_RIGHT, 24ms);
@@ -68,8 +73,8 @@ void day_skip_from_overworld(ConsoleHandle& console, ProControllerContext& conte
         ssf_issue_scroll(context, DPAD_RIGHT, 24ms);
         ssf_issue_scroll(context, DPAD_RIGHT, 24ms);
         ssf_issue_scroll(context, DPAD_RIGHT, 24ms);
-        ssf_issue_scroll(context, DPAD_RIGHT, 0);
-        ssf_press_button(context, BUTTON_A, 20, 10);
+        ssf_issue_scroll(context, DPAD_RIGHT, 0ms, 48ms, 24ms);
+        ssf_press_button(context, BUTTON_A, 160ms, 80ms);
     }else{
         ssf_press_button_ptv(context, BUTTON_A, 160ms);
 
@@ -86,6 +91,45 @@ void day_skip_from_overworld(ConsoleHandle& console, ProControllerContext& conte
         ssf_issue_scroll_ptv(context, DPAD_RIGHT);
         ssf_issue_scroll_ptv(context, DPAD_RIGHT);
         ssf_press_button_ptv(context, BUTTON_A, 160ms);
+    }
+}
+void neutral_day_skip_switch2(ConsoleHandle& console, ProControllerContext& context){
+    ThrottleScope scope(context->logging_throttler());
+    if (scope){
+        context->logger().log("PokemonSV::neutral_day_skip_switch2()");
+    }
+
+    ssf_press_button(context, BUTTON_A, 216ms, 80ms);
+    ssf_issue_scroll_ptv(context, SSF_SCROLL_RIGHT);
+    ssf_issue_scroll_ptv(context, SSF_SCROLL_RIGHT);
+    ssf_issue_scroll_ptv(context, SSF_SCROLL_RIGHT);
+    ssf_issue_scroll_ptv(context, SSF_SCROLL_RIGHT);
+    ssf_issue_scroll_ptv(context, SSF_SCROLL_RIGHT);
+    ssf_issue_scroll_ptv(context, SSF_SCROLL_RIGHT);
+    ssf_press_button(context, BUTTON_A, 264ms, 80ms);
+}
+
+void day_skip_from_overworld(ConsoleHandle& console, ProControllerContext& context){
+    pbf_press_button(context, BUTTON_HOME, 80ms, GameSettings::instance().GAME_TO_HOME_DELAY1);
+    home_to_date_time(console, context, true);
+
+    ConsoleType console_type = console.state().console_type();
+    if (is_switch1(console_type)){
+        neutral_day_skip_switch1(console, context);
+    }else if (is_switch2(console_type)){
+        neutral_day_skip_switch2(console, context);
+
+#if 0
+        for (int c = 0; c < 10; c++){
+            NintendoSwitch::roll_date_forward_1(console, context, true);
+//            NintendoSwitch::neutral_date_skip(console, context);
+        }
+#endif
+    }else{
+        throw UserSetupError(
+            console,
+            "Please select a valid Switch console type."
+        );
     }
 
     pbf_press_button(context, BUTTON_HOME, 160ms, ConsoleSettings::instance().SETTINGS_TO_HOME_DELAY0);
@@ -137,12 +181,13 @@ void open_map_from_overworld(
             {overworld, battle}
         );
         context.wait_for(std::chrono::milliseconds(100));
+
         if (ret == 0){
             stream.log("Detected overworld.");
             pbf_press_button(context, BUTTON_Y, 20, 105); // open map
         }else if (ret == 1){
             throw_and_log<UnexpectedBattleException>(
-                stream.logger(), ErrorReport::SEND_ERROR_REPORT,
+                stream.logger(), ErrorReport::NO_ERROR_REPORT,
                 "open_map_from_overworld(): Unexpectedly detected battle.",
                 stream
             );              
@@ -178,6 +223,7 @@ void open_map_from_overworld(
             {overworld, advance_dialog, prompt_dialog, map, battle}
         );
         context.wait_for(std::chrono::milliseconds(100));
+
         switch (ret){
         case 0:
             stream.log("Detected overworld.");
@@ -208,7 +254,7 @@ void open_map_from_overworld(
         case 4:
             stream.log("Detected battle.");
             throw_and_log<UnexpectedBattleException>(
-                stream.logger(), ErrorReport::SEND_ERROR_REPORT,
+                stream.logger(), ErrorReport::NO_ERROR_REPORT,
                 "open_map_from_overworld(): Unexpectedly detected battle.",
                 stream
             ); 

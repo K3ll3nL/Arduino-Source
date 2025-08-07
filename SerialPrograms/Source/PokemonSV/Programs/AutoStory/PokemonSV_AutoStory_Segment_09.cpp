@@ -4,6 +4,7 @@
  *
  */
 
+#include "CommonFramework/Exceptions/OperationFailedException.h"
 #include "CommonFramework/VideoPipeline/VideoOverlay.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "PokemonSV/Inference/PokemonSV_TutorialDetector.h"
@@ -40,23 +41,24 @@ std::string AutoStory_Segment_09::end_text() const{
 void AutoStory_Segment_09::run_segment(
     SingleSwitchProgramEnvironment& env,
     ProControllerContext& context,
-    AutoStoryOptions options
+    AutoStoryOptions options,
+    AutoStoryStats& stats
 ) const{
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
+    
 
+    stats.m_segment++;
+    env.update_stats();
     context.wait_for_all_requests();
-    env.console.overlay().add_log("Start Segment 09: Complete tutorial", COLOR_ORANGE);
+    env.console.log("Start Segment 09: Complete tutorial", COLOR_ORANGE);
 
-    checkpoint_16(env, context, options.notif_status_update);
-    checkpoint_17(env, context, options.notif_status_update);
-    checkpoint_18(env, context, options.notif_status_update);
-    checkpoint_19(env, context, options.notif_status_update);
-    checkpoint_20(env, context, options.notif_status_update);
+    checkpoint_16(env, context, options.notif_status_update, stats);
+    checkpoint_17(env, context, options.notif_status_update, stats);
+    checkpoint_18(env, context, options.notif_status_update, stats);
+    checkpoint_19(env, context, options.notif_status_update, stats);
+    checkpoint_20(env, context, options.notif_status_update, stats);
 
     context.wait_for_all_requests();
     env.console.log("End Segment 09: Complete tutorial", COLOR_GREEN);
-    stats.m_segment++;
-    env.update_stats();
 
 }
 
@@ -66,14 +68,15 @@ void AutoStory_Segment_09::run_segment(
 void checkpoint_16(
     SingleSwitchProgramEnvironment& env, 
     ProControllerContext& context, 
-    EventNotificationOption& notif_status_update
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats
 ){
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
+    
     bool first_attempt = true;
     while (true){
     try{
         if (first_attempt){
-            checkpoint_save(env, context, notif_status_update);
+            checkpoint_save(env, context, notif_status_update, stats);
             first_attempt = false;
         }         
         context.wait_for_all_requests();
@@ -105,7 +108,7 @@ void checkpoint_16(
         
        
         break;
-    }catch(...){
+    }catch(OperationFailedException&){
         context.wait_for_all_requests();
         env.console.log("Resetting from checkpoint.");
         reset_game(env.program_info(), env.console, context);
@@ -119,14 +122,15 @@ void checkpoint_16(
 void checkpoint_17(
     SingleSwitchProgramEnvironment& env, 
     ProControllerContext& context, 
-    EventNotificationOption& notif_status_update
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats
 ){
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
+    
     bool first_attempt = true;
     while (true){
     try{
         if (first_attempt){
-            checkpoint_save(env, context, notif_status_update);
+            checkpoint_save(env, context, notif_status_update, stats);
             first_attempt = false;
         }         
         context.wait_for_all_requests();
@@ -160,7 +164,7 @@ void checkpoint_17(
         
        
         break;
-    }catch(...){
+    }catch(OperationFailedException&){
         context.wait_for_all_requests();
         env.console.log("Resetting from checkpoint.");
         reset_game(env.program_info(), env.console, context);
@@ -174,14 +178,15 @@ void checkpoint_17(
 void checkpoint_18(
     SingleSwitchProgramEnvironment& env, 
     ProControllerContext& context, 
-    EventNotificationOption& notif_status_update
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats
 ){
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
+    
     bool first_attempt = true;
     while (true){
     try{
         if (first_attempt){
-            checkpoint_save(env, context, notif_status_update);
+            checkpoint_save(env, context, notif_status_update, stats);
             first_attempt = false;
         }         
         context.wait_for_all_requests();
@@ -206,7 +211,7 @@ void checkpoint_18(
             {CallbackEnum::OVERWORLD, CallbackEnum::PROMPT_DIALOG});
        
         break;
-    }catch(...){
+    }catch(OperationFailedException&){
         context.wait_for_all_requests();
         env.console.log("Resetting from checkpoint.");
         reset_game(env.program_info(), env.console, context);
@@ -220,14 +225,15 @@ void checkpoint_18(
 void checkpoint_19(
     SingleSwitchProgramEnvironment& env, 
     ProControllerContext& context, 
-    EventNotificationOption& notif_status_update
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats
 ){
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
+    
     bool first_attempt = true;
     while (true){
     try{
         if (first_attempt){
-            checkpoint_save(env, context, notif_status_update);
+            checkpoint_save(env, context, notif_status_update, stats);
             first_attempt = false;
         }         
         context.wait_for_all_requests();
@@ -250,7 +256,7 @@ void checkpoint_19(
 
        
         break;
-    }catch(...){
+    }catch(OperationFailedException&){
         context.wait_for_all_requests();
         env.console.log("Resetting from checkpoint.");
         reset_game(env.program_info(), env.console, context);
@@ -265,14 +271,15 @@ void checkpoint_19(
 void checkpoint_20(
     SingleSwitchProgramEnvironment& env, 
     ProControllerContext& context, 
-    EventNotificationOption& notif_status_update
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats
 ){
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
+    
     bool first_attempt = true;
     while (true){
     try{
         if (first_attempt){
-            checkpoint_save(env, context, notif_status_update);
+            checkpoint_save(env, context, notif_status_update, stats);
             first_attempt = false;
         }         
         context.wait_for_all_requests();
@@ -303,7 +310,7 @@ void checkpoint_20(
         mash_button_till_overworld(env.console, context, BUTTON_A, 360);
 
         break;
-    }catch(...){
+    }catch(OperationFailedException&){
         context.wait_for_all_requests();
         env.console.log("Resetting from checkpoint.");
         reset_game(env.program_info(), env.console, context);

@@ -13,6 +13,7 @@
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonFramework/Options/Environment/SleepSuppressOption.h"
 #include "CommonFramework/Options/Environment/PerformanceOptions.h"
+#include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch/Controllers/NintendoSwitch_ProController.h"
 #include "NintendoSwitch_MultiSwitchProgramOption.h"
 #include "NintendoSwitch_MultiSwitchProgramSession.h"
@@ -24,13 +25,11 @@ namespace NintendoSwitch{
 
 void MultiSwitchProgramSession::add_listener(Listener& listener){
     auto ScopeCheck = m_sanitizer.check_scope();
-    WriteSpinLock lg(m_lock);
-    m_listeners.insert(&listener);
+    m_listeners.add(listener);
 }
 void MultiSwitchProgramSession::remove_listener(Listener& listener){
     auto ScopeCheck = m_sanitizer.check_scope();
-    WriteSpinLock lg(m_lock);
-    m_listeners.erase(&listener);
+    m_listeners.remove(listener);
 }
 
 
@@ -99,7 +98,13 @@ void MultiSwitchProgramSession::run_program_instance(MultiSwitchProgramEnvironme
         );
     }
 
-    m_scope.store(&scope, std::memory_order_release);
+    {
+        std::lock_guard<std::mutex> lg(program_lock());
+        if (current_state() != ProgramState::RUNNING){
+            return;
+        }
+        m_scope.store(&scope, std::memory_order_release);
+    }
 
     try{
         m_option.instance().program(env, scope);
@@ -113,35 +118,32 @@ void MultiSwitchProgramSession::run_program_instance(MultiSwitchProgramEnvironme
                 env.consoles[c].controller().cancel_all_commands();
             }catch (...){}
         }
+        std::lock_guard<std::mutex> lg(program_lock());
         m_scope.store(nullptr, std::memory_order_release);
         throw;
     }
+
+    std::lock_guard<std::mutex> lg(program_lock());
     m_scope.store(nullptr, std::memory_order_release);
 }
 void MultiSwitchProgramSession::internal_stop_program(){
     auto ScopeCheck = m_sanitizer.check_scope();
-    WriteSpinLock lg(m_lock);
-//    size_t consoles = m_system.count();
-//    for (size_t c = 0; c < consoles; c++){
-//        m_system[c].serial_session().stop();
-//    }
-    CancellableScope* scope = m_scope.load(std::memory_order_acquire);
-    if (scope != nullptr){
-        scope->cancel(std::make_exception_ptr(ProgramCancelledException()));
+    {
+        std::lock_guard<std::mutex> lg(program_lock());
+        CancellableScope* scope = m_scope.load(std::memory_order_acquire);
+        if (scope != nullptr){
+            scope->cancel(std::make_exception_ptr(ProgramCancelledException()));
+        }
     }
 
     //  Wait for program thread to finish.
     while (m_scope.load(std::memory_order_acquire) != nullptr){
         pause();
     }
-
-//    for (size_t c = 0; c < consoles; c++){
-//        m_system[c].serial_session().reset();
-//    }
 }
 void MultiSwitchProgramSession::internal_run_program(){
     auto ScopeCheck = m_sanitizer.check_scope();
-    GlobalSettings::instance().PERFORMANCE->REALTIME_THREAD_PRIORITY.set_on_this_thread();
+    GlobalSettings::instance().PERFORMANCE->REALTIME_THREAD_PRIORITY.set_on_this_thread(logger());
     m_option.options().reset_state();
 
     SleepSuppressScope sleep_scope(GlobalSettings::instance().SLEEP_SUPPRESS->PROGRAM_RUNNING);
@@ -174,7 +176,13 @@ void MultiSwitchProgramSession::internal_run_program(){
             session.audio(),
             session.stream_history()
         );
-        handles.back().state().set_console_type_user(session.console_type());
+
+        ConsoleState& state = handles.back().state();
+        if (ConsoleSettings::instance().TRUST_USER_CONSOLE_SELECTION){
+            state.set_console_type(handles.back().logger(), session.console_type());
+        }else{
+            state.set_console_type_user(session.console_type());
+        }
     }
 
 
@@ -195,9 +203,11 @@ void MultiSwitchProgramSession::internal_run_program(){
 //        m_setup->wait_for_all_requests();
         env.add_overlay_log_to_all_consoles("- Program Finished -");
         logger().log("Program finished normally!", COLOR_BLUE);
-    }catch (OperationCancelledException&){
+    }catch (OperationCancelledException& e){
+        logger().log("Program Stopped (OperationCancelledException): " + e.message(), COLOR_RED);
         env.add_overlay_log_to_all_consoles("- Program Stopped -");
-    }catch (ProgramCancelledException&){
+    }catch (ProgramCancelledException& e){
+        logger().log("Program Stopped (ProgramCancelledException): " + e.message(), COLOR_BLUE);
         env.add_overlay_log_to_all_consoles("- Program Stopped -");
     }catch (ProgramFinishedException& e){
         logger().log("Program finished early!", COLOR_BLUE);
@@ -266,11 +276,8 @@ void MultiSwitchProgramSession::shutdown(){
 }
 void MultiSwitchProgramSession::startup(size_t switch_count){
     auto ScopeCheck = m_sanitizer.check_scope();
-    WriteSpinLock lg(m_lock);
     m_option.instance().update_active_consoles(switch_count);
-    for (Listener* listener : m_listeners){
-        listener->redraw_options();
-    }
+    m_listeners.run_method_unique(&Listener::redraw_options);
 }
 
 

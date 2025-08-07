@@ -4,35 +4,21 @@
  *
  */
 
-#include <QLabel>
-#include <QDir>
-#include <QVBoxLayout>
-#include <QGraphicsView>
-#include <QGraphicsScene>
-#include <QGraphicsPixmapItem>
-#include <QScrollArea>
-#include <QPushButton>
-#include <QResizeEvent>
+
 #include <QMessageBox>
+#include <cfloat>
 #include <iostream>
-#include <fstream>
 #include <filesystem>
 #include <cmath>
-#include "CommonFramework/Globals.h"
 #include "Common/Cpp/Json/JsonArray.h"
 #include "Common/Cpp/Json/JsonObject.h"
 #include "Common/Cpp/Json/JsonValue.h"
 #include "Common/Cpp/Json/JsonTools.h"
-#include "Common/Qt/CollapsibleGroupBox.h"
-#include "Pokemon/Resources/Pokemon_PokemonForms.h"
-#include "CommonFramework/VideoPipeline/VideoOverlayScopes.h"
-#include "NintendoSwitch/Framework/UI/NintendoSwitch_SwitchSystemWidget.h"
-#include "CommonFramework/VideoPipeline/Backends/CameraWidgetQt6.5.h"
-#include "CommonFramework/VideoPipeline/VideoSources/VideoSource_StillImage.h"
-#include "ML_LabelImages.h"
 #include "Pokemon/Pokemon_Strings.h"
-#include "Common/Qt/Options/ConfigWidget.h"
-#include "ML/DataLabeling/SegmentAnythingModel.h"
+#include "ML/DataLabeling/ML_SegmentAnythingModel.h"
+#include "ML/DataLabeling/ML_AnnotationIO.h"
+#include "ML_LabelImages.h"
+#include "ML_LabelImagesOverlayManager.h"
 
 
 
@@ -43,147 +29,12 @@ namespace PokemonAutomation{
 namespace ML{
 
 
-ObjectAnnotation::ObjectAnnotation(): user_box(0,0,0,0), mask_box(0,0,0,0) {}
-
-// if failed to pass, will throw JsonParseException
-ObjectAnnotation json_to_object_annotation(const JsonValue& value){
-    ObjectAnnotation anno_obj;
-
-    const JsonObject& json_obj = value.to_object_throw();
-    const JsonArray& user_box_array = json_obj.get_array_throw("UserBox");
-    anno_obj.user_box = ImagePixelBox(
-        size_t(user_box_array[0].to_integer_throw()),
-        size_t(user_box_array[1].to_integer_throw()),
-        size_t(user_box_array[2].to_integer_throw()),
-        size_t(user_box_array[3].to_integer_throw())
-    );
-    const JsonArray& mask_box_array = json_obj.get_array_throw("MaskBox");
-    anno_obj.mask_box = ImagePixelBox(
-        size_t(mask_box_array[0].to_integer_throw()),
-        size_t(mask_box_array[1].to_integer_throw()),
-        size_t(mask_box_array[2].to_integer_throw()),
-        size_t(mask_box_array[3].to_integer_throw())
-    );
-    size_t mask_width = anno_obj.mask_box.width(), mask_height = anno_obj.mask_box.height();
-    anno_obj.mask.resize(mask_width * mask_height);
-    const JsonArray& mask_values = json_obj.get_array_throw("Mask");
-    for(size_t i = 0; i < anno_obj.mask.size(); i++){
-        anno_obj.mask[i] = bool(mask_values[i].to_integer_throw());
-    }
-
-    anno_obj.label = json_obj.get_string_throw("Label");
-    
-    return anno_obj;
-}
-
-JsonObject object_annotation_to_json(const ObjectAnnotation& object_annotation){
-    JsonObject json_obj;
-    JsonArray user_box_arr;
-    user_box_arr.push_back(int64_t(object_annotation.user_box.min_x));
-    user_box_arr.push_back(int64_t(object_annotation.user_box.min_y));
-    user_box_arr.push_back(int64_t(object_annotation.user_box.max_x));
-    user_box_arr.push_back(int64_t(object_annotation.user_box.max_y));
-    json_obj["UserBox"] = std::move(user_box_arr);
-
-    JsonArray mask_box_arr;
-    mask_box_arr.push_back(int64_t(object_annotation.mask_box.min_x));
-    mask_box_arr.push_back(int64_t(object_annotation.mask_box.min_y));
-    mask_box_arr.push_back(int64_t(object_annotation.mask_box.max_x));
-    mask_box_arr.push_back(int64_t(object_annotation.mask_box.max_y));
-    json_obj["MaskBox"] = std::move(mask_box_arr);
-
-    JsonArray mask_arr;
-    for(size_t i = 0; i < object_annotation.mask.size(); i++){
-        mask_arr.push_back(int64_t(object_annotation.mask[i]));
-    }
-    json_obj["Mask"] = std::move(mask_arr);
-
-    json_obj["Label"] = object_annotation.label;
-
-    return json_obj;
-}
-
-
-DrawnBoundingBox::DrawnBoundingBox(LabelImages_Widget& widget, VideoOverlay& overlay)
-    : m_widget(widget)
-    , m_overlay(overlay)
-{
-    auto& program = m_widget.m_program;
-    program.X.add_listener(*this);
-    program.Y.add_listener(*this);
-    program.WIDTH.add_listener(*this);
-    program.HEIGHT.add_listener(*this);
-    overlay.add_listener(*this);
-}
-
-DrawnBoundingBox::~DrawnBoundingBox(){
-    detach();
-}
-
-// called when drawn bounding box changed
-void DrawnBoundingBox::on_config_value_changed(void* object){
-    auto& program = m_widget.m_program;
-    std::lock_guard<std::mutex> lg(m_lock);
-    program.update_rendered_objects(m_widget.m_overlay_set);
-}
-void DrawnBoundingBox::on_mouse_press(double x, double y){
-    auto& program = m_widget.m_program;
-    program.WIDTH.set(0);
-    program.HEIGHT.set(0);
-    program.X.set(x);
-    program.Y.set(y);
-    m_mouse_start.emplace();
-    m_mouse_start->first = x;
-    m_mouse_start->second = y;
-}
-void DrawnBoundingBox::on_mouse_release(double, double){
-    m_mouse_start.reset();
-    auto& m_program = m_widget.m_program;
-    auto& m_overlay_set = m_widget.m_overlay_set;
-
-    m_program.compute_mask(m_overlay_set);
-}
-
-void DrawnBoundingBox::on_mouse_move(double x, double y){
-    auto& program = m_widget.m_program;
-    if (!m_mouse_start){
-        return;
-    }
-
-    double xl = m_mouse_start->first;
-    double xh = x;
-    double yl = m_mouse_start->second;
-    double yh = y;
-
-    if (xl > xh){
-        std::swap(xl, xh);
-    }
-    if (yl > yh){
-        std::swap(yl, yh);
-    }
-
-    program.X.set(xl);
-    program.Y.set(yl);
-    program.WIDTH.set(xh - xl);
-    program.HEIGHT.set(yh - yl);
-}
-
-void DrawnBoundingBox::detach(){
-    auto& program = m_widget.m_program;
-    m_overlay.remove_listener(*this);
-    program.X.remove_listener(*this);
-    program.Y.remove_listener(*this);
-    program.WIDTH.remove_listener(*this);
-    program.HEIGHT.remove_listener(*this);
-}
-
-
 LabelImages_Descriptor::LabelImages_Descriptor()
     : PanelDescriptor(
         Color(),
         "ML:LabelImages",
         "ML", "Label Images",
-        "", // "ComputerControl/blob/master/Wiki/Programs/NintendoSwitch/LabelImages.md",
+        "ComputerControl/blob/master/Wiki/Programs/ML/LabelImages.md",
         "Label " + Pokemon::STRING_POKEMON + " on images" 
     )
 {}
@@ -192,64 +43,128 @@ LabelImages_Descriptor::LabelImages_Descriptor()
 
 #define ADD_OPTION(x)    m_options.add_option(x, #x)
 
+IntegerEnumDropdownDatabase create_label_type_database(){
+    IntegerEnumDropdownDatabase database;
+    database.add(0, "pokemon-form", Pokemon::STRING_POKEMON + " Forms");
+    database.add(1, "custom-set", "Custom Set");
+    database.add(2, "manual-input", "Manual Input");
+    return database;
+}
+
 LabelImages::LabelImages(const LabelImages_Descriptor& descriptor)
     : PanelInstance(descriptor)
-    , m_switch_control_option({}, false)
+    , m_display_session(m_display_option)
     , m_options(LockMode::UNLOCK_WHILE_RUNNING)
     , X("<b>X Coordinate:</b>", LockMode::UNLOCK_WHILE_RUNNING, 0.3, 0.0, 1.0)
     , Y("<b>Y Coordinate:</b>", LockMode::UNLOCK_WHILE_RUNNING, 0.3, 0.0, 1.0)
     , WIDTH("<b>Width:</b>", LockMode::UNLOCK_WHILE_RUNNING, 0.4, 0.0, 1.0)
     , HEIGHT("<b>Height:</b>", LockMode::UNLOCK_WHILE_RUNNING, 0.4, 0.0, 1.0)
+    , LABEL_TYPE_DATABASE(create_label_type_database())
+    , LABEL_TYPE("<b>Select Label:</b>", LABEL_TYPE_DATABASE, LockMode::UNLOCK_WHILE_RUNNING, 0)
     , FORM_LABEL("bulbasaur")
-    , m_sam_session{RESOURCE_PATH() + "ML/sam_cpu.onnx"}
+    , CUSTOM_LABEL_DATABASE(create_string_select_database({"mc"})) // mc for "main character"
+    , CUSTOM_SET_LABEL(CUSTOM_LABEL_DATABASE, LockMode::UNLOCK_WHILE_RUNNING, 0)
+    , MANUAL_LABEL(false, LockMode::UNLOCK_WHILE_RUNNING, "", "Custom Label", true)
 {
-    ADD_OPTION(X);
-    ADD_OPTION(Y);
-    ADD_OPTION(WIDTH);
-    ADD_OPTION(HEIGHT);
+    ADD_OPTION(LABEL_TYPE);
     ADD_OPTION(FORM_LABEL);
+    ADD_OPTION(CUSTOM_SET_LABEL);
+    ADD_OPTION(MANUAL_LABEL);
+
+    X.add_listener(*this);
+    Y.add_listener(*this);
+    WIDTH.add_listener(*this);
+    HEIGHT.add_listener(*this);
+    LABEL_TYPE.add_listener(*this);
+    FORM_LABEL.add_listener(*this);
+    CUSTOM_SET_LABEL.add_listener(*this);
+    MANUAL_LABEL.add_listener(*this);
+
+    // , m_sam_session{RESOURCE_PATH() + "ML/sam_cpu.onnx"}
+    const std::string sam_model_path = RESOURCE_PATH() + "ML/sam_cpu.onnx";
+    if (std::filesystem::exists(sam_model_path)){
+        m_sam_session = std::make_unique<SAMSession>(sam_model_path);
+    } else{
+        std::cerr << "Error: no such SAM model path " << sam_model_path << "." << std::endl;
+        QMessageBox box;
+        box.critical(nullptr, "SAM Model Does Not Exist",
+            QString::fromStdString("SAM model path" + sam_model_path + " does not exist."));
+    }
+
+    m_overlay_manager = new LabelImages_OverlayManager(*this);
 }
+LabelImages::~LabelImages(){
+    X.remove_listener(*this);
+    Y.remove_listener(*this);
+    WIDTH.remove_listener(*this);
+    HEIGHT.remove_listener(*this);
+    LABEL_TYPE.remove_listener(*this);
+    FORM_LABEL.remove_listener(*this);
+}
+
 void LabelImages::from_json(const JsonValue& json){
     const JsonObject* obj = json.to_object();
     if (obj == nullptr){
         return;
     }
-    const JsonValue* value = obj->get_value("SwitchSetup");
+    const JsonValue* value = obj->get_value("ImageSetup");
     if (value){
-        m_switch_control_option.load_json(*value);
+        m_display_option.load_json(*value);
     }
     m_options.load_json(json);
+    const std::string* file_path = obj->get_string("CUSTOM_LABEL_SET_FILE_PATH");
+    if (file_path){
+        load_custom_label_set(*file_path);
+    }
 }
 JsonValue LabelImages::to_json() const{
     JsonObject obj = std::move(*m_options.to_json().to_object());
-    obj["SwitchSetup"] = m_switch_control_option.to_json();
+    obj["ImageSetup"] = m_display_option.to_json();
+    obj["CUSTOM_LABEL_SET_FILE_PATH"] = m_custom_label_set_file_path;
 
+    save_annotation_to_file();
+    return obj;
+}
+
+void LabelImages::save_annotation_to_file() const{
     // m_annotation_file_path
     if (m_annotation_file_path.size() > 0 && !m_fail_to_load_annotation_file){
         JsonArray anno_json_arr;
-        for(const auto& anno_obj: m_annotated_objects){
-            anno_json_arr.push_back(object_annotation_to_json(anno_obj));
+        for(const auto& anno_obj: m_annotations){
+            anno_json_arr.push_back(anno_obj.to_json());
         }
         cout << "Saving annotation to " << m_annotation_file_path << endl;
         anno_json_arr.dump(m_annotation_file_path);
     }
-    return obj;
-}
-QWidget* LabelImages::make_widget(QWidget& parent, PanelHolder& holder){
-    return new LabelImages_Widget(parent, *this, holder);
 }
 
+void LabelImages::clear_for_new_image(){
+    m_overlay_manager->clear();
+    source_image_width = source_image_height = 0;
+    m_image_embedding.clear();
+    m_output_boolean_mask.clear();
+    m_annotations.clear();
+    m_selected_obj_idx = 0;
+    m_annotation_file_path = "";
+    m_fail_to_load_annotation_file = false;
+}
+
+
+// assuming clear_for_new_image() is already called
 void LabelImages::load_image_related_data(const std::string& image_path, size_t source_image_width, size_t source_image_height){
+    cout << "Image source: " << image_path << ", " << source_image_width << " x " << source_image_height << endl;
+
     this->source_image_height = source_image_height;
     this->source_image_width = source_image_width;
 
-    m_mask_image = ImageRGB32(source_image_width, source_image_height);
-    cout << "Image source: " << image_path << ", " << source_image_width << " x " << source_image_height << endl;
-    // if no such embedding file, m_iamge_embedding will be empty
+    m_overlay_manager->set_image_size();
+
+    // if no such embedding file, m_image_embedding will be empty
     const bool embedding_loaded = load_image_embedding(image_path, m_image_embedding);
     if (!embedding_loaded){
         return; // no embedding, then no way for us to annotate
     }
+    
     // see if we can load the previously created labels
     const std::string anno_filename = std::filesystem::path(image_path).filename().replace_extension(".json").string();
 
@@ -270,7 +185,7 @@ void LabelImages::load_image_related_data(const std::string& image_path, size_t 
         return;
     }
 
-    JsonValue loaded_json = parse_json(json_content);
+    const JsonValue loaded_json = parse_json(json_content);
     const JsonArray* json_array = loaded_json.to_array();
     if (json_array == nullptr){
         m_fail_to_load_annotation_file = true;
@@ -282,8 +197,8 @@ void LabelImages::load_image_related_data(const std::string& image_path, size_t 
 
     for(size_t i = 0; i < json_array->size(); i++){
         try{
-            ObjectAnnotation anno_obj = json_to_object_annotation((*json_array)[i]);
-            m_annotated_objects.emplace_back(std::move(anno_obj));
+            ObjectAnnotation anno_obj = ObjectAnnotation::from_json((*json_array)[i]);
+            m_annotations.emplace_back(std::move(anno_obj));
         } catch(JsonParseException&){
             m_fail_to_load_annotation_file = true;
             QMessageBox box;
@@ -295,68 +210,85 @@ void LabelImages::load_image_related_data(const std::string& image_path, size_t 
             );
         }
     }
-    m_last_object_idx = m_annotated_objects.size(); 
+    m_selected_obj_idx = m_annotations.size();
+    update_rendered_objects();
     cout << "Loaded existing annotation file " << m_annotation_file_path << endl;
 }
 
-void LabelImages::update_rendered_objects(VideoOverlaySet& overlay_set){
-    overlay_set.clear();
-    overlay_set.add(COLOR_RED, {X, Y, WIDTH, HEIGHT});
+void LabelImages::update_rendered_objects(){
+    m_overlay_manager->update_rendered_annotations();
+}
 
-    for(size_t i_obj = 0; i_obj < m_annotated_objects.size(); i_obj++){
-        const auto& obj = m_annotated_objects[i_obj];
-        // overlayset.add(COLOR_RED, pixelbox_to_floatbox(source_image_width, source_image_height, obj.user_box));
-        const auto mask_float_box = pixelbox_to_floatbox(source_image_width, source_image_height, obj.mask_box);
-        std::string label = obj.label;
-        const Pokemon::PokemonForm* form = Pokemon::get_pokemon_form(label);
-        if (form != nullptr){
-            label = form->display_name();
-        }
-        Color mask_box_color = (i_obj == m_last_object_idx) ? COLOR_BLACK : COLOR_BLUE;
-        overlay_set.add(mask_box_color, mask_float_box, label);
-        size_t mask_width = obj.mask_box.width();
-        size_t mask_height = obj.mask_box.height();
-        ImageRGB32 mask_image(mask_width, mask_height);
-        // cout << "in render, mask_box " << obj.mask_box.min_x << " " << obj.mask_box.min_y << " " << obj.mask_box.max_x << " " << obj.mask_box.max_y << endl;
+void LabelImages::add_new_annotation_from_user_box(){
+    ImageFloatBox user_float_box(X, Y, WIDTH, HEIGHT);
+    ImagePixelBox user_box = floatbox_to_pixelbox(source_image_width, source_image_height, user_float_box);
 
-        for (size_t y = 0; y < mask_height; y++){
-            for (size_t x = 0; x < mask_width; x++){
-                const bool mask = obj.mask[y*mask_width + x];
-                uint32_t& pixel = mask_image.pixel(x, y);
-                // if the pixel's mask value is true, set a semi-transparent 45-degree blue strip color
-                // otherwise: fully transparent (alpha = 0)
-                uint32_t color = 0;
-                if (mask){
-                    color = (std::abs(int(x) - int(y)) % 4 <= 1) ? combine_argb(150, 30, 144, 255) : combine_argb(150, 0, 0, 60);
-                }
-                pixel = color;
-            }
-        }
-        // cout << " count " << count << endl;
-        overlay_set.add(std::move(mask_image), mask_float_box);
+    ImagePixelBox mask_box;
+    std::vector<bool> mask;
+    const bool mask_computed = run_sam_to_create_annotation(user_box, {}, {}, mask_box, mask);
+
+    if (mask_computed){
+        ObjectAnnotation annotation;
+        annotation.user_box = user_box;
+        annotation.mask_box = mask_box;
+        annotation.mask = std::move(mask);
+        annotation.label = this->selected_label();;
+        m_selected_obj_idx = m_annotations.size();
+        m_annotations.emplace_back(std::move(annotation));
+        update_rendered_objects();
     }
 }
 
-void LabelImages::compute_mask(VideoOverlaySet& overlay_set){
-    const size_t source_width = source_image_width;
-    const size_t source_height = source_image_height;
-    
-    const int box_x = int(X * source_width + 0.5);
-    const int box_y = int(Y * source_height + 0.5);
-    const int box_width = int(WIDTH * source_width + 0.5);
-    const int box_height = int(HEIGHT * source_height + 0.5);
-    if (box_width == 0 || box_height == 0){
+void LabelImages::update_mask_for_selected_annotation(){
+    if (m_selected_obj_idx >= m_annotations.size()){
         return;
     }
 
-    if (m_image_embedding.size() == 0){
+    auto& anno = m_annotations[m_selected_obj_idx];
+    run_sam_to_create_annotation(anno.user_box, anno.inclusion_points, anno.exclusion_points, anno.mask_box, anno.mask);
+}
+
+bool LabelImages::run_sam_to_create_annotation(
+    const ImagePixelBox& user_box,
+    const std::vector<std::pair<size_t, size_t>>& inclusion_points,
+    const std::vector<std::pair<size_t, size_t>>& exclusion_points,
+    ImagePixelBox& mask_box,
+    std::vector<bool>& mask
+){
+    const size_t source_width = source_image_width;
+    const size_t source_height = source_image_height;
+    if (!m_sam_session || m_image_embedding.size() == 0){
         // no embedding file loaded
-        return;
+        return false;
     }
-    m_sam_session.run(
+    if (user_box.width() == 0 || user_box.height() == 0){
+        return false;
+    }
+    
+    // input_points: input point coordinates (x, y) in pixel units. [p0_x, p0_y, p1_x, p1_y, p2_x, ...].
+    //     Vector size: 2*num_points
+    // input_point_labels: if a point is part of the object to segment, its corresponding label value is 1.
+    //     if a point is outside of the object, value is 0. Vector size: num_points.
+
+    // input_box: if not empty, the two corner points (in pixel units) of a bounding box for the object to segment.
+    //     [p0_x, p0_y, p1_x, p1_y], where p0 is the top-left corner and p1 is the lower right corner.
+    const size_t num_points = inclusion_points.size() + exclusion_points.size();
+    std::vector<int> input_points(2*num_points), input_point_labels(num_points);
+    for(size_t i = 0; i < inclusion_points.size(); i++){
+        input_points[2*i] = static_cast<int>(inclusion_points[i].first);
+        input_points[2*i+1] = static_cast<int>(inclusion_points[i].second);
+        input_point_labels[i] = 1;
+    }
+    for(size_t i = 0; i < exclusion_points.size(); i++){
+        input_points[2*inclusion_points.size() + 2*i] = static_cast<int>(exclusion_points[i].first);
+        input_points[2*inclusion_points.size() + 2*i+1] = static_cast<int>(exclusion_points[i].second);
+        input_point_labels[inclusion_points.size() + i] = 0;
+    }
+
+    m_sam_session->run(
         m_image_embedding,
-        (int)source_height, (int)source_width, {}, {},
-        {box_x, box_y, box_x + box_width, box_y + box_height},
+        (int)source_height, (int)source_width, input_points, input_point_labels,
+        {static_cast<int>(user_box.min_x), static_cast<int>(user_box.min_y), static_cast<int>(user_box.max_x)-1, static_cast<int>(user_box.max_y)-1},
         m_output_boolean_mask
     );
 
@@ -364,118 +296,323 @@ void LabelImages::compute_mask(VideoOverlaySet& overlay_set){
     size_t min_mask_y = INT_MAX, max_mask_y = 0;
     for (size_t y = 0; y < source_height; y++){
         for (size_t x = 0; x < source_width; x++){
-            bool mask = m_output_boolean_mask[y*source_width + x];
-            uint32_t& pixel = m_mask_image.pixel(x, y);
-            // if the pixel's mask value is true, set a semi-transparent 45-degree blue strip color
-            // otherwise: fully transparent (alpha = 0)
-            uint32_t color = 0;
-            if (mask){
-                color = (std::abs(int(x) - int(y)) % 4 <= 1) ? combine_argb(150, 30, 144, 255) : combine_argb(150, 0, 0, 60);
+            if (m_output_boolean_mask[y*source_width + x]){
                 min_mask_x = std::min(x, min_mask_x);
                 max_mask_x = std::max(x, max_mask_x);
                 min_mask_y = std::min(y, min_mask_y);
                 max_mask_y = std::max(y, max_mask_y);
             }
-            pixel = color;
         }
     }
-    if (min_mask_x < INT_MAX && max_mask_x > min_mask_x && min_mask_y < INT_MAX && max_mask_y > min_mask_y){
-        const size_t mask_width = max_mask_x - min_mask_x + 1;
-        const size_t mask_height = max_mask_y - min_mask_y + 1;
-        ImageFloatBox mask_box(
-            min_mask_x/double(source_width), min_mask_y/double(source_height),
-            mask_width/double(source_width), mask_height/double(source_height));
-        const std::string label = FORM_LABEL.slug();
-        
+    if (min_mask_x >= INT_MAX || max_mask_x < min_mask_x || min_mask_y >= INT_MAX || max_mask_y <= min_mask_y){
+        return false;
+    }
+    
+    const size_t mask_width = max_mask_x - min_mask_x + 1;
+    const size_t mask_height = max_mask_y - min_mask_y + 1;
 
-        ObjectAnnotation annotation;
-        annotation.user_box = ImagePixelBox(box_x, box_y, box_x + box_width + 1, box_y + box_height + 1);
-        annotation.mask_box = ImagePixelBox(min_mask_x, min_mask_y, max_mask_x+1, max_mask_y+1);
-        annotation.mask.resize(mask_width * mask_height);
-        for(size_t row = 0; row < mask_height; row++){
-            auto it = m_output_boolean_mask.begin() + (min_mask_y + row) * source_width + min_mask_x;
-            auto it2 = annotation.mask.begin() + row * mask_width;
-            std::copy(it, it + mask_width, it2);
+    mask_box = ImagePixelBox(min_mask_x, min_mask_y, max_mask_x+1, max_mask_y+1);
+    mask.resize(mask_width * mask_height);
+    for(size_t row = 0; row < mask_height; row++){
+        auto it = m_output_boolean_mask.begin() + (min_mask_y + row) * source_width + min_mask_x;
+        auto it2 = mask.begin() + row * mask_width;
+        std::copy(it, it + mask_width, it2);
+    }
+    return true;
+}
+
+void LabelImages::add_segmentation_inclusion_point(double x, double y){
+    if (source_image_width == 0 || source_image_height == 0 || m_annotations.size() == 0
+        || m_selected_obj_idx >= m_annotations.size()){
+        return;
+    }
+    auto& cur_anno = m_annotations[m_selected_obj_idx];
+    if (cur_anno.mask.size() == 0){
+        return;
+    }
+    cur_anno.inclusion_points.push_back(float_to_pixel(x, y));
+    update_mask_for_selected_annotation();
+    update_rendered_objects();
+}
+
+void LabelImages::add_segmentation_exclusion_point(double x, double y){
+    if (source_image_width == 0 || source_image_height == 0 || m_annotations.size() == 0
+        || m_selected_obj_idx >= m_annotations.size()){
+        return;
+    }
+    auto& cur_anno = m_annotations[m_selected_obj_idx];
+    if (cur_anno.mask.size() == 0){
+        return;
+    }
+    cur_anno.exclusion_points.push_back(float_to_pixel(x, y));
+    update_mask_for_selected_annotation();
+    update_rendered_objects();
+}
+
+void LabelImages::remove_closest_point(std::vector<std::pair<size_t, size_t>>& points, double x, double y){
+    if (points.size() == 0){
+        return;
+    }
+
+    std::pair<size_t, size_t> tp = float_to_pixel(x, y);
+
+    size_t min_dist = SIZE_MAX;
+    size_t target_point = 0;
+    for(size_t i = 0; i < points.size(); i++){
+        const auto& ip = points[i];
+        size_t d_x = ip.first > tp.first ? ip.first - tp.first : tp.first - ip.first;
+        size_t d_y = ip.second > tp.second ? ip.second - tp.second : tp.second - ip.second;
+        size_t d2 = d_x * d_x + d_y * d_y;
+        if (d2 < min_dist){
+            min_dist = d2;
+            target_point = i;
         }
+    }
+    points.erase(points.begin() + target_point);
 
-        annotation.label = label;
-        m_last_object_idx = m_annotated_objects.size();
-        m_annotated_objects.emplace_back(std::move(annotation));
+}
+    
+void LabelImages::remove_segmentation_inclusion_point(double x, double y){
+    if (source_image_width == 0 || source_image_height == 0 || m_annotations.size() == 0
+        || m_selected_obj_idx >= m_annotations.size()){
+        return;
+    }
+    auto& points = m_annotations[m_selected_obj_idx].inclusion_points;
+    remove_closest_point(points, x, y);
+    update_mask_for_selected_annotation();
+    update_rendered_objects();
+}
 
-        update_rendered_objects(overlay_set);
+void LabelImages::remove_segmentation_exclusion_point(double x, double y){
+    if (source_image_width == 0 || source_image_height == 0 || m_annotations.size() == 0
+        || m_selected_obj_idx >= m_annotations.size()){
+        return;
+    }
+    auto& points = m_annotations[m_selected_obj_idx].exclusion_points;
+    remove_closest_point(points, x, y);
+    update_mask_for_selected_annotation();
+    update_rendered_objects();
+}
+
+void LabelImages::compute_embeddings_for_folder(const std::string& image_folder_path){
+    std::string embedding_model_path = RESOURCE_PATH() + "ML/sam_embedder_cpu.onnx";
+    std::cout << "Use SAM Embedding model " << embedding_model_path << std::endl;
+    ML::compute_embeddings_for_folder(embedding_model_path, image_folder_path);
+}
+
+void LabelImages::delete_selected_annotation(){
+    if (m_annotations.size() == 0 || m_selected_obj_idx >= m_annotations.size()){
+        return;
+    }
+
+    m_annotations.erase(m_annotations.begin() + m_selected_obj_idx);
+
+    if (m_annotations.size() == 0){ // no more annotations
+        m_selected_obj_idx = 0;
+        update_rendered_objects();
+        return;
+    }
+
+    if (m_selected_obj_idx >= m_annotations.size()){
+        m_selected_obj_idx = m_annotations.size() - 1;
+    } else{
+        // no change to the currently selected index
+    }
+
+    std::string cur_label = m_annotations[m_selected_obj_idx].label;
+    set_selected_label(cur_label);
+    update_rendered_objects();
+}
+
+void LabelImages::change_annotation_selection_by_mouse(double x, double y){
+    // no image or no annotation
+    if (source_image_width == 0 || source_image_height == 0 || m_annotations.size() == 0){
+        return;
+    }
+
+    std::pair<size_t, size_t> p = float_to_pixel(x, y);
+
+    const size_t old_selected_idx = m_selected_obj_idx;
+    
+    size_t closest_distance = SIZE_MAX;
+    std::vector<size_t> zero_distance_annotations;
+    for(size_t i = 0; i < m_annotations.size(); i++){
+        const size_t dx = m_annotations[i].mask_box.distance_to_point_x(p.first);
+        const size_t dy = m_annotations[i].mask_box.distance_to_point_y(p.second);
+        const size_t d2 = dx*dx + dy*dy;
+        if (d2 == 0){
+            zero_distance_annotations.push_back(i);
+        }
+        if (d2 < closest_distance){
+            closest_distance = d2;
+            m_selected_obj_idx = i;
+        }
+    }
+
+    if (zero_distance_annotations.size() > 1){
+        // this point is inside multiple boxes, we then use the closest to the box center to determine
+        closest_distance = SIZE_MAX;
+        for(size_t i : zero_distance_annotations){
+            const size_t dx = m_annotations[i].mask_box.center_distance_to_point_x(p.first);
+            const size_t dy = m_annotations[i].mask_box.center_distance_to_point_y(p.second);
+            const size_t d2 = dx*dx + dy*dy;
+            if (d2 < closest_distance){
+                closest_distance = d2;
+                m_selected_obj_idx = i;
+            }
+        }
+    }
+
+    if (old_selected_idx != m_selected_obj_idx){
+        std::string new_label = m_annotations[m_selected_obj_idx].label;
+        set_selected_label(new_label);
+        update_rendered_objects();
     }
 }
 
-LabelImages_Widget::~LabelImages_Widget(){
-    m_program.FORM_LABEL.remove_listener(*this);
-    delete m_switch_widget;
-}
-LabelImages_Widget::LabelImages_Widget(
-    QWidget& parent,
-    LabelImages& instance,
-    PanelHolder& holder
-)
-    : PanelWidget(parent, instance, holder)
-    , m_program(instance)
-    , m_session(instance.m_switch_control_option, 0, 0)
-    , m_overlay_set(m_session.overlay())
-    , m_drawn_box(*this, m_session.overlay())
-{
-    m_program.FORM_LABEL.add_listener(*this);
-
-    QVBoxLayout* layout = new QVBoxLayout(this);
-    layout->setContentsMargins(0, 0, 0, 0);
-    layout->addWidget(make_header(*this));
-
-    QScrollArea* scroll_outer = new QScrollArea(this);
-    layout->addWidget(scroll_outer);
-    scroll_outer->setWidgetResizable(true);
-
-    QWidget* scroll_inner = new QWidget(scroll_outer);
-    scroll_outer->setWidget(scroll_inner);
-    QVBoxLayout* scroll_layout = new QVBoxLayout(scroll_inner);
-    scroll_layout->setAlignment(Qt::AlignTop);
-
-    m_switch_widget = new NintendoSwitch::SwitchSystemWidget(*this, m_session, 0);
-    scroll_layout->addWidget(m_switch_widget);
-
-    QPushButton* button = new QPushButton("Delete Last Mask", scroll_inner);
-    scroll_layout->addWidget(button);
-    connect(button, &QPushButton::clicked, this, [this](bool){
-        auto& program = this->m_program;
-        if (program.m_annotated_objects.size() > 0){
-            program.m_annotated_objects.pop_back();
-        }
-        if (program.m_annotated_objects.size() > 0){
-            program.m_last_object_idx = program.m_annotated_objects.size() - 1;
-        }
-        program.update_rendered_objects(this->m_overlay_set);
-    });
-
-    m_option_widget = instance.m_options.make_QtWidget(*scroll_inner);
-    scroll_layout->addWidget(&m_option_widget->widget());
-
-    const VideoSourceDescriptor* video_source_desc = instance.m_switch_control_option.m_video.descriptor().get();
-    auto image_source_desc = dynamic_cast<const VideoSourceDescriptor_StillImage*>(video_source_desc);
-    if (image_source_desc != nullptr){
-        const std::string image_path = image_source_desc->path();
-        const size_t source_image_height = image_source_desc->source_image_height();
-        const size_t source_image_width = image_source_desc->source_image_width();
-        m_program.load_image_related_data(image_path, source_image_width, source_image_height);
-        m_program.update_rendered_objects(m_overlay_set);
+void LabelImages::select_prev_annotation(){
+    // no image or no annotation
+    if (source_image_width == 0 || source_image_height == 0 || m_annotations.size() == 0){
+        return;
+    }
+    
+    if (m_selected_obj_idx >= m_annotations.size()){
+        m_selected_obj_idx = m_annotations.size() - 1;
+    } else if (m_selected_obj_idx == 0){
+        m_selected_obj_idx = m_annotations.size() - 1;
+    } else {
+        m_selected_obj_idx--;
     }
 
-    cout << "LabelImages_Widget built" << endl;
+    std::string new_label = m_annotations[m_selected_obj_idx].label;
+    set_selected_label(new_label);
+    update_rendered_objects();
+}
+void LabelImages::select_next_annotation(){
+    // no image or no annotation
+    if (source_image_width == 0 || source_image_height == 0 || m_annotations.size() == 0){
+        return;
+    }
+    
+    if (m_selected_obj_idx >= m_annotations.size()){
+        m_selected_obj_idx = 0;
+    } else if (m_selected_obj_idx + 1 == m_annotations.size()){
+        m_selected_obj_idx = 0;
+    } else {
+        m_selected_obj_idx++;
+    }
+
+    std::string new_label = m_annotations[m_selected_obj_idx].label;
+    set_selected_label(new_label);
+    update_rendered_objects();
 }
 
-void LabelImages_Widget::on_config_value_changed(void* object){
-    if (m_program.m_annotated_objects.size() > 0 && m_program.m_last_object_idx < m_program.m_annotated_objects.size()){
-        std::string& cur_label = m_program.m_annotated_objects[m_program.m_last_object_idx].label;
-        cur_label = m_program.FORM_LABEL.slug();
-        m_program.update_rendered_objects(m_overlay_set);
+void LabelImages::on_config_value_changed(void* object){
+    // cout << "LabelImages::on_config_value_changed" << endl;
+    if (object == &LABEL_TYPE){
+        const size_t value = LABEL_TYPE.current_value();
+        // cout << "LABEL_TYPE value changed to " << value << endl;
+        // label type changed
+        if (value == 0){
+            FORM_LABEL.set_visibility(ConfigOptionState::ENABLED);
+            CUSTOM_SET_LABEL.set_visibility(ConfigOptionState::HIDDEN);
+            MANUAL_LABEL.set_visibility(ConfigOptionState::HIDDEN);
+        } else if (value == 1){
+            FORM_LABEL.set_visibility(ConfigOptionState::HIDDEN);
+            CUSTOM_SET_LABEL.set_visibility(ConfigOptionState::ENABLED);
+            MANUAL_LABEL.set_visibility(ConfigOptionState::HIDDEN);
+        } else { // value == 2
+            FORM_LABEL.set_visibility(ConfigOptionState::HIDDEN);
+            CUSTOM_SET_LABEL.set_visibility(ConfigOptionState::HIDDEN);
+            MANUAL_LABEL.set_visibility(ConfigOptionState::ENABLED);
+        }
+    }
+
+    if (object == &LABEL_TYPE || object == &FORM_LABEL || object == &CUSTOM_SET_LABEL || object == &MANUAL_LABEL){
+        // label changed by user: modify internal annotation data
+        if (m_annotations.size() > 0 && m_selected_obj_idx < m_annotations.size()){
+            std::string& cur_label = m_annotations[m_selected_obj_idx].label;
+            const std::string ui_slug = this->selected_label();
+            if (ui_slug != cur_label){
+                cur_label = ui_slug;
+            }
+        }
+        update_rendered_objects();
     }
 }
 
+std::string LabelImages::selected_label() const{
+    const size_t label_type = LABEL_TYPE.current_value();
+    if (label_type == 0){
+        return FORM_LABEL.slug();
+    }
+    if (label_type == 1){
+        return CUSTOM_SET_LABEL.slug();
+    }
+    return MANUAL_LABEL;
+}
+
+void LabelImages::set_selected_label(const std::string& slug){
+    size_t index = FORM_LABEL.database().search_index_by_slug(slug);
+    if (index != SIZE_MAX){
+        LABEL_TYPE.set_value(0);
+        FORM_LABEL.set_by_index(index);
+        return;
+    }
+    index = CUSTOM_SET_LABEL.database().search_index_by_slug(slug);
+    if (index != SIZE_MAX){
+        LABEL_TYPE.set_value(1);
+        CUSTOM_SET_LABEL.set_by_index(index);
+        return;
+    }
+    LABEL_TYPE.set_value(2);
+    MANUAL_LABEL.set(slug);
+}
+
+void LabelImages::load_custom_label_set(const std::string& json_path){
+    StringSelectDatabase new_database;
+    try{
+        JsonValue value = load_json_file(json_path);
+        const JsonArray& json_array = value.to_array_throw();
+        for(size_t i = 0; i < json_array.size(); i++){
+            const std::string& label_slug = json_array[i].to_string_throw();
+            new_database.add_entry(StringSelectEntry(label_slug, label_slug));
+        }
+    } catch(FileException& e){
+        std::cerr << "Error: File exception " << e.message() << std::endl;
+        QMessageBox box;
+        box.warning(nullptr, "Unable to Load Custom Label Set",
+            QString::fromStdString("Cannot open JSON file " + json_path + " for the custom label set. Probably wrong permission?"));
+        return;
+    } catch(JsonParseException& e){
+        std::cerr << "Error: JSON parse exception " << e.message() << std::endl;
+        QMessageBox box;
+        box.warning(nullptr, "Unable to Load Custom Label Set",
+            QString::fromStdString("Cannot parse JSON file " + json_path + " for the custom label set. Probably wrong file content?"));
+        return;
+    }
+    
+    cout << "Loaded " << new_database.size() << " custom labels from " << json_path << endl;
+    CUSTOM_LABEL_DATABASE = new_database;
+    if (&json_path != &m_custom_label_set_file_path){
+        m_custom_label_set_file_path = json_path;
+    }
+
+    // if the current label is set by MANUAL_LABEL but its value appears in the newly loaded custom set,
+    // the label UI should switch the label to be shown as part of the custom set.
+    // so call the following line to achieve that
+    set_selected_label(selected_label());
+}
+
+std::pair<size_t, size_t> LabelImages::float_to_pixel(double x, double y) const{
+    const size_t px = (size_t)std::max<double>(source_image_width * x + 0.5, 0);
+    const size_t py = (size_t)std::max<double>(source_image_height * y + 0.5, 0);
+    return std::make_pair(px, py);
+}
+
+std::pair<double, double> LabelImages::pixel_to_float(size_t x, size_t y) const{
+    return std::make_pair(x / (double)source_image_width, y / (double)source_image_height);
+}
 
 
 }

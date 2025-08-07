@@ -12,6 +12,7 @@
 #include "CommonFramework/Options/Environment/PerformanceOptions.h"
 #include "CommonFramework/Notifications/ProgramInfo.h"
 #include "CommonFramework/Notifications/ProgramNotifications.h"
+#include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch_SingleSwitchProgramOption.h"
 #include "NintendoSwitch_SingleSwitchProgramSession.h"
 
@@ -78,7 +79,13 @@ void SingleSwitchProgramSession::run_program_instance(SingleSwitchProgramEnviron
     );
 
     ControllerContext<AbstractController> context(scope, env.console.controller());
-    m_scope.store(&context, std::memory_order_release);
+    {
+        std::lock_guard<std::mutex> lg(program_lock());
+        if (current_state() != ProgramState::RUNNING){
+            return;
+        }
+        m_scope.store(&context, std::memory_order_release);
+    }
 
 #ifdef PA_CATCH_PROGRAM_SYSTEM_EXCEPTIONS
     try{
@@ -93,18 +100,21 @@ void SingleSwitchProgramSession::run_program_instance(SingleSwitchProgramEnviron
     }
 #else
     {
-        m_option.instance().program(env, scope);
-        env.console.controller().wait_for_all(&scope);
+        m_option.instance().program(env, context);
+        context.wait_for_all_requests();
     }
 #endif
+
+    std::lock_guard<std::mutex> lg(program_lock());
     m_scope.store(nullptr, std::memory_order_release);
 }
 void SingleSwitchProgramSession::internal_stop_program(){
-    WriteSpinLock lg(m_lock);
-
-    CancellableScope* scope = m_scope.load(std::memory_order_acquire);
-    if (scope != nullptr){
-        scope->cancel(std::make_exception_ptr(ProgramCancelledException()));
+    {
+        std::lock_guard<std::mutex> lg(program_lock());
+        CancellableScope* scope = m_scope.load(std::memory_order_acquire);
+        if (scope != nullptr){
+            scope->cancel(std::make_exception_ptr(ProgramCancelledException()));
+        }
     }
 
     //  Wait for program thread to finish.
@@ -113,7 +123,7 @@ void SingleSwitchProgramSession::internal_stop_program(){
     }
 }
 void SingleSwitchProgramSession::internal_run_program(){
-    GlobalSettings::instance().PERFORMANCE->REALTIME_THREAD_PRIORITY.set_on_this_thread();
+    GlobalSettings::instance().PERFORMANCE->REALTIME_THREAD_PRIORITY.set_on_this_thread(logger());
     m_option.options().reset_state();
 
     if (!m_system.controller_session().ready()){
@@ -143,7 +153,13 @@ void SingleSwitchProgramSession::internal_run_program(){
         m_system.audio(),
         m_system.stream_history()
     );
-    env.console.state().set_console_type_user(m_system.console_type());
+
+    if (ConsoleSettings::instance().TRUST_USER_CONSOLE_SELECTION){
+        env.console.state().set_console_type(m_system.logger(), m_system.console_type());
+    }else{
+        env.console.state().set_console_type_user(m_system.console_type());
+    }
+
 
     try{
         logger().log("<b>Starting Program: " + identifier() + "</b>");

@@ -45,35 +45,33 @@ std::string AutoStory_Segment_04::end_text() const{
 void AutoStory_Segment_04::run_segment(
     SingleSwitchProgramEnvironment& env,
     ProControllerContext& context,
-    AutoStoryOptions options
+    AutoStoryOptions options,
+    AutoStoryStats& stats
 ) const{
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
 
+    stats.m_segment++;
+    env.update_stats();
     context.wait_for_all_requests();
     env.console.log("Start Segment 04: Rescue Legendary", COLOR_ORANGE);
-    env.console.overlay().add_log("Start Segment 04: Rescue Legendary", COLOR_ORANGE);
 
-    checkpoint_08(env, context, options.notif_status_update);
+    checkpoint_08(env, context, options.notif_status_update, stats);
 
     context.wait_for_all_requests();
     env.console.log("End Segment 04: Rescue Legendary", COLOR_GREEN);
-    env.console.overlay().add_log("End Segment 04: Rescue Legendary", COLOR_GREEN);
-    stats.m_segment++;
-    env.update_stats();
 
 }
 
 void checkpoint_08(
     SingleSwitchProgramEnvironment& env, 
     ProControllerContext& context, 
-    EventNotificationOption& notif_status_update
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats
 ){
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
     bool first_attempt = true;
     while (true){
     try{
         if (first_attempt){
-            checkpoint_save(env, context, notif_status_update);
+            checkpoint_save(env, context, notif_status_update, stats);
             first_attempt = false;
         }         
         context.wait_for_all_requests();
@@ -195,7 +193,7 @@ void checkpoint_08(
         mash_button_till_overworld(env.console, context, BUTTON_A);
 
         break;
-    }catch(...){
+    }catch(OperationFailedException&){
         context.wait_for_all_requests();
         env.console.log("Resetting from checkpoint.");
         reset_game(env.program_info(), env.console, context);

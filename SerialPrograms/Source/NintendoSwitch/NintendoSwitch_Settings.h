@@ -42,18 +42,22 @@ public:
 
     ControllerSettingsTable CONTROLLER_SETTINGS;
 
+    BooleanCheckBoxOption TRUST_USER_CONSOLE_SELECTION;
     MillisecondsOption SETTINGS_TO_HOME_DELAY0;
     BooleanCheckBoxOption START_GAME_REQUIRES_INTERNET;
     MillisecondsOption START_GAME_INTERNET_CHECK_DELAY0;
     BooleanCheckBoxOption TOLERATE_SYSTEM_UPDATE_MENU_FAST;
     BooleanCheckBoxOption TOLERATE_SYSTEM_UPDATE_MENU_SLOW;
 
+    BooleanCheckBoxOption ENABLE_SBB3_PINGS;
+    BooleanCheckBoxOption ENABLE_SBB3_LOGGING;
+
     TimingOptions TIMING_OPTIONS;
 
-    DigitEntryTimingsOption     SWITCH1_DIGIT_ENTRY;
-    KeyboardEntryTimingsOption  SWITCH1_KEYBOARD_ENTRY;
-    DigitEntryTimingsOption     SWITCH2_DIGIT_ENTRY;
-    KeyboardEntryTimingsOption  SWITCH2_KEYBOARD_ENTRY;
+    DigitEntryTimingsOption     SWITCH1_DIGIT_ENTRY0;
+    KeyboardEntryTimingsOption  SWITCH1_KEYBOARD_ENTRY0;
+    DigitEntryTimingsOption     SWITCH2_DIGIT_ENTRY0;
+    KeyboardEntryTimingsOption  SWITCH2_KEYBOARD_ENTRY0;
 
     SectionDividerOption KEYBOARD_SECTION;
     KeyboardMappingOption KEYBOARD_MAPPINGS;

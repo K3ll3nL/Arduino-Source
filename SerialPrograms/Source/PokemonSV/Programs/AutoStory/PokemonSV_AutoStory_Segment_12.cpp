@@ -32,7 +32,7 @@ namespace PokemonSV{
 
 
 std::string AutoStory_Segment_12::name() const{
-    return "10.3: Cortondo Gym - Gym battle";
+    return "12: Cortondo Gym (Bug): Gym battle";
 }
 
 std::string AutoStory_Segment_12::start_text() const{
@@ -47,19 +47,20 @@ std::string AutoStory_Segment_12::end_text() const{
 void AutoStory_Segment_12::run_segment(
     SingleSwitchProgramEnvironment& env,
     ProControllerContext& context,
-    AutoStoryOptions options
+    AutoStoryOptions options,
+    AutoStoryStats& stats
 ) const{
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
+    
 
-    context.wait_for_all_requests();
-    env.console.overlay().add_log("Start Segment 10.3: Cortondo Gym - Gym battle", COLOR_ORANGE);
-
-    checkpoint_28(env, context, options.notif_status_update);
-
-    context.wait_for_all_requests();
-    env.console.log("End Segment 10.3: Cortondo Gym - Gym battle", COLOR_GREEN);
     stats.m_segment++;
     env.update_stats();
+    context.wait_for_all_requests();
+    env.console.log("Start Segment " + name(), COLOR_ORANGE);
+
+    checkpoint_28(env, context, options.notif_status_update, stats);
+
+    context.wait_for_all_requests();
+    env.console.log("End Segment " + name(), COLOR_GREEN);
 
 }
 
@@ -67,14 +68,15 @@ void AutoStory_Segment_12::run_segment(
 void checkpoint_28(
     SingleSwitchProgramEnvironment& env, 
     ProControllerContext& context, 
-    EventNotificationOption& notif_status_update
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats
 ){
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
+    
     bool first_attempt = true;
     while (true){
     try{
         if (first_attempt){
-            checkpoint_save(env, context, notif_status_update);
+            checkpoint_save(env, context, notif_status_update, stats);
             first_attempt = false;
         }         
         context.wait_for_all_requests();
@@ -120,7 +122,8 @@ void checkpoint_28(
         clear_dialog(env.console, context, ClearDialogMode::STOP_BATTLE, 60, {CallbackEnum::BATTLE, CallbackEnum::PROMPT_DIALOG, CallbackEnum::DIALOG_ARROW});
 
         // battle Katy
-        run_battle_press_A(env.console, context, BattleStopCondition::STOP_DIALOG, {CallbackEnum::GRADIENT_ARROW}, true);
+        env.console.log("Battle Grass Gym.");
+        run_trainer_battle_press_A(env.console, context, BattleStopCondition::STOP_DIALOG);
         mash_button_till_overworld(env.console, context, BUTTON_A, 360);
 
         // leave gym building
@@ -135,7 +138,7 @@ void checkpoint_28(
         fly_to_overlapping_flypoint(env.program_info(), env.console, context);
        
         break;
-    }catch (...){
+    }catch(OperationFailedException&){
         context.wait_for_all_requests();
         env.console.log("Resetting from checkpoint.");
         reset_game(env.program_info(), env.console, context);

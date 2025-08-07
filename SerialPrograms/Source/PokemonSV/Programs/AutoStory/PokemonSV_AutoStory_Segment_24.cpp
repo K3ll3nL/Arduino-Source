@@ -4,9 +4,13 @@
  *
  */
 
-#include "CommonFramework/VideoPipeline/VideoOverlay.h"
+#include "CommonFramework/Exceptions/OperationFailedException.h"
+#include "CommonTools/Async/InferenceRoutines.h"
+#include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "PokemonSV/Programs/PokemonSV_GameEntry.h"
 #include "PokemonSV/Programs/PokemonSV_SaveGame.h"
+#include "PokemonSV/Programs/PokemonSV_MenuNavigation.h"
+#include "PokemonSV/Programs/PokemonSV_WorldNavigation.h"
 #include "PokemonSV_AutoStoryTools.h"
 #include "PokemonSV_AutoStory_Segment_24.h"
 
@@ -38,19 +42,20 @@ std::string AutoStory_Segment_24::end_text() const{
 void AutoStory_Segment_24::run_segment(
     SingleSwitchProgramEnvironment& env,
     ProControllerContext& context,
-    AutoStoryOptions options
+    AutoStoryOptions options,
+    AutoStoryStats& stats
 ) const{
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
+    
 
-    context.wait_for_all_requests();
-    env.console.overlay().add_log("Start Segment ", COLOR_ORANGE);
-
-    // checkpoint_(env, context, options.notif_status_update);
-
-    context.wait_for_all_requests();
-    env.console.log("End Segment ", COLOR_GREEN);
     stats.m_segment++;
     env.update_stats();
+    context.wait_for_all_requests();
+    env.console.log("Start Segment " + name(), COLOR_ORANGE);
+
+    // checkpoint_(env, context, options.notif_status_update, stats);
+
+    context.wait_for_all_requests();
+    env.console.log("End Segment " + name(), COLOR_GREEN);
 
 }
 

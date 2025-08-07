@@ -1,6 +1,6 @@
 /*  Autostory
  *
- *  From: https://github.com/PokemonAutomation/
+ *  From: https://github.com/PokemonAutomation/Arduino-Source
  *
  */
 
@@ -21,33 +21,37 @@ public:
     virtual void run_segment(
         SingleSwitchProgramEnvironment& env, 
         ProControllerContext& context,
-        AutoStoryOptions options
+        AutoStoryOptions options,
+        AutoStoryStats& stats
     ) const override;
 };
 
 
 // start: At East Province (Area One) Pokecenter.
-// end: 
+// end: At gate of Team Star (Fire) base.
 void checkpoint_47(
     SingleSwitchProgramEnvironment& env,
     ProControllerContext& context,
-    EventNotificationOption& notif_status_update
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats
 );
 
-// start: 
-// end: 
+// start: At gate of Team Star (Fire) base.
+// end: Beat Team Star (Fire)
 void checkpoint_48(
     SingleSwitchProgramEnvironment& env,
     ProControllerContext& context,
-    EventNotificationOption& notif_status_update
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats
 );
 
-// start: 
-// end: 
+// start: Beat Team Star (Fire)
+// end: At East Province (Area Two) Pokecenter.
 void checkpoint_49(
     SingleSwitchProgramEnvironment& env,
     ProControllerContext& context,
-    EventNotificationOption& notif_status_update
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats
 );
 
 

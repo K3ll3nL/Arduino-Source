@@ -31,7 +31,6 @@
 #include "Programs/Farming/PokemonSV_FlyingTrialFarmer.h"
 #include "Programs/Farming/PokemonSV_BBQSoloFarmer.h"
 #include "Programs/Farming/PokemonSV_MaterialFarmer.h"
-#include "Programs/ItemPrinter/PokemonSV_AutoItemPrinter.h"
 #include "Programs/ItemPrinter/PokemonSV_ItemPrinterRNG.h"
 
 #include "Programs/Eggs/PokemonSV_EggFetcher.h"
@@ -54,13 +53,16 @@
 #include "Programs/ShinyHunting/PokemonSV_ShinyHunt-Scatterbug.h"
 
 #include "Programs/AutoStory/PokemonSV_AutoStory.h"
+#include "Programs/Farming/PokemonSV_ClaimMysteryGift.h"
 
 #include "Programs/Glitches/PokemonSV_WildItemFarmer.h"
 #include "Programs/Glitches/PokemonSV_RideCloner-1.0.1.h"
 #include "Programs/Glitches/PokemonSV_CloneItems-1.0.1.h"
 
-#include "Programs/TestPrograms/PokemonSV_SoundListener.h"
+//  Deprecated
+#include "Programs/ItemPrinter/PokemonSV_AutoItemPrinter.h"
 
+#include "Programs/TestPrograms/PokemonSV_SoundListener.h"
 #include "Programs/FormHunting/PokemonSV_ThreeSegmentDudunsparceFinder.h"
 
 #ifdef PA_OFFICIAL
@@ -88,7 +90,6 @@ std::vector<PanelEntry> PanelListFactory::make_panels() const{
     ret.emplace_back(make_single_switch_program<ClothingBuyer_Descriptor, ClothingBuyer>());
     ret.emplace_back(make_single_switch_program<AutonomousBallThrower_Descriptor, AutonomousBallThrower>());
     ret.emplace_back(make_single_switch_program<SizeChecker_Descriptor, SizeChecker>());
-    ret.emplace_back(make_single_switch_program<AutoItemPrinter_Descriptor, AutoItemPrinter>());
 
 //    ret.emplace_back("---- Trading ----");
     ret.emplace_back(make_multi_switch_program<SelfBoxTrade_Descriptor, SelfBoxTrade>());
@@ -146,6 +147,10 @@ std::vector<PanelEntry> PanelListFactory::make_panels() const{
 
     ret.emplace_back("---- Public Betas ----");
     ret.emplace_back(make_single_switch_program<AutoStory_Descriptor, AutoStory>());
+    ret.emplace_back(make_single_switch_program<ClaimMysteryGift_Descriptor, ClaimMysteryGift>());
+
+    ret.emplace_back("---- Deprecated Programs ----");
+    ret.emplace_back(make_single_switch_program<AutoItemPrinter_Descriptor, AutoItemPrinter>());
 
     if (PreloadSettings::instance().DEVELOPER_MODE || IS_BETA_VERSION){
         ret.emplace_back("---- Untested/Beta/WIP ----");

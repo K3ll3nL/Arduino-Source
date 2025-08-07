@@ -49,23 +49,21 @@ std::string AutoStory_Segment_01::end_text() const{
 void AutoStory_Segment_01::run_segment(
     SingleSwitchProgramEnvironment& env,
     ProControllerContext& context,
-    AutoStoryOptions options
+    AutoStoryOptions options,
+    AutoStoryStats& stats
 ) const{
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
 
+    stats.m_segment++;
+    env.update_stats();
     context.wait_for_all_requests();
     env.console.log("Start Segment 01: Pick Starter", COLOR_ORANGE);
-    env.console.overlay().add_log("Start Segment 01: Pick Starter", COLOR_ORANGE);
 
-    checkpoint_01(env, context, options.notif_status_update, options.language);
-    checkpoint_02(env, context, options.notif_status_update);
-    checkpoint_03(env, context, options.notif_status_update, options.language, options.starter_choice);
+    checkpoint_01(env, context, options.notif_status_update, stats, options.language);
+    checkpoint_02(env, context, options.notif_status_update, stats);
+    checkpoint_03(env, context, options.notif_status_update, stats, options.language, options.starter_choice);
 
     context.wait_for_all_requests();
-    env.console.log("End Segment 02: Pick Starter", COLOR_GREEN);
-    env.console.overlay().add_log("End Segment 02: Pick Starter", COLOR_GREEN);
-    stats.m_segment++;
-    env.update_stats();    
+    env.console.log("End Segment 01: Pick Starter", COLOR_GREEN);
 
 }
 
@@ -73,10 +71,10 @@ void AutoStory_Segment_01::run_segment(
 void checkpoint_01(
     SingleSwitchProgramEnvironment& env, 
     ProControllerContext& context, 
-    EventNotificationOption& notif_status_update, 
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats, 
     Language language
 ){
-AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
     bool first_attempt = true;
     while (true){
     try{
@@ -95,7 +93,7 @@ AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
         context.wait_for_all_requests();
 
         break;  
-    }catch(...){
+    }catch(OperationFailedException&){
         // (void)e;
         first_attempt = false;
         context.wait_for_all_requests();
@@ -110,9 +108,9 @@ AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
 void checkpoint_02(
     SingleSwitchProgramEnvironment& env, 
     ProControllerContext& context, 
-    EventNotificationOption& notif_status_update
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats
 ){
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
     bool first_attempt = true;
     while (true){
     try{
@@ -187,7 +185,7 @@ void checkpoint_02(
         leave_phone_to_overworld(env.program_info(), env.console, context);
 
         break;  
-    }catch(...){
+    }catch(OperationFailedException&){
         context.wait_for_all_requests();
         env.console.log("Resetting from checkpoint.");
         reset_game(env.program_info(), env.console, context);
@@ -201,15 +199,15 @@ void checkpoint_03(
     SingleSwitchProgramEnvironment& env, 
     ProControllerContext& context, 
     EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats,
     Language language,
     StarterChoice starter_choice
 ){
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
     bool first_attempt = true;
     while (true){   
     try{
         if (first_attempt){
-            checkpoint_save(env, context, notif_status_update);
+            checkpoint_save(env, context, notif_status_update, stats);
             first_attempt = false;
         }
         
@@ -280,7 +278,7 @@ void checkpoint_03(
         leave_box_system_to_overworld(env.program_info(), env.console, context);
 
         break;
-    }catch(...){
+    }catch(OperationFailedException&){
         context.wait_for_all_requests();
         env.console.log("Resetting from checkpoint.");
         reset_game(env.program_info(), env.console, context);

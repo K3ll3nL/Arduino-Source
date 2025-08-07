@@ -21,7 +21,7 @@ struct ProgramEnvironmentData{
     const ProgramInfo& m_program_info;
 
     AsyncDispatcher m_realtime_dispatcher;
-    AsyncDispatcher m_inference_dispatcher;
+    AsyncDispatcher m_realtime_inference_dispatcher;
 
     ProgramEnvironmentData(
         const ProgramInfo& program_info
@@ -29,13 +29,13 @@ struct ProgramEnvironmentData{
         : m_program_info(program_info)
         , m_realtime_dispatcher(
             [](){
-                GlobalSettings::instance().PERFORMANCE->REALTIME_THREAD_PRIORITY.set_on_this_thread();
+                GlobalSettings::instance().PERFORMANCE->REALTIME_THREAD_PRIORITY.set_on_this_thread(global_logger_tagged());
             },
             0
         )
-        , m_inference_dispatcher(
+        , m_realtime_inference_dispatcher(
             [](){
-                GlobalSettings::instance().PERFORMANCE->INFERENCE_PRIORITY.set_on_this_thread();
+                GlobalSettings::instance().PERFORMANCE->INFERENCE_PIVOT_PRIORITY.set_on_this_thread(global_logger_tagged());
             },
             0
         )
@@ -66,8 +66,8 @@ const ProgramInfo& ProgramEnvironment::program_info() const{
 AsyncDispatcher& ProgramEnvironment::realtime_dispatcher(){
     return m_data->m_realtime_dispatcher;
 }
-AsyncDispatcher& ProgramEnvironment::inference_dispatcher(){
-    return m_data->m_inference_dispatcher;
+AsyncDispatcher& ProgramEnvironment::realtime_inference_dispatcher(){
+    return m_data->m_realtime_inference_dispatcher;
 }
 
 

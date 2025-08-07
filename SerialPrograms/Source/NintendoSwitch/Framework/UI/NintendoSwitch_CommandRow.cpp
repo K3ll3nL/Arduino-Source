@@ -77,7 +77,9 @@ CommandRow::CommandRow(
     m_overlay_images = new QCheckBox("Masks", this);
     m_overlay_images->setChecked(session.enabled_images());
     row->addWidget(m_overlay_images);
-
+    if (!PreloadSettings::instance().DEVELOPER_MODE){
+        m_overlay_images->setVisible(false);
+    }
 
     m_overlay_log = new QCheckBox("Log", this);
     m_overlay_log->setChecked(session.enabled_log());
@@ -131,10 +133,12 @@ CommandRow::CommandRow(
         m_overlay_text, &QCheckBox::checkStateChanged,
         this, [this](Qt::CheckState state){ m_session.set_enabled_text(state == Qt::Checked); }
     );
-    connect(
-        m_overlay_images, &QCheckBox::checkStateChanged,
-        this, [this](Qt::CheckState state){ m_session.set_enabled_images(state == Qt::Checked); }
-    );
+    if (PreloadSettings::instance().DEVELOPER_MODE){
+        connect(
+            m_overlay_images, &QCheckBox::checkStateChanged,
+            this, [this](Qt::CheckState state){ m_session.set_enabled_images(state == Qt::Checked); }
+        );
+    }
     connect(
         m_overlay_log, &QCheckBox::checkStateChanged,
         this, [this](Qt::CheckState state){ m_session.set_enabled_log(state == Qt::Checked); }

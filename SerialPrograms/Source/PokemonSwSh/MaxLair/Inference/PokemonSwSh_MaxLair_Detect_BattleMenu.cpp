@@ -263,7 +263,7 @@ std::set<std::string> BattleMenuReader::read_opponent_in_summary(Logger& logger,
     PokemonType type0, type1;
     {
         ImageViewRGB32 types = extract_box_reference(screen, m_summary_opponent_types);
-        std::multimap<double, std::pair<PokemonType, ImagePixelBox>> candidates = find_symbols(types, 0.2);
+        std::multimap<double, std::pair<PokemonType, ImagePixelBox>> candidates = find_type_symbols(screen, types, 0.2);
 
         std::string type_str = "Type Read Result:\n";
         for (const auto& item : candidates){
@@ -333,12 +333,14 @@ std::set<std::string> BattleMenuReader::read_opponent_in_summary(Logger& logger,
         }
     }
 
-//    for (const auto& slug : allowed_slugs){
-//        cout << "allowed_slugs = " << slug << endl;
-//    }
-//    for (const auto& slug : name_slugs){
-//        cout << "name_slugs = " << slug << endl;
-//    }
+#if 0
+    for (const auto& slug : allowed_slugs){
+        cout << "allowed_slugs = " << slug << endl;
+    }
+    for (const auto& slug : name_slugs){
+        cout << "name_slugs = " << slug << endl;
+    }
+#endif
 
     if (common_slugs.size() == 1){
         logger.log("Disambiguation succeeded: " + *common_slugs.begin(), COLOR_BLUE);

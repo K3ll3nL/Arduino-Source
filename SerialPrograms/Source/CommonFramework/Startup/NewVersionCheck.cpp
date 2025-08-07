@@ -144,7 +144,10 @@ void show_update_box(
 ){
     QMessageBox box;
     QPushButton* ok = box.addButton(QMessageBox::Ok);
-    QPushButton* skip = box.addButton("Skip this version.", QMessageBox::NoRole);
+    QPushButton* skip = box.addButton("Skip this Version", QMessageBox::NoRole);
+    box.setEscapeButton(ok);
+//    cout << "ok = " << ok << endl;
+//    cout << "skip = " << skip << endl;
 
     box.setTextFormat(Qt::RichText);
     std::string text = header + "<br>";
@@ -160,6 +163,7 @@ void show_update_box(
     box.exec();
 
     QAbstractButton* clicked = box.clickedButton();
+//    cout << "clicked = " << clicked << endl;
     if (clicked == ok){
         return;
     }

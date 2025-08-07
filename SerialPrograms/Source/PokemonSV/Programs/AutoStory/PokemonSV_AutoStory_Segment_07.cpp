@@ -4,6 +4,7 @@
  *
  */
 
+#include "CommonFramework/Exceptions/OperationFailedException.h"
 #include "CommonFramework/VideoPipeline/VideoOverlay.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "PokemonSV/Inference/Overworld/PokemonSV_DirectionDetector.h"
@@ -42,48 +43,38 @@ std::string AutoStory_Segment_07::end_text() const{
 void AutoStory_Segment_07::run_segment(
     SingleSwitchProgramEnvironment& env,
     ProControllerContext& context,
-    AutoStoryOptions options
+    AutoStoryOptions options,
+    AutoStoryStats& stats
 ) const{
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
+    
 
+    stats.m_segment++;
+    env.update_stats();
     context.wait_for_all_requests();
     env.console.log("Start Segment 07: Go to Mesagoza South", COLOR_ORANGE);
-    env.console.overlay().add_log("Start Segment 07: Go to Mesagoza South", COLOR_ORANGE);
 
-    checkpoint_12(env, context, options.notif_status_update);
-
-    // // Mystery Gift, delete later
-    // enter_menu_from_overworld(env.program_info(), env.console, context, 2);
-    // pbf_press_button(context, BUTTON_A, 20, 4 * TICKS_PER_SECOND);
-    // pbf_press_dpad(context, DPAD_UP, 20, 105);
-    // pbf_press_button(context, BUTTON_A, 20, 4 * TICKS_PER_SECOND);
-    // pbf_press_dpad(context, DPAD_DOWN, 20, 105);
-    // pbf_press_button(context, BUTTON_A, 20, 4 * TICKS_PER_SECOND);
-    // pbf_press_button(context, BUTTON_A, 20, 10 * TICKS_PER_SECOND);
-    // clear_dialog(env.console, context, ClearDialogMode::STOP_TIMEOUT, 10);
+    checkpoint_12(env, context, options.notif_status_update, stats);
 
     context.wait_for_all_requests();
     env.console.log("End Segment 07: Go to Mesagoza South", COLOR_GREEN);
-    env.console.overlay().add_log("End Segment 07: Go to Mesagoza South", COLOR_GREEN);
-    stats.m_segment++;
-    env.update_stats();
 
 }
 
 void checkpoint_12(
     SingleSwitchProgramEnvironment& env, 
     ProControllerContext& context, 
-    EventNotificationOption& notif_status_update
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats
 ){
     // reset rate: ~25%. 12 resets out of 52. 
     // resets due to: getting attacked by wild pokemon, either from behind, 
     // or when lead pokemon not strong enough to clear them with Let's go
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
+    
     bool first_attempt = true;
     while (true){
         try{
             if (first_attempt){
-                checkpoint_save(env, context, notif_status_update);
+                checkpoint_save(env, context, notif_status_update, stats);
                 first_attempt = false;
             }
 
@@ -122,7 +113,7 @@ void checkpoint_12(
             env.console.log("Reached Mesagoza (South) Pokecenter.");
 
             break;
-        }catch(...){
+        }catch(OperationFailedException&){
             context.wait_for_all_requests();
             env.console.log("Resetting from checkpoint.");
             reset_game(env.program_info(), env.console, context);

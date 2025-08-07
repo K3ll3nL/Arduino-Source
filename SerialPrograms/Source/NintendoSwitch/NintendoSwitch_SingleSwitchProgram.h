@@ -44,7 +44,7 @@ private:
         : ProgramEnvironment(program_info, session, current_stats, historical_stats)
         , console(0, std::forward<Args>(args)...)
     {
-        console.initialize_inference_threads(scope, inference_dispatcher());
+        console.initialize_inference_threads(scope, realtime_inference_dispatcher());
     }
 };
 
@@ -59,13 +59,15 @@ public:
         FeedbackType feedback,
         AllowCommandsWhenRunning allow_commands_while_running,
         ControllerFeatures required_features,
-        FasterIfTickPrecise faster_if_tick_precise = FasterIfTickPrecise::NOT_FASTER
+        FasterIfTickPrecise faster_if_tick_precise = FasterIfTickPrecise::NOT_FASTER,
+        bool deprecated = false
     );
 
     FeedbackType feedback() const{ return m_feedback; }
     const ControllerFeatures& required_features() const{ return m_required_features; }
     FasterIfTickPrecise faster_if_tick_precise() const{ return m_faster_if_tick_precise; }
     bool allow_commands_while_running() const{ return m_allow_commands_while_running; }
+    bool deprecated() const{ return m_deprecated; }
 
     virtual std::unique_ptr<PanelInstance> make_panel() const override;
     virtual std::unique_ptr<SingleSwitchProgramInstance> make_instance() const = 0;
@@ -75,6 +77,7 @@ private:
     const ControllerFeatures m_required_features;
     const FasterIfTickPrecise m_faster_if_tick_precise;
     const bool m_allow_commands_while_running;
+    const bool m_deprecated;
 };
 
 

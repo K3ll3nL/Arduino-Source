@@ -14,7 +14,6 @@
 
 namespace PokemonAutomation{
     class Logger;
-    class AsyncDispatcher;
 namespace NintendoSwitch{
 namespace PokemonSV{
 
@@ -31,19 +30,18 @@ public:
     void make_overlays(VideoOverlaySet& items) const;
 
     std::array<std::string, 10> read_prizes(
-        Logger& logger, AsyncDispatcher& dispatcher,
-        const ImageViewRGB32& screen
+        Logger& logger, const ImageViewRGB32& screen
     ) const;
 
     std::array<int16_t, 10> read_quantity(
-        Logger& logger, AsyncDispatcher& dispatcher,
-        const ImageViewRGB32& screen
+        Logger& logger, const ImageViewRGB32& screen
     ) const;
 
     int16_t read_number(
         Logger& logger,
         const ImageViewRGB32& screen, 
-        const ImageFloatBox& box
+        const ImageFloatBox& box,
+        int8_t line_index = -1
     ) const;
 
     double average_sum_filtered(const ImageViewRGB32& screen, const ImageFloatBox& box) const;

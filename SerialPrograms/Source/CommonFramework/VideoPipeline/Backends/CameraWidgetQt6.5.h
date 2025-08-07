@@ -10,8 +10,8 @@
 #include <QtGlobal>
 #if QT_VERSION_MAJOR == 6
 
-#include <set>
-#include <mutex>
+//#include <set>
+//#include <mutex>
 #include <QCameraDevice>
 #include <QMediaCaptureSession>
 #include <QVideoFrame>
@@ -20,10 +20,12 @@
 #include <QGraphicsView>
 #include <QGraphicsVideoItem>
 #include <QKeyEvent>
-#include "Common/Cpp/Concurrency/SpinLock.h"
 #include "CommonFramework/Tools/StatAccumulator.h"
 #include "CommonFramework/VideoPipeline/VideoSource.h"
 #include "CommonFramework/VideoPipeline/CameraInfo.h"
+#include "QCameraThread.h"
+#include "QVideoFrameCache.h"
+#include "SnapshotManager.h"
 #include "CameraImplementations.h"
 
 //#include <iostream>
@@ -87,6 +89,9 @@ public:
 };
 
 
+
+
+
 class CameraVideoSource : public QObject, public VideoSource{
 public:
     virtual ~CameraVideoSource();
@@ -103,7 +108,12 @@ public:
         return m_resolutions;
     }
 
-    virtual VideoSnapshot snapshot() override;
+    virtual VideoSnapshot snapshot_latest_blocking() override{
+        return m_snapshot_manager.snapshot_latest_blocking();
+    }
+    virtual VideoSnapshot snapshot_recent_nonblocking(WallClock min_time) override{
+        return m_snapshot_manager.snapshot_recent_nonblocking(min_time);
+    }
 
     virtual QWidget* make_display_QtWidget(QWidget* parent) override;
 
@@ -117,35 +127,16 @@ private:
     Logger& m_logger;
     Resolution m_resolution;
 
-    std::unique_ptr<QCamera> m_camera;
+    std::unique_ptr<QCameraThread> m_camera;
     std::unique_ptr<QVideoSink> m_video_sink;
     std::unique_ptr<QMediaCaptureSession> m_capture_session;
 
     std::vector<Resolution> m_resolutions;
 
-private:
-    //  Last Cached Image: All accesses must be under this lock.
-
-    mutable std::mutex m_cache_lock;
-
-    QImage m_last_image;
-    WallClock m_last_image_timestamp;
-    uint64_t m_last_image_seqnum = 0;
-
-    PeriodicStatsReporterI32 m_stats_conversion;
 
 private:
-    //  Last Frame: All accesses must be under this lock.
-    //  These will be updated very rapidly by the main thread.
-    //  Holding the frame lock will block the main thread.
-    //  So accessors should minimize the time they hold the frame lock.
-
-    mutable SpinLock m_frame_lock;
-
-    QVideoFrame m_last_frame;
-    WallClock m_last_frame_timestamp;
-    std::atomic<uint64_t> m_last_frame_seqnum;
-
+    QVideoFrameCache m_last_frame;
+    SnapshotManager m_snapshot_manager;
 };
 
 

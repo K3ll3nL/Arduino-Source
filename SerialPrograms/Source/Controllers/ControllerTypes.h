@@ -30,10 +30,12 @@ enum class ControllerInterface{
 enum class ControllerType{
     None,
 
-    //  There's a difference between the generic 3rd party wired controllers and
-    //  a pro controller connected over USB. If/when we support the latter, we
-    //  will need to split this controller type.
-    NintendoSwitch_WiredProController,
+    //  This is for all the generic wired controllers.
+    //  These do not support gyro or rumble.
+    NintendoSwitch_WiredController,
+
+    //  The official Pro Controller, connected over USB.
+//    NintendoSwitch_WiredProController,
 
     NintendoSwitch_WirelessProController,
     NintendoSwitch_LeftJoycon,
@@ -43,7 +45,6 @@ enum class ControllerType{
 
 enum class ControllerFeature{
     TickPrecise,
-    TimingFlexibleMilliseconds,
 
     //  If we add support gyro or rumble, we will need to split this feature
     //  since the Pokken controller doesn't support those.
@@ -60,8 +61,8 @@ enum class ControllerFeature{
 
 enum class ControllerPerformanceClass{
     Unknown,
-    SerialPABotBase_Wired_125Hz,
-    SerialPABotBase_Wireless_ESP32,
+    SerialPABotBase_Wired,
+    SerialPABotBase_Wireless,
     SysbotBase,
 };
 

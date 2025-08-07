@@ -210,7 +210,7 @@ void leave_picnic(const ProgramInfo& info, VideoStream& stream, ProControllerCon
     if (ret < 0){
         OperationFailedException::fire(
             ErrorReport::SEND_ERROR_REPORT,
-            "leave_picnic(): Failed to detecxt overworld after 20 seconds.",
+            "leave_picnic(): Failed to detect overworld after 20 seconds.",
             stream
         );
     }
@@ -264,8 +264,8 @@ bool detect_closest_pokecenter_and_move_map_cursor_there(
     }
 
     // Convert the vector from center to the PokeCenter icon into a left joystick movement
-    const double dif_x = closest_icon_x - center_x;
-    const double dif_y = closest_icon_y - center_y;
+    const double dif_x = (closest_icon_x - center_x) * 1920/ screen_width;
+    const double dif_y = (closest_icon_y - center_y) * 1080/ screen_height;
     const double magnitude = std::max(std::sqrt(max_dist), 1.0);
     const double push_x = dif_x * 64 / magnitude, push_y = dif_y * 64 / magnitude;
 
@@ -426,7 +426,7 @@ void jump_off_wall_until_map_open(const ProgramInfo& info, VideoStream& stream, 
     }
 }
 
-// Open map and teleport back to town pokecenter to reset the hunting path.
+// Open map and teleport back to town pokecenter
 void reset_to_pokecenter(const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
     while (true){
         try {
@@ -434,7 +434,7 @@ void reset_to_pokecenter(const ProgramInfo& info, VideoStream& stream, ProContro
             fly_to_closest_pokecenter_on_map(info, stream, context);
             break;
         }catch (UnexpectedBattleException&){
-            run_battle_press_A(stream, context, BattleStopCondition::STOP_OVERWORLD);
+            run_wild_battle_press_A(stream, context, BattleStopCondition::STOP_OVERWORLD);
         }
     }
 
@@ -560,7 +560,7 @@ bool attempt_fly_to_overlapping_flypoint(
             return fly_to_overworld_from_map(info, stream, context, true);
 
         }catch (UnexpectedBattleException&){
-            run_battle_press_A(stream, context, BattleStopCondition::STOP_OVERWORLD);
+            run_wild_battle_press_A(stream, context, BattleStopCondition::STOP_OVERWORLD);
         }
     }
 

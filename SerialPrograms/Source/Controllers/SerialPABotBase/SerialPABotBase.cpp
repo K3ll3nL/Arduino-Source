@@ -51,7 +51,7 @@ ControllerType id_to_controller_type(uint32_t id){
     case PABB_CID_NONE:
         return ControllerType::None;
     case PABB_CID_NINTENDO_SWITCH_WIRED_PRO_CONTROLLER:
-        return ControllerType::NintendoSwitch_WiredProController;
+        return ControllerType::NintendoSwitch_WiredController;
     case PABB_CID_NINTENDO_SWITCH_WIRELESS_PRO_CONTROLLER:
         return ControllerType::NintendoSwitch_WirelessProController;
     case PABB_CID_NINTENDO_SWITCH_LEFT_JOYCON:
@@ -68,7 +68,7 @@ uint32_t controller_type_to_id(ControllerType controller_type){
     switch (controller_type){
     case ControllerType::None:
         return PABB_CID_NONE;
-    case ControllerType::NintendoSwitch_WiredProController:
+    case ControllerType::NintendoSwitch_WiredController:
         return PABB_CID_NINTENDO_SWITCH_WIRED_PRO_CONTROLLER;
     case ControllerType::NintendoSwitch_WirelessProController:
         return PABB_CID_NINTENDO_SWITCH_WIRELESS_PRO_CONTROLLER;
@@ -92,72 +92,63 @@ const std::map<
         std::map<ControllerType, ControllerFeatures>
     >
 > SUPPORTED_VERSIONS{
-    {2025061202, {
+    {2025061208, {
         {PABB_PID_PABOTBASE_ESP32, {
             {ControllerType::NintendoSwitch_WirelessProController, {
                 ControllerFeature::TickPrecise,
-                ControllerFeature::TimingFlexibleMilliseconds,
                 ControllerFeature::NintendoSwitch_ProController,
             }},
             {ControllerType::NintendoSwitch_LeftJoycon, {
                 ControllerFeature::TickPrecise,
-                ControllerFeature::TimingFlexibleMilliseconds,
                 ControllerFeature::NintendoSwitch_LeftJoycon,
             }},
             {ControllerType::NintendoSwitch_RightJoycon, {
                 ControllerFeature::TickPrecise,
-                ControllerFeature::TimingFlexibleMilliseconds,
                 ControllerFeature::NintendoSwitch_RightJoycon,
             }},
         }},
     }},
-    {2025061303, {
+    {2025061308, {
         {PABB_PID_PABOTBASE_ESP32S3, {
-            {ControllerType::NintendoSwitch_WiredProController, {
+            {ControllerType::NintendoSwitch_WiredController, {
                 ControllerFeature::TickPrecise,
-                ControllerFeature::TimingFlexibleMilliseconds,
                 ControllerFeature::NintendoSwitch_ProController,
                 ControllerFeature::NintendoSwitch_DateSkip,
             }},
         }},
     }},
-    {2025061403, {
+    {2025061407, {
         {PABB_PID_PABOTBASE_ArduinoUnoR3, {
-            {ControllerType::NintendoSwitch_WiredProController, {
+            {ControllerType::NintendoSwitch_WiredController, {
                 ControllerFeature::TickPrecise,
-                ControllerFeature::TimingFlexibleMilliseconds,
                 ControllerFeature::NintendoSwitch_ProController,
                 ControllerFeature::NintendoSwitch_DateSkip,
             }},
         }},
         {PABB_PID_PABOTBASE_ArduinoLeonardo, {
-            {ControllerType::NintendoSwitch_WiredProController, {
+            {ControllerType::NintendoSwitch_WiredController, {
                 ControllerFeature::TickPrecise,
-                ControllerFeature::TimingFlexibleMilliseconds,
                 ControllerFeature::NintendoSwitch_ProController,
                 ControllerFeature::NintendoSwitch_DateSkip,
             }},
         }},
         {PABB_PID_PABOTBASE_ProMicro, {
-            {ControllerType::NintendoSwitch_WiredProController, {
+            {ControllerType::NintendoSwitch_WiredController, {
                 ControllerFeature::TickPrecise,
-                ControllerFeature::TimingFlexibleMilliseconds,
                 ControllerFeature::NintendoSwitch_ProController,
                 ControllerFeature::NintendoSwitch_DateSkip,
             }},
         }},
         {PABB_PID_PABOTBASE_Teensy2, {
-            {ControllerType::NintendoSwitch_WiredProController, {
+            {ControllerType::NintendoSwitch_WiredController, {
                 ControllerFeature::TickPrecise,
-                ControllerFeature::TimingFlexibleMilliseconds,
                 ControllerFeature::NintendoSwitch_ProController,
                 ControllerFeature::NintendoSwitch_DateSkip,
             }},
         }},
         {PABB_PID_PABOTBASE_TeensyPP2, {
-            {ControllerType::NintendoSwitch_WiredProController, {
+            {ControllerType::NintendoSwitch_WiredController, {
                 ControllerFeature::TickPrecise,
-                ControllerFeature::TimingFlexibleMilliseconds,
                 ControllerFeature::NintendoSwitch_ProController,
                 ControllerFeature::NintendoSwitch_DateSkip,
             }},

@@ -44,7 +44,7 @@ public:
 private:
     Color m_color;
     ImageFloatBox m_box_top;
-    ImageFloatBox m_box_mid;
+//    ImageFloatBox m_box_mid;
     ImageFloatBox m_top;
     ImageFloatBox m_left;
     ImageFloatBox m_bottom_solid;
@@ -62,6 +62,7 @@ public:
 
     virtual void make_overlays(VideoOverlaySet& items) const override;
     virtual bool detect(const ImageViewRGB32& screen) override;
+    virtual void commit_state() override;
     bool detect_only(const ImageViewRGB32& screen);
 
 private:

@@ -31,7 +31,7 @@ namespace PokemonSV{
 
 
 std::string AutoStory_Segment_20::name() const{
-    return "16: Artazon Gym (Grass)";
+    return "20: Artazon Gym (Grass)";
 }
 
 std::string AutoStory_Segment_20::start_text() const{
@@ -45,21 +45,22 @@ std::string AutoStory_Segment_20::end_text() const{
 void AutoStory_Segment_20::run_segment(
     SingleSwitchProgramEnvironment& env,
     ProControllerContext& context,
-    AutoStoryOptions options
+    AutoStoryOptions options,
+    AutoStoryStats& stats
 ) const{
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
+    
 
-    context.wait_for_all_requests();
-    env.console.overlay().add_log("Start Segment ", COLOR_ORANGE);
-
-    checkpoint_43(env, context, options.notif_status_update);
-    checkpoint_44(env, context, options.notif_status_update);
-    checkpoint_45(env, context, options.notif_status_update);
-
-    context.wait_for_all_requests();
-    env.console.log("End Segment ", COLOR_GREEN);
     stats.m_segment++;
     env.update_stats();
+    context.wait_for_all_requests();
+    env.console.log("Start Segment " + name(), COLOR_ORANGE);
+
+    checkpoint_43(env, context, options.notif_status_update, stats);
+    checkpoint_44(env, context, options.notif_status_update, stats);
+    checkpoint_45(env, context, options.notif_status_update, stats);
+
+    context.wait_for_all_requests();
+    env.console.log("End Segment " + name(), COLOR_GREEN);
 
 }
 
@@ -67,14 +68,15 @@ void AutoStory_Segment_20::run_segment(
 void checkpoint_43(
     SingleSwitchProgramEnvironment& env, 
     ProControllerContext& context, 
-    EventNotificationOption& notif_status_update
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats
 ){
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
+    
     bool first_attempt = true;
     while (true){
     try{
         if (first_attempt){
-            checkpoint_save(env, context, notif_status_update);
+            checkpoint_save(env, context, notif_status_update, stats);
             first_attempt = false;
         }else{
             enter_menu_from_overworld(env.program_info(), env.console, context, -1);
@@ -126,12 +128,13 @@ void checkpoint_43(
 
         // enter gym building. talk go Nemona and battle her.
         clear_dialog(env.console, context, ClearDialogMode::STOP_BATTLE, 60, {CallbackEnum::BLACK_DIALOG_BOX, CallbackEnum::PROMPT_DIALOG, CallbackEnum::DIALOG_ARROW, CallbackEnum::BATTLE});        
-        run_battle_press_A(env.console, context, BattleStopCondition::STOP_DIALOG, {CallbackEnum::GRADIENT_ARROW});
+        env.console.log("Battle Nemona.");
+        run_trainer_battle_press_A(env.console, context, BattleStopCondition::STOP_DIALOG);
         mash_button_till_overworld(env.console, context, BUTTON_A);
 
        
         break;
-    }catch (...){
+    }catch(OperationFailedException&){
         context.wait_for_all_requests();
         env.console.log("Resetting from checkpoint.");
         reset_game(env.program_info(), env.console, context);
@@ -145,14 +148,15 @@ void checkpoint_43(
 void checkpoint_44(
     SingleSwitchProgramEnvironment& env, 
     ProControllerContext& context, 
-    EventNotificationOption& notif_status_update
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats
 ){
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
+    
     bool first_attempt = true;
     while (true){
     try{
         if (first_attempt){
-            checkpoint_save(env, context, notif_status_update);
+            checkpoint_save(env, context, notif_status_update, stats);
             first_attempt = false;
         }else{
             enter_menu_from_overworld(env.program_info(), env.console, context, -1);
@@ -240,7 +244,7 @@ void checkpoint_44(
         // align to corner 4.2
         direction.change_direction(env.program_info(), env.console, context, 6.056);
         pbf_move_left_joystick(context, 128, 0, 670, 100);
-        direction.change_direction(env.program_info(), env.console, context, 1.22);
+        direction.change_direction(env.program_info(), env.console, context, 1.55);
         pbf_move_left_joystick(context, 128, 0, 200, 100);
         direction.change_direction(env.program_info(), env.console, context, 1.69);
         pbf_move_left_joystick(context, 0, 0, 500, 100);
@@ -294,9 +298,9 @@ void checkpoint_44(
         pbf_move_left_joystick(context, 0, 0, 700, 100);        
 
         direction.change_direction(env.program_info(), env.console, context, 0.96);
-        pbf_move_left_joystick(context, 128, 0, 300, 100);
+        pbf_move_left_joystick(context, 128, 0, 250, 100);
         direction.change_direction(env.program_info(), env.console, context, 5.17);        
-        pbf_move_left_joystick(context, 128, 0, 100, 100);
+        pbf_move_left_joystick(context, 128, 0, 50, 100);
         direction.change_direction(env.program_info(), env.console, context, 3.86);
         handle_failed_action(env.program_info(), env.console, context,
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
@@ -477,7 +481,7 @@ void checkpoint_44(
 
        
         break;
-    }catch (...){
+    }catch(OperationFailedException&){
         context.wait_for_all_requests();
         env.console.log("Resetting from checkpoint.");
         reset_game(env.program_info(), env.console, context);
@@ -491,14 +495,15 @@ void checkpoint_44(
 void checkpoint_45(
     SingleSwitchProgramEnvironment& env, 
     ProControllerContext& context, 
-    EventNotificationOption& notif_status_update
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats
 ){
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
+    
     bool first_attempt = true;
     while (true){
     try{
         if (first_attempt){
-            checkpoint_save(env, context, notif_status_update);
+            checkpoint_save(env, context, notif_status_update, stats);
             first_attempt = false;
         }else{
             enter_menu_from_overworld(env.program_info(), env.console, context, -1);
@@ -536,11 +541,12 @@ void checkpoint_45(
         ); 
 
         clear_dialog(env.console, context, ClearDialogMode::STOP_BATTLE, 60, {CallbackEnum::PROMPT_DIALOG, CallbackEnum::BATTLE, CallbackEnum::DIALOG_ARROW});
-        run_battle_press_A(env.console, context, BattleStopCondition::STOP_DIALOG, {CallbackEnum::GRADIENT_ARROW});
+        env.console.log("Battle Grass Gym leader.");
+        run_trainer_battle_press_A(env.console, context, BattleStopCondition::STOP_DIALOG);
         mash_button_till_overworld(env.console, context, BUTTON_A);
        
         break;
-    }catch (...){
+    }catch(OperationFailedException&){
         context.wait_for_all_requests();
         env.console.log("Resetting from checkpoint.");
         reset_game(env.program_info(), env.console, context);

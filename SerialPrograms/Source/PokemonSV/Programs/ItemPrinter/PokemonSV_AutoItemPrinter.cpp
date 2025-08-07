@@ -37,7 +37,8 @@ AutoItemPrinter_Descriptor::AutoItemPrinter_Descriptor()
         FeedbackType::REQUIRED,
         AllowCommandsWhenRunning::DISABLE_COMMANDS,
         {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        FasterIfTickPrecise::NOT_FASTER,
+        true
     )
 {}
 struct AutoItemPrinter_Descriptor::Stats : public StatsTracker{
@@ -134,8 +135,13 @@ void AutoItemPrinter::program(SingleSwitchProgramEnvironment& env, ProController
     enter_printing_mode(env, context);
 
     for (uint16_t i = 0; i < NUM_ROUNDS; i++){
-        item_printer_start_print(env.inference_dispatcher(), env.console, context, LANGUAGE, ItemPrinterJobs::Jobs_10);
-        item_printer_finish_print(env.inference_dispatcher(), env.console, context, Language::None);
+        item_printer_start_print(
+            env.console, context, LANGUAGE,
+            ItemPrinterJobs::Jobs_10
+        );
+        item_printer_finish_print(
+            env.console, context, Language::None
+        );
 
         env.console.log("Print completed.");
         stats.m_rounds++;

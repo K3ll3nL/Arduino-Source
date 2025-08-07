@@ -5,7 +5,9 @@
  */
 
 #include <sstream>
+#include "Common/Cpp/Concurrency/SpinLock.h"
 #include "Kernels/Waterfill/Kernels_Waterfill_Session.h"
+#include "CommonFramework/Tools/GlobalThreadPools.h"
 #include "CommonTools/Images/BinaryImage_FilterRgb32.h"
 #include "PokemonSwSh/PokemonSwSh_Settings.h"
 #include "PokemonSwSh_SparkleDetectorRadial.h"
@@ -84,12 +86,12 @@ void ShinySparkleSetSwSh::update_alphas(){
 
 
 
-ShinySparkleSetSwSh find_sparkles(WaterfillSession& session){
+ShinySparkleSetSwSh find_sparkles(size_t screen_area, WaterfillSession& session){
     ShinySparkleSetSwSh sparkles;
     auto finder = session.make_iterator(20);
     WaterfillObject object;
     while (finder->find_next(object, true)){
-        RadialSparkleDetector radial_sparkle(object);
+        RadialSparkleDetector radial_sparkle(screen_area, object);
         if (radial_sparkle.is_ball()){
             sparkles.balls.emplace_back(object.min_x, object.min_y, object.max_x, object.max_y);
             continue;
@@ -109,7 +111,7 @@ ShinySparkleSetSwSh find_sparkles(WaterfillSession& session){
     }
     return sparkles;
 }
-void ShinySparkleSetSwSh::read_from_image(const ImageViewRGB32& image){
+void ShinySparkleSetSwSh::read_from_image(size_t screen_area, const ImageViewRGB32& image){
     clear();
     if (!image){
         return;
@@ -124,12 +126,33 @@ void ShinySparkleSetSwSh::read_from_image(const ImageViewRGB32& image){
             {0xffd0d000, 0xffffffff},
         }
     );
+
+    SpinLock lock;
+    double best_alpha = 0;
+    GlobalThreadPools::realtime_inference().run_in_parallel(
+        [&](size_t index){
+            auto session = make_WaterfillSession();
+            session->set_source(matrices[index]);
+            ShinySparkleSetSwSh sparkles = find_sparkles(screen_area, *session);
+            sparkles.update_alphas();
+            double alpha = sparkles.alpha_overall();
+
+            WriteSpinLock lg(lock);
+            if (best_alpha < alpha){
+                best_alpha = alpha;
+                *this = std::move(sparkles);
+            }
+        },
+        0, matrices.size(), 1
+    );
+
+#if 0
     auto session = make_WaterfillSession();
 
     double best_alpha = 0;
     for (PackedBinaryMatrix& matrix : matrices){
         session->set_source(matrix);
-        ShinySparkleSetSwSh sparkles = find_sparkles(*session);
+        ShinySparkleSetSwSh sparkles = find_sparkles(screen_area, *session);
         sparkles.update_alphas();
         double alpha = sparkles.alpha_overall();
         if (best_alpha < alpha){
@@ -137,6 +160,7 @@ void ShinySparkleSetSwSh::read_from_image(const ImageViewRGB32& image){
             *this = std::move(sparkles);
         }
     }
+#endif
 }
 
 

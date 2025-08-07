@@ -26,14 +26,17 @@ std::string button_to_string(Button button){
     if (button & BUTTON_RCLICK)     str += "RJ ";
     if (button & BUTTON_HOME)       str += "HOME ";
     if (button & BUTTON_CAPTURE)    str += "CAPTURE ";
+    if (button & BUTTON_GR)         str += "GR ";
+    if (button & BUTTON_GL)         str += "GL ";
     if (button & BUTTON_UP)         str += "Up ";
     if (button & BUTTON_RIGHT)      str += "Right ";
     if (button & BUTTON_DOWN)       str += "Down ";
     if (button & BUTTON_LEFT)       str += "Left ";
-    if (button & BUTTON_LEFT_SL)    str += "Left-SL";
-    if (button & BUTTON_LEFT_SR)    str += "Left-SR";
-    if (button & BUTTON_RIGHT_SL)   str += "Right-SL";
-    if (button & BUTTON_RIGHT_SR)   str += "Right-SR";
+    if (button & BUTTON_LEFT_SL)    str += "Left-SL ";
+    if (button & BUTTON_LEFT_SR)    str += "Left-SR ";
+    if (button & BUTTON_RIGHT_SL)   str += "Right-SL ";
+    if (button & BUTTON_RIGHT_SR)   str += "Right-SR ";
+    if (button & BUTTON_C)          str += "C ";
     if (str.empty()){
         str = "none";
     }

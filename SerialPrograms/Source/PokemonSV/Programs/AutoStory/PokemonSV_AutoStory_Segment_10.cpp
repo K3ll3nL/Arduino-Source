@@ -30,7 +30,7 @@ namespace PokemonSV{
 
 
 std::string AutoStory_Segment_10::name() const{
-    return "10.1: Cortondo Gym - Go to Cortondo city";
+    return "10: Cortondo Gym (Bug): Go to Cortondo city";
 }
 
 std::string AutoStory_Segment_10::start_text() const{
@@ -44,35 +44,37 @@ std::string AutoStory_Segment_10::end_text() const{
 void AutoStory_Segment_10::run_segment(
     SingleSwitchProgramEnvironment& env,
     ProControllerContext& context,
-    AutoStoryOptions options
+    AutoStoryOptions options,
+    AutoStoryStats& stats
 ) const{
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
+    
 
-    context.wait_for_all_requests();
-    env.console.overlay().add_log("Start Segment 10.1: Cortondo Gym - Go to Cortondo city", COLOR_ORANGE);
-
-    checkpoint_21(env, context, options.notif_status_update);
-    checkpoint_22(env, context, options.notif_status_update);
-    checkpoint_23(env, context, options.notif_status_update);
-
-    context.wait_for_all_requests();
-    env.console.log("End Segment 10.1: Cortondo Gym - Go to Cortondo city", COLOR_GREEN);
     stats.m_segment++;
     env.update_stats();
+    context.wait_for_all_requests();
+    env.console.log("Start Segment " + name(), COLOR_ORANGE);
+
+    checkpoint_21(env, context, options.notif_status_update, stats);
+    checkpoint_22(env, context, options.notif_status_update, stats);
+    checkpoint_23(env, context, options.notif_status_update, stats);
+
+    context.wait_for_all_requests();
+    env.console.log("End Segment " + name(), COLOR_GREEN);
 
 }
 
 void checkpoint_21(
     SingleSwitchProgramEnvironment& env, 
     ProControllerContext& context, 
-    EventNotificationOption& notif_status_update
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats
 ){
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
+    
     bool first_attempt = true;
     while (true){
     try{
         if (first_attempt){
-            checkpoint_save(env, context, notif_status_update);
+            checkpoint_save(env, context, notif_status_update, stats);
             first_attempt = false;
         }         
         fly_to_overlapping_flypoint(env.program_info(), env.console, context);
@@ -117,7 +119,7 @@ void checkpoint_21(
         fly_to_overlapping_flypoint(env.program_info(), env.console, context);
        
         break;
-    }catch(...){
+    }catch(OperationFailedException&){
         context.wait_for_all_requests();
         env.console.log("Resetting from checkpoint.");
         reset_game(env.program_info(), env.console, context);
@@ -131,14 +133,15 @@ void checkpoint_21(
 void checkpoint_22(
     SingleSwitchProgramEnvironment& env, 
     ProControllerContext& context, 
-    EventNotificationOption& notif_status_update
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats
 ){
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
+    
     bool first_attempt = true;
     while (true){
     try{
         if (first_attempt){
-            checkpoint_save(env, context, notif_status_update);
+            checkpoint_save(env, context, notif_status_update, stats);
             first_attempt = false;
         }         
         context.wait_for_all_requests();
@@ -184,7 +187,7 @@ void checkpoint_22(
         fly_to_overlapping_flypoint(env.program_info(), env.console, context);
        
         break;
-    }catch(...){
+    }catch(OperationFailedException&){
         context.wait_for_all_requests();
         env.console.log("Resetting from checkpoint.");
         reset_game(env.program_info(), env.console, context);
@@ -200,14 +203,15 @@ void checkpoint_22(
 void checkpoint_23(
     SingleSwitchProgramEnvironment& env, 
     ProControllerContext& context, 
-    EventNotificationOption& notif_status_update
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats
 ){
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
+    
     bool first_attempt = true;
     while (true){
     try{
         if (first_attempt){
-            checkpoint_save(env, context, notif_status_update);
+            checkpoint_save(env, context, notif_status_update, stats);
             first_attempt = false;
         }         
         context.wait_for_all_requests();
@@ -303,7 +307,7 @@ void checkpoint_23(
         fly_to_overlapping_flypoint(env.program_info(), env.console, context);             
        
         break;
-    }catch(...){
+    }catch(OperationFailedException&){
         context.wait_for_all_requests();
         env.console.log("Resetting from checkpoint.");
         reset_game(env.program_info(), env.console, context);

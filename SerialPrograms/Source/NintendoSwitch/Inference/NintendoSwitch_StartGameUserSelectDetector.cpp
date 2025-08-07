@@ -31,16 +31,21 @@ void StartGameUserSelectDetector::make_overlays(VideoOverlaySet& items) const{
     m_switch2.make_overlays(items);
 }
 bool StartGameUserSelectDetector::detect(const ImageViewRGB32& screen){
+    return detect_only(screen);
+#if 0
     if (detect_only(screen)){
         m_console.state().set_console_type(m_console, m_console_type);
         return true;
     }else{
         return false;
     }
+#endif
+}
+void StartGameUserSelectDetector::commit_state(){
+    m_console.state().set_console_type(m_console, m_console_type);
 }
 bool StartGameUserSelectDetector::detect_only(const ImageViewRGB32& screen){
     ConsoleType type = m_type_detector.detect_only(screen);
-//    cout << "detection: " << (int)x << endl;
     m_console_type = type;
 
     if (type == ConsoleType::Unknown){

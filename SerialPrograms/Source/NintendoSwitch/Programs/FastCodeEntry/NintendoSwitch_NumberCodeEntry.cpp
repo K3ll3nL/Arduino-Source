@@ -9,6 +9,7 @@
 #include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
 #include "NintendoSwitch/Options/NintendoSwitch_CodeEntrySettingsOption.h"
+#include "NintendoSwitch/Inference/NintendoSwitch_ConsoleTypeDetector.h"
 #include "NintendoSwitch_CodeEntryTools.h"
 #include "NintendoSwitch_NumberCodeEntry.h"
 
@@ -161,7 +162,9 @@ std::vector<CodeEntryActionWithDelay> numberpad_get_best_path(
 //                action.delay =
             }
         }
-        if (best_time > current_time){
+        if (best_time > current_time ||
+            (best_time == current_time && best_path.size() > current_path.size())
+        ){
             best_time = current_time;
             best_path = std::move(current_path);
         }
@@ -193,6 +196,10 @@ void numberpad_enter_code(
 
 
     ConsoleType console_type = console.state().console_type();
+    if (console_type == ConsoleType::Unknown){
+        console.log("Unknown Switch type. Try to detect.", COLOR_ORANGE);
+        console_type = detect_console_type_from_in_game(console, context);
+    }
     bool switch2;
     if (is_switch1(console_type)){
         switch2 = false;
@@ -213,22 +220,22 @@ void numberpad_enter_code(
     Milliseconds cool;
     bool reordering;
     if (switch2){
-        unit        = ConsoleSettings::instance().SWITCH2_DIGIT_ENTRY.TIME_UNIT;
-        hold        = ConsoleSettings::instance().SWITCH2_DIGIT_ENTRY.HOLD;
-        cool        = ConsoleSettings::instance().SWITCH2_DIGIT_ENTRY.COOLDOWN;
-        reordering  = ConsoleSettings::instance().SWITCH2_DIGIT_ENTRY.REORDERING;
+        unit        = ConsoleSettings::instance().SWITCH2_DIGIT_ENTRY0.TIME_UNIT;
+        hold        = ConsoleSettings::instance().SWITCH2_DIGIT_ENTRY0.HOLD;
+        cool        = ConsoleSettings::instance().SWITCH2_DIGIT_ENTRY0.COOLDOWN;
+        reordering  = ConsoleSettings::instance().SWITCH2_DIGIT_ENTRY0.REORDERING;
     }else{
-        unit        = ConsoleSettings::instance().SWITCH1_DIGIT_ENTRY.TIME_UNIT;
-        hold        = ConsoleSettings::instance().SWITCH1_DIGIT_ENTRY.HOLD;
-        cool        = ConsoleSettings::instance().SWITCH1_DIGIT_ENTRY.COOLDOWN;
-        reordering  = ConsoleSettings::instance().SWITCH1_DIGIT_ENTRY.REORDERING;
+        unit        = ConsoleSettings::instance().SWITCH1_DIGIT_ENTRY0.TIME_UNIT;
+        hold        = ConsoleSettings::instance().SWITCH1_DIGIT_ENTRY0.HOLD;
+        cool        = ConsoleSettings::instance().SWITCH1_DIGIT_ENTRY0.COOLDOWN;
+        reordering  = ConsoleSettings::instance().SWITCH1_DIGIT_ENTRY0.REORDERING;
     }
 
     Milliseconds tv = context->timing_variation();
     unit += tv;
 
     CodeEntryDelays delays{
-        .hold = hold,
+        .hold = hold + tv,
         .cool = cool,
         .press_delay = unit,
         .move_delay = unit,

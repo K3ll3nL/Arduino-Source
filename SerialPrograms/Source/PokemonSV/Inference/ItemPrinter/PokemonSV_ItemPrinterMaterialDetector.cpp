@@ -6,11 +6,12 @@
 
 #include <map>
 #include "Common/Cpp/Concurrency/SpinLock.h"
-#include "Common/Cpp/Concurrency/AsyncDispatcher.h"
+#include "Common/Cpp/Concurrency/AsyncTask.h"
 #include "CommonFramework/Exceptions/OperationFailedException.h"
 #include "CommonFramework/ImageTypes/ImageViewRGB32.h"
 #include "CommonFramework/ImageTypes/ImageRGB32.h"
 #include "CommonFramework/ImageTools/ImageStats.h"
+#include "CommonFramework/Tools/GlobalThreadPools.h"
 #include "CommonFramework/VideoPipeline/VideoFeed.h"
 #include "CommonFramework/VideoPipeline/VideoOverlayScopes.h"
 #include "CommonTools/Images/ImageFilter.h"
@@ -18,7 +19,9 @@
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "PokemonSV_ItemPrinterMaterialDetector.h"
 
-// #include <iostream>
+//#include <iostream>
+//using std::cout;
+//using std::endl;
 
 namespace PokemonAutomation{
 namespace NintendoSwitch{
@@ -84,8 +87,9 @@ void ItemPrinterMaterialDetector::make_overlays(VideoOverlaySet& items) const{
 }
 
 int16_t ItemPrinterMaterialDetector::read_number(
-    Logger& logger, AsyncDispatcher& dispatcher,
-    const ImageViewRGB32& screen, const ImageFloatBox& box
+    Logger& logger,
+    const ImageViewRGB32& screen, const ImageFloatBox& box,
+    int8_t row_index
 ) const{
 
     ImageViewRGB32 cropped = extract_box_reference(screen, box);
@@ -98,39 +102,49 @@ int16_t ItemPrinterMaterialDetector::read_number(
     bool is_dark_text_light_background = image_stats(filtered).average.sum() > 400;
     // std::cout << "Average sum of filtered: "<< std::to_string(image_stats(filtered).average.sum()) << std::endl;
 
-    int16_t number;
-    if (is_dark_text_light_background){
-        const std::vector<std::pair<uint32_t, uint32_t>> filters = {
-            // {0xff000000, 0xffb0b0b0},
-            {0xff000000, 0xffa0a0a0},
-            {0xff000000, 0xff959595},
-            {0xff000000, 0xff909090},
-            {0xff000000, 0xff858585},
-            {0xff000000, 0xff808080},
-            // {0xff000000, 0xff707070},
-            // {0xff000000, 0xff606060},
-            // {0xff000000, 0xff505050},
-            // {0xff000000, 0xff404040},
-            // {0xff000000, 0xff303030},
-            // {0xff000000, 0xff202020},
-            // {0xff000000, 0xff101010},
-        };
-        number = (int16_t)OCR::read_number_waterfill_multifilter(logger, cropped, filters, 24);
-    }else{
-        const std::vector<std::pair<uint32_t, uint32_t>> filters = {
-            {0xff808080, 0xffffffff},
-            {0xff858585, 0xffffffff},
-            {0xff909090, 0xffffffff},
-            {0xff959595, 0xffffffff},
-            {0xffa0a0a0, 0xffffffff},
-            // {0xffb0b0b0, 0xffffffff},
-            // {0xffc0c0c0, 0xffffffff},
-            // {0xffd0d0d0, 0xffffffff},
-            // {0xffe0e0e0, 0xffffffff},
-            // {0xfff0f0f0, 0xffffffff},
-        };        
-        number = (int16_t)OCR::read_number_waterfill_multifilter(logger, cropped, filters, 24);
-    }
+    const std::vector<std::pair<uint32_t, uint32_t>> filters = 
+        [&](){
+            if (is_dark_text_light_background){
+                return std::vector<std::pair<uint32_t, uint32_t>>{
+                    // {0xff000000, 0xffb0b0b0},
+                    {0xff000000, 0xffa0a0a0},
+                    {0xff000000, 0xff959595},
+                    {0xff000000, 0xff909090},
+                    {0xff000000, 0xff858585},
+                    {0xff000000, 0xff808080},
+                    // {0xff000000, 0xff707070},
+                    // {0xff000000, 0xff606060},
+                    // {0xff000000, 0xff505050},
+                    // {0xff000000, 0xff404040},
+                    // {0xff000000, 0xff303030},
+                    // {0xff000000, 0xff202020},
+                    // {0xff000000, 0xff101010},
+                };
+            }else{
+                return std::vector<std::pair<uint32_t, uint32_t>>{
+                    {0xff808080, 0xffffffff},
+                    {0xff858585, 0xffffffff},
+                    {0xff909090, 0xffffffff},
+                    {0xff959595, 0xffffffff},
+                    {0xffa0a0a0, 0xffffffff},
+                    // {0xffb0b0b0, 0xffffffff},
+                    // {0xffc0c0c0, 0xffffffff},
+                    // {0xffd0d0d0, 0xffffffff},
+                    // {0xffe0e0e0, 0xffffffff},
+                    // {0xfff0f0f0, 0xffffffff},
+                };
+            }
+        }();
+    
+    size_t max_width = (size_t)((double)24 * screen.width() / 1080);
+
+    int16_t number = (int16_t)OCR::read_number_waterfill_multifilter(
+        logger,
+        cropped, filters,
+        max_width,
+        true, true,
+        row_index
+    );
 
     if (number < 1 || number > 999){
         number = -1;
@@ -143,46 +157,53 @@ int16_t ItemPrinterMaterialDetector::read_number(
 // keep pressing DPAD_RIGHT until Happiny dust is on screen
 // check each row on the screen for Happiny Dust
 int8_t ItemPrinterMaterialDetector::find_happiny_dust_row_index(
-    AsyncDispatcher& dispatcher,
     VideoStream& stream, ProControllerContext& context
 ) const{
-    int8_t value_68_row_index;
+    int8_t happiny_dust_row_index = -1;
     for (size_t c = 0; c < 30; c++){
         context.wait_for_all_requests();
-        std::vector<int8_t> value_68_row_index_list = find_material_value_row_index(dispatcher, stream, context, 68);
-        for (size_t i = 0; i < value_68_row_index_list.size(); i++){
-            value_68_row_index = value_68_row_index_list[i];
-            if (detect_material_name(stream, context, value_68_row_index) == "happiny-dust"){
-                // found screen and row number with Happiny dust.
-                // std::cout << "Happiny dust found. Row number: " << std::to_string(value_68_row_index) << std::endl;
-                return value_68_row_index;
-            }
-        }
+        VideoSnapshot snapshot = stream.video().snapshot();
+        int8_t total_rows = 10;
         
+        SpinLock lock;
+        GlobalThreadPools::normal_inference().run_in_parallel(
+            [&](size_t index){
+                std::string material_name = detect_material_name(stream, snapshot, context, (int8_t)index);
+                if ("happiny-dust" == material_name){
+                    WriteSpinLock lg(lock);
+                    happiny_dust_row_index = (int8_t)index;
+                }
+            },
+            0, total_rows, 1
+        );
+
+        if (happiny_dust_row_index != -1){
+            // found screen and row number with Happiny dust.
+            // std::cout << "Happiny dust found. Row number: " << std::to_string(value_68_row_index) << std::endl;
+            return happiny_dust_row_index;
+        }
+
         // keep searching for Happiny dust
         pbf_press_dpad(context, DPAD_RIGHT, 20, 30);
     }
 
     OperationFailedException::fire(
         ErrorReport::SEND_ERROR_REPORT,
-        "Failed to find Happiny dust after 10 tries.",
+        "Failed to find Happiny dust after multiple attempts.",
         stream
     );
 
 }
 
-// detects the material name at the given row_index
-// MaterialNameReader has a very limited dictionary,
-// so it can only reliably read the material names with 68% value
-// (i.e. Ditto Goo, Happiny Dust, Magby Hair, Beldum Claw)
 std::string ItemPrinterMaterialDetector::detect_material_name(
     VideoStream& stream,
+    const ImageViewRGB32& screen,
     ProControllerContext& context,
     int8_t row_index
 ) const{
-    VideoSnapshot snapshot = stream.video().snapshot();
+    
     ImageFloatBox material_name_box = m_box_mat_name[row_index];
-    ImageViewRGB32 material_name_image = extract_box_reference(snapshot, material_name_box);
+    ImageViewRGB32 material_name_image = extract_box_reference(screen, material_name_box);
     const auto ocr_result = MaterialNameReader::instance().read_substring(
         stream.logger(), m_language,
         material_name_image, OCR::BLACK_OR_WHITE_TEXT_FILTERS()
@@ -212,7 +233,6 @@ std::string ItemPrinterMaterialDetector::detect_material_name(
 
 // return vector of row index(es) that matches given material_value.
 std::vector<int8_t> ItemPrinterMaterialDetector::find_material_value_row_index(
-    AsyncDispatcher& dispatcher,
     VideoStream& stream,
     ProControllerContext& context,
     int16_t material_value
@@ -222,31 +242,29 @@ std::vector<int8_t> ItemPrinterMaterialDetector::find_material_value_row_index(
     int8_t total_rows = 10;
     std::vector<int8_t> row_indexes;
     SpinLock lock;
-    std::vector<std::unique_ptr<AsyncTask>> tasks(total_rows);
-    for (int8_t row_index = 0; row_index < total_rows; row_index++){
-        tasks[row_index] = dispatcher.dispatch([&, row_index]{
-            int16_t value = read_number(stream.logger(), dispatcher, snapshot, m_box_mat_value[row_index]);
+
+    GlobalThreadPools::normal_inference().run_in_parallel(
+        [&](size_t index){
+            int16_t value = read_number(stream.logger(), snapshot, m_box_mat_value[index], (int8_t)index);
             if (value == material_value){
                 WriteSpinLock lg(lock);
-                row_indexes.push_back(row_index);
+                row_indexes.push_back((int8_t)index);
             }
-        });
-    }
+        },
+        0, total_rows, 1
+    );
 
     return row_indexes;    
 
 }
 
-// detect the quantity of material at the given row number
 int16_t ItemPrinterMaterialDetector::detect_material_quantity(
-    AsyncDispatcher& dispatcher,
     VideoStream& stream,
+    const ImageViewRGB32& screen,
     ProControllerContext& context,
     int8_t row_index
 ) const{
-    context.wait_for_all_requests();
-    VideoSnapshot snapshot = stream.video().snapshot();
-    int16_t value = read_number(stream.logger(), dispatcher, snapshot, m_box_mat_quantity[row_index]);
+    int16_t value = read_number(stream.logger(), screen, m_box_mat_quantity[row_index], row_index);
     return value;
 }
 

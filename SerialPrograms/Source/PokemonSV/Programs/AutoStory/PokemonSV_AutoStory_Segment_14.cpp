@@ -29,7 +29,7 @@ namespace PokemonSV{
 
 
 std::string AutoStory_Segment_14::name() const{
-    return "11.2: Bombirdier Titan: Battle Bombirdier";
+    return "14: Bombirdier Titan: Battle Bombirdier";
 }
 
 std::string AutoStory_Segment_14::start_text() const{
@@ -43,20 +43,21 @@ std::string AutoStory_Segment_14::end_text() const{
 void AutoStory_Segment_14::run_segment(
     SingleSwitchProgramEnvironment& env,
     ProControllerContext& context,
-    AutoStoryOptions options
+    AutoStoryOptions options,
+    AutoStoryStats& stats
 ) const{
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
+    
 
-    context.wait_for_all_requests();
-    env.console.overlay().add_log("Start Segment 11.2: Bombirdier Titan: Battle Bombirdier", COLOR_ORANGE);
-
-    checkpoint_30(env, context, options.notif_status_update);
-    checkpoint_31(env, context, options.notif_status_update);
-
-    context.wait_for_all_requests();
-    env.console.log("End Segment 11.2: Bombirdier Titan: Battle Bombirdier", COLOR_GREEN);
     stats.m_segment++;
     env.update_stats();
+    context.wait_for_all_requests();
+    env.console.log("Start Segment " + name(), COLOR_ORANGE);
+
+    checkpoint_30(env, context, options.notif_status_update, stats);
+    checkpoint_31(env, context, options.notif_status_update, stats);
+
+    context.wait_for_all_requests();
+    env.console.log("End Segment " + name(), COLOR_GREEN);
 
 }
 
@@ -65,14 +66,15 @@ void AutoStory_Segment_14::run_segment(
 void checkpoint_30(
     SingleSwitchProgramEnvironment& env, 
     ProControllerContext& context, 
-    EventNotificationOption& notif_status_update
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats
 ){
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
+    
     bool first_attempt = true;
     while (true){
     try{
         if (first_attempt){
-            checkpoint_save(env, context, notif_status_update);
+            checkpoint_save(env, context, notif_status_update, stats);
             first_attempt = false;
         }         
         context.wait_for_all_requests();
@@ -225,16 +227,18 @@ void checkpoint_30(
 
         }       
 
-        run_battle_press_A(env.console, context, BattleStopCondition::STOP_DIALOG);
+        env.console.log("Battle Bombirdier Titan phase 1.");
+        run_wild_battle_press_A(env.console, context, BattleStopCondition::STOP_DIALOG);
         clear_dialog(env.console, context, ClearDialogMode::STOP_BATTLE, 30, {CallbackEnum::BATTLE});
         // round 2 of battle 
-        run_battle_press_A(env.console, context, BattleStopCondition::STOP_DIALOG, {CallbackEnum::DIALOG_ARROW});
+        env.console.log("Battle Bombirdier Titan phase 2.");
+        run_wild_battle_press_A(env.console, context, BattleStopCondition::STOP_DIALOG, {CallbackEnum::DIALOG_ARROW});
         // get ride upgrade
         mash_button_till_overworld(env.console, context, BUTTON_A);
 
        
         break;
-    }catch (...){
+    }catch(OperationFailedException&){
         context.wait_for_all_requests();
         env.console.log("Resetting from checkpoint.");
         reset_game(env.program_info(), env.console, context);
@@ -249,14 +253,15 @@ void checkpoint_30(
 void checkpoint_31(
     SingleSwitchProgramEnvironment& env, 
     ProControllerContext& context, 
-    EventNotificationOption& notif_status_update
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats
 ){
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
+    
     bool first_attempt = true;
     while (true){
     try{
         if (first_attempt){
-            checkpoint_save(env, context, notif_status_update);
+            checkpoint_save(env, context, notif_status_update, stats);
             first_attempt = false;
         }         
         context.wait_for_all_requests();
@@ -300,7 +305,7 @@ void checkpoint_31(
         fly_to_overlapping_flypoint(env.program_info(), env.console, context);
        
         break;
-    }catch (...){
+    }catch(OperationFailedException&){
         context.wait_for_all_requests();
         env.console.log("Resetting from checkpoint.");
         reset_game(env.program_info(), env.console, context);

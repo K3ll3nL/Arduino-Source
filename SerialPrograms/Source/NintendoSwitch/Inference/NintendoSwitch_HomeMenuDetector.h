@@ -24,15 +24,18 @@ public:
 
     virtual void make_overlays(VideoOverlaySet& items) const override;
     virtual bool detect(const ImageViewRGB32& screen) override;
+    virtual void commit_state() override;
     bool detect_only(const ImageViewRGB32& screen);
 
 private:
     Color m_color;
     ConsoleTypeDetector_Home m_console_type;
+    ImageFloatBox m_top;
     ImageFloatBox m_bottom_row;
     ImageFloatBox m_bottom_icons;
     ImageFloatBox m_bottom_left;
     ImageFloatBox m_bottom_right;
+    ImageFloatBox m_bottom_middle;
     ImageFloatBox m_user_icons;
     ImageFloatBox m_game_slot;
 };

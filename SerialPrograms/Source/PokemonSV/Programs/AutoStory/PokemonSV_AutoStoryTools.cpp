@@ -41,12 +41,13 @@ namespace PokemonSV{
 
 
 
-
+// spam A button to choose the first move
+// throw exception if wipeout or if your lead faints.
 void run_battle_press_A(
     VideoStream& stream,
     ProControllerContext& context,
     BattleStopCondition stop_condition,
-    std::vector<CallbackEnum> enum_optional_callbacks,
+    std::unordered_set<CallbackEnum> enum_optional_callbacks,
     bool detect_wipeout
 ){
     int16_t num_times_seen_overworld = 0;
@@ -61,9 +62,15 @@ void run_battle_press_A(
         MoveSelectWatcher move_select_menu(COLOR_YELLOW);
 
         std::vector<PeriodicInferenceCallback> callbacks; 
+        std::vector<CallbackEnum> enum_all_callbacks;
         //  mandatory callbacks: Battle, Overworld, Advance Dialog, Swap menu, Move select
-        std::vector<CallbackEnum> enum_all_callbacks{CallbackEnum::BATTLE, CallbackEnum::OVERWORLD, CallbackEnum::ADVANCE_DIALOG, CallbackEnum::SWAP_MENU, CallbackEnum::MOVE_SELECT}; // mandatory callbacks
-        enum_all_callbacks.insert(enum_all_callbacks.end(), enum_optional_callbacks.begin(), enum_optional_callbacks.end()); // append the mandatory and optional callback vectors together
+        //  optional callbacks: DIALOG_ARROW, NEXT_POKEMON
+
+        // merge the mandatory and optional callbacks as a set, to avoid duplicates. then convert to vector
+        std::unordered_set<CallbackEnum> enum_all_callbacks_set{CallbackEnum::BATTLE, CallbackEnum::OVERWORLD, CallbackEnum::ADVANCE_DIALOG, CallbackEnum::SWAP_MENU, CallbackEnum::MOVE_SELECT}; // mandatory callbacks
+        enum_all_callbacks_set.insert(enum_optional_callbacks.begin(), enum_optional_callbacks.end()); // append the mandatory and optional callback sets together
+        enum_all_callbacks.assign(enum_all_callbacks_set.begin(), enum_all_callbacks_set.end());
+
         for (const CallbackEnum& enum_callback : enum_all_callbacks){
             switch(enum_callback){
             case CallbackEnum::ADVANCE_DIALOG:
@@ -78,10 +85,10 @@ void run_battle_press_A(
             case CallbackEnum::BATTLE:
                 callbacks.emplace_back(battle);
                 break;
-            case CallbackEnum::GRADIENT_ARROW:
+            case CallbackEnum::NEXT_POKEMON: // to detect the "next pokemon" prompt.
                 callbacks.emplace_back(next_pokemon);
                 break;
-            case CallbackEnum::SWAP_MENU:  
+            case CallbackEnum::SWAP_MENU:  // detecting Swap Menu implies your lead fainted.
                 callbacks.emplace_back(fainted);
                 break;                     
             case CallbackEnum::MOVE_SELECT:
@@ -159,7 +166,7 @@ void run_battle_press_A(
             stream.log("run_battle_press_A: Detected dialog arrow.");
             pbf_press_button(context, BUTTON_A, 20, 105);
             break;
-        case CallbackEnum::GRADIENT_ARROW:
+        case CallbackEnum::NEXT_POKEMON:
             stream.log("run_battle_press_A: Detected prompt for bringing in next pokemon. Keep current pokemon.");
             pbf_mash_button(context, BUTTON_B, 100);
             break;
@@ -174,6 +181,27 @@ void run_battle_press_A(
           
         }
     }
+}
+
+void run_trainer_battle_press_A(
+    VideoStream& stream,
+    ProControllerContext& context,
+    BattleStopCondition stop_condition,
+    std::unordered_set<CallbackEnum> enum_optional_callbacks,
+    bool detect_wipeout
+){
+    enum_optional_callbacks.insert(CallbackEnum::NEXT_POKEMON);  // always check for the "Next pokemon" prompt when in trainer battles
+    run_battle_press_A(stream, context, stop_condition, enum_optional_callbacks, detect_wipeout);
+}
+
+void run_wild_battle_press_A(
+    VideoStream& stream,
+    ProControllerContext& context,
+    BattleStopCondition stop_condition,
+    std::unordered_set<CallbackEnum> enum_optional_callbacks,
+    bool detect_wipeout
+){
+    run_battle_press_A(stream, context, stop_condition, enum_optional_callbacks, detect_wipeout);
 }
 
 void select_top_move(VideoStream& stream, ProControllerContext& context, size_t consecutive_move_select){
@@ -471,7 +499,7 @@ void overworld_navigation(
                 return;
             }
 
-            run_battle_press_A(stream, context, BattleStopCondition::STOP_OVERWORLD, {}, detect_wipeout);
+            run_wild_battle_press_A(stream, context, BattleStopCondition::STOP_OVERWORLD, {}, detect_wipeout);
             if (auto_heal){
                 auto_heal_from_menu_or_overworld(info, stream, context, 0, true);
             }
@@ -583,29 +611,73 @@ void change_settings_prior_to_autostory(
     size_t current_segment_num,
     Language language
 ){
-    if (current_segment_num == 0){  // can't change settings in the intro cutscene
-        return;
-    }
 
     // get index of `Options` in the Main Menu, which depends on where you are in Autostory
     int8_t options_index;  
+    std::string assumption_text = "";
     switch(current_segment_num){
         case 0:
-            options_index = 0;
-            break;
+            return; // can't change settings in the intro cutscene
         case 1:
-            options_index = 1;
+        // after Intro cutscene done, in room
+            // Menu
+            // - Options
+            // - Save        
+            options_index = 0;
+            assumption_text = "We assume 'Bag' is not yet unlocked.";
             break;
+        case 2:
+            // Menu
+            // - Bag  --> unlocked after picked up bag/hat in room. Segment 01, checkpoint 02
+            // - Options
+            // - Save
+            options_index = 1;
+            assumption_text = "We assume 'Boxes' is not yet unlocked.";
+            break;
+        case 3:
+        case 4:
+        case 5:
+        case 6:
+            // Menu
+            // - Bag
+            // - Boxes --> unlocked after battling Nemona and receiving Pokedex app. Segment 02, checkpoint 04
+            // - Options
+            // - Save        
+            options_index = 2;
+            assumption_text = "We assume 'Poke Portal' is not yet unlocked.";
+            break;
+        case 7:
+        case 8:
+        case 9:
+            // Menu
+            // - Bag
+            // - Boxes
+            // - Poke Portal --> unlocked after arriving at Los Platos and talking to Nemona. Segment 06, checkpoint 11
+            // - Options
+            // - Save  
+            options_index = 3;
+            assumption_text = "We assume 'Picnic' is not yet unlocked.";
+            break;                    
         default:
-            options_index = 2;        
+            // Menu
+            // - Bag
+            // - Boxes
+            // - Picnic --> unlocked after finishing tutorial. Segment 09, checkpoint 20
+            // - Poke Portal
+            // - Options
+            // - Save          
+            options_index = 4;
+            assumption_text = "We assume that the tutorial is done, and all menu items are unlocked.";
             break;
     }
     
-    bool has_minimap = current_segment_num > 1;  // the minimap only shows up in segment 2 and beyond
+    env.console.log("change_settings_prior_to_autostory: " + assumption_text + " The index of \"Options\" in the Menu is " + std::to_string(options_index) + ".");
+        
+    bool has_minimap = current_segment_num >= 2;  // the minimap only shows up in segment 2 and beyond
 
     enter_menu_from_overworld(env.program_info(), env.console, context, options_index, MenuSide::RIGHT, has_minimap);
     change_settings(env, context, language);
-    if(has_minimap){
+    if(!has_minimap){
         pbf_mash_button(context, BUTTON_B, 2 * TICKS_PER_SECOND);
     }else{
         press_Bs_to_back_to_overworld(env.program_info(), env.console, context);    
@@ -707,7 +779,7 @@ void handle_unexpected_battles(
             action(info, stream, context);
             return;
         }catch (UnexpectedBattleException&){
-            run_battle_press_A(stream, context, BattleStopCondition::STOP_OVERWORLD);
+            run_wild_battle_press_A(stream, context, BattleStopCondition::STOP_OVERWORLD);
         }
     }
 }
@@ -907,7 +979,7 @@ bool is_ride_active(const ProgramInfo& info, VideoStream& stream, ProControllerC
             return is_ride_active;        
 
         }catch(UnexpectedBattleException&){
-            run_battle_press_A(stream, context, BattleStopCondition::STOP_OVERWORLD);
+            run_wild_battle_press_A(stream, context, BattleStopCondition::STOP_OVERWORLD);
         }
     }
 
@@ -937,8 +1009,7 @@ void get_on_or_off_ride(const ProgramInfo& info, VideoStream& stream, ProControl
     }
 }
 
-void checkpoint_save(SingleSwitchProgramEnvironment& env, ProControllerContext& context, EventNotificationOption& notif_status_update){
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
+void checkpoint_save(SingleSwitchProgramEnvironment& env, ProControllerContext& context, EventNotificationOption& notif_status_update, AutoStoryStats& stats){
     save_game_from_overworld(env.program_info(), env.console, context);
     stats.m_checkpoint++;
     env.update_stats();
@@ -1035,11 +1106,11 @@ void realign_player_from_landmark(
 
             return;      
 
+        }catch (UnexpectedBattleException&){
+            run_wild_battle_press_A(stream, context, BattleStopCondition::STOP_OVERWORLD);
         }catch (OperationFailedException&){
             // reset to overworld if failed to center on the pokecenter, and re-try
             leave_phone_to_overworld(info, stream, context);
-        }catch (UnexpectedBattleException&){
-            run_battle_press_A(stream, context, BattleStopCondition::STOP_OVERWORLD);
         }
     }
     
@@ -1117,11 +1188,11 @@ void move_cursor_towards_flypoint_and_go_there(
 
             return;      
 
+        }catch (UnexpectedBattleException&){
+            run_wild_battle_press_A(stream, context, BattleStopCondition::STOP_OVERWORLD);
         }catch (OperationFailedException&){
             // reset to overworld if failed to center on the pokecenter, and re-try
             leave_phone_to_overworld(info, stream, context);
-        }catch (UnexpectedBattleException&){
-            run_battle_press_A(stream, context, BattleStopCondition::STOP_OVERWORLD);
         }
     }
     

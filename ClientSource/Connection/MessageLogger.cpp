@@ -53,9 +53,9 @@ void MessageLogger::on_send(const BotBaseMessage& message, bool is_retransmit){
         return;
     }
     if (is_retransmit){
-        log("Re-Send: " + str);
+        log("Re-Send: " + str, COLOR_DARKGREEN);
     }else{
-        log("Sending: " + str);
+        log("Sending: " + str, COLOR_DARKGREEN);
     }
 }
 void MessageLogger::on_recv(const BotBaseMessage& message){
@@ -76,7 +76,7 @@ void MessageLogger::on_recv(const BotBaseMessage& message){
     if (!print){
         return;
     }
-    log("Receive: " + message_to_string(message));
+    log("Receive: " + message_to_string(message), COLOR_DARKGREEN);
 }
 
 
@@ -94,11 +94,6 @@ void SerialLogger::log(const char* msg, Color color){
 void SerialLogger::log(const std::string& msg, Color color){
     if (ok_to_log()){
         m_logger.log(msg, color);
-    }
-}
-void SerialLogger::log(std::string msg){
-    if (ok_to_log()){
-        m_logger.log(msg, COLOR_DARKGREEN);
     }
 }
 

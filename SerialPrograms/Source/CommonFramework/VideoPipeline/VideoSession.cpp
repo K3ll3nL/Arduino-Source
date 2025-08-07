@@ -86,7 +86,7 @@ void VideoSession::get(VideoSourceOption& option){
     option = m_option;
 }
 void VideoSession::set(const VideoSourceOption& option){
-    set_source(option.descriptor());
+    set_source(option.descriptor(), option.m_resolution);
 }
 
 void VideoSession::reset(){
@@ -119,9 +119,12 @@ void VideoSession::reset(){
         );
     });
 }
-void VideoSession::set_source(const std::shared_ptr<VideoSourceDescriptor>& device){
+void VideoSession::set_source(
+    const std::shared_ptr<VideoSourceDescriptor>& device,
+    Resolution resolution
+){
     m_logger.log("Changing video...", COLOR_GREEN);
-    dispatch_to_main_thread([this, device]{
+    dispatch_to_main_thread([this, device, resolution]{
         std::lock_guard<std::mutex> lg0(m_reset_lock);
         if (*m_descriptor == *device && !m_descriptor->should_reload()){
             return;
@@ -140,7 +143,9 @@ void VideoSession::set_source(const std::shared_ptr<VideoSourceDescriptor>& devi
             m_option.set_descriptor(device);
             m_descriptor = device;
 
-            Resolution desired_resolution = m_option.m_resolution;
+            Resolution desired_resolution = resolution ? resolution : m_option.m_resolution;
+//            cout << "VideoSession::set_source(): " << &m_option << " - " << desired_resolution.width << " x " << desired_resolution.height << endl;
+
             m_video_source = device->make_VideoSource(m_logger, desired_resolution);
 
             if (m_video_source){
@@ -191,10 +196,18 @@ void VideoSession::set_resolution(Resolution resolution){
 }
 
 
-VideoSnapshot VideoSession::snapshot(){
+VideoSnapshot VideoSession::snapshot_latest_blocking(){
     ReadSpinLock lg(m_state_lock);
     if (m_video_source){
-        return m_video_source->snapshot();
+        return m_video_source->snapshot_latest_blocking();
+    }else{
+        return VideoSnapshot();
+    }
+}
+VideoSnapshot VideoSession::snapshot_recent_nonblocking(WallClock min_time){
+    ReadSpinLock lg(m_state_lock);
+    if (m_video_source){
+        return m_video_source->snapshot_recent_nonblocking(min_time);
     }else{
         return VideoSnapshot();
     }

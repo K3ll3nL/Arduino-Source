@@ -210,6 +210,11 @@ std::vector<std::unique_ptr<EditableTableRow>> ProControllerKeyboardMappingTable
 
     ret.emplace_back(make_mapping("Capture",        Qt::Key::Key_Insert,        ProControllerDeltas{.buttons = BUTTON_CAPTURE}));
 
+    ret.emplace_back(make_mapping("C (Switch 2)",   Qt::Key::Key_B,             ProControllerDeltas{.buttons = BUTTON_C}));
+    ret.emplace_back(make_mapping("GL (Switch 2)",  Qt::Key::Key_V,             ProControllerDeltas{.buttons = BUTTON_GL}));
+    ret.emplace_back(make_mapping("GR (Switch 2)",  Qt::Key::Key_Period,        ProControllerDeltas{.buttons = BUTTON_GR}));
+    ret.emplace_back(make_mapping("GR (Switch 2)",  Qt::Key::Key_Greater,       ProControllerDeltas{.buttons = BUTTON_GR}));
+
     ret.emplace_back(make_mapping("A+R (for CFW)",  Qt::Key::Key_Y,             ProControllerDeltas{.buttons = BUTTON_A | BUTTON_R}));
 
     return ret;
@@ -412,6 +417,8 @@ std::vector<std::unique_ptr<EditableTableRow>> JoyconKeyboardMappingTable::make_
 
         ret.emplace_back(make_mapping("SL",             Qt::Key::Key_F1,        JoyconDeltas{.buttons = BUTTON_RIGHT_SL}));
         ret.emplace_back(make_mapping("SR",             Qt::Key::Key_F3,        JoyconDeltas{.buttons = BUTTON_RIGHT_SR}));
+
+        ret.emplace_back(make_mapping("C (Switch 2)",   Qt::Key::Key_B,         JoyconDeltas{.buttons = BUTTON_C}));
     }
 
     return ret;
@@ -466,14 +473,14 @@ KeyboardMappingOption::KeyboardMappingOption()
         LockMode::UNLOCK_WHILE_RUNNING,
         false
     )
-    , LEFT_JOYCON(true)
-    , RIGHT_JOYCON(false)
+    , LEFT_JOYCON0(true)
+    , RIGHT_JOYCON0(false)
 {
     PA_ADD_STATIC(DESCRIPTION);
     PA_ADD_OPTION(ADVANCED_MODE);
-    PA_ADD_OPTION(PRO_CONTROLLER);
-    PA_ADD_OPTION(LEFT_JOYCON);
-    PA_ADD_OPTION(RIGHT_JOYCON);
+    PA_ADD_OPTION(PRO_CONTROLLER1);
+    PA_ADD_OPTION(LEFT_JOYCON0);
+    PA_ADD_OPTION(RIGHT_JOYCON0);
     ADVANCED_MODE.add_listener(*this);
 }
 
@@ -483,9 +490,9 @@ void KeyboardMappingOption::load_json(const JsonValue& json){
     KeyboardMappingOption::on_config_value_changed(this);
 }
 void KeyboardMappingOption::on_config_value_changed(void* object){
-    PRO_CONTROLLER.set_advanced_mode(ADVANCED_MODE);
-    LEFT_JOYCON.set_advanced_mode(ADVANCED_MODE);
-    RIGHT_JOYCON.set_advanced_mode(ADVANCED_MODE);
+    PRO_CONTROLLER1.set_advanced_mode(ADVANCED_MODE);
+    LEFT_JOYCON0.set_advanced_mode(ADVANCED_MODE);
+    RIGHT_JOYCON0.set_advanced_mode(ADVANCED_MODE);
 }
 
 

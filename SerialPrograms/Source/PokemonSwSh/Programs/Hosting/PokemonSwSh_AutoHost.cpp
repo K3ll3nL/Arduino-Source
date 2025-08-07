@@ -28,6 +28,7 @@ using namespace Pokemon;
 
 
 bool connect_to_internet(
+    const ProgramInfo& info,
     VideoStream& stream, ProControllerContext& context,
     bool host_online,
     Milliseconds connect_to_internet_delay
@@ -40,7 +41,7 @@ bool connect_to_internet(
         return true;
     }
     if (connect_to_internet_with_inference(
-        stream, context,
+        info, stream, context,
         std::chrono::seconds(5), connect_to_internet_delay
     )){
         return true;
@@ -136,7 +137,7 @@ void run_autohost(
     context.wait_for_all_requests();
 
     if (!connect_to_internet(
-        console, context,
+        env.program_info(), console, context,
         host_online,
         connect_to_internet_delay
     )){
@@ -170,11 +171,7 @@ void run_autohost(
             code = raid_code->get_code();
         }
         if (!code.empty()){
-            char str[8];
-            for (size_t c = 0; c < 8; c++){
-                str[c] = code[c] + '0';
-            }
-            env.log("Next Raid Code: " + std::string(str, sizeof(str)));
+            env.log("Next Raid Code: " + code);
             pbf_press_button(context, BUTTON_PLUS, 5, 145);
             FastCodeEntry::numberpad_enter_code(console, context, code, true);
             pbf_wait(context, 180);

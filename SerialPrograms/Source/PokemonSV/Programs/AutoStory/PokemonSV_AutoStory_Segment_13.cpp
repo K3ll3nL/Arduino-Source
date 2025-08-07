@@ -28,7 +28,7 @@ namespace PokemonSV{
 
 
 std::string AutoStory_Segment_13::name() const{
-    return "11.1: Bombirdier Titan: Go to West Province Area One Central Pokecenter";
+    return "13: Bombirdier Titan: Go to West Province Area One Central Pokecenter";
 }
 
 std::string AutoStory_Segment_13::start_text() const{
@@ -42,19 +42,20 @@ std::string AutoStory_Segment_13::end_text() const{
 void AutoStory_Segment_13::run_segment(
     SingleSwitchProgramEnvironment& env,
     ProControllerContext& context,
-    AutoStoryOptions options
+    AutoStoryOptions options,
+    AutoStoryStats& stats
 ) const{
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
+    
 
-    context.wait_for_all_requests();
-    env.console.overlay().add_log("Start Segment 11.1: Bombirdier Titan: Go to West Province Area One Central Pokecenter", COLOR_ORANGE);
-
-    checkpoint_29(env, context, options.notif_status_update);
-
-    context.wait_for_all_requests();
-    env.console.log("End Segment 11.1: Bombirdier Titan: Go to West Province Area One Central Pokecenter", COLOR_GREEN);
     stats.m_segment++;
     env.update_stats();
+    context.wait_for_all_requests();
+    env.console.log("Start Segment " + name(), COLOR_ORANGE);
+
+    checkpoint_29(env, context, options.notif_status_update, stats);
+
+    context.wait_for_all_requests();
+    env.console.log("End Segment " + name(), COLOR_GREEN);
 
 }
 
@@ -62,14 +63,15 @@ void AutoStory_Segment_13::run_segment(
 void checkpoint_29(
     SingleSwitchProgramEnvironment& env, 
     ProControllerContext& context, 
-    EventNotificationOption& notif_status_update
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats
 ){
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
+    
     bool first_attempt = true;
     while (true){
     try{
         if (first_attempt){
-            checkpoint_save(env, context, notif_status_update);
+            checkpoint_save(env, context, notif_status_update, stats);
             first_attempt = false;
         }         
         context.wait_for_all_requests();
@@ -158,7 +160,7 @@ void checkpoint_29(
         realign_player_from_landmark(
             env.program_info(), env.console, context, 
             {ZoomChange::ZOOM_IN, 0, 128, 100},
-            {ZoomChange::KEEP_ZOOM, 255, 67, 90} //{ZoomChange::KEEP_ZOOM, 255, 70, 90}
+            {ZoomChange::KEEP_ZOOM, 255, 67, 85} //{ZoomChange::KEEP_ZOOM, 255, 70, 90}
         );
 
 
@@ -192,14 +194,14 @@ void checkpoint_29(
 
                 break;
 
-            }catch (...){ // try again if fall into water
+            }catch(OperationFailedException&){ // try again if fall into water
                 pbf_mash_button(context, BUTTON_A, 250);
 
                 // walk back to start position before bridge
                 realign_player_from_landmark(
                     env.program_info(), env.console, context, 
                     {ZoomChange::ZOOM_IN, 255, 255, 180},
-                    {ZoomChange::KEEP_ZOOM, 33, 0, 180}
+                    {ZoomChange::KEEP_ZOOM, 33, 0, 175}
                 );
 
                 overworld_navigation(env.program_info(), env.console, context, 
@@ -311,7 +313,7 @@ void checkpoint_29(
               
        
         break;
-    }catch (...){
+    }catch(OperationFailedException&){
         context.wait_for_all_requests();
         env.console.log("Resetting from checkpoint.");
         reset_game(env.program_info(), env.console, context);

@@ -10,8 +10,12 @@
 #include "CommonFramework/Tools/ProgramEnvironment.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "PokemonSwSh/Inference/PokemonSwSh_TypeSymbolFinder.h"
-#include "PokemonSwSh/MaxLair/Options/PokemonSwSh_MaxLair_Options.h"
+//#include "PokemonSwSh/MaxLair/Options/PokemonSwSh_MaxLair_Options.h"
 #include "PokemonSwSh_MaxLair_Detect_PathMap.h"
+
+//#include <iostream>
+//using std::cout;
+//using std::endl;
 
 namespace PokemonAutomation{
 namespace NintendoSwitch{
@@ -32,7 +36,15 @@ bool read_type_array(
         type[c] = PokemonType::NONE;
     }
 
-    std::multimap<double, std::pair<PokemonType, ImagePixelBox>> candidates = find_symbols(image, 0.20);
+    std::multimap<double, std::pair<PokemonType, ImagePixelBox>> candidates = find_type_symbols(screen, image, 0.20);
+//    cout << candidates.size() << endl;
+
+#if 0
+    for (auto& item : candidates){
+        cout << item.first << " : " << POKEMON_TYPE_SLUGS().get_string(item.second.first) << endl;
+    }
+#endif
+
     if (candidates.size() < count){
 //        dump_image(console, screen, "ReadPath");
         return false;
@@ -43,7 +55,12 @@ bool read_type_array(
     hits.clear();
     size_t c = 0;
     for (const auto& item : candidates){
-        hits.emplace_back(stream.overlay(), translate_to_parent(screen, box, item.second.second), COLOR_GREEN);
+        hits.emplace_back(
+            stream.overlay(),
+            COLOR_GREEN,
+            translate_to_parent(screen, box, item.second.second),
+            POKEMON_TYPE_SLUGS().get_string(item.second.first)
+        );
         sorted.emplace(item.second.second.min_x, &item.second);
         c++;
         if (c >= count){

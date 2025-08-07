@@ -13,6 +13,7 @@
 #include "Common/Cpp/Options/ButtonOption.h"
 #include "Common/Cpp/Options/DateOption.h"
 #include "Common/Cpp/Options/TimeDurationOption.h"
+#include "Common/Cpp/Options/BoxFloatOption.h"
 #include "CommonFramework/Notifications/EventNotificationsTable.h"
 #include "CommonFramework/ProgramStats/StatsTracking.h"
 #include "CommonTools/Options/LanguageOCROption.h"
@@ -72,17 +73,7 @@ private:
     StringOption IMAGE_PATH;
 
     StaticTextOption STATIC_TEXT;
-
-    StringSelectOption SELECT;
-
-//    PokemonSV::PlayerListTable PLAYER_LIST;
-    DateTimeOption DATE0;
-    DateTimeOption DATE1;
-//    ConsoleModelOption CONSOLE_MODEL;
-
-    MillisecondsOption DURATION;
-    ColorCell COLOR;
-    ControllerSettingsTable CONTROLLER_TABLE;
+    BoxFloatOption BOX;
 
 
 //    PokemonSV::SinglesAIOption battle_AI;

@@ -8,6 +8,7 @@
 #define PokemonAutomation_PokemonSV_AutoStoryTools_H
 
 #include <functional>
+#include <unordered_set>
 #include "CommonFramework/Language.h"
 #include "CommonFramework/ImageTools/ImageBoxes.h"
 #include "CommonFramework/ProgramStats/StatsTracking.h"
@@ -58,7 +59,7 @@ enum class CallbackEnum{
     BATTLE,
     TUTORIAL,
     BLACK_DIALOG_BOX,
-    GRADIENT_ARROW,
+    NEXT_POKEMON,
     SWAP_MENU,
     MOVE_SELECT,
 };
@@ -114,16 +115,29 @@ public:
     virtual void run_segment(
         SingleSwitchProgramEnvironment& env, 
         ProControllerContext& context,
-        AutoStoryOptions options) const = 0;
+        AutoStoryOptions options,
+        AutoStoryStats& stats) const = 0;
 };
 
-// spam A button to choose the first move
-// throw exception if wipeout.
-void run_battle_press_A(
+// spam A button to choose the first move for trainer battles
+// detect_wipeout: can be false if you have multiple pokemon in your party, since an exception will be thrown if your lead faints.
+// throw exception if wipeout or if your lead faints.
+void run_trainer_battle_press_A(
     VideoStream& stream,
     ProControllerContext& context,
     BattleStopCondition stop_condition,
-    std::vector<CallbackEnum> optional_callbacks = {},
+    std::unordered_set<CallbackEnum> enum_optional_callbacks = {},
+    bool detect_wipeout = false
+);
+
+// spam A button to choose the first move for wild battles
+// detect_wipeout: can be false if you have multiple pokemon in your party, since an exception will be thrown if your lead faints.
+// throw exception if wipeout or if your lead faints.
+void run_wild_battle_press_A(
+    VideoStream& stream,
+    ProControllerContext& context,
+    BattleStopCondition stop_condition,
+    std::unordered_set<CallbackEnum> enum_optional_callbacks = {},
     bool detect_wipeout = false
 );
 
@@ -276,7 +290,7 @@ void change_settings_prior_to_autostory(
 void change_settings(SingleSwitchProgramEnvironment& env, ProControllerContext& context, Language language, bool use_inference = true);
 
 
-void checkpoint_save(SingleSwitchProgramEnvironment& env, ProControllerContext& context, EventNotificationOption& notif_status_update);
+void checkpoint_save(SingleSwitchProgramEnvironment& env, ProControllerContext& context, EventNotificationOption& notif_status_update, AutoStoryStats& stats);
 
 enum class ZoomChange{
     ZOOM_IN,

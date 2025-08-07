@@ -4,6 +4,7 @@
  *
  */
 
+#include "CommonFramework/Exceptions/OperationFailedException.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "PokemonSV/Inference/PokemonSV_TutorialDetector.h"
 #include "PokemonSV/Programs/PokemonSV_GameEntry.h"
@@ -40,22 +41,23 @@ std::string AutoStory_Segment_08::end_text() const{
 void AutoStory_Segment_08::run_segment(
     SingleSwitchProgramEnvironment& env,
     ProControllerContext& context,
-    AutoStoryOptions options
+    AutoStoryOptions options,
+    AutoStoryStats& stats
 ) const{
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
+    
 
+    stats.m_segment++;
+    env.update_stats();
     context.wait_for_all_requests();
     env.console.log("Start Segment 08: Beat Team Star and arrive at School", COLOR_ORANGE);
 
-    checkpoint_13(env, context, options.notif_status_update);
-    checkpoint_14(env, context, options.notif_status_update);
-    checkpoint_15(env, context, options.notif_status_update);
+    checkpoint_13(env, context, options.notif_status_update, stats);
+    checkpoint_14(env, context, options.notif_status_update, stats);
+    checkpoint_15(env, context, options.notif_status_update, stats);
     
 
     context.wait_for_all_requests();
     env.console.log("End Segment 08: Beat Team Star and arrive at School", COLOR_GREEN);
-    stats.m_segment++;
-    env.update_stats();
 
 }
 
@@ -63,10 +65,11 @@ void AutoStory_Segment_08::run_segment(
 void checkpoint_13(
     SingleSwitchProgramEnvironment& env, 
     ProControllerContext& context, 
-    EventNotificationOption& notif_status_update
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats
 ){
     // reset rate: 0%. 0 resets out of 70.
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
+    
     bool first_attempt = true;
     while (true){
     try{
@@ -74,7 +77,7 @@ void checkpoint_13(
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
         
             if (first_attempt){
-                checkpoint_save(env, context, notif_status_update);
+                checkpoint_save(env, context, notif_status_update, stats);
                 first_attempt = false;
             } 
 
@@ -90,9 +93,9 @@ void checkpoint_13(
         clear_dialog(env.console, context, ClearDialogMode::STOP_BATTLE, 60,
             {CallbackEnum::PROMPT_DIALOG, CallbackEnum::DIALOG_ARROW, CallbackEnum::BATTLE});
         
-        env.console.log("run_battle_press_A: Battle with Nemona at Mesagoza gate. Stop when detect dialog.");
-        // story continues even if you lose
-        run_battle_press_A(env.console, context, BattleStopCondition::STOP_DIALOG);
+        env.console.log("Battle with Nemona at Mesagoza gate. Stop when detect dialog.");
+        // story continues even if you lose, no need to detect wipeout
+        run_trainer_battle_press_A(env.console, context, BattleStopCondition::STOP_DIALOG);
         
         env.console.log("clear_dialog: Talk with Nemona within Mesagoza. Stop when detect overworld.");
         clear_dialog(env.console, context, ClearDialogMode::STOP_OVERWORLD, 60, 
@@ -100,7 +103,7 @@ void checkpoint_13(
         
        
         break;
-    }catch(...){
+    }catch(OperationFailedException&){
         context.wait_for_all_requests();
         env.console.log("Resetting from checkpoint.");
         reset_game(env.program_info(), env.console, context);
@@ -114,14 +117,15 @@ void checkpoint_13(
 void checkpoint_14(
     SingleSwitchProgramEnvironment& env, 
     ProControllerContext& context, 
-    EventNotificationOption& notif_status_update
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats
 ){
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
+    
     bool first_attempt = true;
     while (true){
     try{
         if (first_attempt){
-            checkpoint_save(env, context, notif_status_update);
+            checkpoint_save(env, context, notif_status_update, stats);
             first_attempt = false;
         }         
         context.wait_for_all_requests();
@@ -145,20 +149,20 @@ void checkpoint_14(
         env.console.log("clear_dialog: Talk with Team Star at the top of the stairs. Stop when detect battle.");
         clear_dialog(env.console, context, ClearDialogMode::STOP_BATTLE, 60, {CallbackEnum::PROMPT_DIALOG, CallbackEnum::BATTLE, CallbackEnum::DIALOG_ARROW});
         // run battle until dialog
-        env.console.log("run_battle_press_A: Battle with Team Star grunt 1. Stop when detect dialog.");
-        run_battle_press_A(env.console, context, BattleStopCondition::STOP_DIALOG, {}, true);
+        env.console.log("Battle with Team Star grunt 1. Stop when detect dialog.");
+        run_trainer_battle_press_A(env.console, context, BattleStopCondition::STOP_DIALOG, {}, true);  // need to detect wipeouts, since you need to win, and you likely only have 1 pokemon
         // clear dialog until battle, with prompt, white button, tutorial, battle
         env.console.log("clear_dialog: Talk with Team Star and Nemona. Receive Tera orb. Stop when detect battle.");
         clear_dialog(env.console, context, ClearDialogMode::STOP_BATTLE, 60, 
             {CallbackEnum::PROMPT_DIALOG, CallbackEnum::WHITE_A_BUTTON, CallbackEnum::TUTORIAL, CallbackEnum::BATTLE, CallbackEnum::DIALOG_ARROW});
         // run battle until dialog
-        env.console.log("run_battle_press_A: Battle with Team Star grunt 2. Stop when detect dialog.");
-        run_battle_press_A(env.console, context, BattleStopCondition::STOP_DIALOG, {}, true);
+        env.console.log("Battle with Team Star grunt 2. Stop when detect dialog.");
+        run_trainer_battle_press_A(env.console, context, BattleStopCondition::STOP_DIALOG, {}, true); // need to detect wipeouts, since you need to win, and you likely only have 1 pokemon
         // clear dialog until overworld
         clear_dialog(env.console, context, ClearDialogMode::STOP_OVERWORLD, 60, {CallbackEnum::OVERWORLD});
        
         break;
-    }catch(...){
+    }catch(OperationFailedException&){
         context.wait_for_all_requests();
         env.console.log("Resetting from checkpoint.");
         reset_game(env.program_info(), env.console, context);
@@ -172,14 +176,15 @@ void checkpoint_14(
 void checkpoint_15(
     SingleSwitchProgramEnvironment& env, 
     ProControllerContext& context, 
-    EventNotificationOption& notif_status_update
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats
 ){
-    AutoStoryStats& stats = env.current_stats<AutoStoryStats>();
+    
     bool first_attempt = true;
     while (true){
     try{
         if (first_attempt){
-            checkpoint_save(env, context, notif_status_update);
+            checkpoint_save(env, context, notif_status_update, stats);
             first_attempt = false;
         }         
         context.wait_for_all_requests();
@@ -201,7 +206,7 @@ void checkpoint_15(
             {CallbackEnum::PROMPT_DIALOG, CallbackEnum::OVERWORLD});
        
         break;
-    }catch(...){
+    }catch(OperationFailedException&){
         context.wait_for_all_requests();
         env.console.log("Resetting from checkpoint.");
         reset_game(env.program_info(), env.console, context);

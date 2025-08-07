@@ -44,7 +44,8 @@ constexpr Button VALID_RIGHT_JOYCON_BUTTONS =
     BUTTON_ZR |
     BUTTON_PLUS |
     BUTTON_RCLICK |
-    BUTTON_HOME;
+    BUTTON_HOME |
+    BUTTON_C;
 
 
 
@@ -52,7 +53,7 @@ class JoyconController : public AbstractController{
 public:
     using ContextType = JoyconContext;
 
-    JoyconController(ControllerType controller_type);
+    JoyconController(Logger& logger, ControllerType controller_type);
     virtual ~JoyconController();
 
     //  Must call before destruction begins.

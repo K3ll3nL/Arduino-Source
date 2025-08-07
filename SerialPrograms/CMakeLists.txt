@@ -63,16 +63,22 @@ file(GLOB MAIN_SOURCES
     ../Common/CRC32.h
     ../Common/Compiler.h
     ../Common/Cpp/AbstractLogger.h
+    ../Common/Cpp/BitmapConversion.cpp
+    ../Common/Cpp/BitmapConversion.h
     ../Common/Cpp/CancellableScope.cpp
     ../Common/Cpp/CancellableScope.h
     ../Common/Cpp/Color.cpp
     ../Common/Cpp/Color.h
     ../Common/Cpp/Concurrency/AsyncDispatcher.cpp
     ../Common/Cpp/Concurrency/AsyncDispatcher.h
+    ../Common/Cpp/Concurrency/AsyncTask.cpp
+    ../Common/Cpp/Concurrency/AsyncTask.h
+    ../Common/Cpp/Concurrency/ComputationThreadPool.cpp
+    ../Common/Cpp/Concurrency/ComputationThreadPool.h
+    ../Common/Cpp/Concurrency/ComputationThreadPoolCore.cpp
+    ../Common/Cpp/Concurrency/ComputationThreadPoolCore.h
     ../Common/Cpp/Concurrency/FireForgetDispatcher.cpp
     ../Common/Cpp/Concurrency/FireForgetDispatcher.h
-    ../Common/Cpp/Concurrency/ParallelTaskRunner.cpp
-    ../Common/Cpp/Concurrency/ParallelTaskRunner.h
     ../Common/Cpp/Concurrency/PeriodicScheduler.cpp
     ../Common/Cpp/Concurrency/PeriodicScheduler.h
     ../Common/Cpp/Concurrency/ReverseLockGuard.h
@@ -102,6 +108,12 @@ file(GLOB MAIN_SOURCES
     ../Common/Cpp/CpuId/CpuId_arm64.tpp
     ../Common/Cpp/CpuId/CpuId_x86.h
     ../Common/Cpp/CpuId/CpuId_x86.tpp
+    ../Common/Cpp/CpuUtilization/CpuUtilization.cpp
+    ../Common/Cpp/CpuUtilization/CpuUtilization.h
+    ../Common/Cpp/CpuUtilization/CpuUtilization_Linux.h
+    ../Common/Cpp/CpuUtilization/CpuUtilization_Linux.tpp
+    ../Common/Cpp/CpuUtilization/CpuUtilization_Windows.h
+    ../Common/Cpp/CpuUtilization/CpuUtilization_Windows.tpp
     ../Common/Cpp/DateTime.h
     ../Common/Cpp/EnumStringMap.h
     ../Common/Cpp/EventRateTracker.h
@@ -126,6 +138,8 @@ file(GLOB MAIN_SOURCES
     ../Common/Cpp/Options/BatchOption.h
     ../Common/Cpp/Options/BooleanCheckBoxOption.cpp
     ../Common/Cpp/Options/BooleanCheckBoxOption.h
+    ../Common/Cpp/Options/BoxFloatOption.cpp
+    ../Common/Cpp/Options/BoxFloatOption.h
     ../Common/Cpp/Options/ButtonOption.cpp
     ../Common/Cpp/Options/ButtonOption.h
     ../Common/Cpp/Options/ColorOption.cpp
@@ -182,7 +196,9 @@ file(GLOB MAIN_SOURCES
     ../Common/Cpp/Sockets/ClientSocket.cpp
     ../Common/Cpp/Sockets/ClientSocket.h
     ../Common/Cpp/Sockets/ClientSocket_POSIX.h
+    ../Common/Cpp/Sockets/ClientSocket_Qt.h
     ../Common/Cpp/Sockets/ClientSocket_WinSocket.h
+    ../Common/Cpp/Stopwatch.h
     ../Common/Cpp/StreamConverters.cpp
     ../Common/Cpp/StreamConverters.h
     ../Common/Cpp/StringTools.cpp
@@ -212,6 +228,8 @@ file(GLOB MAIN_SOURCES
     ../Common/Qt/Options/BatchWidget.h
     ../Common/Qt/Options/BooleanCheckBoxWidget.cpp
     ../Common/Qt/Options/BooleanCheckBoxWidget.h
+    ../Common/Qt/Options/BoxFloatWidget.cpp
+    ../Common/Qt/Options/BoxFloatWidget.h
     ../Common/Qt/Options/ButtonWidget.cpp
     ../Common/Qt/Options/ButtonWidget.h
     ../Common/Qt/Options/ColorWidget.cpp
@@ -254,6 +272,7 @@ file(GLOB MAIN_SOURCES
     ../Common/Qt/Options/TimeExpressionWidget.h
     ../Common/Qt/Redispatch.cpp
     ../Common/Qt/Redispatch.h
+    ../Common/Qt/SpinWaitWithEvents.h
     ../Common/Qt/StringToolsQt.cpp
     ../Common/Qt/StringToolsQt.h
     ../Common/Qt/TimeQt.cpp
@@ -261,7 +280,7 @@ file(GLOB MAIN_SOURCES
     ../Common/Qt/WidgetStackFixedAspectRatio.cpp
     ../Common/Qt/WidgetStackFixedAspectRatio.h
     ../Common/SerialPABotBase/SerialPABotBase_Messages_ESP32.h
-    ../Common/SerialPABotBase/SerialPABotBase_Messages_NS_Generic.h
+    ../Common/SerialPABotBase/SerialPABotBase_Messages_NS2_WiredController.h
     ../Common/SerialPABotBase/SerialPABotBase_Protocol.h
     ../Common/SerialPABotBase/SerialPABotBase_Protocol_IDs.h
     ../IconResource/IconResource.rc
@@ -402,6 +421,8 @@ file(GLOB MAIN_SOURCES
     Source/CommonFramework/Options/ResolutionOption.cpp
     Source/CommonFramework/Options/ResolutionOption.h
     Source/CommonFramework/Options/ScreenshotFormatOption.h
+    Source/CommonFramework/Options/ThreadPoolOption.cpp
+    Source/CommonFramework/Options/ThreadPoolOption.h
     Source/CommonFramework/Panels/PanelDescriptor.cpp
     Source/CommonFramework/Panels/PanelDescriptor.h
     Source/CommonFramework/Panels/PanelInstance.cpp
@@ -449,6 +470,8 @@ file(GLOB MAIN_SOURCES
     Source/CommonFramework/Tools/ErrorDumper.h
     Source/CommonFramework/Tools/FileDownloader.cpp
     Source/CommonFramework/Tools/FileDownloader.h
+    Source/CommonFramework/Tools/GlobalThreadPools.cpp
+    Source/CommonFramework/Tools/GlobalThreadPools.h
     Source/CommonFramework/Tools/ProgramEnvironment.cpp
     Source/CommonFramework/Tools/ProgramEnvironment.h
     Source/CommonFramework/Tools/StatAccumulator.cpp
@@ -463,6 +486,10 @@ file(GLOB MAIN_SOURCES
     Source/CommonFramework/VideoPipeline/Backends/CameraWidgetQt6.h
     Source/CommonFramework/VideoPipeline/Backends/MediaServicesQt6.cpp
     Source/CommonFramework/VideoPipeline/Backends/MediaServicesQt6.h
+    Source/CommonFramework/VideoPipeline/Backends/QCameraThread.h
+    Source/CommonFramework/VideoPipeline/Backends/QVideoFrameCache.h
+    Source/CommonFramework/VideoPipeline/Backends/SnapshotManager.cpp
+    Source/CommonFramework/VideoPipeline/Backends/SnapshotManager.h
     Source/CommonFramework/VideoPipeline/Backends/VideoFrameQt.h
     Source/CommonFramework/VideoPipeline/CameraInfo.h
     Source/CommonFramework/VideoPipeline/Stats/CpuUtilizationStats.h
@@ -523,8 +550,6 @@ file(GLOB MAIN_SOURCES
     Source/CommonTools/Audio/SpectrogramMatcher.h
     Source/CommonTools/DetectionDebouncer.h
     Source/CommonTools/FailureWatchdog.h
-    Source/CommonTools/GlobalInferenceRunner.cpp
-    Source/CommonTools/GlobalInferenceRunner.h
     Source/CommonTools/ImageMatch/CroppedImageDictionaryMatcher.cpp
     Source/CommonTools/ImageMatch/CroppedImageDictionaryMatcher.h
     Source/CommonTools/ImageMatch/ExactImageDictionaryMatcher.cpp
@@ -668,8 +693,8 @@ file(GLOB MAIN_SOURCES
     Source/Controllers/SerialPABotBase/SerialPABotBase_PostConnectActions.h
     Source/Controllers/SerialPABotBase/SerialPABotBase_Routines_ESP32.cpp
     Source/Controllers/SerialPABotBase/SerialPABotBase_Routines_ESP32.h
-    Source/Controllers/SerialPABotBase/SerialPABotBase_Routines_NS_Generic.cpp
-    Source/Controllers/SerialPABotBase/SerialPABotBase_Routines_NS_Generic.h
+    Source/Controllers/SerialPABotBase/SerialPABotBase_Routines_NS2_WiredController.cpp
+    Source/Controllers/SerialPABotBase/SerialPABotBase_Routines_NS2_WiredController.h
     Source/Controllers/SerialPABotBase/SerialPABotBase_Routines_Protocol.cpp
     Source/Controllers/SerialPABotBase/SerialPABotBase_Routines_Protocol.h
     Source/Controllers/SerialPABotBase/SerialPABotBase_SelectorWidget.h
@@ -695,8 +720,6 @@ file(GLOB MAIN_SOURCES
     Source/Integrations/IntegrationsAPI.h
     Source/Integrations/ProgramTracker.cpp
     Source/Integrations/ProgramTracker.h
-    Source/Integrations/SleepyDiscordRunner.cpp
-    Source/Integrations/SleepyDiscordRunner.h
     Source/Kernels/AbsFFT/Kernels_AbsFFT.cpp
     Source/Kernels/AbsFFT/Kernels_AbsFFT.h
     Source/Kernels/AbsFFT/Kernels_AbsFFT_Arch.h
@@ -871,12 +894,31 @@ file(GLOB MAIN_SOURCES
     Source/Kernels/Waterfill/Kernels_Waterfill_Session.h
     Source/Kernels/Waterfill/Kernels_Waterfill_Session.tpp
     Source/Kernels/Waterfill/Kernels_Waterfill_Types.h
-    Source/ML/DataLabeling/SegmentAnythingModel.cpp
-    Source/ML/DataLabeling/SegmentAnythingModel.h
+    Source/ML/DataLabeling/ML_AnnotationIO.cpp
+    Source/ML/DataLabeling/ML_AnnotationIO.h
+    Source/ML/DataLabeling/ML_ObjectAnnotation.cpp
+    Source/ML/DataLabeling/ML_ObjectAnnotation.h
+    Source/ML/DataLabeling/ML_SegmentAnythingModel.cpp
+    Source/ML/DataLabeling/ML_SegmentAnythingModel.h
+    Source/ML/DataLabeling/ML_SegmentAnythingModelConstants.h
     Source/ML/ML_Panels.cpp
     Source/ML/ML_Panels.h
     Source/ML/Programs/ML_LabelImages.cpp
     Source/ML/Programs/ML_LabelImages.h
+    Source/ML/Programs/ML_LabelImagesOverlayManager.cpp
+    Source/ML/Programs/ML_LabelImagesOverlayManager.h
+    Source/ML/Programs/ML_LabelImagesWidget.cpp
+    Source/ML/Programs/ML_LabelImagesWidget.h
+    Source/ML/UI/ML_ImageAnnotationCommandRow.cpp
+    Source/ML/UI/ML_ImageAnnotationCommandRow.h
+    Source/ML/UI/ML_ImageAnnotationDisplayOption.cpp
+    Source/ML/UI/ML_ImageAnnotationDisplayOption.h
+    Source/ML/UI/ML_ImageAnnotationDisplaySession.cpp
+    Source/ML/UI/ML_ImageAnnotationDisplaySession.h
+    Source/ML/UI/ML_ImageAnnotationDisplayWidget.cpp
+    Source/ML/UI/ML_ImageAnnotationDisplayWidget.h
+    Source/ML/UI/ML_ImageAnnotationSourceSelectorWidget.cpp
+    Source/ML/UI/ML_ImageAnnotationSourceSelectorWidget.h
     Source/NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.cpp
     Source/NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h
     Source/NintendoSwitch/Commands/NintendoSwitch_Commands_Routines.cpp
@@ -899,8 +941,8 @@ file(GLOB MAIN_SOURCES
     Source/NintendoSwitch/Controllers/NintendoSwitch_VirtualControllerState.h
     Source/NintendoSwitch/Controllers/SerialPABotBase/NintendoSwitch_SerialPABotBase_Controller.cpp
     Source/NintendoSwitch/Controllers/SerialPABotBase/NintendoSwitch_SerialPABotBase_Controller.h
-    Source/NintendoSwitch/Controllers/SerialPABotBase/NintendoSwitch_SerialPABotBase_PokkenController.cpp
-    Source/NintendoSwitch/Controllers/SerialPABotBase/NintendoSwitch_SerialPABotBase_PokkenController.h
+    Source/NintendoSwitch/Controllers/SerialPABotBase/NintendoSwitch_SerialPABotBase_WiredController.cpp
+    Source/NintendoSwitch/Controllers/SerialPABotBase/NintendoSwitch_SerialPABotBase_WiredController.h
     Source/NintendoSwitch/Controllers/SerialPABotBase/NintendoSwitch_SerialPABotBase_WirelessController.cpp
     Source/NintendoSwitch/Controllers/SerialPABotBase/NintendoSwitch_SerialPABotBase_WirelessController.h
     Source/NintendoSwitch/Controllers/SerialPABotBase/NintendoSwitch_SerialPABotBase_WirelessJoycon.cpp
@@ -953,6 +995,8 @@ file(GLOB MAIN_SOURCES
     Source/NintendoSwitch/Framework/UI/NintendoSwitch_SingleSwitchProgramWidget.h
     Source/NintendoSwitch/Framework/UI/NintendoSwitch_SwitchSystemWidget.cpp
     Source/NintendoSwitch/Framework/UI/NintendoSwitch_SwitchSystemWidget.h
+    Source/NintendoSwitch/Inference/NintendoSwitch2_BinarySliderDetector.cpp
+    Source/NintendoSwitch/Inference/NintendoSwitch2_BinarySliderDetector.h
     Source/NintendoSwitch/Inference/NintendoSwitch_ConsoleTypeDetector.cpp
     Source/NintendoSwitch/Inference/NintendoSwitch_ConsoleTypeDetector.h
     Source/NintendoSwitch/Inference/NintendoSwitch_DateChangeDetector.cpp
@@ -1000,6 +1044,8 @@ file(GLOB MAIN_SOURCES
     Source/NintendoSwitch/Programs/DateManip/NintendoSwitch_DateManip_24h.h
     Source/NintendoSwitch/Programs/DateManip/NintendoSwitch_DateManip_US.cpp
     Source/NintendoSwitch/Programs/DateManip/NintendoSwitch_DateManip_US.h
+    Source/NintendoSwitch/Programs/DateSpam/NintendoSwitch1_HomeToDateTime.cpp
+    Source/NintendoSwitch/Programs/DateSpam/NintendoSwitch2_HomeToDateTime.cpp
     Source/NintendoSwitch/Programs/DateSpam/NintendoSwitch_HomeToDateTime.cpp
     Source/NintendoSwitch/Programs/DateSpam/NintendoSwitch_HomeToDateTime.h
     Source/NintendoSwitch/Programs/DateSpam/NintendoSwitch_NeutralDateSkip.cpp
@@ -1270,6 +1316,8 @@ file(GLOB MAIN_SOURCES
     Source/PokemonHome/Programs/PokemonHome_GenerateNameOCR.h
     Source/PokemonHome/Programs/PokemonHome_PageSwap.cpp
     Source/PokemonHome/Programs/PokemonHome_PageSwap.h
+    Source/PokemonHome/Resources/PokemonHome_PokeballSprites.cpp
+    Source/PokemonHome/Resources/PokemonHome_PokeballSprites.h
     Source/PokemonLA/Inference/Battles/PokemonLA_BattleMenuDetector.cpp
     Source/PokemonLA/Inference/Battles/PokemonLA_BattleMenuDetector.h
     Source/PokemonLA/Inference/Battles/PokemonLA_BattleMoveSelectionDetector.cpp
@@ -1535,6 +1583,8 @@ file(GLOB MAIN_SOURCES
     Source/PokemonSV/Inference/Battles/PokemonSV_PostCatchDetector.h
     Source/PokemonSV/Inference/Battles/PokemonSV_ShinySoundDetector.cpp
     Source/PokemonSV/Inference/Battles/PokemonSV_ShinySoundDetector.h
+    Source/PokemonSV/Inference/Battles/PokemonSV_StartBattleYellowBar.cpp
+    Source/PokemonSV/Inference/Battles/PokemonSV_StartBattleYellowBar.h
     Source/PokemonSV/Inference/Battles/PokemonSV_TeraBattleMenus.cpp
     Source/PokemonSV/Inference/Battles/PokemonSV_TeraBattleMenus.h
     Source/PokemonSV/Inference/Boxes/PokemonSV_BoxDetection.cpp
@@ -1589,6 +1639,8 @@ file(GLOB MAIN_SOURCES
     Source/PokemonSV/Inference/Overworld/PokemonSV_OliveDetector.h
     Source/PokemonSV/Inference/Overworld/PokemonSV_OverworldDetector.cpp
     Source/PokemonSV/Inference/Overworld/PokemonSV_OverworldDetector.h
+    Source/PokemonSV/Inference/Overworld/PokemonSV_OverworldSensors.cpp
+    Source/PokemonSV/Inference/Overworld/PokemonSV_OverworldSensors.h
     Source/PokemonSV/Inference/Overworld/PokemonSV_StationaryOverworldWatcher.cpp
     Source/PokemonSV/Inference/Overworld/PokemonSV_StationaryOverworldWatcher.h
     Source/PokemonSV/Inference/Picnics/PokemonSV_PicnicDetector.cpp
@@ -1782,6 +1834,8 @@ file(GLOB MAIN_SOURCES
     Source/PokemonSV/Programs/Farming/PokemonSV_BlueberryCatchPhoto.h
     Source/PokemonSV/Programs/Farming/PokemonSV_BlueberryQuests.cpp
     Source/PokemonSV/Programs/Farming/PokemonSV_BlueberryQuests.h
+    Source/PokemonSV/Programs/Farming/PokemonSV_ClaimMysteryGift.cpp
+    Source/PokemonSV/Programs/Farming/PokemonSV_ClaimMysteryGift.h    
     Source/PokemonSV/Programs/Farming/PokemonSV_ESPTraining.cpp
     Source/PokemonSV/Programs/Farming/PokemonSV_ESPTraining.h
     Source/PokemonSV/Programs/Farming/PokemonSV_FlyingTrialFarmer.cpp
@@ -2384,7 +2438,7 @@ if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../../Internal/SerialPrograms/Internal0.
 endif()
 
 #extract opencv_world4110d.dll from archive on Windows Debug builds
-if (MSVC)
+if (WIN32)
     file(ARCHIVE_EXTRACT
       INPUT ${CMAKE_CURRENT_SOURCE_DIR}/../3rdPartyBinaries/opencv_world4110d.zip
       DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../3rdPartyBinaries/
@@ -2399,7 +2453,7 @@ target_link_directories(SerialPrograms PRIVATE ../3rdPartyBinaries/)
 
 
 
-if (MSVC)
+if (WIN32)
     add_library(OpenCV_lib IMPORTED UNKNOWN)
     target_include_directories(SerialPrograms SYSTEM PRIVATE ../3rdParty/opencv-4.11.0/)
     set_target_properties(OpenCV_lib PROPERTIES
@@ -2452,7 +2506,6 @@ if (MSVC)
         OpenCV_lib
         ONNX_lib
         ONNX_Providers_lib
-        Sleepy.lib
         dpp_lib
     )
     target_compile_definitions(
@@ -2460,7 +2513,6 @@ if (MSVC)
         _CRT_SECURE_NO_WARNINGS
         _DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR
         PA_TESSERACT
-        PA_SLEEPY
         PA_DPP
     )
 
@@ -2472,6 +2524,15 @@ if (MSVC)
     set(ARCH_FLAGS_13_Haswell       /arch:AVX2)
     set(ARCH_FLAGS_17_Skylake       /arch:AVX512)
     set(ARCH_FLAGS_19_IceLake       /arch:AVX512)
+
+    if(CMAKE_GENERATOR_TOOLSET MATCHES "ClangCL")
+        target_compile_options(SerialPrograms PRIVATE -Wno-unused-function)
+        target_compile_options(SerialPrograms PRIVATE -march=nehalem)
+        set(ARCH_FLAGS_09_Nehalem       -march=nehalem)
+        set(ARCH_FLAGS_13_Haswell       -march=haswell)
+        set(ARCH_FLAGS_17_Skylake       -march=skylake-avx512)
+        set(ARCH_FLAGS_19_IceLake       -march=icelake-client)
+    endif()
 
     #   Run-time ISA dispatching
     target_compile_definitions(SerialPrograms PRIVATE PA_AutoDispatch_x64_08_Nehalem)
@@ -2587,7 +2648,7 @@ else() # macOS and Linux
 
     else()
         # Intel CPU
-        target_compile_options(SerialPrograms PRIVATE -msse4.2)
+        target_compile_options(SerialPrograms PRIVATE -march=nehalem)
         set(ARCH_FLAGS_09_Nehalem       -march=nehalem)
         set(ARCH_FLAGS_13_Haswell       -march=haswell)
         set(ARCH_FLAGS_17_Skylake       -march=skylake-avx512)
