@@ -31,7 +31,7 @@ class Enrichment : public SingleSwitchProgramInstance{
 public:
     Enrichment();
 
-    void home_put_away_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&, Game&, bool);
+    void home_put_away_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&, PokemonHome_HomeEnvironment&, Game&, bool);
     void home_dispose_of_go(SingleSwitchProgramEnvironment&, ProControllerContext&, PokemonHome_HomeEnvironment&);
     bool wipe_markings(SingleSwitchProgramEnvironment&, ProControllerContext&, PokemonHome_HomeEnvironment&);
     void initialize_home(SingleSwitchProgramEnvironment&, ProControllerContext&, PokemonHome_HomeEnvironment&, std::vector<Game>&);

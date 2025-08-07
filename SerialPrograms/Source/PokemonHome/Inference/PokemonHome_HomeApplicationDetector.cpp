@@ -747,7 +747,7 @@ HomeCursorLocator::HomeCursorLocator(HomeCursorType cursor_type, const ImageFloa
 {}
 
 void HomeCursorLocator::make_overlays(VideoOverlaySet& items) const{
-    items.add(m_color, m_box);
+    // items.add(m_color, m_box);
 }
 
 std::pair<int, int> HomeCursorLocator::detect(const ImageViewRGB32& frame) const{

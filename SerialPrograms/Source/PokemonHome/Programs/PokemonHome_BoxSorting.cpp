@@ -43,6 +43,7 @@ language
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonHome/Inference/PokemonHome_BoxGenderDetector.h"
 #include "PokemonHome/Inference/PokemonHome_BallReader.h"
+#include "PokemonHome/Programs/HomeEnvironment/PokemonHome_HomeEnvironment.h"
 #include "PokemonHome_BoxSorting.h"
 
 namespace PokemonAutomation{
@@ -757,6 +758,18 @@ void BoxSorting::program(SingleSwitchProgramEnvironment& env, ProControllerConte
     }
 
     send_program_finished_notification(env, NOTIFICATION_PROGRAM_FINISH);
+
+
+    PokemonHome_HomeEnvironment home_manager(env, context);
+
+    home_manager.navigate_menus_to(env, context, PageID::MAIN_MENU);
+
+    pbf_press_button(context, BUTTON_HOME,10, 150);
+    pbf_press_button(context, BUTTON_X, 10, 20);
+    pbf_press_button(context, BUTTON_A, 10, 320);
+    pbf_press_button(context, BUTTON_A, 10, 3150);
+    pbf_press_button(context, BUTTON_A, 10, 3150);
+
 
 }
 

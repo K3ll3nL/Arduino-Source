@@ -1250,6 +1250,10 @@ file(GLOB MAIN_SOURCES
     Source/PokemonHome/Inference/PokemonHome_BoxGenderDetector.h
     Source/PokemonHome/Inference/PokemonHome_HomeApplicationDetector.cpp
     Source/PokemonHome/Inference/PokemonHome_HomeApplicationDetector.h
+    Source/PokemonHome/Inference/PokemonHome_FilterMenuReader.cpp
+    Source/PokemonHome/Inference/PokemonHome_FilterMenuReader.h
+    Source/PokemonHome/Inference/PokemonHome_FilterMenuConfirmReader.cpp
+    Source/PokemonHome/Inference/PokemonHome_FilterMenuConfirmReader.h
     Source/PokemonHome/Options/PokemonHome_BoxSortingTable.cpp
     Source/PokemonHome/Options/PokemonHome_BoxSortingTable.h
     Source/PokemonHome/PokemonHome_Panels.cpp

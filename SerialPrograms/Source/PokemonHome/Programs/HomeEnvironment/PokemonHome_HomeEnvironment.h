@@ -158,22 +158,25 @@ public:
     HomeCursor(HomePokemon);
     HomeCursor();
 
-    CursorActionResponse move_cursor_to(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&);
+    CursorActionResponse move_cursor_to(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&, bool);
     CursorActionResponse pick_up_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&);
     CursorActionResponse put_down_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&);
     CursorActionResponse identify_page(SingleSwitchProgramEnvironment&, ProControllerContext&, bool = false, size_t = UINT_MAX);
     size_t get_page();
 
-private:
-    CursorActionResponse align_col(SingleSwitchProgramEnvironment&, ProControllerContext&, const size_t&);
-    CursorActionResponse align_row(SingleSwitchProgramEnvironment&, ProControllerContext&, const size_t&);
-    CursorActionResponse position_cursor(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&, size_t = 0);
-    CursorActionResponse navigate_to_page(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&);
-    CursorActionResponse locate_position(SingleSwitchProgramEnvironment&, ProControllerContext&);
-
+    // TODO: MAKE PRIVATE AFTER NAVIGATING GAME WITH SECONDARY BOXES
     size_t row;
     size_t col;
     size_t box;
+
+private:
+    void align_col(SingleSwitchProgramEnvironment&, ProControllerContext&, const size_t&, bool);
+    void align_row(SingleSwitchProgramEnvironment&, ProControllerContext&, const size_t&);
+    CursorActionResponse position_cursor(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&, bool = false, size_t = 0);
+    CursorActionResponse navigate_to_page(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&);
+    CursorActionResponse locate_position(SingleSwitchProgramEnvironment&, ProControllerContext&);
+
+
     // size_t secondary_box;
 
     bool holding_pokemon;
@@ -190,6 +193,7 @@ public:
     void navigate_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const std::pair<size_t, size_t>&);
     void navigate_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const std::pair<size_t, size_t>&, size_t);
     void detect_home(SingleSwitchProgramEnvironment&, ProControllerContext&);
+    void scroll_filter_menu(SingleSwitchProgramEnvironment&, ProControllerContext&, std::string, size_t = 0);
     std::string get_view();
 
     size_t get_box();
