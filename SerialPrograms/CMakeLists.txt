@@ -1300,6 +1300,8 @@ file(GLOB MAIN_SOURCES
     Source/PokemonHome/Inference/PokemonHome_FilterMenuReader.h
     Source/PokemonHome/Inference/PokemonHome_FilterMenuConfirmReader.cpp
     Source/PokemonHome/Inference/PokemonHome_FilterMenuConfirmReader.h
+    Source/PokemonHome/Inference/PokemonHome_SVItemReader.cpp
+    Source/PokemonHome/Inference/PokemonHome_SVItemReader.h
     Source/PokemonHome/Options/PokemonHome_BoxSortingTable.cpp
     Source/PokemonHome/Options/PokemonHome_BoxSortingTable.h
     Source/PokemonHome/PokemonHome_Panels.cpp

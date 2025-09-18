@@ -117,7 +117,7 @@ const std::map<
             }},
         }},
     }},
-    {2025061407, {
+    {2025061403, {
         {PABB_PID_PABOTBASE_ArduinoUnoR3, {
             {ControllerType::NintendoSwitch_WiredController, {
                 ControllerFeature::TickPrecise,

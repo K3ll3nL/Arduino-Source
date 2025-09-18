@@ -710,7 +710,7 @@ class HomeGrabbingCursorMatcher : public ImageMatch::WaterfillTemplateMatcher {
 public:
     HomeGrabbingCursorMatcher() : WaterfillTemplateMatcher(
               "PokemonHome/HomeGrabbingHand-Template.png",    // Use the same or replace with correct path
-              Color(250,250,250), Color(255, 255, 255), 50
+              Color(250,250,250), Color(255, 255, 255), 1300
               ){
         m_aspect_ratio_lower = 0.95;
         m_aspect_ratio_upper = 1.05;
@@ -771,7 +771,7 @@ std::pair<int, int> HomeCursorLocator::locate_grabbing_hand(const ImageViewRGB32
     };
 
     const double screen_rel_size = (frame.height() / 1080.0);
-    const size_t min_size = static_cast<size_t>(screen_rel_size * screen_rel_size * 50.0);
+    const size_t min_size = static_cast<size_t>(screen_rel_size * screen_rel_size * 1300.0);
 
     std::pair<double, double> hand_loc(-1, -1);
 
@@ -836,7 +836,7 @@ std::pair<int, int> HomeCursorLocator::locate_red_hand(const ImageViewRGB32& fra
 
 
 HomeCursorWatcher::HomeCursorWatcher(const HomeCursorType cursor_type, const ImageFloatBox& box, Color color)
-    : VisualInferenceCallback("HomeGrabbingHandWatcher")
+    : VisualInferenceCallback(cursor_type==HomeCursorType::GRABBING?"HomeGrabbingHandWatcher":"HomeRedHandWatcher")
     , m_locator(cursor_type, box, color)
     , m_location(-1, -1)
 {}

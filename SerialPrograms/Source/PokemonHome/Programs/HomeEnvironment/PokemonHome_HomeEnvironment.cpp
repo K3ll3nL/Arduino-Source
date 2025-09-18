@@ -42,12 +42,14 @@ std::string to_string(PageID page) {
     }
 }
 
-HomeCursor::HomeCursor(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+HomeCursor::HomeCursor(SingleSwitchProgramEnvironment& env, ProControllerContext& context, bool single_page, bool secondary_open){
     holding_pokemon = false;
 
-    identify_page(env, context);
+    locate_position(env, context, secondary_open);
+    if(!single_page){
+        identify_page(env, context, false, UINT_MAX);
+    }
 
-    locate_position(env, context);
 
 }
 
@@ -77,6 +79,8 @@ CursorActionResponse HomeCursor::move_cursor_to(SingleSwitchProgramEnvironment& 
 CursorActionResponse HomeCursor::pick_up_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     // TODO: Implement pick up logic
     //return {CursorActionResult::FAILURE, "Function still undefined"};
+
+    pbf_press_button(context, BUTTON_Y, 10, 70);    // press y button
     holding_pokemon = true;
     return {CursorActionResult::SUCCESS, "Function still undefined"};
 
@@ -90,25 +94,28 @@ CursorActionResponse HomeCursor::put_down_pokemon(SingleSwitchProgramEnvironment
 }
 
 void HomeCursor::align_col(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const size_t& new_col, bool secondary_open){
+    if(col>(secondary_open?2:1)*MAX_COLUMNS){
+        locate_position(env, context, secondary_open);
+    }
 
     // direct nav forward or backward through cols
     if ((new_col > col && new_col - col <= (secondary_open?6:3)) || (col > new_col && col - new_col <= (secondary_open?6:3))) {
         for (size_t i = col; i < new_col; ++i) {
-            pbf_press_dpad(context, DPAD_RIGHT, 10, 15);
+            pbf_press_dpad(context, DPAD_RIGHT, 10, 30);
         }
         for (size_t i = new_col; i < col; ++i) {
-            pbf_press_dpad(context, DPAD_LEFT, 10, 15);
+            pbf_press_dpad(context, DPAD_LEFT, 10, 30);
         }
     } else { // wrap around is faster if direct movement is more than 3 (or 6 if in a game) away
         if (new_col > col) {
             size_t temp = ((secondary_open?2:1)*MAX_COLUMNS) - (new_col - col);
             for (size_t i = 0; i < temp; ++i) {
-                pbf_press_dpad(context, DPAD_LEFT, 10, 15);
+                pbf_press_dpad(context, DPAD_LEFT, 10, 30);
             }
         }
         if (col > new_col) {
             for (size_t i = 0; i < (secondary_open?2:1)*MAX_COLUMNS - (col - new_col); ++i) {
-                pbf_press_dpad(context, DPAD_RIGHT, 10, 15);
+                pbf_press_dpad(context, DPAD_RIGHT, 10, 30);
             }
         }
     }
@@ -122,19 +129,19 @@ void HomeCursor::align_row(SingleSwitchProgramEnvironment& env, ProControllerCon
     // direct nav up or down through rows
     if (!(row == 0 && new_row == 4) && !(new_row == 0 && row == 4)) {
         for (size_t i = row; i < new_row; ++i) {
-            pbf_press_dpad(context, DPAD_DOWN, 10, 15);
+            pbf_press_dpad(context, DPAD_DOWN, 10, 30);
         }
         for (size_t i = new_row; i < row; ++i) {
-            pbf_press_dpad(context, DPAD_UP, 10, 15);
+            pbf_press_dpad(context, DPAD_UP, 10, 30);
         }
     } else { // wrap around is faster to move between row or last row
         if (row == 0 && new_row == 4) {
             for (size_t i = 0; i <= 2; ++i) {
-                pbf_press_dpad(context, DPAD_UP, 10, 15);
+                pbf_press_dpad(context, DPAD_UP, 10, 30);
             }
         } else {
             for (size_t i = 0; i <= 2; ++i) {
-                pbf_press_dpad(context, DPAD_DOWN, 10, 15);
+                pbf_press_dpad(context, DPAD_DOWN, 10, 30);
             }
         }
     }
@@ -157,6 +164,12 @@ CursorActionResponse HomeCursor::position_cursor(SingleSwitchProgramEnvironment&
     }
 
 
+    if(retry_count > 3){ // Last resort for checking that the cursor did not end up at the bottom or top row. // TODO: Add detection for top and bottom row buttons that don't appear in the normal grid
+        pbf_press_dpad(context, DPAD_DOWN, 10, 60);
+        locate_position(env, context, secondary_open);
+    }
+
+
 
     // Align column if not already aligned
     if(dest_cursor.col!=col){
@@ -169,9 +182,9 @@ CursorActionResponse HomeCursor::position_cursor(SingleSwitchProgramEnvironment&
     }
 
 
-    locate_position(env, context);
+    locate_position(env, context, secondary_open);
 
-    if(row!=dest_cursor.row||col!=dest_cursor.col){
+    if(row!=dest_cursor.row||col!=dest_cursor.col || row > MAX_ROWS || col > (secondary_open?2:1)*MAX_COLUMNS){
         return position_cursor(env, context, dest_cursor, secondary_open, retry_count+1);
     }
 
@@ -184,8 +197,8 @@ CursorActionResponse HomeCursor::navigate_to_page(SingleSwitchProgramEnvironment
     }
 
     // 20% chance to audit page, just to make sure the algorithms are working.
-    if(rand()*5==1){
-        auto response = identify_page(env, context, false);
+    if(rand()*5<=1){
+        auto response = identify_page(env, context, false, box);
         if(response.result!=CursorActionResult::SUCCESS){
             identify_page(env, context, true);
         }
@@ -245,11 +258,11 @@ CursorActionResponse HomeCursor::navigate_to_page(SingleSwitchProgramEnvironment
 }
 
 
-CursorActionResponse HomeCursor::locate_position(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+CursorActionResponse HomeCursor::locate_position(SingleSwitchProgramEnvironment& env, ProControllerContext& context, bool secondaryOpen){
     // Special waterfill case for if holding pokemon, very reliable
     context.wait_for_all_requests();
 
-    ImageFloatBox hand_region = {0.03, 0.15, 0.45, 0.5};
+    ImageFloatBox hand_region = {0.03, 0.15, 0.93, 0.5};
     HomeCursorWatcher handWatcher(holding_pokemon?HomeCursorType::GRABBING:HomeCursorType::RED, hand_region, COLOR_WHITE);
 
     int ret = wait_until(env.console, context, 2000ms, {handWatcher});
@@ -260,6 +273,7 @@ CursorActionResponse HomeCursor::locate_position(SingleSwitchProgramEnvironment&
         env.console.log("HERE at ("+std::to_string(x)+", "+std::to_string(y)+")");
         return {CursorActionResult::SUCCESS, "Found cursor at ("+std::to_string(x)+", "+std::to_string(y)+")"};
     }else{
+        env.console.log(std::to_string(holding_pokemon));
         env.console.log("HERE, FAILED AT FINDING CURSOR");
         return {CursorActionResult::FAILURE, "Could not locate cursor"};
     }
@@ -318,56 +332,61 @@ CursorActionResponse HomeCursor::identify_page(SingleSwitchProgramEnvironment& e
                 box = box_name_top;
                 return {CursorActionResult::SUCCESS, "Successfully identified expected page as " + std::to_string(box)};
             } else {
-                return {CursorActionResult::FAILURE, "Could not identify page. Expected was " + std::to_string(expected)};
+                CursorActionResponse response = identify_page(env, context, true);
+                return {response.result, response.message+" after a failed soft check"};
             }
         }else{
             if (box_name_top == box_name_bottom) {
                 box = box_name_top;
                 return {CursorActionResult::SUCCESS, "Successfully identified page as " + std::to_string(box)};
             } else {
-                return {CursorActionResult::FAILURE, "Could not identify page"};
+                CursorActionResponse response = identify_page(env, context, true);
+                return {response.result, response.message+" after a failed soft check"};
             }
         }
     }
 
-    // Hard check logic
-    std::unordered_map<size_t, size_t> page_counts;
-    size_t total_observations = 0;
-    int page_offset = 0;
+    locate_position(env, context, true);
 
-    auto adjust_for_wraparound = [](size_t page) {
-        if (page > 200) return page - 200;
-        if (page < 1) return page + 200;
+    auto normalize_page = [](int page){
+        // Assume page range 1..200
+        while (page < 1) page += 200;
+        while (page > 200) page -= 200;
         return page;
     };
 
+    std::unordered_map<int, size_t> page_counts;
+    size_t total_observations = 0;
+    int page_offset = 0;
+
     auto update_page_counts = [&]() {
-        size_t adjusted_top = adjust_for_wraparound(box_name_top - page_offset);
-        size_t adjusted_bottom = adjust_for_wraparound(box_name_bottom - page_offset);
+        int adjusted_top = normalize_page(static_cast<int>(box_name_top) - page_offset);
+        int adjusted_bottom = normalize_page(static_cast<int>(box_name_bottom) - page_offset);
         page_counts[adjusted_top]++;
         page_counts[adjusted_bottom]++;
-        total_observations+=2;
+        total_observations += 2;
     };
 
     update_page_counts();
 
-    while (std::fabs(page_offset) < 10) {
-        // Determine most common page and its frequency
-        size_t most_common_page = 0, most_common_count = 0;
-        for (const auto& [page, count] : page_counts) {
+    while (std::abs(page_offset) < 10) {
+        // Find the most common observed page
+        int most_common_page = 0;
+        size_t most_common_count = 0;
+        for (auto& [page, count] : page_counts) {
             if (count > most_common_count) {
                 most_common_page = page;
                 most_common_count = count;
             }
         }
 
-
-        if(static_cast<double>(most_common_count) / total_observations > 0.5 && std::fabs(page_offset) > 0) {
-            box = adjust_for_wraparound (most_common_page + page_offset);
-            return {CursorActionResult::SUCCESS, "Successfully identified page as " + std::to_string(box) + " after a hard check"};
+        // Stop condition
+        if ((static_cast<double>(most_common_count) / total_observations) > 0.5 && page_offset != 0) {
+            box = normalize_page(most_common_page + page_offset);
+            return {CursorActionResult::SUCCESS, "Identified page " + std::to_string(box)};
         }
 
-        // Explore a new page
+        // Decide which way to scroll
         if (page_offset < 0 || (page_offset == 0 && (box_name_top == 199 || box_name_bottom == 199))) {
             pbf_press_button(context, BUTTON_L, 10, 50);
             page_offset--;
@@ -382,7 +401,6 @@ CursorActionResponse HomeCursor::identify_page(SingleSwitchProgramEnvironment& e
         env.console.log(std::to_string(box_name_top) + "/" + std::to_string(box_name_bottom));
 
         update_page_counts();
-
     }
 
     return {CursorActionResult::FAILURE, "Could not identify page after extensive hard check"};
@@ -401,10 +419,11 @@ size_t HomeCursor::get_page() {
 
 
 PokemonHome_HomeEnvironment::PokemonHome_HomeEnvironment(SingleSwitchProgramEnvironment& env, ProControllerContext& context)
-    : cursor(std::nullopt)
 {
     detect_home(env, context);
     initialize_navigation_map(env, context);
+
+    cursor.emplace(env, context, false, game_open!=GameStatus::POKEMON_HOME);
 
 }
 
@@ -435,8 +454,7 @@ void PokemonHome_HomeEnvironment::navigate_to(SingleSwitchProgramEnvironment& en
 
 void PokemonHome_HomeEnvironment::navigate_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const std::pair<size_t, size_t>& position){
     if(!cursor.has_value()){
-        handle_errors(env, context, {CursorActionResult::SUCCESS, "Cannot move a cursor that does not exist"});
-        throw;
+        cursor.emplace(env, context);
     }
     bool test_temp = game_open!=GameStatus::POKEMON_HOME;
     auto response = this->cursor->move_cursor_to(env, context, {position.first, position.second, cursor.value().get_page()}, test_temp);
@@ -540,7 +558,8 @@ void PokemonHome_HomeEnvironment::perform_navigation_steps(SingleSwitchProgramEn
     steps= {};
 }
 
-void PokemonHome_HomeEnvironment::detect_home(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+void PokemonHome_HomeEnvironment::detect_home(SingleSwitchProgramEnvironment& env, ProControllerContext& context, bool single_page){
+    context.wait_for_all_requests();
 
     HomeTitleScreenWatcher titleWatcher(COLOR_BLUE);
     HomeMainMenuWatcher mainMenuWatcher(COLOR_BLUE);
@@ -607,10 +626,12 @@ void PokemonHome_HomeEnvironment::detect_home(SingleSwitchProgramEnvironment& en
             game_open = GameStatus::POKEMON_VIOLET;
         }else if(game_icon_prim.r>155&&game_icon_prim.r<165&&game_icon_prim.g>250&&game_icon_prim.g<=255&&game_icon_prim.b>200&&game_icon_prim.b<205){
             game_open = GameStatus::POKEMON_HOME;
+        }else if(game_icon_prim.r>240&&game_icon_prim.r<245&&game_icon_prim.g>230&&game_icon_prim.g<235&&game_icon_prim.b>170&&game_icon_prim.b<175){
+            game_open = GameStatus::POKEMON_PLA;
         }else{
             game_open = GameStatus::UNKNOWN;
         }
-        cursor.emplace(env, context);
+        cursor.emplace(env, context, single_page);
         // TODO: Implement primitive game status detection: Is the game icon slot green? if so, Home, else Unknown.
         // TODO: Implement game status detection
         // TODO: Get current home box as well as secondary box (if applicable)
@@ -969,23 +990,21 @@ void PokemonHome_HomeEnvironment::initialize_navigation_map(SingleSwitchProgramE
                     boxWatcher
                 });
 
-            if(ret!=0){
-                throw;
+            while(ret!=0){
+                pbf_press_button(context, BUTTON_B, 10, 40);
+                ret = wait_until(
+                    env.console, context, 5000ms, {
+                        boxWatcher
+                });
             }
         }},
     };
 }
 
-
-void PokemonHome_HomeEnvironment::scroll_filter_menu(SingleSwitchProgramEnvironment& env, ProControllerContext& context, std::string dest, size_t retry_count) {
-    if(retry_count >= MAX_RETRIES){
-        throw std::runtime_error("Insufficient steps to perform navigation.");
-    }
-
+std::string PokemonHome_HomeEnvironment::get_filter_menu_read(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     context.wait_for_all_requests();
 
     VideoSnapshot screen = env.console.video().snapshot();
-    int scrolls = 0;
 
 
     ImageFloatBox dialog_box_secondary(0.7, 0.325, 0.21, 0.05);
@@ -994,10 +1013,8 @@ void PokemonHome_HomeEnvironment::scroll_filter_menu(SingleSwitchProgramEnvironm
         env.console, Language::English, dialog_image,
         OCR::BLACK_TEXT_FILTERS()
         );
-    if (!result.results.empty()){ // program is entered specifically into Markings, need to back out
-        pbf_press_button(context, BUTTON_B, 10, 60);
-        context.wait_for_all_requests();
-        screen = env.console.video().snapshot();
+    if (!result.results.empty()){ // program is entered specifically into Markings
+        return result.results.cbegin()->second.token;
     }
     ImageFloatBox dialog_box_top(0.7, 0.1, 0.21, 0.05);
     dialog_image = extract_box_reference(screen, dialog_box_top);
@@ -1005,17 +1022,46 @@ void PokemonHome_HomeEnvironment::scroll_filter_menu(SingleSwitchProgramEnvironm
         env.console, Language::English, dialog_image,
         OCR::BLACK_TEXT_FILTERS()
         );
-    if (!result.results.empty() && result.results.cbegin()->second.token != "main"){ // Make sure we are in the main menu, not in anything
-        pbf_press_button(context, BUTTON_B, 10, 60);
-    }else if(result.results.empty()){ // No read, kill process
-        throw std::runtime_error("Insufficient steps to perform navigation.");
+    if (result.results.empty()){ // Make sure we are in the main menu, not in anything
+        return "";
+    }else {
+        return result.results.cbegin()->second.token;
     }
 
+}
+
+
+void PokemonHome_HomeEnvironment::scroll_filter_menu(SingleSwitchProgramEnvironment& env, ProControllerContext& context, std::string dest, size_t retry_count) {
+    if(retry_count >= MAX_RETRIES){
+        throw std::runtime_error("Hit max failures on filter menu navigation");
+    }
+
+    int scrolls = 0;
+
+
+    std::string menu_read = get_filter_menu_read(env, context);
+
+    if(menu_read == ""){ // Could not find an open menu. Try to recover by going to main menu and returning here.
+        pbf_mash_button(context, BUTTON_B, 3000ms);
+
+        detect_home(env, context);
+        navigate_menus_to(env, context, PageID::LIST_VIEW);
+        pbf_wait(context, 1000ms);
+
+        pbf_press_button(context, BUTTON_X, 10, 80);
+    }else if(menu_read != "main"){ // Filter menu open, but at a bad position. One b press will work.
+        pbf_press_button(context, BUTTON_B, 10, 80);
+    }
+
+    // Expected behavior: sitting in main menu with "Filter" at the top of the screen
+
+    context.wait_for_all_requests();
+    VideoSnapshot screen = env.console.video().snapshot();
 
     // Check top box
     ImageFloatBox dialog_box_first(0.7, 0.22, 0.2, 0.05);
-    dialog_image = extract_box_reference(screen, dialog_box_first);
-    result = FilterMenuReader::instance().read_substring(
+    ImageViewRGB32 dialog_image = extract_box_reference(screen, dialog_box_first);
+    auto result = FilterMenuReader::instance().read_substring(
         env.console, Language::English, dialog_image,
         OCR::WHITE_TEXT_FILTERS()
         );
@@ -1056,6 +1102,8 @@ void PokemonHome_HomeEnvironment::scroll_filter_menu(SingleSwitchProgramEnvironm
         scrolls = FilterMenuReader::instance().distance_to(result.results.cbegin()->second.token, dest);
     }
 
+    // Expected behavior: Should have scanned all four possible buttons to determine which one is moused over (black text). Also should know distance to target button.
+
     if(scrolls<0){
         while(scrolls++<0){
             pbf_press_dpad(context, DPAD_UP, 10, 35);
@@ -1068,45 +1116,20 @@ void PokemonHome_HomeEnvironment::scroll_filter_menu(SingleSwitchProgramEnvironm
         return;
     }
 
+    // Expected behavior: should be moused over the target button, press A to navigate into it if so. Otherwise, reset.
     pbf_press_button(context, BUTTON_A, 10, 60);
 
     context.wait_for_all_requests();
-    screen = env.console.video().snapshot();
 
-    dialog_image = extract_box_reference(screen, dialog_box_secondary);
-    result = FilterMenuConfirmReader::instance().read_substring(
-        env.console, Language::English, dialog_image,
-        OCR::BLACK_TEXT_FILTERS()
-        );
-    if (!result.results.empty()){ // program is entered specifically into Markings, check that was our goal
-        if(dest == "markings"){ // correctly navigated to markings menu
-            pbf_wait(context, 60);
-            context.wait_for_all_requests();
-            return;
-        }else{
-            pbf_press_button(context, BUTTON_B, 10, 60);
-            return scroll_filter_menu(env, context, dest, retry_count+1);
-        }
-    }else{
-        dialog_image = extract_box_reference(screen, dialog_box_top);
-        result = FilterMenuConfirmReader::instance().read_substring(
-            env.console, Language::English, dialog_image,
-            OCR::BLACK_TEXT_FILTERS()
-            );
-        if (!result.results.empty()){ // Make sure we are in the correct menu, need to adjust for type + move // TODO
-            if(dest == result.results.begin()->second.token){ // correctly navigated to markings menu
-                pbf_wait(context, 60);
-                context.wait_for_all_requests();
-                return;
-            }else{
-                pbf_press_button(context, BUTTON_B, 10, 60);
-                return scroll_filter_menu(env, context, dest, retry_count+1);
-            }
-        }else if(result.results.empty()){ // No read, kill process
-            throw std::runtime_error("Insufficient steps to perform navigation.");
-        }
+    menu_read = get_filter_menu_read(env, context);
+    if(menu_read != dest){
+        scroll_filter_menu(env, context, dest, retry_count+1);
     }
 
+}
+
+void PokemonHome_HomeEnvironment::bail_out(SingleSwitchProgramEnvironment &env, ProControllerContext &context){
+    cursor.value().identify_page(env, context, true);
 }
 
 }

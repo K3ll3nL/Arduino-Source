@@ -151,7 +151,7 @@ class HomeCursor {
     const size_t MAX_COLUMNS = 6;
 
 public:
-    HomeCursor(SingleSwitchProgramEnvironment&, ProControllerContext&);
+    HomeCursor(SingleSwitchProgramEnvironment&, ProControllerContext&, bool = false, bool = false);
     // HomeCursor(Pokemon&);
     HomeCursor(size_t, size_t, size_t);
     HomeCursor(std::tuple<size_t, size_t, size_t>);
@@ -174,7 +174,7 @@ private:
     void align_row(SingleSwitchProgramEnvironment&, ProControllerContext&, const size_t&);
     CursorActionResponse position_cursor(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&, bool = false, size_t = 0);
     CursorActionResponse navigate_to_page(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&);
-    CursorActionResponse locate_position(SingleSwitchProgramEnvironment&, ProControllerContext&);
+    CursorActionResponse locate_position(SingleSwitchProgramEnvironment&, ProControllerContext&, bool = false);
 
 
     // size_t secondary_box;
@@ -192,8 +192,10 @@ public:
     void navigate_to(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&);
     void navigate_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const std::pair<size_t, size_t>&);
     void navigate_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const std::pair<size_t, size_t>&, size_t);
-    void detect_home(SingleSwitchProgramEnvironment&, ProControllerContext&);
+    void detect_home(SingleSwitchProgramEnvironment&, ProControllerContext&, bool = false);
     void scroll_filter_menu(SingleSwitchProgramEnvironment&, ProControllerContext&, std::string, size_t = 0);
+    void bail_out(SingleSwitchProgramEnvironment&env, ProControllerContext&context);
+    std::string get_filter_menu_read(SingleSwitchProgramEnvironment& env, ProControllerContext& context);
     std::string get_view();
 
     size_t get_box();

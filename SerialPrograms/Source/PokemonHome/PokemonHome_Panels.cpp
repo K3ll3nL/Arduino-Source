@@ -21,7 +21,7 @@ namespace PokemonHome{
 
 
 PanelListFactory::PanelListFactory()
-    : PanelListDescriptor(Pokemon::STRING_POKEMON + " Home")
+    : PanelListDescriptor(STRING_POKEMON + " Home")
 {}
 
 std::vector<PanelEntry> PanelListFactory::make_panels() const{
