@@ -81,59 +81,6 @@ enum class SecondaryBoxStatus {
 };
 
 
-class PokemonData{
-    PokemonType type1;
-    PokemonType type2;
-    float national_dex_number;
-    bool shiny;
-    bool gmax;
-    StatsHuntGenderFilter gender;
-    uint16_t level;
-    size_t form_id;
-
-    FloatPixel color;
-    FloatPixel quick_color;
-
-    // Default constructor
-    PokemonData();
-
-};
-
-class HomePokemon{
-public:
-    size_t row;
-    size_t col;
-    size_t box;
-    std::optional<PokemonData> data;
-    bool empty;
-
-    HomePokemon();
-
-
-
-};
-
-class HomePokemonBox{
-
-    static constexpr size_t MAX_ROWS = 5;
-    static constexpr size_t MAX_COLUMNS = 6;
-
-public:
-    size_t pokemon_count;
-    size_t blanks;
-    size_t consecutive_blanks;
-    size_t box_num;
-    std::vector<std::vector<HomePokemon>> grid;
-    std::pair<size_t, size_t> first_poke_slot;
-
-    HomePokemonBox();
-
-    std::vector<HomePokemon> flatten() const;
-    void update_stats();
-    bool is_sorted() const;
-
-};
-
 enum class CursorActionResult{
     SUCCESS,
     FAILURE,
@@ -157,7 +104,7 @@ public:
     HomeCursor(HomeCursor, size_t);
     HomeCursor(size_t, size_t, size_t);
     HomeCursor(std::pair<size_t,size_t>&);
-    HomeCursor(HomePokemon);
+    // HomeCursor(HomePokemon);
     HomeCursor();
 
     CursorActionResponse move_cursor_to(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&);
@@ -217,7 +164,7 @@ private:
     std::optional<HomeCursor> cursor;
     GameStatus game_open;
     PageID current_view;
-    std::vector<HomePokemonBox> boxes;
+    // std::vector<HomePokemonBox> boxes;
 
     std::unordered_map<PageID, std::vector<std::pair<PageID, NavigationFunction>>> navigation_map;
     std::unordered_map<std::pair<PageID, PageID>, std::vector<PageID>, pair_hash> navigation_cache;
