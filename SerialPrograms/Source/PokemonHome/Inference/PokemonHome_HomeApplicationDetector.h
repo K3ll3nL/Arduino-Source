@@ -484,6 +484,64 @@ private:
     std::pair<int, int> m_location;
 };
 
+class NameBoxDetector : public StaticScreenDetector{
+public:
+    NameBoxDetector(Color color);
+    virtual ~NameBoxDetector();
+
+    virtual void make_overlays(VideoOverlaySet& items) const override;
+    virtual bool detect(const ImageViewRGB32& screen) override;
+
+    std::vector<ImageFloatBox> detect_all(const ImageViewRGB32& screen) const;
+
+protected:
+    Color m_color;
+    FloatPixel m_prev_color;
+    ImageFloatBox m_box;
+};
+
+
+class NameBoxWatcher : public VisualInferenceCallback{
+public:
+    NameBoxWatcher(Color color);
+    virtual ~NameBoxWatcher();
+
+    virtual void make_overlays(VideoOverlaySet& items) const override;
+    virtual bool process_frame(const ImageViewRGB32& frame, WallClock timestamp) override;
+
+
+protected:
+    NameBoxDetector m_detector;
+    bool m_prev_detected;
+    WallClock m_still_time;
+    FixedLimitVector<OverlayBoxScope> m_hits;
+};
+
+
+class FilterCursorLocator{
+public:
+    FilterCursorLocator(const ImageFloatBox& box, Color color);
+
+    void make_overlays(VideoOverlaySet& items) const;
+    std::pair<double, double> detect(const ImageViewRGB32& frame) const;
+
+private:
+    const ImageFloatBox m_box;
+    const Color m_color;
+};
+
+class FilterCursorWatcher : public VisualInferenceCallback{
+public:
+    FilterCursorWatcher(const ImageFloatBox& box, Color color);
+
+    void make_overlays(VideoOverlaySet& items) const override;
+    virtual bool process_frame(const ImageViewRGB32& frame, WallClock timestamp) override;
+    std::pair<double, double> location() const{ return m_location; }
+
+private:
+    FilterCursorLocator m_locator;
+    std::pair<double, double> m_location;
+};
 
 }
 }

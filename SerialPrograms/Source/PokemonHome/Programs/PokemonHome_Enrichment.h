@@ -6,7 +6,6 @@
 #include "Common/Cpp/Options/StringOption.h"
 #include "CommonFramework/Notifications/EventNotificationsTable.h"
 #include "NintendoSwitch/NintendoSwitch_SingleSwitchProgram.h"
-#include "PokemonHome/Inference/PokemonHome_BoxGenderDetector.h"
 #include "PokemonHome/Programs/HomeEnvironment/PokemonHome_HomeEnvironment.h"
 
 #include<unordered_set>
@@ -79,6 +78,16 @@ enum class mode{
     None
 };
 
+
+inline std::string to_string(mode mode){
+    switch(mode){
+    case mode::Level: return "level";
+    case mode::Simple_Item: return "simple item";
+    case mode::None: return "none";
+    default: return "invalid mode";
+    }
+};
+
 class Enrichment : public SingleSwitchProgramInstance{
 public:
     Enrichment();
@@ -104,10 +113,11 @@ private:
     BooleanCheckBoxOption EMERGENCY_DELOAD;
     BooleanCheckBoxOption NORMAL_DELOAD;
     BooleanCheckBoxOption SKIP_SETUP;
+    BooleanCheckBoxOption SKIP_SORT;
 
     EventNotificationsOption NOTIFICATIONS;
 
-
+    std::unordered_map<std::string, int> item_counts;
     mode enrichment_mode;
     Game current_game;
 };

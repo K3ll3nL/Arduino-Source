@@ -153,32 +153,35 @@ class HomeCursor {
 public:
     HomeCursor(SingleSwitchProgramEnvironment&, ProControllerContext&, bool = false, bool = false);
     // HomeCursor(Pokemon&);
+    HomeCursor(size_t, size_t);
+    HomeCursor(HomeCursor, size_t);
     HomeCursor(size_t, size_t, size_t);
-    HomeCursor(std::tuple<size_t, size_t, size_t>);
+    HomeCursor(std::pair<size_t,size_t>&);
     HomeCursor(HomePokemon);
     HomeCursor();
 
-    CursorActionResponse move_cursor_to(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&, bool);
+    CursorActionResponse move_cursor_to(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&);
     CursorActionResponse pick_up_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&);
     CursorActionResponse put_down_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&);
     CursorActionResponse identify_page(SingleSwitchProgramEnvironment&, ProControllerContext&, bool = false, size_t = UINT_MAX);
     size_t get_page();
+    size_t get_row();   // TODO: Delete after implementing box system
+    size_t get_col();   // TODO: Delete after implementing box system
+    int distance_to(const HomeCursor&);
+    bool secondary_open;
 
-    // TODO: MAKE PRIVATE AFTER NAVIGATING GAME WITH SECONDARY BOXES
+private:
+    void align_col(SingleSwitchProgramEnvironment&, ProControllerContext&, const size_t&);
+    void align_row(SingleSwitchProgramEnvironment&, ProControllerContext&, const size_t&);
+    CursorActionResponse position_cursor(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&, size_t = 0);
+    CursorActionResponse navigate_to_page(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&);
+    CursorActionResponse locate_position(SingleSwitchProgramEnvironment&, ProControllerContext&, bool = false);
+
     size_t row;
     size_t col;
     size_t box;
 
-private:
-    void align_col(SingleSwitchProgramEnvironment&, ProControllerContext&, const size_t&, bool);
-    void align_row(SingleSwitchProgramEnvironment&, ProControllerContext&, const size_t&);
-    CursorActionResponse position_cursor(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&, bool = false, size_t = 0);
-    CursorActionResponse navigate_to_page(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&);
-    CursorActionResponse locate_position(SingleSwitchProgramEnvironment&, ProControllerContext&, bool = false);
-
-
     // size_t secondary_box;
-
     bool holding_pokemon;
     // bool InSecondaryBoxes;
 };
@@ -189,18 +192,20 @@ public:
     PokemonHome_HomeEnvironment(SingleSwitchProgramEnvironment& env, ProControllerContext& context);
 
     void navigate_menus_to(SingleSwitchProgramEnvironment&, ProControllerContext&, const PageID, const GameStatus = GameStatus::CURRENT);
-    void navigate_to(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&);
-    void navigate_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const std::pair<size_t, size_t>&);
-    void navigate_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const std::pair<size_t, size_t>&, size_t);
+    void navigate_to(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor &);
     void detect_home(SingleSwitchProgramEnvironment&, ProControllerContext&, bool = false);
     void scroll_filter_menu(SingleSwitchProgramEnvironment&, ProControllerContext&, std::string, size_t = 0);
+    void pick_up_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&);
+    void put_down_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&);
+    void swap_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor& slot1, const HomeCursor& slot2);
     void bail_out(SingleSwitchProgramEnvironment&env, ProControllerContext&context);
     std::string get_filter_menu_read(SingleSwitchProgramEnvironment& env, ProControllerContext& context);
     std::string get_view();
 
     size_t get_box();
 
-    std::optional<HomeCursor> cursor; // TODO: MOVE TO PRIVATE
+    HomeCursor get_cursor();
+
 
 private:
     CursorActionResponse handle_errors(SingleSwitchProgramEnvironment&, ProControllerContext&, const CursorActionResponse&);
@@ -208,7 +213,8 @@ private:
     void initialize_navigation_map(SingleSwitchProgramEnvironment&, ProControllerContext&);
     std::vector<PageID> find_navigation_path(SingleSwitchProgramEnvironment&, ProControllerContext&, PageID, PageID);
     void perform_navigation_steps(SingleSwitchProgramEnvironment&, ProControllerContext&, std::vector<PageID>&);
-
+    void identify_game_icon(SingleSwitchProgramEnvironment&, ProControllerContext&);
+    std::optional<HomeCursor> cursor;
     GameStatus game_open;
     PageID current_view;
     std::vector<HomePokemonBox> boxes;

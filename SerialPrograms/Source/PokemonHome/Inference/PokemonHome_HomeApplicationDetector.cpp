@@ -10,6 +10,7 @@
 #include "CommonTools/ImageMatch/WaterfillTemplateMatcher.h"
 #include "CommonTools/Images/WaterfillUtilities.h"
 #include "CommonTools/OCR/OCR_RawOCR.h"
+#include "CommonTools/OCR/OCR_Routines.h"
 #include "Kernels/Waterfill/Kernels_Waterfill_Types.h"
 #include <iostream>
 #include "PokemonHome_HomeApplicationDetector.h"
@@ -851,6 +852,128 @@ bool HomeCursorWatcher::process_frame(const ImageViewRGB32& frame, WallClock tim
 }
 
 
+NameBoxDetector::~NameBoxDetector() = default;
+
+NameBoxDetector::NameBoxDetector(Color color)
+    : m_color(color)
+{
+}
+
+void NameBoxDetector::make_overlays(VideoOverlaySet& items) const{
+    items.add(m_color, m_box);
+}
+
+bool NameBoxDetector::detect(const ImageViewRGB32& screen){
+
+    char chars[] = "\n\r—";
+
+    ImageFloatBox boxName(0.102, 0.075, 0.408, 0.045);
+    std::string box_name_text = OCR::ocr_read(Language::English, extract_box_reference(screen, boxName));
+    for(auto a:chars){box_name_text.erase(std::remove(box_name_text.begin(),box_name_text.end(), a),box_name_text.end());}
+    if(box_name_text == "What would you like to name this Box?"|| box_name_text == "VWhat would you like to name this Box?"){
+        return true;
+    }
+
+    return false;
+
+}
+
+
+
+NameBoxWatcher::~NameBoxWatcher() = default;
+
+NameBoxWatcher::NameBoxWatcher(Color color)
+    : VisualInferenceCallback("HomeApplicationWatcher")
+    , m_detector(color)
+    , m_still_time(WallClock::min())
+{
+    m_prev_detected = false;
+}
+
+void NameBoxWatcher::make_overlays(VideoOverlaySet& items) const{
+    m_detector.make_overlays(items);
+}
+
+bool NameBoxWatcher::process_frame(const ImageViewRGB32& screen, WallClock timestamp){
+
+    return m_detector.detect(screen);
+
+}
+
+
+class FilterCursorMatcher : public ImageMatch::WaterfillTemplateMatcher {
+public:
+    FilterCursorMatcher() : WaterfillTemplateMatcher(
+              "PokemonHome/HomeFilterIcon-Template.png",    // Use the same or replace with correct path
+              Color(75, 205, 205), Color(95, 220, 220), 50
+              ){
+        m_aspect_ratio_lower = 0.8;
+        m_aspect_ratio_upper = 2;
+        m_area_ratio_lower = 0.8;
+        m_area_ratio_upper = 1.4;
+    }
+
+    static const FilterCursorMatcher& instance(){
+        static FilterCursorMatcher matcher;
+        return matcher;
+    }
+};
+
+
+FilterCursorLocator::FilterCursorLocator(const ImageFloatBox& box, Color color)
+    : m_box(box), m_color(color)
+{}
+
+void FilterCursorLocator::make_overlays(VideoOverlaySet& items) const{
+    // items.add(m_color, m_box);
+}
+
+std::pair<double, double> FilterCursorLocator::detect(const ImageViewRGB32& frame) const{
+    const std::vector<std::pair<uint32_t, uint32_t>> filters = {
+        {combine_rgb(75, 205, 205), combine_rgb(95, 220, 220)}
+    };
+
+    const double screen_rel_size = (frame.height() / 1080.0);
+    const size_t min_size = static_cast<size_t>(screen_rel_size * screen_rel_size * 50);
+
+    std::pair<double, double> hand_loc(-1, -1);
+
+    ImagePixelBox pixel_box = floatbox_to_pixelbox(frame.width(), frame.height(), m_box);
+    match_template_by_waterfill(
+        extract_box_reference(frame, m_box),
+        FilterCursorMatcher::instance(),
+        filters,
+        {min_size, SIZE_MAX},
+        40,
+        [&](Kernels::Waterfill::WaterfillObject& object) -> bool {
+            hand_loc = std::make_pair(
+                (object.center_of_gravity_x() + pixel_box.min_x) / static_cast<double>(frame.width()),
+                (object.center_of_gravity_y() + pixel_box.min_y) / static_cast<double>(frame.height())
+                );
+            return true;  // stop at first match
+        }
+        );
+
+    return hand_loc;
+
+}
+
+
+
+FilterCursorWatcher::FilterCursorWatcher(const ImageFloatBox& box, Color color)
+    : VisualInferenceCallback("FilterCursorWatcher")
+    , m_locator(box, color)
+    , m_location(-1, -1)
+{}
+
+void FilterCursorWatcher::make_overlays(VideoOverlaySet& items) const{
+    m_locator.make_overlays(items);
+}
+
+bool FilterCursorWatcher::process_frame(const ImageViewRGB32& frame, WallClock timestamp){
+    m_location = m_locator.detect(frame);
+    return m_location.first >= 0.0;
+}
 
 }
 }
