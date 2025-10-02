@@ -3370,6 +3370,8 @@ void Enrichment::wipe_markings(SingleSwitchProgramEnvironment& env, ProControlle
 void Enrichment::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     env.console.log("Opened");
 
+    std::vector<Game> game_list = {Game(GameStatus::POKEMON_VIOLET,0,false)/*,Game(GameStatus::POKEMON_SWORD,3,false),Game(GameStatus::POKEMON_PLA,1,false),Game("GameStatus::POKEMON_EEVEE",4,false)*/};
+
     VideoSnapshot screen = env.console.video().snapshot();
 
     VideoOverlaySet box_render(env.console);

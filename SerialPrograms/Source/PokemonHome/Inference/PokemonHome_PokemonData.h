@@ -1,6 +1,7 @@
 #ifndef POKEMONHOME_POKEMONDATA_H
 #define POKEMONHOME_POKEMONDATA_H
 
+#include "CommonFramework/ImageTools/FloatPixel.h"
 #include "Pokemon/Options/Pokemon_StatsHuntFilter.h"
 #include "Pokemon/Pokemon_Types.h"
 #include <optional>
@@ -10,6 +11,7 @@ namespace NintendoSwitch{
 namespace PokemonHome{
 
 using namespace Pokemon;
+
 
 enum class Region{
     KANTO,
@@ -68,7 +70,7 @@ class PokedexReader {
 public:
     PokedexReader();
 
-    std::vector<PokemonInformation> m_pokemon;
+    std::vector<std::vector<PokemonInformation>> m_pokemon;  // TODO: Turn this into a vec<vec<PkmnInfo>>
 };
 
 
@@ -106,7 +108,7 @@ public:
     PokemonType get_tera() const;
     bool is_prime_example() const;
 
-    std::vector<PokemonInformation> match(const std::vector<PokemonInformation>& candidates) const;
+    std::vector<PokemonInformation> match(const std::vector<std::vector<PokemonInformation>>& candidates) const;
     bool operator==(const PokemonData& other) const;
     bool operator!=(const PokemonData& other) const { return !(*this == other); }
 
@@ -131,6 +133,89 @@ private:
     bool prime_example;
 };
 
+
+class HomeSlot {
+public:
+    // Constructors
+    HomeSlot();
+    HomeSlot(int row, int col, FloatPixel quick_color);
+    HomeSlot(int row, int col, FloatPixel quick_color, std::optional<PokemonData> pokemon);
+
+    // Accessors
+    int row() const { return m_row; }
+    int col() const { return m_col; }
+    FloatPixel quick_color() const { return m_quick_color; }
+    const std::optional<PokemonData>& getPokemon() const { return m_pokemon; }
+    std::optional<PokemonData>& getPokemon() { return m_pokemon; }
+
+    bool isOccupied() const { return m_pokemon.has_value(); }
+    bool isEmpty() const { return !m_pokemon.has_value(); }
+
+    // Mutators
+    void setPokemon(const PokemonData& pokemon);
+    void clear();
+
+private:
+    int m_row;
+    int m_col;
+    FloatPixel m_quick_color;
+    std::optional<PokemonData> m_pokemon;
+};
+
+
+class HomeBox {
+public:
+    static constexpr int MAX_ROWS = 5;
+    static constexpr int MAX_COLS = 6;
+
+
+
+    // Default constructor: initializes all blank slots
+    HomeBox();
+
+    // Constructor: fills with provided Pokémon up to 30 (row-major order)
+    explicit HomeBox(const std::vector<PokemonData>& pokemon_list);
+
+    // Copy constructor
+    HomeBox(const HomeBox& other);
+
+    // Accessors
+    HomeSlot& at(int row, int col);
+    const HomeSlot& at(int row, int col) const;
+
+    // Swap Pokémon between two slots in this box
+    void swap(int row1, int col1, int row2, int col2);
+
+    // Flatten into a vector of existing Pokémon (ignores empty slots)
+    std::vector<PokemonData> flatten() const;
+
+private:
+    std::vector<std::vector<HomeSlot>> m_slots;
+};
+
+
+class HomeStorage {
+public:
+    static constexpr int BOX_COUNT = 200;
+
+
+    // Default constructor: initializes 200 empty boxes
+    HomeStorage();
+
+    // Accessors
+    HomeBox& at(int box_index);
+    const HomeBox& at(int box_index) const;
+
+    // Swap Pokémon between any two slots, possibly across boxes
+    void extracted(int &box1, int &box2);
+    void swapSlots(int box1, int row1, int col1, int box2, int row2, int col2);
+
+    // Flatten all boxes into a vector of existing Pokémon (ignores empty slots)
+    std::vector<PokemonData> flatten() const;
+
+private:
+    std::vector<HomeBox> m_boxes;
+};
 
 }
 }
