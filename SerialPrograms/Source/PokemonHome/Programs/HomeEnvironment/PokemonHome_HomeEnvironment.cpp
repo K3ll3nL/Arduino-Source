@@ -500,6 +500,7 @@ PokemonHome_HomeEnvironment::PokemonHome_HomeEnvironment(SingleSwitchProgramEnvi
 
     if(current_view==PageID::BOX_VIEW){ cursor.emplace(env, context, false, game_open!=GameStatus::POKEMON_HOME);}
 
+    boxes = HomeStorage();
 }
 
 void PokemonHome_HomeEnvironment::navigate_menus_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const PageID destination, const GameStatus game){

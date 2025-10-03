@@ -5,6 +5,7 @@
 #include "NintendoSwitch/NintendoSwitch_SingleSwitchProgram.h"
 #include "Pokemon/Options/Pokemon_StatsHuntFilter.h"
 #include "Pokemon/Pokemon_Types.h"
+#include "PokemonHome/Inference/PokemonHome_PokemonData.h"
 #include "PokemonHome/Options/PokemonHome_BoxSortingTable.h"
 #include <functional>
 #include <unordered_map>
@@ -164,7 +165,8 @@ private:
     std::optional<HomeCursor> cursor;
     GameStatus game_open;
     PageID current_view;
-    // std::vector<HomePokemonBox> boxes;
+
+    HomeStorage boxes;
 
     std::unordered_map<PageID, std::vector<std::pair<PageID, NavigationFunction>>> navigation_map;
     std::unordered_map<std::pair<PageID, PageID>, std::vector<PageID>, pair_hash> navigation_cache;

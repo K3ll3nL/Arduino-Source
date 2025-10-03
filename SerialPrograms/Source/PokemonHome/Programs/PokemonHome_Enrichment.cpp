@@ -22,6 +22,7 @@
 #include "PokemonHome/Inference/PokemonHome_HomeApplicationDetector.h"
 #include "PokemonHome/Inference/PokemonHome_PokemonData.h"
 #include "PokemonHome/Inference/PokemonHome_SVItemReader.h"
+#include "PokemonHome/Inference/PokemonHome_SummaryDetector.h"
 #include "PokemonHome/Programs/HomeEnvironment/PokemonHome_HomeEnvironment.h"
 #include "PokemonSV/Inference/Battles/PokemonSV_NormalBattleMenus.h"
 #include "PokemonSV/Inference/Overworld/PokemonSV_DirectionDetector.h"
@@ -1112,6 +1113,21 @@ PokemonType closest_type(const FloatPixel& color_box){
 
 Pokemon home_read_pokemon_summary(SingleSwitchProgramEnvironment& env, ProControllerContext& context, size_t box, size_t row, size_t col) {
     Pokemon pokemon;
+    PokemonData pokemon2;
+    PokedexReader info;
+
+    SummaryWatcher summary_page(COLOR_CYAN);
+
+    int ret = wait_until(
+        env.console, context,
+        std::chrono::milliseconds(5*TICKS_PER_SECOND),
+        {summary_page}
+    );
+
+    if(ret==0){
+        pokemon2 = summary_page.get_pokemon(env.console, env.console.video().snapshot(), info);
+        env.console.log(pokemon2.to_string());
+    }
 
     while (true) {
         // pokemon = Pokemon();
@@ -1557,7 +1573,11 @@ Pokemon home_request_next_simple_item_evo(SingleSwitchProgramEnvironment& env, P
     home_manager.scroll_filter_menu(env, context, "markings");
     pbf_press_button(context, BUTTON_A, 10, 60);
     pbf_press_button(context, BUTTON_UP, 10, 60);
-    pbf_press_button(context, BUTTON_A, 10, 60);
+
+    do{
+        pbf_press_button(context, BUTTON_A, 10, 10);
+    }while(home_manager.get_filter_menu_read(env, context)=="markings");    // TODO: Implement actual checking to match certain filter options
+
     pbf_press_button(context, BUTTON_B, 10, 60);
 
     pbf_wait(context, 1500ms);
@@ -1689,7 +1709,11 @@ Pokemon home_request_next_level_evo(SingleSwitchProgramEnvironment& env, ProCont
     home_manager.scroll_filter_menu(env, context, "markings");
     pbf_press_button(context, BUTTON_A, 10, 60);
     pbf_press_button(context, BUTTON_UP, 10, 60);
-    pbf_press_button(context, BUTTON_A, 10, 60);
+
+    do{
+        pbf_press_button(context, BUTTON_A, 10, 10);
+    }while(home_manager.get_filter_menu_read(env, context)=="markings");    // TODO: Implement actual checking to match certain filter options
+
     pbf_press_button(context, BUTTON_B, 10, 60);
 
     pbf_wait(context, 1500ms);
@@ -2830,7 +2854,10 @@ void Enrichment::initialize_home(SingleSwitchProgramEnvironment& env, ProControl
     std::ostringstream ss;
 
 
-    if(DISPOSE_GOS)home_dispose_of_go(env, context, home_manager);
+    if(DISPOSE_GOS){
+        home_dispose_of_go(env, context, home_manager);
+        home_manager.navigate_menus_to(env, context, PageID::MAIN_MENU);
+    }
 
     if(WIPE_MARKINGS)wipe_markings(env, context, home_manager);
 }
@@ -3119,15 +3146,17 @@ void Enrichment::home_dispose_of_go(SingleSwitchProgramEnvironment& env, ProCont
             context.wait_for_all_requests();
             pbf_press_button(context, BUTTON_A, 10, 50);
             // TODO: Check that the circle is grey
-            pbf_press_button(context, BUTTON_UP, 10, 50);
-            pbf_press_button(context, BUTTON_A, 10, 50);
+            pbf_press_button(context, BUTTON_UP, 10, 60);
+
+            do{
+                    pbf_press_button(context, BUTTON_A, 10, 10);
+            }while(home_manager.get_filter_menu_read(env, context)=="markings");    // TODO: Implement actual checking to match certain filter options
+
             home_manager.scroll_filter_menu(env, context, "origin-mark");
-            context.wait_for_all_requests();
             pbf_press_button(context, BUTTON_UP, 10, 30);
             pbf_press_button(context, BUTTON_UP, 10, 30);
             pbf_press_button(context, BUTTON_A, 10, 50);
             home_manager.scroll_filter_menu(env, context, "shiny");
-            context.wait_for_all_requests();
             pbf_press_button(context, BUTTON_UP, 10, 30);
             pbf_press_button(context, BUTTON_A, 10, 50);
             home_manager.scroll_filter_menu(env, context, "compatible-games");
@@ -3230,6 +3259,11 @@ void Enrichment::home_dispose_of_go(SingleSwitchProgramEnvironment& env, ProCont
         pbf_press_button(context, BUTTON_A, 10, 50);
         pbf_press_button(context, BUTTON_UP, 10, 50);
         pbf_press_button(context, BUTTON_A, 10, 50);
+
+        do{
+            pbf_press_button(context, BUTTON_A, 10, 10);
+        }while(home_manager.get_filter_menu_read(env, context)=="markings");    // TODO: Implement actual checking to match certain filter options
+
         home_manager.scroll_filter_menu(env, context, "origin-mark");
         pbf_press_button(context, BUTTON_UP, 10, 30);
         pbf_press_button(context, BUTTON_UP, 10, 30);
@@ -3368,7 +3402,7 @@ void Enrichment::wipe_markings(SingleSwitchProgramEnvironment& env, ProControlle
 }
 
 void Enrichment::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
-    env.console.log("Opened");
+
 
     std::vector<Game> game_list = {Game(GameStatus::POKEMON_VIOLET,0,false)/*,Game(GameStatus::POKEMON_SWORD,3,false),Game(GameStatus::POKEMON_PLA,1,false),Game("GameStatus::POKEMON_EEVEE",4,false)*/};
 
@@ -3377,6 +3411,8 @@ void Enrichment::program(SingleSwitchProgramEnvironment& env, ProControllerConte
     VideoOverlaySet box_render(env.console);
     HomeMenuWatcher home_menu(env.console);
     std::ostringstream ss;
+
+
 
     PokemonHome_HomeEnvironment home_manager(env, context);
 

@@ -4,7 +4,7 @@
 #include "Common/Cpp/Json/JsonObject.h"
 #include "CommonFramework/Globals.h"
 #include <format>
-#include <string>
+#include <Qstring>
 
 namespace PokemonAutomation{
 namespace NintendoSwitch{
@@ -15,6 +15,48 @@ StatsHuntGenderFilter string_to_gender(const std::string& gender_str){
     if (gender_str == "female") return StatsHuntGenderFilter::Female;
     if (gender_str == "genderless") return StatsHuntGenderFilter::Genderless;
     return StatsHuntGenderFilter::Any; // fallback / default
+}
+
+static std::string region_to_string(Region r){
+    switch(r){
+    case Region::KANTO: return "Kanto";
+    case Region::JOHTO: return "Johto";
+    case Region::HOENN: return "Hoenn";
+    case Region::SINNOH: return "Sinnoh";
+    case Region::UNOVA: return "Unova";
+    case Region::KALOS: return "Kalos";
+    case Region::ALOLA: return "Alola";
+    case Region::GALAR: return "Galar";
+    case Region::UNKNOWN: return "Unknown";
+    case Region::HISUI: return "Hisui";
+    case Region::PALDEA: return "Paldea";
+    }
+    return "Unknown";
+}
+
+static std::string type_to_string(PokemonType t){
+    switch(t){
+    case PokemonType::NONE: return "None";
+    case PokemonType::NORMAL: return "Normal";
+    case PokemonType::FIRE: return "Fire";
+    case PokemonType::FIGHTING: return "Fighting";
+    case PokemonType::WATER: return "Water";
+    case PokemonType::FLYING: return "Flying";
+    case PokemonType::GRASS: return "Grass";
+    case PokemonType::POISON: return "Poison";
+    case PokemonType::ELECTRIC: return "Electric";
+    case PokemonType::GROUND: return "Ground";
+    case PokemonType::PSYCHIC: return "Psychic";
+    case PokemonType::ROCK: return "Rock";
+    case PokemonType::ICE: return "Ice";
+    case PokemonType::BUG: return "Bug";
+    case PokemonType::DRAGON: return "Dragon";
+    case PokemonType::GHOST: return "Ghost";
+    case PokemonType::DARK: return "Dark";
+    case PokemonType::STEEL: return "Steel";
+    case PokemonType::FAIRY: return "Fairy";
+    }
+    return "Unknown";
 }
 
 inline bool operator==(StatsHuntGenderFilter lhs, StatsHuntGenderFilter rhs) {
@@ -33,27 +75,60 @@ inline bool operator!=(StatsHuntGenderFilter lhs, StatsHuntGenderFilter rhs) {
     return !(lhs == rhs);
 }
 
-std::vector<PokemonInformation> PokemonInformation::match(const std::vector<PokemonInformation>& candidates) const {
+// Compare ability arrays, treating "any" as a wildcard
+bool PokemonInformation::ability_match(const std::vector<std::string>& other) const {
+    if (ability.empty() || other.empty()) return true;
+
+    // If either list contains "any", always a match
+    if (std::find(ability.begin(), ability.end(), "any") != ability.end()) return true;
+    if (std::find(other.begin(), other.end(), "any") != other.end()) return true;
+
+    // Otherwise, require at least one overlap
+    for (const auto& a : ability) {
+        if (std::find(other.begin(), other.end(), a) != other.end()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::vector<PokemonInformation> PokemonInformation::match(const std::vector<std::vector<PokemonInformation>>& candidates) const {
     std::vector<PokemonInformation> results;
 
-    for (const auto& candidate : candidates) {
-        if (id.has_value() && candidate.id != id) continue;
-        if (form.has_value() && candidate.form != form) continue;
-        if (form_id.has_value() && candidate.form_id != form_id) continue;
-        if (evolution_chain.has_value() && candidate.evolution_chain != evolution_chain) continue;
-        if (gender.has_value() && candidate.gender.value() != gender.value())continue;
-        if (type1.has_value() && candidate.type1 != type1) continue;
-        if (type2.has_value() && candidate.type2 != type2) continue;
-        if (region.has_value() && candidate.region != region) continue;
+    if (!id.has_value() || id.value() < 0 || id.value() >= (int)candidates.size()) {
+        return results;
+    }
 
-        results.push_back(candidate);
+    const auto& forms = candidates[id.value()]; // get inner vector for this ID
+
+    for (const auto& info : forms) {
+        if (info.id.has_value() && id.has_value() && info.id.value() != id.value()) continue;
+        if (info.form_id.has_value() && form_id.has_value() && info.form_id.value() != form_id.value()) continue;
+        if (info.form.has_value() && form.has_value() && info.form.value() != form.value()) continue;
+        if (info.gender.has_value() && gender.has_value() && info.gender.value() != gender.value()) continue;
+        if (info.type1.has_value() && type1.has_value() && info.type1.value() != type1.value()) continue;
+        if (info.type2.has_value() && type2.has_value() && info.type2.value() != type2.value()) continue;
+        if (info.region.has_value() && region.has_value() && info.region.value() != region.value()) continue;
+        if (!ability.empty() && !info.ability.empty() && !ability_match(info.ability)) continue;
+
+        results.push_back(info);
     }
 
     return results;
 }
 
 
-PokedexReader::PokedexReader(){
+PokedexReader::PokedexReader():m_loaded(false){}
+
+std::vector<std::vector<PokemonInformation>>& PokedexReader::get_pokedex(){
+    if(!m_loaded){
+        load_pokedex();
+        m_loaded = true;
+    }
+    return m_pokemon;
+}
+
+void PokedexReader::load_pokedex(){
     JsonValue json_value = load_json_file(RESOURCE_PATH() + "PokemonHome/pokedex.json");
     JsonObject* root = json_value.to_object();
     if (!root) return;
@@ -115,6 +190,14 @@ PokedexReader::PokedexReader(){
                 pokemon.Type2(PokemonType::NONE);
             }
 
+            // Abilities
+            const JsonArray& abilitiesArray = obj->get_array_throw("ability");
+            std::vector<std::string> abilities;
+            for (size_t k = 0; k < abilitiesArray.size(); k++){
+                abilities.push_back(abilitiesArray[k].to_string_throw());
+            }
+            pokemon.Ability(abilities);
+
             // Push into the inner vector for this Pokémon ID
             m_pokemon[i].push_back(std::move(pokemon));
         }
@@ -131,7 +214,7 @@ PokemonData::PokemonData(int id, int form_id, std::string form,
                          StatsHuntGenderFilter gender,
                          PokemonType type1, PokemonType type2,
                          Region region, int ot_id, int level,
-                         bool shiny, bool gmax, PokemonType tera, bool prime_example)
+                         bool shiny, bool gmax, std::string ability, PokemonType tera, bool prime_example)
     : id(id)                     // int: just copy, no move needed
     , form_id(form_id)           // int: copy
     , form(std::move(form))      // string: move avoids copy
@@ -143,6 +226,7 @@ PokemonData::PokemonData(int id, int form_id, std::string form,
     , level(level)               // int: copy
     , shiny(shiny)               // bool: copy
     , gmax(gmax)                 // bool: copy
+    , ability(std::move(ability))           // bool: copy
     , tera(tera)                 // enum: copy
     , prime_example(prime_example) // bool: copy
 {}
@@ -163,12 +247,38 @@ std::vector<PokemonInformation> PokemonData::match(const std::vector<std::vector
         if (info.type1.has_value() && info.type1.value() != type1) continue;
         if (info.type2.has_value() && info.type2.value() != type2) continue;
         if (info.region.has_value() && info.region.value() != region) continue;
+        if (!info.ability.empty() && std::find(info.ability.begin(), info.ability.end(), "any") == info.ability.end() && std::find(info.ability.begin(), info.ability.end(), ability) == info.ability.end()) continue;
         // Can add more fields if needed
 
         results.push_back(info);
     }
 
     return results;
+}
+
+std::string PokemonData::to_string() const {
+    QString s;
+    s += QString("PokemonData { id: %1, form_id: %2, form: %3, gender: %4, ")
+             .arg(id)
+             .arg(form_id)
+             .arg(QString::fromStdString(form),
+                  QString::fromStdString(gender_to_string(gender)));
+
+    s += QString("type1: %1, type2: %2, region: %3, ability: %4, ")
+             .arg(QString::fromStdString(type_to_string(type1)),
+                  QString::fromStdString(type_to_string(type2)),
+                  QString::fromStdString(region_to_string(region)),
+                  QString::fromStdString(ability));
+
+    s += QString("ot_id: %1, level: %2, shiny: %3, gmax: %4, tera: %5, prime_example: %6 }")
+             .arg(ot_id)
+             .arg(level)
+             .arg(shiny ? "true" : "false",
+                  gmax ? "true" : "false",
+                  QString::fromStdString(type_to_string(tera)),
+                  prime_example ? "true" : "false");
+
+    return s.toStdString();
 }
 
 HomeSlot::HomeSlot()

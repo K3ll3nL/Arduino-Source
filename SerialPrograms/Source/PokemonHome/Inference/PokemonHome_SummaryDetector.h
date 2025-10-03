@@ -5,6 +5,8 @@
 #include "Common/Cpp/Color.h"
 #include "CommonFramework/ImageTools/ImageBoxes.h"
 #include "CommonTools/VisualDetector.h"
+#include "CommonTools/VisualDetectors/FrozenImageDetector.h"
+#include "PokemonHome/Inference/PokemonHome_PokemonData.h"
 namespace PokemonAutomation{
 
 class VideoOverlaySet;
@@ -22,6 +24,7 @@ public:
 
     virtual void make_overlays(VideoOverlaySet& items) const override;
     virtual bool detect(const ImageViewRGB32& screen) override;
+    PokemonData identify_pokemon(Logger& logger, const ImageViewRGB32& screen, PokedexReader& information);
 
 protected:
     Color m_color;
@@ -38,10 +41,12 @@ public:
     virtual void make_overlays(VideoOverlaySet& items) const override;
     virtual bool process_frame(const ImageViewRGB32& frame, WallClock timestamp) override;
 
+    PokemonData get_pokemon(Logger& logger, const ImageViewRGB32& screen, PokedexReader& information);
 
 protected:
     SummaryDetector m_detector;
-    //PokemonData m_pokemon
+    FrozenImageDetector m_frozen_screen;
+    PokemonData m_pokemon;
 };
 
 

@@ -53,6 +53,8 @@ public:
     std::optional<PokemonType> type1;
     std::optional<PokemonType> type2;
     std::optional<Region> region;
+    std::vector<std::string> ability;
+
 
     PokemonInformation& Id(int id) { this->id = id; return *this; }
     PokemonInformation& Form(std::string form) { this->form = std::move(form); return *this; }
@@ -61,8 +63,12 @@ public:
     PokemonInformation& Type1(PokemonType type1) { this->type1 = type1; return *this; }
     PokemonInformation& Type2(PokemonType type2) { this->type2 = type2; return *this; }
     PokemonInformation& Region(Region region) { this->region = region; return *this; }
+    PokemonInformation& Ability(std::vector<std::string> ability) { this->ability = std::move(ability); return *this; }
 
-    std::vector<PokemonInformation> match(const std::vector<PokemonInformation>& candidates) const;
+    std::vector<PokemonInformation> match(const std::vector<std::vector<PokemonInformation>>& candidates) const;
+
+private:
+    bool ability_match(const std::vector<std::string>& other) const;
 };
 
 
@@ -70,7 +76,14 @@ class PokedexReader {
 public:
     PokedexReader();
 
+    std::vector<std::vector<PokemonInformation>>& get_pokedex();
+
+private:
+
+    void load_pokedex();
+
     std::vector<std::vector<PokemonInformation>> m_pokemon;  // TODO: Turn this into a vec<vec<PkmnInfo>>
+    bool m_loaded;
 };
 
 
@@ -90,23 +103,10 @@ public:
         int level,
         bool shiny,
         bool gmax,
+        std::string ability,
         PokemonType tera,
         bool prime_example
         );
-
-    int get_id() const;
-    int get_form_id() const;
-    std::string get_form() const;
-    StatsHuntGenderFilter get_gender() const;
-    PokemonType get_type1() const;
-    PokemonType get_type2() const;
-    Region get_region() const;
-    int get_ot_id() const;
-    int get_level() const;
-    bool is_shiny() const;
-    bool is_gmax() const;
-    PokemonType get_tera() const;
-    bool is_prime_example() const;
 
     std::vector<PokemonInformation> match(const std::vector<std::vector<PokemonInformation>>& candidates) const;
     bool operator==(const PokemonData& other) const;
@@ -114,7 +114,6 @@ public:
 
     std::string to_string() const;
 
-private:
     int id;
     int form_id;
     std::string form;
@@ -126,6 +125,7 @@ private:
     int level;
     bool shiny;
     bool gmax;
+    std::string ability;
 
     PokemonType tera; // TODO: Implement tera type
     // std::string pokeball; // TODO: Implement pokeball types
