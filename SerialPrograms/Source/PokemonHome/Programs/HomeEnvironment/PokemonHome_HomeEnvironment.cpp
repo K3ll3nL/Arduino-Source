@@ -332,6 +332,16 @@ CursorActionResponse HomeCursor::locate_position(SingleSwitchProgramEnvironment&
         env.console.log(std::to_string(holding_pokemon));
 
         env.console.log("HERE, FAILED AT FINDING CURSOR");
+
+        HomeCursorWatcher handWatcher2(!holding_pokemon?HomeCursorType::GRABBING:HomeCursorType::RED, hand_region, COLOR_WHITE);
+        ret = wait_until(env.console, context, 2000ms, {handWatcher2});
+        if (ret == 0){
+            auto [x, y] = handWatcher2.location();
+            row = y;
+            col = x;
+            holding_pokemon = !holding_pokemon;
+            return locate_position(env, context, true);
+        }
         return {CursorActionResult::FAILURE, "Could not locate cursor"};
     }
 }

@@ -2921,6 +2921,14 @@ void Enrichment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControll
         }
 
 
+        if(!swaps_made){
+            break;
+        }
+
+        swaps_made = false;
+
+
+
         send_program_notification(
             env, NOTIFICATION_ERROR_FATAL,
             COLOR_GREEN,
@@ -2928,12 +2936,6 @@ void Enrichment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControll
             {}, "",
             {}
             );
-
-        if(!swaps_made){
-            break;
-        }
-
-        swaps_made = false;
 
 
 
@@ -3402,6 +3404,8 @@ void Enrichment::wipe_markings(SingleSwitchProgramEnvironment& env, ProControlle
 }
 
 void Enrichment::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+    // FloatPixel pokemon_color = image_stats(extract_box_reference(env.console.video().snapshot(), ImageFloatBox(0.76, 0.295, 0.14, 0.23))).average;
+    // env.console.log(std::to_string(pokemon_color.r)+", "+std::to_string(pokemon_color.g)+", "+std::to_string(pokemon_color.b));
 
 
     std::vector<Game> game_list = {Game(GameStatus::POKEMON_VIOLET,0,false)/*,Game(GameStatus::POKEMON_SWORD,3,false),Game(GameStatus::POKEMON_PLA,1,false),Game("GameStatus::POKEMON_EEVEE",4,false)*/};

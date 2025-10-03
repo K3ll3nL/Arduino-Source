@@ -79,10 +79,6 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
     int level = OCR::read_number_waterfill(logger, extract_box_reference(screen, level_box), 0xff000000, 0xff7f7f7f);
     std::string ability = ability_reader.read_ability(logger, extract_box_reference(screen, ability_box));
 
-    if(ability=="keen-eye"&&national_dex_number==744){
-        int test = 1;
-        test = level + test;
-    }
     std::vector<PokemonInformation> matches = PokemonInformation().Id(national_dex_number).Gender(gender).Type1(type1).Type2(type2).Ability({ability}).match(information.get_pokedex());
 
     if(matches.size()==1){
@@ -161,23 +157,126 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
             {641, {{FloatPixel(180.638956, 187.422533, 160.762681), /*Need shiny Incarnate form Tornadus*/ FloatPixel(255, 255, 255)},
                    {/*Need nonshiny Therian form Tornadus*/ FloatPixel(255, 255, 255), /*Need shiny Therian form Tornadus*/ FloatPixel(255, 255, 255)}}}, // Tornadus (Incarnate+Shiny, Therian+Shiny)
             {642, {{FloatPixel(181.380142, 198.698165, 205.539588), /*Need shiny Incarnate form Thundurus*/ FloatPixel(255, 255, 255)},
-                   {/*Need nonshiny Therian form Thundurus*/ FloatPixel(255, 255, 255), FloatPixel(217.579161, 205.614537, 235.753148)}}}, // Thundurus (Incarnate+Shiny, Therian+Shiny)
+                   {FloatPixel(190.639990,213.828007, 226.926490), FloatPixel(217.579161, 205.614537, 235.753148)}}}, // Thundurus (Incarnate+Shiny, Therian+Shiny)
             {645, {{FloatPixel(216.922398, 184.366681, 141.085397), /*Need shiny Incarnate form Landorus*/ FloatPixel(255, 255, 255)},
-                   {/*Need nonshiny Therian form Landorus*/ FloatPixel(255, 255, 255), /*Need shiny Therian form Landorus*/ FloatPixel(255, 255, 255)}}} // Landorus (Incarnate+Shiny, Therian+Shiny)
+                   {FloatPixel(234.314036,198.174901,152.318818), /*Need shiny Therian form Landorus*/ FloatPixel(255, 255, 255)}}}, // Landorus (Incarnate+Shiny, Therian+Shiny)
             // {647, {{}}} // Keldeo (Normal+Shiny, Resolute+Shiny)
-            // {658, {{}}} // Greninja (Normal+Shiny, Ash Greninja+Shiny)
-            // {666, {{}}} // Vivillon (Archipelago+Shiny, Continental+Shiny, Elegant+Shiny, Fancy+Shiny, Garden+Shiny, High Plains+Shiny, Icy Snow+Shiny, Jungle+Shiny, Marine+Shiny, Meadow+Shiny, Modern+Shiny, Monsoon+Shiny, Ocean+Shiny, Pokeball+Shiny, Polar+Shiny, River+Shiny, Sandstorm+Shiny, Savanna+Shiny, Sun+Shiny, Tundra+Shiny)
-            // {669, {{}}} // Flabebe (Red+Shiny, Yellow+Shiny, Orange+Shiny, Blue+Shiny, White+Shiny)
-            // {670, {{}}} // Floette (Red+Shiny, Yellow+Shiny, Orange+Shiny, Blue+Shiny, White+Shiny)
-            // {671, {{}}} // Florges (Red+Shiny, Yellow+Shiny, Orange+Shiny, Blue+Shiny, White+Shiny)
-            // {676, {{}}} // Furfrou (Normal+Shiny, Heart+Shiny, Star+Shiny, Diamond+Shiny, Debutante+Shiny, Matron+Shiny, Dandy+Shiny, La Reine+Shiny, Kabuki+Shiny, Pharoah+Shiny)
+            {666, {{FloatPixel(221.886572, 169.684854, 191.849577), /*Need shiny Meadow form Vivillon*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(231.026757, 231.861194, 230.119484), /*Need shiny Icy Snow form Vivillon*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(95.708298, 134.220905, 214.867970), /*Need shiny Polar form Vivillon*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(185.650887, 224.292676, 234.018437), /*Need shiny Tundra form Vivillon*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(227.867925, 208.871013, 81.038149), /*Need shiny Continental form Vivillon*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(85.099892, 182.975282, 163.189576), /*Need shiny Garden form Vivillon*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(142.155684, 126.404845, 171.699304), /*Need shiny Elegant form Vivillon*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(217.237603, 114.672443, 100.138671), /*Need shiny Modern form Vivillon*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(91.567334, 189.329566, 231.155309), /*Need shiny Marine form Vivillon*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(214.911440, 141.001184, 78.027551), /*Need shiny Archipelago form Vivillon*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(217.478939, 180.618524, 102.546124), /*Need shiny High Plains form Vivillon*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(222.375989, 201.872392, 154.396795), /*Need shiny Sandstorm form Vivillon*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(190.078921, 178.329581, 131.191555), /*Need shiny River form Vivillon*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(167.391114, 182.842832, 186.364297), /*Need shiny Monsoon form Vivillon*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(151.286890, 206.048972, 170.821307), /*Need shiny Savanna form Vivillon*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(233.181227, 176.330345, 98.137022), /*Need shiny Sun form Vivillon*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(208.253942, 199.788344, 134.279350), /*Need shiny Ocean form Vivillon*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(132.258709, 164.699424, 148.602365), /*Need shiny Jungle form Vivillon*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(210.645851, 216.916552, 186.039003), /*Need shiny Fancy form Vivillon*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny Pokeball form Vivillon*/ FloatPixel(255, 255, 255), /*Need shiny Pokeball form Vivillon*/ FloatPixel(255, 255, 255)}}}, // Vivillon
+            {669, {{/*Need nonshiny Red form Flabebe*/ FloatPixel(255, 255, 255), /*Need shiny Red form Flabebe*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny Blue form Flabebe*/ FloatPixel(255, 255, 255), /*Need shiny Blue form Flabebe*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny Orange form Flabebe*/ FloatPixel(255, 255, 255), /*Need shiny Orange form Flabebe*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny White form Flabebe*/ FloatPixel(255, 255, 255), /*Need shiny White form Flabebe*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(240.832009, 240.773714, 154.978714), /*Need shiny Yellow form Flabebe*/ FloatPixel(255, 255, 255)}}}, // Flabebe (Red+Shiny, Yellow+Shiny, Orange+Shiny, Blue+Shiny, White+Shiny)
+            {670, {{FloatPixel(229.313722, 220.905609, 194.702512), /*Need shiny Red form Floette*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny Blue form Floette*/ FloatPixel(255, 255, 255), /*Need shiny Blue form Floette*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(229.489852, 230.593327, 186.307906), /*Need shiny Orange form Floette*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(228.545479, 243.563662, 213.230393), /*Need shiny White form Floette*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(229.107357, 240.968701, 195.879662), /*Need shiny Yellow form Floette*/ FloatPixel(255, 255, 255)}}}, // Floette (Red+Shiny, Yellow+Shiny, Orange+Shiny, Blue+Shiny, White+Shiny)
+            {671, {{FloatPixel(183.045869, 202.187822, 195.971864), /*Need shiny Red form Florges*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny Blue form Florges*/ FloatPixel(255, 255, 255), /*Need shiny Blue form Florges*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny Orange form Florges*/ FloatPixel(255, 255, 255), /*Need shiny Orange form Florges*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(181.038704, 230.859156, 221.319118), /*Need shiny White form Florges*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny Yellow form Florges*/ FloatPixel(255, 255, 255), /*Need shiny Yellow form Florges*/ FloatPixel(255, 255, 255)}}}, // Florges (Red+Shiny, Yellow+Shiny, Orange+Shiny, Blue+Shiny, White+Shiny)
+            {676, {{FloatPixel(240.378433, 239.426400, 229.896450), /*Need shiny Natural form Furfrou*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(218.810469, 206.982612, 200.879512), /*Need shiny Heart form Furfrou*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(199.981742, 222.200114, 216.318773), /*Need shiny Star form Furfrou*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(226.835382, 214.561173, 180.754962), /*Need shiny Diamond form Furfrou*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny Debutante form Furfrou*/ FloatPixel(255, 255, 255), /*Need shiny Debutante form Furfrou*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(229.316555, 213.887711, 211.874595), /*Need shiny Matron form Furfrou*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(210.150992, 222.111044, 182.765754), /*Need shiny Dandy form Furfrou*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny La Reine form Furfrou*/ FloatPixel(255, 255, 255), /*Need shiny La Reine form Furfrou*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(228.011032, 185.871507, 162.710187), /*Need shiny Kabuki form Furfrou*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny Pharoah form Furfrou*/ FloatPixel(255, 255, 255), /*Need shiny Pharoah form Furfrou*/ FloatPixel(255, 255, 255)}}}, // Furfrou (Normal+Shiny, Heart+Shiny, Star+Shiny, Diamond+Shiny, Debutante+Shiny, Matron+Shiny, Dandy+Shiny, La Reine+Shiny, Kabuki+Shiny, Pharoah+Shiny)
             // {710, {{}}} // Pumpkaboo (Average+Shiny, Small+Shiny, Large+Shiny, Super+Shiny)
             // {711, {{}}} // Gourgeist (Average+Shiny, Small+Shiny, Large+Shiny, Super+Shiny)
             // {720, {{}}} // Hoopa (Confined+Shiny, Unbound+Shiny)
             // {745, {{}}} // Lycanroc (Midday+Shiny, Midnight+Shiny, Dusk+Shiny)
             // {774, {{}}} // Minior
             // {801, {{}}} // Magearna
-            // {849, {{}}} // Toxtricity
+            {849, {{FloatPixel(214.090913, 198.908907, 201.775168), /*Need shiny Amped Form form Toxtricity*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(208.276217, 213.869694, 236.102680), /*Need shiny Low Key Form form Toxtricity*/ FloatPixel(255, 255, 255)}}}, // Toxtricity
+            {869, {{{/*Need nonshiny vanilla-cream-strawberry-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny vanilla-cream-strawberry-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(253.648924, 227.252368, 235.011827), /*Need shiny ruby-cream-strawberry-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny matcha-cream-strawberry-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny matcha-cream-strawberry-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(228.571336, 235.559315, 236.906314), /*Need shiny mint-cream-strawberry-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny lemon-cream-strawberry-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny lemon-cream-strawberry-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny salted-cream-strawberry-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny salted-cream-strawberry-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny ruby-swirl-strawberry-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny ruby-swirl-strawberry-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny caramel-swirl-strawberry-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny caramel-swirl-strawberry-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny rainbow-swirl-strawberry-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny rainbow-swirl-strawberry-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny vanilla-cream-berry-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny vanilla-cream-berry-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(233.593342, 228.645326, 244.782588), /*Need shiny ruby-cream-berry-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny matcha-cream-berry-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny matcha-cream-berry-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny mint-cream-berry-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny mint-cream-berry-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny lemon-cream-berry-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny lemon-cream-berry-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny salted-cream-berry-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny salted-cream-berry-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny ruby-swirl-berry-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny ruby-swirl-berry-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny caramel-swirl-berry-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny caramel-swirl-berry-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny rainbow-swirl-berry-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny rainbow-swirl-berry-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(228.011032, 185.871507, 162.710187), /*Need shiny vanilla-cream-love-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny ruby-cream-love-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny ruby-cream-love-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny matcha-cream-love-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny matcha-cream-love-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny mint-cream-love-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny mint-cream-love-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny lemon-cream-love-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny lemon-cream-love-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny salted-cream-love-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny salted-cream-love-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny ruby-swirl-love-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny ruby-swirl-love-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny caramel-swirl-love-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny caramel-swirl-love-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny rainbow-swirl-love-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny rainbow-swirl-love-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny vanilla-cream-star-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny vanilla-cream-star-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny ruby-cream-star-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny ruby-cream-star-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny matcha-cream-star-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny matcha-cream-star-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny mint-cream-star-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny mint-cream-star-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny lemon-cream-star-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny lemon-cream-star-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny salted-cream-star-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny salted-cream-star-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny ruby-swirl-star-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny ruby-swirl-star-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(253.548267, 243.189171, 178.852605), /*Need shiny caramel-swirl-star-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny rainbow-swirl-star-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny rainbow-swirl-star-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny vanilla-cream-clover-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny vanilla-cream-clover-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny ruby-cream-clover-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny ruby-cream-clover-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny matcha-cream-clover-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny matcha-cream-clover-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny mint-cream-clover-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny mint-cream-clover-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny lemon-cream-clover-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny lemon-cream-clover-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny salted-cream-clover-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny salted-cream-clover-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny ruby-swirl-clover-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny ruby-swirl-clover-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny caramel-swirl-clover-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny caramel-swirl-clover-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny rainbow-swirl-clover-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny rainbow-swirl-clover-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny vanilla-cream-flower-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny vanilla-cream-flower-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny ruby-cream-flower-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny ruby-cream-flower-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny matcha-cream-flower-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny matcha-cream-flower-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny mint-cream-flower-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny mint-cream-flower-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny lemon-cream-flower-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny lemon-cream-flower-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny salted-cream-flower-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny salted-cream-flower-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny ruby-swirl-flower-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny ruby-swirl-flower-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny caramel-swirl-flower-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny caramel-swirl-flower-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny rainbow-swirl-flower-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny rainbow-swirl-flower-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny vanilla-cream-ribbon-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny vanilla-cream-ribbon-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny ruby-cream-ribbon-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny ruby-cream-ribbon-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny matcha-cream-ribbon-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny matcha-cream-ribbon-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny mint-cream-ribbon-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny mint-cream-ribbon-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny lemon-cream-ribbon-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny lemon-cream-ribbon-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny salted-cream-ribbon-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny salted-cream-ribbon-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny ruby-swirl-ribbon-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny ruby-swirl-ribbon-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny caramel-swirl-ribbon-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny caramel-swirl-ribbon-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny rainbow-swirl-ribbon-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny rainbow-swirl-ribbon-sweet form Alcremie*/ FloatPixel(255, 255, 255)}}}},
             // {893, {{}}} // Zarude
             // {901, {{}}} // Ursaluna
             // {905, {{}}} // Enamorus (Incarnate+Shiny, Therian+Shiny)
@@ -185,11 +284,15 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
             // {931, {{}}} // Squawkabilly
             // {978, {{}}} // Tatsugiri
             // {982, {{}}} // Dudunsparce
-            // {999, {{}}} // Gimmighoul
+            {999, {{FloatPixel(222.680417, 208.518917, 169.581170), /*Need shiny Chest form Gimmighoul*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(227.996058, 232.016789, 224.896271), /*Need shiny Roaming form Gimmighoul*/ FloatPixel(255, 255, 255)}}} // Gimmighoul
         };
 
         std::unordered_map<int, std::pair<bool,bool>> issue_list = {
-            {854,{true,true}}
+            {854,{true,true}},
+            {855,{true,true}},
+            {1012,{true,true}},
+            {1013,{true,true}}
         };
 
 
@@ -228,6 +331,7 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
             }
 
             if(form_id == -2){
+                logger.log(std::to_string(pokemon_color.r)+", "+std::to_string(pokemon_color.g)+", "+std::to_string(pokemon_color.b));
                 throw std::logic_error("Could not identify visual form. RGB Values for extracted box are: ("+std::to_string(pokemon_color.r)+","+std::to_string(pokemon_color.g)+","+std::to_string(pokemon_color.b)+")");
             }
 
@@ -267,7 +371,7 @@ SummaryWatcher::SummaryWatcher(Color color)
     , m_frozen_screen(
           COLOR_CYAN,                      // overlay color for frozen detection
           ImageFloatBox(0.0, 0.0, 1.0, 1.0), // monitor full screen; adjust if needed
-          std::chrono::milliseconds(50),         // wait 0.05 seconds of inactivity
+          std::chrono::milliseconds(100),         // wait 0.1 seconds of inactivity
           5.0                              // RMSD threshold
           )
 {}
