@@ -24,16 +24,16 @@ public:
     bool gmax;
     StatsHuntGenderFilter gender;
     uint16_t level;
-    size_t form_id;
+    int form_id;
     int ot_id;
 
 
     FloatPixel color;
     FloatPixel quick_color;
 
-    size_t current_box; // Box number the Pokémon is currently in
-    size_t current_row; // Row position in the current box
-    size_t current_col; // Column position in the current box
+    int current_box; // Box number the Pokémon is currently in
+    int current_row; // Row position in the current box
+    int current_col; // Column position in the current box
 
     // Shared gender-specific IDs across all Pokemon
     static const std::unordered_set<float>& gender_specific_ids() {
@@ -76,6 +76,7 @@ struct Game{
 enum class mode{
     Level,
     Simple_Item,
+    Fun,
     None
 };
 
@@ -93,12 +94,12 @@ class Enrichment : public SingleSwitchProgramInstance{
 public:
     Enrichment();
 
-    void home_put_away_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&, PokemonHome_HomeEnvironment&, Game&, bool);
-    void home_dispose_of_go(SingleSwitchProgramEnvironment&, ProControllerContext&, PokemonHome_HomeEnvironment&);
-    void wipe_markings(SingleSwitchProgramEnvironment&, ProControllerContext&, PokemonHome_HomeEnvironment&);
-    void initialize_home(SingleSwitchProgramEnvironment&, ProControllerContext&, PokemonHome_HomeEnvironment&, std::vector<Game>&);
-    void sort_all_boxes(SingleSwitchProgramEnvironment&, ProControllerContext&, PokemonHome_HomeEnvironment&, bool&, bool&);
-    void enrich_with_games(SingleSwitchProgramEnvironment&, ProControllerContext&, PokemonHome_HomeEnvironment&, std::vector<Game>&);
+    void home_put_away_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&, HomeEnvironment&, Game&, bool);
+    void home_dispose_of_go(SingleSwitchProgramEnvironment&, ProControllerContext&, HomeEnvironment&);
+    void wipe_markings(SingleSwitchProgramEnvironment&, ProControllerContext&, HomeEnvironment&);
+    void initialize_home(SingleSwitchProgramEnvironment&, ProControllerContext&, HomeEnvironment&, std::vector<Game>&);
+    void sort_all_boxes(SingleSwitchProgramEnvironment&, ProControllerContext&, HomeEnvironment&, bool&, bool&);
+    void enrich_with_games(SingleSwitchProgramEnvironment&, ProControllerContext&, HomeEnvironment&, std::vector<Game>&);
 
     virtual void program(SingleSwitchProgramEnvironment&, ProControllerContext&) override;
 
