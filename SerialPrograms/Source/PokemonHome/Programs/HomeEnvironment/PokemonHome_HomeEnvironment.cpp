@@ -10,6 +10,7 @@
 #include "PokemonHome/Inference/PokemonHome_HomeApplicationDetector.h"
 #include "PokemonHome/Inference/PokemonHome_FilterMenuReader.h"
 #include "PokemonHome/Inference/PokemonHome_FilterMenuConfirmReader.h"
+#include "PokemonHome/Inference/PokemonHome_SummaryDetector.h"
 #include <chrono>
 #include <queue>
 #include <cmath>
@@ -20,7 +21,7 @@ namespace NintendoSwitch{
 namespace PokemonHome{
 using namespace Pokemon;
 
-static size_t MAX_RETRIES = 5;
+static int MAX_RETRIES = 5;
 
 std::string sanitize_OCR2(std::string str){
     char chars[] = "\n\r—.,";
@@ -64,6 +65,7 @@ std::string to_string(GameStatus game) {
 
 HomeCursor::HomeCursor(SingleSwitchProgramEnvironment& env, ProControllerContext& context, bool single_page, bool secondary_open){
     holding_pokemon = false;
+    this->secondary_open = secondary_open;
 
     locate_position(env, context);
     if(!single_page){
@@ -72,22 +74,23 @@ HomeCursor::HomeCursor(SingleSwitchProgramEnvironment& env, ProControllerContext
             identify_page(env,context, true, UINT_MAX);
         }
     }
-    this->secondary_open = secondary_open;
 
 }
 
-HomeCursor::HomeCursor(size_t row, size_t col)
+HomeCursor::HomeCursor(int row, int col)
     : secondary_open(false), row(row), col(col), box(0), holding_pokemon(false) {}
 
-HomeCursor::HomeCursor(HomeCursor other, size_t box)
+HomeCursor::HomeCursor(HomeCursor other, int box)
     : secondary_open(false), row(other.row), col(other.col), box(box), holding_pokemon(false) {}
 
-HomeCursor::HomeCursor(size_t row, size_t col, size_t box)
+HomeCursor::HomeCursor(int row, int col, int box)
     : secondary_open(false), row(row), col(col), box(box), holding_pokemon(false) {}
 
-HomeCursor::HomeCursor(std::pair<size_t,size_t>& other)
+HomeCursor::HomeCursor(std::pair<int,int>& other)
     : secondary_open(false), row(other.first), col(other.second), box(0), holding_pokemon(false) {}
 
+HomeCursor::HomeCursor()
+    : secondary_open(false), row(0), col(0), box(0) {}
 
 
 
@@ -128,26 +131,26 @@ CursorActionResponse HomeCursor::put_down_pokemon(SingleSwitchProgramEnvironment
     return {CursorActionResult::SUCCESS, "Function still undefined"};
 }
 
-void HomeCursor::align_col(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const size_t& new_col){
-    size_t total_cols = (secondary_open ? 12 : 6);
-    size_t dist = (new_col > col) ? new_col - col : col - new_col;
+void HomeCursor::align_col(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const int& new_col){
+    int total_cols = (secondary_open ? 12 : 6);
+    int dist = (new_col > col) ? new_col - col : col - new_col;
 
     if (dist <= total_cols / 2) {
         // direct movement
         if (new_col > col){
-            for (size_t i = 0; i < new_col - col; ++i)
+            for (int i = 0; i < new_col - col; ++i)
                 pbf_press_dpad(context, DPAD_RIGHT, 10, 30);
         } else {
-            for (size_t i = 0; i < col - new_col; ++i)
+            for (int i = 0; i < col - new_col; ++i)
                 pbf_press_dpad(context, DPAD_LEFT, 10, 30);
         }
     } else {
         // wrap-around
         if (new_col > col){
-            for (size_t i = 0; i < total_cols - (new_col - col); ++i)
+            for (int i = 0; i < total_cols - (new_col - col); ++i)
                 pbf_press_dpad(context, DPAD_LEFT, 10, 30);
         } else {
-            for (size_t i = 0; i < total_cols - (col - new_col); ++i)
+            for (int i = 0; i < total_cols - (col - new_col); ++i)
                 pbf_press_dpad(context, DPAD_RIGHT, 10, 30);
         }
     }
@@ -156,19 +159,19 @@ void HomeCursor::align_col(SingleSwitchProgramEnvironment& env, ProControllerCon
 
 }
 
-void HomeCursor::align_row(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const size_t& new_row){
+void HomeCursor::align_row(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const int& new_row){
 
     // direct nav up or down through rows
     if (!(row == 0 && new_row == 4) && !(new_row == 0 && row == 4)) {
-        for (size_t i = row; i < new_row; ++i) {
+        for (int i = row; i < new_row; ++i) {
             pbf_press_dpad(context, DPAD_DOWN, 10, 30);
         }
-        for (size_t i = new_row; i < row; ++i) {
+        for (int i = new_row; i < row; ++i) {
             pbf_press_dpad(context, DPAD_UP, 10, 30);
         }
     } else { // wrap around is faster to move between row or last row
         if (row == 0 && new_row == 4) {
-            for (size_t i = 0; i <= 2; ++i) {
+            for (int i = 0; i <= 2; ++i) {
                 pbf_press_dpad(context, DPAD_UP, 10, 30);
             }
         } else {
@@ -182,7 +185,7 @@ void HomeCursor::align_row(SingleSwitchProgramEnvironment& env, ProControllerCon
 
 }
 
-CursorActionResponse HomeCursor::position_cursor(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const HomeCursor& dest_cursor, size_t retry_count){
+CursorActionResponse HomeCursor::position_cursor(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const HomeCursor& dest_cursor, int retry_count){
 
     if(dest_cursor.row>MAX_ROWS){
         return {CursorActionResult::ERROR_RECOVERABLE, "row "+std::to_string(dest_cursor.row)+" out of scope"};
@@ -212,6 +215,10 @@ CursorActionResponse HomeCursor::position_cursor(SingleSwitchProgramEnvironment&
             pbf_press_button(context, BUTTON_UP, 10, 60);
             return locate_position(env, context, true);
         }
+    }
+
+    if(row < 0 || col < 0 || row > MAX_ROWS || col > MAX_COLUMNS){
+        locate_position(env, context, false);
     }
 
 
@@ -306,13 +313,13 @@ CursorActionResponse HomeCursor::locate_position(SingleSwitchProgramEnvironment&
     ImageFloatBox hand_region = {0.03, 0.15, 0.93, 0.5};
     HomeCursorWatcher handWatcher(holding_pokemon?HomeCursorType::GRABBING:HomeCursorType::RED, hand_region, COLOR_WHITE);
 
-    int ret = wait_until(env.console, context, 2000ms, {handWatcher});
+    int ret = wait_until(env.console, context, 2s, {handWatcher});
     if (ret == 0){
         auto [x, y] = handWatcher.location();
         row = y;
         col = x;
-        env.console.log("HERE at ("+std::to_string(x)+", "+std::to_string(y)+")");
-        return {CursorActionResult::SUCCESS, "Found cursor at ("+std::to_string(x)+", "+std::to_string(y)+")"};
+        env.console.log("HERE at ("+std::to_string(y)+", "+std::to_string(x)+")");
+        return {CursorActionResult::SUCCESS, "Found cursor at ("+std::to_string(y)+", "+std::to_string(x)+")"};
     }else{
         ImageFloatBox box_name_button = {0.3, 0.1, 0.01, 0.02};
         ImageFloatBox box_spaces_button = {0.3, 0.72, 0.01, 0.02};
@@ -361,7 +368,7 @@ CursorActionResponse HomeCursor::locate_position(SingleSwitchProgramEnvironment&
 * and determines the current page based on a >50% consensus.
 */
 
-CursorActionResponse HomeCursor::identify_page(SingleSwitchProgramEnvironment& env, ProControllerContext& context, bool hard_check, size_t expected) {
+CursorActionResponse HomeCursor::identify_page(SingleSwitchProgramEnvironment& env, ProControllerContext& context, bool hard_check, int expected) {
     context.wait_for_all_requests();
 
     VideoSnapshot screen = env.console.video().snapshot();
@@ -371,20 +378,28 @@ CursorActionResponse HomeCursor::identify_page(SingleSwitchProgramEnvironment& e
     ImageFloatBox box_name_box(0.135, 0.105, 0.24, 0.04);
     ImageFloatBox home_box_checker(0.075, 0.72, 0.03205, 0.04);
 
-    size_t box_name_top = 0, box_name_bottom = 0;
+    int box_name_top = 0, box_name_bottom = 0;
+
+    if(col>MAX_COLUMNS){
+        if(col<=8){
+            move_cursor_to(env, context, {row, 5});
+        }else{
+            move_cursor_to(env, context, {row, 0});
+        }
+    }
 
     auto extract_box_data = [&](VideoSnapshot& snapshot) {
         std::string temp;
         try {
             temp = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(snapshot, box_name_box)));
-            box_name_top = std::stoull(temp.substr(temp.find_last_of(' ') + 1));
+            box_name_top = std::stoi(temp.substr(temp.find_last_of(' ') + 1));
         } catch (...) {
             box_name_top = 0;
         }
 
         try {
             temp = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(snapshot, home_box_checker)));
-            box_name_bottom = std::stoull(temp.substr(0, temp.find_last_of('/')));
+            box_name_bottom = std::stoi(temp.substr(0, temp.find_last_of('/')));
         } catch (...) {
             box_name_bottom = 0;
         }
@@ -394,8 +409,8 @@ CursorActionResponse HomeCursor::identify_page(SingleSwitchProgramEnvironment& e
     env.console.log(std::to_string(box_name_top) + "/" + std::to_string(box_name_bottom));
 
     if (!hard_check) {
-        if(expected!=UINT_MAX){
-            if (box_name_top == static_cast<size_t>(expected) || box_name_bottom == static_cast<size_t>(expected)) {
+        if(expected!=INT_MAX){
+            if (box_name_top == expected || box_name_bottom == expected) {
                 box = box_name_top;
                 return {CursorActionResult::SUCCESS, "Successfully identified expected page as " + std::to_string(box)};
             } else {
@@ -480,19 +495,19 @@ CursorActionResponse HomeCursor::identify_page(SingleSwitchProgramEnvironment& e
 
 
 
-size_t HomeCursor::get_page() {
+int HomeCursor::get_page() {
     return box;
 }
 
- size_t HomeCursor::get_row() {
+ int HomeCursor::get_row() {
     return row;
 }
 
- size_t HomeCursor::get_col() {
+ int HomeCursor::get_col() {
     return col;
 }
 
-int HomeCursor::distance_to(const HomeCursor& other){
+ int HomeCursor::distance_to(const HomeCursor& other) const{
     int x_dist = std::min(std::abs(static_cast<int>(other.col-col)),std::abs(static_cast<int>((secondary_open?12:6)-other.col-col)));
     int y_dist = std::min(static_cast<int>(3), std::abs(static_cast<int>(other.row-row)));
     int box_dist = std::abs(static_cast<int>(other.box-box));
@@ -503,7 +518,7 @@ int HomeCursor::distance_to(const HomeCursor& other){
 
 
 
-PokemonHome_HomeEnvironment::PokemonHome_HomeEnvironment(SingleSwitchProgramEnvironment& env, ProControllerContext& context)
+HomeEnvironment::HomeEnvironment(SingleSwitchProgramEnvironment& env, ProControllerContext& context)
 {
     detect_home(env, context);
     initialize_navigation_map(env, context);
@@ -513,7 +528,7 @@ PokemonHome_HomeEnvironment::PokemonHome_HomeEnvironment(SingleSwitchProgramEnvi
     boxes = HomeStorage();
 }
 
-void PokemonHome_HomeEnvironment::navigate_menus_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const PageID destination, const GameStatus game){
+void HomeEnvironment::navigate_menus_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const PageID destination, const GameStatus game){
     if(cursor.has_value()){
         cursor->secondary_open =
             (game != GameStatus::POKEMON_HOME) &&
@@ -535,7 +550,7 @@ void PokemonHome_HomeEnvironment::navigate_menus_to(SingleSwitchProgramEnvironme
     }
 }
 
-void PokemonHome_HomeEnvironment::navigate_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const HomeCursor& dest_cursor){
+void HomeEnvironment::navigate_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const HomeCursor& dest_cursor){
     if(!cursor.has_value() || cursor->get_page() == 0){
         cursor.emplace(env, context, false, game_open!=GameStatus::POKEMON_HOME);
     }
@@ -548,7 +563,7 @@ void PokemonHome_HomeEnvironment::navigate_to(SingleSwitchProgramEnvironment& en
     }
 }
 
-std::vector<PageID> PokemonHome_HomeEnvironment::find_navigation_path(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PageID from, PageID to){
+std::vector<PageID> HomeEnvironment::find_navigation_path(SingleSwitchProgramEnvironment& env, ProControllerContext& context, PageID from, PageID to){
     if (to == PageID::CURRENT){
         return {};
     }
@@ -595,7 +610,7 @@ std::vector<PageID> PokemonHome_HomeEnvironment::find_navigation_path(SingleSwit
     return {};
 }
 
-void PokemonHome_HomeEnvironment::perform_navigation_steps(SingleSwitchProgramEnvironment& env, ProControllerContext& context, std::vector<PageID>& steps){
+void HomeEnvironment::perform_navigation_steps(SingleSwitchProgramEnvironment& env, ProControllerContext& context, std::vector<PageID>& steps){
     // Ensure we have at least two steps to navigate.
     if (steps.size() < 2) {
         throw std::runtime_error("Insufficient steps to perform navigation.");
@@ -631,7 +646,7 @@ void PokemonHome_HomeEnvironment::perform_navigation_steps(SingleSwitchProgramEn
     steps= {};
 }
 
-void PokemonHome_HomeEnvironment::identify_game_icon(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+void HomeEnvironment::identify_game_icon(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     ImageFloatBox game_icon_box_prim(0.9255, 0.715, 0.035, 0.057);
 
     context.wait_for_all_requests();
@@ -650,7 +665,114 @@ void PokemonHome_HomeEnvironment::identify_game_icon(SingleSwitchProgramEnvironm
     }
 }
 
-void PokemonHome_HomeEnvironment::detect_home(SingleSwitchProgramEnvironment& env, ProControllerContext& context, bool single_page){
+void HomeEnvironment::sort_into_correct_boxes(SingleSwitchProgramEnvironment& env, ProControllerContext& context, int left_num, int right_num){
+    HomeBox& left = boxes.at(left_num);
+    HomeBox& right = boxes.at(right_num);
+
+    std::vector<PokemonData> combined = left.flatten();
+    {
+        std::vector<PokemonData> right_flat = right.flatten();
+        combined.insert(combined.end(), right_flat.begin(), right_flat.end());
+    }
+    if (combined.empty()) return;
+
+    std::sort(combined.begin(), combined.end());
+
+    std::vector<std::optional<PokemonData>> left_target(30);
+    std::vector<std::optional<PokemonData>> right_target(30);
+
+    for (size_t i = 0; i < combined.size(); i++){
+        if (i < 30)
+            left_target[i] = combined[i];
+        else if (i < 60)
+            right_target[i - 30] = combined[i];
+    }
+
+    std::array<std::array<bool, 6>, 5> left_mask{};
+    std::array<std::array<bool, 6>, 5> right_mask{};
+
+    auto exists_in_target = [](const PokemonData& pokemon, const std::vector<std::optional<PokemonData>>& target) -> bool {
+        for (const auto& t : target) {
+            if (t.has_value() && *t == pokemon)
+                return true;
+        }
+        return false;
+    };
+
+    for (int r = 0; r < HomeBox::MAX_ROWS; r++) {
+        for (int c = 0; c < HomeBox::MAX_COLS; c++) {
+            auto temp = left.at(r, c).getPokemon();
+            // true if blank OR not in left_target
+            left_mask[r][c] = !temp.has_value() || !exists_in_target(temp.value(), left_target);
+        }
+    }
+
+    for (int r = 0; r < HomeBox::MAX_ROWS; r++) {
+        for (int c = 0; c < HomeBox::MAX_COLS; c++) {
+            auto temp = right.at(r, c).getPokemon();
+            // true if occupied AND not in right_target
+            right_mask[r][c] = temp.has_value() && !exists_in_target(temp.value(), right_target);
+        }
+    }
+
+    bool ltr = false; // left-to-right
+
+    auto closest_true = [&](const std::array<std::array<bool,6>,5>& mask, const HomeCursor& from) -> std::optional<std::pair<int,int>> {
+        std::optional<std::pair<int,int>> best;
+        double best_dist = std::numeric_limits<double>::max();
+        for(int r=0;r<5;r++){
+            for(int c=0;c<6;c++){
+                if(mask[r][c]){
+                    double d = from.distance_to({r,c});
+                    if(!best.has_value() || d<best_dist){
+                        best = {r,c};
+                        best_dist = d;
+                    }
+                }
+            }
+        }
+        return best;
+    };
+
+    while(true){
+
+        std::optional<std::pair<int, int>> left_pos;
+        std::optional<std::pair<int, int>> right_pos;
+        if(ltr){
+            left_pos = closest_true(left_mask, *cursor);
+            if (!left_pos) break;
+            right_pos = closest_true(right_mask, {left_pos->first, left_pos->second});
+
+        }else{
+            right_pos = closest_true(right_mask, *cursor);
+            if (!right_pos) break;
+            left_pos = closest_true(left_mask, {right_pos->first, right_pos->second});
+        }
+
+
+        left_mask[left_pos->first][left_pos->second] = false;
+        right_mask[right_pos->first][right_pos->second] = false;
+        ltr = !ltr;
+
+        if(left.at(left_pos->first,left_pos->second).isEmpty() && right.at(right_pos->first,right_pos->second).isEmpty()) continue;
+
+        swap_pokemon(env, context,
+                     HomeCursor{left_pos->first, left_pos->second, left_num},
+                     HomeCursor{right_pos->first, right_pos->second, right_num});
+
+        std::swap(left.at(left_pos->first,left_pos->second).getPokemon(),
+                  right.at(right_pos->first,right_pos->second).getPokemon());
+
+        std::swap(left.at(left_pos->first,left_pos->second).m_quick_color,
+                  right.at(right_pos->first,right_pos->second).m_quick_color);
+
+    }
+
+    return;
+}
+
+
+void HomeEnvironment::detect_home(SingleSwitchProgramEnvironment& env, ProControllerContext& context, bool single_page){
     context.wait_for_all_requests();
 
     HomeTitleScreenWatcher titleWatcher(COLOR_BLUE);
@@ -662,7 +784,7 @@ void PokemonHome_HomeEnvironment::detect_home(SingleSwitchProgramEnvironment& en
     HomeBoxViewWatcher boxWatcher(COLOR_BLUE);
     NameBoxWatcher nameBoxWatcher(COLOR_BLUE);
     int ret = wait_until(
-        env.console, context, std::chrono::milliseconds(5000),
+        env.console, context, 30s,
         {
             titleWatcher,
             mainMenuWatcher,
@@ -735,7 +857,7 @@ void PokemonHome_HomeEnvironment::detect_home(SingleSwitchProgramEnvironment& en
     context.wait_for_all_requests();
 }
 
-std::string PokemonHome_HomeEnvironment::get_view(){
+std::string HomeEnvironment::get_view(){
     switch(current_view){
         case PageID::CURRENT: return "Current";
         case PageID::TITLE_SCREEN: return "Title Screen";
@@ -751,15 +873,56 @@ std::string PokemonHome_HomeEnvironment::get_view(){
         return "failed";
 }
 
-size_t PokemonHome_HomeEnvironment::get_box(){
+size_t HomeEnvironment::get_box(){
     return cursor.value().get_page();
 }
 
-HomeCursor PokemonHome_HomeEnvironment::get_cursor(){
+HomeCursor HomeEnvironment::get_cursor(){
     return cursor.value();
 }
 
-CursorActionResponse PokemonHome_HomeEnvironment::handle_errors(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const CursorActionResponse& response){
+void HomeEnvironment::scan_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext& context, HomeCursor location){
+    PokemonData pokemon;
+
+    SummaryWatcher summary_page(COLOR_CYAN);
+
+    int ret = wait_until(
+        env.console, context,
+        std::chrono::milliseconds(5*TICKS_PER_SECOND),
+        {summary_page}
+        );
+
+    if(ret==0){
+        pokemon = summary_page.get_pokemon(env.console, env.console.video().snapshot(), pokedex_information);
+        env.console.log(pokemon.to_string());
+    }
+
+    // TODO: Store pokemon in HomeStorage object
+
+    boxes.at(location.get_page()).at(location.get_row(),location.get_col()) = HomeSlot(location.get_row(),location.get_col(),pokemon);
+
+}
+
+PokemonData HomeEnvironment::scan_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+    PokemonData pokemon;
+
+    SummaryWatcher summary_page(COLOR_CYAN);
+
+    int ret = wait_until(
+        env.console, context,
+        std::chrono::milliseconds(10*TICKS_PER_SECOND),
+        {summary_page}
+        );
+
+    if(ret==0){
+        pokemon = summary_page.get_pokemon(env.console, env.console.video().snapshot(), pokedex_information);
+        env.console.log(pokemon.to_string());
+    }
+
+    return pokemon;
+}
+
+CursorActionResponse HomeEnvironment::handle_errors(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const CursorActionResponse& response){
 
     send_program_notification(
         env, NOTIFICATION_ERROR_RECOVERABLE,
@@ -772,7 +935,7 @@ CursorActionResponse PokemonHome_HomeEnvironment::handle_errors(SingleSwitchProg
     return response;
 }
 
-void PokemonHome_HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
+void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
     navigation_map[PageID::TITLE_SCREEN] = {
         {PageID::MAIN_MENU,
          [](SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
@@ -1102,7 +1265,7 @@ void PokemonHome_HomeEnvironment::initialize_navigation_map(SingleSwitchProgramE
     };
 }
 
-std::string PokemonHome_HomeEnvironment::get_filter_menu_read(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+std::string HomeEnvironment::get_filter_menu_read(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     context.wait_for_all_requests();
 
     VideoSnapshot screen = env.console.video().snapshot();
@@ -1132,7 +1295,7 @@ std::string PokemonHome_HomeEnvironment::get_filter_menu_read(SingleSwitchProgra
 }
 
 
-void PokemonHome_HomeEnvironment::scroll_filter_menu(SingleSwitchProgramEnvironment& env, ProControllerContext& context, std::string dest, size_t retry_count) {
+void HomeEnvironment::scroll_filter_menu(SingleSwitchProgramEnvironment& env, ProControllerContext& context, std::string dest, int retry_count) {
     env.console.log("Scrolling to "+dest);
 
     if(retry_count >= MAX_RETRIES){
@@ -1202,7 +1365,7 @@ void PokemonHome_HomeEnvironment::scroll_filter_menu(SingleSwitchProgramEnvironm
 }
 
 
-void PokemonHome_HomeEnvironment::swap_pokemon(SingleSwitchProgramEnvironment &env, ProControllerContext &context, const HomeCursor& slot1, const HomeCursor& slot2){
+void HomeEnvironment::swap_pokemon(SingleSwitchProgramEnvironment &env, ProControllerContext &context, const HomeCursor& slot1, const HomeCursor& slot2){
     if(cursor->distance_to(slot1)<=cursor->distance_to(slot2)){
         navigate_to(env, context, slot1);
         pick_up_pokemon(env, context);
@@ -1216,7 +1379,7 @@ void PokemonHome_HomeEnvironment::swap_pokemon(SingleSwitchProgramEnvironment &e
     }
 }
 
-void PokemonHome_HomeEnvironment::pick_up_pokemon(SingleSwitchProgramEnvironment &env, ProControllerContext &context){
+void HomeEnvironment::pick_up_pokemon(SingleSwitchProgramEnvironment &env, ProControllerContext &context){
     if(!cursor.has_value()){
         cursor.emplace(env, context, true, game_open!=GameStatus::POKEMON_HOME);
     }
@@ -1224,7 +1387,7 @@ void PokemonHome_HomeEnvironment::pick_up_pokemon(SingleSwitchProgramEnvironment
     cursor->pick_up_pokemon(env, context);
 }
 
-void PokemonHome_HomeEnvironment::put_down_pokemon(SingleSwitchProgramEnvironment &env, ProControllerContext &context){
+void HomeEnvironment::put_down_pokemon(SingleSwitchProgramEnvironment &env, ProControllerContext &context){
     if(!cursor.has_value()){
         cursor.emplace(env, context, true, game_open!=GameStatus::POKEMON_HOME);
     }
@@ -1233,7 +1396,7 @@ void PokemonHome_HomeEnvironment::put_down_pokemon(SingleSwitchProgramEnvironmen
 
 }
 
-void PokemonHome_HomeEnvironment::bail_out(SingleSwitchProgramEnvironment &env, ProControllerContext &context){
+void HomeEnvironment::bail_out(SingleSwitchProgramEnvironment &env, ProControllerContext &context){
     NameBoxWatcher nameBoxWatcher(COLOR_BLUE);
     int ret = wait_until(
         env.console, context, std::chrono::milliseconds(5000),

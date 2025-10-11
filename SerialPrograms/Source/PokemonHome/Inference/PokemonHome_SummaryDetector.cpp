@@ -102,7 +102,16 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
         FloatPixel pokemon_color = image_stats(extract_box_reference(screen, pokemon_box_small)).average;
 
         static std::unordered_map<int, std::vector<std::pair<FloatPixel, FloatPixel>>> visual_forms = {
-            // {25, {{}}} // Pikachu (Base+Shiny, Cap, Hoenn, Sinnoh, Unova, Kalos, Alola, Partner, World)
+            {25, {{FloatPixel(248.564141, 220.904500, 74.276412), /*Need shiny pikachu-m form Pikachu*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(248.549586, 220.900558, 74.309764), /*Need shiny pikachu-f form Pikachu*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(241.680927, 208.992175, 95.705435), /*Need shiny pikachu-original-cap form Pikachu*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(234.432471, 196.569238, 73.098768), /*Need shiny pikachu-hoenn-cap form Pikachu*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(232.633454, 198.147125, 80.908562), /*Need shiny pikachu-sinnoh-cap form Pikachu*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(232.528301, 210.646181, 99.712840), /*Need shiny pikachu-unova-cap form Pikachu*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(245.101886, 211.422143, 94.546543), /*Need shiny pikachu-kalos-cap form Pikachu*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(243.070737, 209.447026, 91.116201), /*Need shiny pikachu-alola-cap form Pikachu*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(241.320962, 211.372796, 92.970890), /*Need shiny pikachu-partner-cap form Pikachu*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(236.343536, 207.752563, 90.168126), /*Need shiny pikachu-world-cap form Pikachu*/ FloatPixel(255, 255, 255)}}}, // Pikachu (Base+Shiny, Cap, Hoenn, Sinnoh, Unova, Kalos, Alola, Partner, World)
             {201, {{FloatPixel(170.934285, 172.982582, 171.41171), /*Need shiny A form Unown*/ FloatPixel(255, 255, 255)},
                    {FloatPixel(171.051985, 172.886542, 171.652027), /*Need shiny B form Unown*/ FloatPixel(255, 255, 255)},
                    {FloatPixel(176.412055, 178.22759, 176.8081), /*Need shiny C form Unown*/ FloatPixel(255, 255, 255)},
@@ -187,7 +196,7 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
                    {/*Need nonshiny White form Flabebe*/ FloatPixel(255, 255, 255), /*Need shiny White form Flabebe*/ FloatPixel(255, 255, 255)},
                    {FloatPixel(240.832009, 240.773714, 154.978714), /*Need shiny Yellow form Flabebe*/ FloatPixel(255, 255, 255)}}}, // Flabebe (Red+Shiny, Yellow+Shiny, Orange+Shiny, Blue+Shiny, White+Shiny)
             {670, {{FloatPixel(229.313722, 220.905609, 194.702512), /*Need shiny Red form Floette*/ FloatPixel(255, 255, 255)},
-                   {/*Need nonshiny Blue form Floette*/ FloatPixel(255, 255, 255), /*Need shiny Blue form Floette*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(195.946277, 223.513581, 214.595125), /*Need shiny Blue form Floette*/ FloatPixel(255, 255, 255)},
                    {FloatPixel(229.489852, 230.593327, 186.307906), /*Need shiny Orange form Floette*/ FloatPixel(255, 255, 255)},
                    {FloatPixel(228.545479, 243.563662, 213.230393), /*Need shiny White form Floette*/ FloatPixel(255, 255, 255)},
                    {FloatPixel(229.107357, 240.968701, 195.879662), /*Need shiny Yellow form Floette*/ FloatPixel(255, 255, 255)}}}, // Floette (Red+Shiny, Yellow+Shiny, Orange+Shiny, Blue+Shiny, White+Shiny)
@@ -206,11 +215,26 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
                    {/*Need nonshiny La Reine form Furfrou*/ FloatPixel(255, 255, 255), /*Need shiny La Reine form Furfrou*/ FloatPixel(255, 255, 255)},
                    {FloatPixel(228.011032, 185.871507, 162.710187), /*Need shiny Kabuki form Furfrou*/ FloatPixel(255, 255, 255)},
                    {/*Need nonshiny Pharoah form Furfrou*/ FloatPixel(255, 255, 255), /*Need shiny Pharoah form Furfrou*/ FloatPixel(255, 255, 255)}}}, // Furfrou (Normal+Shiny, Heart+Shiny, Star+Shiny, Diamond+Shiny, Debutante+Shiny, Matron+Shiny, Dandy+Shiny, La Reine+Shiny, Kabuki+Shiny, Pharoah+Shiny)
-            // {710, {{}}} // Pumpkaboo (Average+Shiny, Small+Shiny, Large+Shiny, Super+Shiny)
+            {710, {{/*Need nonshiny average form Pumpkaboo*/ FloatPixel(255, 255, 255), /*Need shiny average form Pumpkaboo*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny small form Pumpkaboo*/ FloatPixel(255, 255, 255), /*Need shiny small form Pumpkaboo*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(176.666792, 145.626349, 106.988353), /*Need shiny large form Pumpkaboo*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny super form Pumpkaboo*/ FloatPixel(255, 255, 255), /*Need shiny super form Pumpkaboo*/ FloatPixel(255, 255, 255)}}}, // Pumpkaboo (Average+Shiny, Small+Shiny, Large+Shiny, Super+Shiny)
             // {711, {{}}} // Gourgeist (Average+Shiny, Small+Shiny, Large+Shiny, Super+Shiny)
+            {718, {{FloatPixel(142.745968, 150.517538, 112.791267), /*Need shiny 50 form Zygarde*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(142.745968, 150.517538, 112.791267), /*Need shiny 50-power-construct form Zygarde*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny 10 form Zygarde*/ FloatPixel(255, 255, 255), /*Need shiny 10 form Zygarde*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny 10-power-construct form Zygarde*/ FloatPixel(255, 255, 255), /*Need shiny 10-power-construct form Zygarde*/ FloatPixel(255, 255, 255)}}},
             // {720, {{}}} // Hoopa (Confined+Shiny, Unbound+Shiny)
-            // {745, {{}}} // Lycanroc (Midday+Shiny, Midnight+Shiny, Dusk+Shiny)
-            // {774, {{}}} // Minior
+            {745, {{FloatPixel(238.055297, 228.085697, 217.930717), /*Need shiny midday form Lycanroc*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(231.466093, 176.397365, 175.000195), /*Need shiny midnight form Lycanroc*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny dusk form Lycanroc*/ FloatPixel(255, 255, 255), /*Need shiny dusk form Lycanroc*/ FloatPixel(255, 255, 255)}}}, // Lycanroc (Midday+Shiny, Midnight+Shiny, Dusk+Shiny)
+            {774, {{FloatPixel(253.261302, 188.247302, 209.165038), /*Need shiny red form Minior*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny orange form Minior*/ FloatPixel(255, 255, 255), /*Need shiny orange form Minior*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny yellow form Minior*/ FloatPixel(255, 255, 255), /*Need shiny yellow form Minior*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(214.754512, 240.142043, 168.540472), /*Need shiny green form Minior*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(138.605963, 225.634803, 251.296184), /*Need shiny blue form Minior*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny indigo form Minior*/ FloatPixel(255, 255, 255), /*Need shiny indigo form Minior*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny violet form Minior*/ FloatPixel(255, 255, 255), /*Need shiny violet form Minior*/ FloatPixel(255, 255, 255)}}}, // Minior
             // {801, {{}}} // Magearna
             {849, {{FloatPixel(214.090913, 198.908907, 201.775168), /*Need shiny Amped Form form Toxtricity*/ FloatPixel(255, 255, 255)},
                    {FloatPixel(208.276217, 213.869694, 236.102680), /*Need shiny Low Key Form form Toxtricity*/ FloatPixel(255, 255, 255)}}}, // Toxtricity
@@ -278,19 +302,30 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
                    {/*Need nonshiny caramel-swirl-ribbon-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny caramel-swirl-ribbon-sweet form Alcremie*/ FloatPixel(255, 255, 255)},
                    {/*Need nonshiny rainbow-swirl-ribbon-sweet form Alcremie*/ FloatPixel(255, 255, 255), /*Need shiny rainbow-swirl-ribbon-sweet form Alcremie*/ FloatPixel(255, 255, 255)}}}},
             // {893, {{}}} // Zarude
-            // {901, {{}}} // Ursaluna
+            {901, {{/*Need nonshiny normal form Urasluna*/ FloatPixel(255, 255, 255), /*Need shiny normal form Urasluna*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(184.399553, 157.850567, 134.671903), /*Need shiny blood-moon form Ursaluna*/ FloatPixel(255, 255, 255)}}}, // Ursaluna
             // {905, {{}}} // Enamorus (Incarnate+Shiny, Therian+Shiny)
-            // {925, {{}}} // Maushold
-            // {931, {{}}} // Squawkabilly
-            // {978, {{}}} // Tatsugiri
-            // {982, {{}}} // Dudunsparce
-            {999, {{FloatPixel(222.680417, 208.518917, 169.581170), /*Need shiny Chest form Gimmighoul*/ FloatPixel(255, 255, 255)},
+            {925, {{/*Need nonshiny family-of-three form Maushold*/ FloatPixel(255, 255, 255), /*Need shiny family-of-three form Maushold*/ FloatPixel(255, 255, 255)},
+                      {FloatPixel(253.635658, 253.878283, 253.176475), /*Need shiny family-of-four form Maushold*/ FloatPixel(255, 255, 255)}}}, // Maushold
+            {931, {{FloatPixel(228.007465, 235.134534, 213.292496), /*Need shiny green-plumage form Squawkabilly*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(220.686158, 230.386632, 227.928304), /*Need shiny blue-plumage form Squawkabilly*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(240.899104, 235.976421, 212.062597), /*Need shiny yellow-plumage form Squawkabilly*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(238.067769, 236.356877, 227.726601), /*Need shiny white-plumage form Squawkabilly*/ FloatPixel(255, 255, 255)}}}, // Squawkabilly
+            {978, {{FloatPixel(250.973933, 207.915368, 173.900393), /*Need shiny curly form Tatsugiri*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(253.702647, 244.697281, 245.435829), /*Need shiny droopy form Tatsugiri*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny stretchy form Tatsugiri*/ FloatPixel(255, 255, 255), /*Need shiny stretchy form Tatsugiri*/ FloatPixel(255, 255, 255)}}}, // Tatsugiri
+            {982, {{FloatPixel(224.980258, 233.049946, 170.930522), /*Need shiny two-segment form Dudunsparce*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny three-segment form Dudunsparce*/ FloatPixel(255, 255, 255), /*Need shiny three-segment form Dudunsparce*/ FloatPixel(255, 255, 255)}}}, // Dudunsparce
+            {999, {{FloatPixel(222.680417, 208.518917, 169.581170),FloatPixel(223.853235, 209.191825, 169.646690)},
                    {FloatPixel(227.996058, 232.016789, 224.896271), /*Need shiny Roaming form Gimmighoul*/ FloatPixel(255, 255, 255)}}} // Gimmighoul
         };
 
         std::unordered_map<int, std::pair<bool,bool>> issue_list = {
+            {711, {true,true}}, // TODO: FIX THIS
+            {774, {false,true}},
             {854,{true,true}},
             {855,{true,true}},
+            {869, {false,true}},
             {1012,{true,true}},
             {1013,{true,true}}
         };
@@ -332,7 +367,7 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
 
             if(form_id == -2){
                 logger.log(std::to_string(pokemon_color.r)+", "+std::to_string(pokemon_color.g)+", "+std::to_string(pokemon_color.b));
-                throw std::logic_error("Could not identify visual form. RGB Values for extracted box are: ("+std::to_string(pokemon_color.r)+","+std::to_string(pokemon_color.g)+","+std::to_string(pokemon_color.b)+")");
+                throw std::logic_error("Could not identify visual form. Check PokemonHome_Summary Detector at line 104. RGB Values for extracted box are: ("+std::to_string(pokemon_color.r)+","+std::to_string(pokemon_color.g)+","+std::to_string(pokemon_color.b)+")");
             }
 
 

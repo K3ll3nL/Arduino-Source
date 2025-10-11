@@ -652,6 +652,15 @@ public:
             return out;
         };
 
+        // Quick check that the blanks are at the back
+        for(int i = start; i < end -1; i++){
+            if(layout[i].blanks>0){
+                if(layout[i].blanks!=30){
+                    return false;
+                }
+            }
+        }
+
         for(int i = start; i < end-1; i++){
             std::optional<Pokemon> lowestRight;
 
@@ -1980,7 +1989,7 @@ Pokemon home_request_next_pokemon(SingleSwitchProgramEnvironment& env, ProContro
 int home_fill_boxes_to_game(SingleSwitchProgramEnvironment& env, ProControllerContext& context, HomeEnvironment& home_manager, Game& game, std::string box_name, mode mode, std::unordered_map<std::string, int>& item_counts){
 
 
-    home_manager.navigate_to(env, context, {11,3});
+    home_manager.navigate_to(env, context, {3,11});
     home_navigate_to_box_secondary(env, context, box_name);
     int found = 0;
     for(int i =0; i<6; i++){
@@ -2518,104 +2527,7 @@ bool home_make_easy_swaps(SingleSwitchProgramEnvironment& env, ProControllerCont
             boxes.get_box(left_num).update_stats();
             boxes.get_box(right_num).update_stats();
 
-            // // Get mask of bools that expose pokemon in wrong box
-            // auto left = box_lt(boxes.get_box(left_num), lowestRight.value());
-            // auto right = box_gt(boxes.get_box(right_num), highestLeft.value());
-
-            // auto find_swap_path = [&](
-            //                           std::array<std::array<bool, MAX_COLUMNS>, MAX_ROWS>& left,
-            //                           std::array<std::array<bool, MAX_COLUMNS>, MAX_ROWS>& right,
-            //                           int left_num,
-            //                           int right_num
-            //                           ) -> std::vector<HomeCursor> {
-
-            //     std::vector<HomeCursor> left_remaining;
-            //     std::vector<HomeCursor> right_remaining;
-            //     for (int i = 0; i < MAX_ROWS; ++i) {
-            //         for (int j = 0; j < MAX_COLUMNS; ++j) {
-            //             if (left[i][j]) {
-            //                 left_remaining.emplace_back(i, j, left_num);
-            //             }
-            //             if (right[i][j]) {
-            //                 right_remaining.emplace_back(i, j, right_num);
-            //             }
-            //         }
-            //     }
-
-            //     std::vector<HomeCursor> path;
-
-            //     // Alternate consuming left and right until done
-            //     bool on_left = true;
-            //     HomeCursor current;
-            //     bool first = true;
-
-            //     while (!left_remaining.empty() || !right_remaining.empty()) {
-            //         auto& candidates = on_left ? left_remaining : right_remaining;
-
-            //         // For even steps (on_left), only keep slots with a Pokémon
-            //         std::vector<HomeCursor> valid_candidates;
-            //         for (auto& c : candidates) {
-            //             const auto& mon = boxes.get_box(c.get_page()).grid[c.get_row()][c.get_col()];
-            //             if (on_left) {
-            //                 if (mon.has_value()) valid_candidates.push_back(c); // must have Pokémon
-            //             } else {
-            //                 valid_candidates.push_back(c); // right side can be empty
-            //             }
-            //         }
-
-            //         if (valid_candidates.empty()) {
-            //             // No valid candidates on this step, stop or continue depending on policy
-            //             break;
-            //         }
-
-            //         // Pick the closest one
-            //         auto it = std::min_element(valid_candidates.begin(), valid_candidates.end(),
-            //                                    [&](const HomeCursor& a, const HomeCursor& b){
-            //                                        if (first) return false; // just take the first one
-            //                                        return current.distance_to(a) < current.distance_to(b);
-            //                                    });
-
-            //         HomeCursor next = *it;
-            //         path.push_back(next);
-            //         current = next;
-            //         first = false;
-
-            //         // remove from original candidates vector
-            //         candidates.erase(std::remove(candidates.begin(), candidates.end(), next), candidates.end());
-
-            //         // alternate side
-            //         on_left = !on_left;
-
-            //     }
-
-            //     return path;
-            // };
-
-
-            // auto path = find_swap_path(left, right, left_num, right_num);
-
-
-
-            // while(path.size() >= 2){
-            //     HomeCursor start = path.back();
-            //     path.pop_back();
-            //     HomeCursor dest = path.back();
-            //     path.pop_back();
-
-            //     home_manager.swap_pokemon(env, context, start, dest);
-            //     home_swap_pokemon(env, context, home_manager, start, boxes.get_box(start.get_page()), dest, boxes.get_box(dest.get_page()));
-
-            // }
-
-
-
-
-
-        }
-
-
-
-
+            }
 
     }
 
@@ -2625,113 +2537,6 @@ bool home_make_easy_swaps(SingleSwitchProgramEnvironment& env, ProControllerCont
         return true;
     }else{
         return false;
-    }
-}
-
-void sv_run_ace(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
-    ImageFloatBox sv_battle_button(0.82, 0.655, 0.1, 0.055);
-    ImageFloatBox sv_keep_current_pokemon(0.645, 0.615, 0.2, 0.055);
-    ImageFloatBox sv_move_1_pp(0.91, 0.615, 0.03, 0.0355);
-    ImageFloatBox sv_b_back(0.95, 0.95, 0.04, 0.035);
-    ImageFloatBox evolve_message(0.28, 0.76, 0.065, 0.055);
-    ImageFloatBox evolve_message2(0.28, 0.76, 0.15, 0.055);
-    ImageFloatBox evolve_message3(0.28, 0.76, 0.45, 0.115);
-    ImageFloatBox white_dialog_checker(0.853, 0.825, 0.019, 0.05);
-    ImageFloatBox fainted_checker(0.19, 0.22, 0.051, 0.03);
-
-
-    VideoOverlaySet box_render(env.console);
-    VideoSnapshot screen = env.console.video().snapshot();
-    PokemonSV::DialogBoxDetector dialog_detector;
-    PokemonSV::DialogArrowDetector arrow_detector(Color(255,255,255), white_dialog_checker);
-
-    int no_response_check = 0;
-    int failsafe_checks = 0;
-    bool secondary_move = false;
-    while(true){
-        screen = env.console.video().snapshot();
-        box_render.add(COLOR_BLUE, sv_battle_button);
-        std::string text1 = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, sv_battle_button)));
-        env.console.log(text1);
-        box_render.add(COLOR_BLUE, sv_keep_current_pokemon);
-        std::string text2 = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, sv_keep_current_pokemon)));
-        env.console.log(text2);
-        box_render.add(COLOR_BLACK, sv_b_back);
-        std::string text3 = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, sv_b_back)));
-        env.console.log(text3);
-        std::string text4 = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, evolve_message)));
-        env.console.log(text4);
-        std::string text5 = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, fainted_checker)));
-        env.console.log(text5);
-        std::string text_box = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, evolve_message3)));
-        env.console.log(text_box);
-        box_render.add(COLOR_WHITE, white_dialog_checker);
-        if(text5 == "FAINTED"||failsafe_checks==5){
-            throw BattleFailedException{};
-        }
-        if(text_box == "| hope to see you in the tournament again soon"){
-            return;
-        }
-        if(text4 == "What?"){
-            pbf_press_button(context, BUTTON_A, 10, 90);
-            std::string text6 = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(env.console.video().snapshot(), evolve_message2)));
-            env.console.log(text6);
-            while(text6!="Congratulations!" && text6!="What? You gotta"){
-                pbf_wait(context, 500ms);
-                text6 = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(env.console.video().snapshot(), evolve_message2)));
-                env.console.log(text6);
-            }
-            // ___ wants to learn the move ___
-            pbf_press_button(context, BUTTON_A, 10, 90);
-            std::string evo_text;
-            do{
-                context.wait_for_all_requests();
-                box_render.add(COLOR_GREEN, evolve_message3);
-                screen = env.console.video().snapshot();
-                evo_text = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, evolve_message3)));
-                env.console.log(evo_text.c_str() + evo_text.find(' ') + 1);
-                if(std::strncmp(evo_text.c_str() + evo_text.find(' ') + 1, "wants to learn the move", 23) == 0 || std::strncmp(evo_text.c_str() + evo_text.find(' ') + 1, "learned", 7) == 0){
-                    pbf_press_button(context, BUTTON_B, 10, 90);
-                }
-                pbf_wait(context, 1000ms);
-            }while((std::strncmp(evo_text.c_str() + evo_text.find(' ') + 1, "wants to learn the move", 23) == 0 || std::strncmp(evo_text.c_str() + evo_text.find(' ') + 1, "learned", 7)== 0));
-
-        }else if(text1 == "Battle"){
-            pbf_press_button(context, BUTTON_A, 10, 90);
-            box_render.add(COLOR_RED, sv_move_1_pp);
-            context.wait_for_all_requests();
-            screen = env.console.video().snapshot();
-            FloatPixel image_value = image_stats(extract_box_reference(screen, sv_move_1_pp)).average;
-            env.console.log(std::to_string(image_value.r));
-            if(image_value.r>100&&!secondary_move){
-                secondary_move=true;
-                pbf_press_button(context, BUTTON_DOWN, 10, 50);
-            }
-            pbf_press_button(context, BUTTON_A, 10, 50);
-            pbf_wait(context, 22000ms);
-            failsafe_checks=0;
-        }else if(text2 == "Keep current "+STRING_POKEMON){
-            env.console.log("Keep current");
-            pbf_press_button(context, BUTTON_B, 10, 50);
-            pbf_wait(context, 8000ms);
-            failsafe_checks=0;
-        }else if (text3 == "Back"){
-            pbf_mash_button(context, BUTTON_B, 600);
-        }else if(dialog_detector.detect(screen)){
-            pbf_press_button(context, BUTTON_A, 10, 250);
-            failsafe_checks=0;
-        }else if(arrow_detector.detect(env.console.video().snapshot())){
-            pbf_press_button(context, BUTTON_A, 10, 250);
-            failsafe_checks=0;
-        }else if (no_response_check>25){
-            no_response_check = 0;
-            failsafe_checks++;
-            pbf_press_button(context, BUTTON_B, 10, 250);
-        }else{
-            no_response_check++;
-        }
-        context.wait_for_all_requests();
-        pbf_wait(context, 600ms);
     }
 }
 
@@ -2764,7 +2569,7 @@ void sv_run_ace2(SingleSwitchProgramEnvironment& env, ProControllerContext& cont
         }
 
 
-        bool terrastalized = false;
+        bool terrastalized = true;
         bool win = PokemonSV::run_pokemon(env.console, context, {}, true, terrastalized);
 
         if(!win){
@@ -2778,7 +2583,7 @@ void sv_run_ace2(SingleSwitchProgramEnvironment& env, ProControllerContext& cont
 
         ret = wait_until(
             env.console, context,
-            Milliseconds(60*TICKS_PER_SECOND),
+            60s,
             {
                 evo_message,
                 next_battle_message,
@@ -2884,14 +2689,18 @@ bool switch_close_game_and_open(SingleSwitchProgramEnvironment& env, ProControll
     }
 
     if (target_game == "Pokémon HOME"){
-        pbf_wait(context, 30s);  // TODO: replace with actual title detection
-        return true;
+        HomeEnvironment home_manager_temp(env, context);
+        if(home_manager_temp.get_view()=="Title Screen"){
+            return true;
+        }else{
+            return switch_close_game_and_open(env, context, target_game, retries+1);
+        }
     }
 
     if (target_game == "Pokémon Violet"){
         PokemonSV::OverworldWatcher overworld(env.console, COLOR_RED);
         load_into_sv(env, context);
-        int ret = wait_until(env.console, context, 30s, {overworld});
+        ret = wait_until(env.console, context, 30s, {overworld});
         switch(ret){
             case 0: return true;
             default: return switch_close_game_and_open(env, context, target_game, retries+1);
@@ -3028,7 +2837,7 @@ void sv_run_enrichment(SingleSwitchProgramEnvironment& env, ProControllerContext
             env.console.log(e.what());
             // go home, reboot, and retry
             runs--;
-            switch_close_game_and_open(env, context, "Pokémon HOME");
+            switch_close_game_and_open(env, context, "Pokémon Violet");
         }
 
         catch(...){
@@ -3345,15 +3154,9 @@ void Enrichment::home_dispose_of_go(SingleSwitchProgramEnvironment& env, ProCont
             pbf_press_button(context, BUTTON_X, 10, 100);
             pbf_press_button(context, BUTTON_X, 10, 50);
             home_manager.scroll_filter_menu(env, context, "markings");
-            context.wait_for_all_requests();
-            pbf_press_button(context, BUTTON_A, 10, 50);
-            // TODO: Check that the circle is grey
+            pbf_press_button(context, BUTTON_A, 10, 60);
             pbf_press_button(context, BUTTON_UP, 10, 60);
-
-            do{
-                    pbf_press_button(context, BUTTON_A, 10, 10);
-            }while(home_manager.get_filter_menu_read(env, context)=="markings");    // TODO: Implement actual checking to match certain filter options
-
+            pbf_press_button(context, BUTTON_A, 10, 75);
             home_manager.scroll_filter_menu(env, context, "origin-mark");
             pbf_press_button(context, BUTTON_UP, 10, 30);
             pbf_press_button(context, BUTTON_UP, 10, 30);
@@ -3437,7 +3240,7 @@ void Enrichment::home_dispose_of_go(SingleSwitchProgramEnvironment& env, ProCont
         }while(more_go);
 
         pbf_mash_button(context, BUTTON_B, 5s);
-        while(home_manager.get_view()!="BOX VIEW"){
+        while(home_manager.get_view()!="Box View"){
             home_manager.detect_home(env, context);
             pbf_press_button(context, BUTTON_B, 10, 60);
         }
@@ -3454,14 +3257,9 @@ void Enrichment::home_dispose_of_go(SingleSwitchProgramEnvironment& env, ProCont
         pbf_press_button(context, BUTTON_X, 10, 100);
         pbf_press_button(context, BUTTON_X, 10, 50);
         home_manager.scroll_filter_menu(env, context, "markings");
-        pbf_press_button(context, BUTTON_A, 10, 50);
-        pbf_press_button(context, BUTTON_UP, 10, 50);
-        pbf_press_button(context, BUTTON_A, 10, 50);
-
-        do{
-            pbf_press_button(context, BUTTON_A, 10, 10);
-        }while(home_manager.get_filter_menu_read(env, context)=="markings");    // TODO: Implement actual checking to match certain filter options
-
+        pbf_press_button(context, BUTTON_A, 10, 60);
+        pbf_press_button(context, BUTTON_UP, 10, 60);
+        pbf_press_button(context, BUTTON_A, 10, 75);
         home_manager.scroll_filter_menu(env, context, "origin-mark");
         pbf_press_button(context, BUTTON_UP, 10, 30);
         pbf_press_button(context, BUTTON_UP, 10, 30);
@@ -3527,7 +3325,7 @@ void Enrichment::home_dispose_of_go(SingleSwitchProgramEnvironment& env, ProCont
         }while(more_go);
 
         pbf_mash_button(context, BUTTON_B, 5s);
-        while(home_manager.get_view()!="BOX VIEW"){
+        while(home_manager.get_view()!="Box View"){
             home_manager.detect_home(env, context);
             pbf_press_button(context, BUTTON_B, 10, 60);
         }
@@ -3614,51 +3412,58 @@ void Enrichment::program(SingleSwitchProgramEnvironment& env, ProControllerConte
 
     context.wait_for_all_requests();
 
-    bool started = false;
-    bool swaps_made = true;
+    home_manager.navigate_to(env, context, {0,0,91});
+    home_build_box(env, context, home_manager, 91);
+    home_manager.navigate_to(env, context, {0,0,92});
+    home_build_box(env, context, home_manager, 92);
 
-    if(EMERGENCY_DELOAD){
-        home_manager.navigate_menus_to(env, context, PageID::BOX_VIEW, GameStatus::POKEMON_VIOLET);
-        home_put_away_pokemon(env, context, home_manager, game_list[0], true);
-    }
-    if(!SKIP_SORT){
-        initialize_home(env, context, home_manager, game_list);
-        sort_all_boxes(env, context, home_manager, started, swaps_made);
-        send_program_notification(
-                env, NOTIFICATION_ERROR_FATAL,
-                COLOR_GREEN,
-                "Finished Sorting Pokemon",
-                {}, "",
-                screen
-            );
-    }
-    enrich_with_games(env, context, home_manager, game_list);
-    send_program_notification(
-        env, NOTIFICATION_ERROR_FATAL,
-        COLOR_GREEN,
-        "Finished Running Enhancements",
-        {}, "",
-        screen
-        );
+    home_manager.sort_into_correct_boxes(env, context, 91, 92);
 
-    sort_all_boxes(env, context, home_manager, started, swaps_made);
+    // bool started = false;
+    // bool swaps_made = true;
 
-    int ret = -1;
-    while(ret!=0){
-        pbf_press_button(context, BUTTON_HOME, 10, 240);
-        ret = wait_until(
-            env.console, context,
-            Milliseconds(30*TICKS_PER_SECOND),
-            {
-                home_menu
-            }
-            );
-    }    pbf_press_button(context, BUTTON_X, 10, 20);
-    pbf_press_button(context, BUTTON_A, 10, 320);
-    pbf_press_button(context, BUTTON_A, 10, 3150);
-    pbf_press_button(context, BUTTON_A, 10, 3150);
+    // if(EMERGENCY_DELOAD){
+    //     home_manager.navigate_menus_to(env, context, PageID::BOX_VIEW, GameStatus::POKEMON_VIOLET);
+    //     home_put_away_pokemon(env, context, home_manager, game_list[0], true);
+    // }
+    // if(!SKIP_SORT){
+    //     initialize_home(env, context, home_manager, game_list);
+    //     sort_all_boxes(env, context, home_manager, started, swaps_made);
+    //     send_program_notification(
+    //             env, NOTIFICATION_ERROR_FATAL,
+    //             COLOR_GREEN,
+    //             "Finished Sorting Pokemon",
+    //             {}, "",
+    //             screen
+    //         );
+    // }
+    // enrich_with_games(env, context, home_manager, game_list);
+    // send_program_notification(
+    //     env, NOTIFICATION_ERROR_FATAL,
+    //     COLOR_GREEN,
+    //     "Finished Running Enhancements",
+    //     {}, "",
+    //     screen
+    //     );
 
-    send_program_finished_notification(env, NOTIFICATION_PROGRAM_FINISH);
+    // sort_all_boxes(env, context, home_manager, started, swaps_made);
+
+    // int ret = -1;
+    // while(ret!=0){
+    //     pbf_press_button(context, BUTTON_HOME, 10, 240);
+    //     ret = wait_until(
+    //         env.console, context,
+    //         Milliseconds(30*TICKS_PER_SECOND),
+    //         {
+    //             home_menu
+    //         }
+    //         );
+    // }    pbf_press_button(context, BUTTON_X, 10, 20);
+    // pbf_press_button(context, BUTTON_A, 10, 320);
+    // pbf_press_button(context, BUTTON_A, 10, 3150);
+    // pbf_press_button(context, BUTTON_A, 10, 3150);
+
+    // send_program_finished_notification(env, NOTIFICATION_PROGRAM_FINISH);
 
 
     // PokemonSV::AdvanceDialogWatcher evo_message(COLOR_CYAN, PokemonSV::DialogType::DIALOG_BLACK);

@@ -111,6 +111,7 @@ public:
     std::vector<PokemonInformation> match(const std::vector<std::vector<PokemonInformation>>& candidates) const;
     bool operator==(const PokemonData& other) const;
     bool operator!=(const PokemonData& other) const { return !(*this == other); }
+    bool operator<(const PokemonData& other);
 
     std::string to_string() const;
 
@@ -140,6 +141,7 @@ public:
     HomeSlot();
     HomeSlot(int row, int col, FloatPixel quick_color);
     HomeSlot(int row, int col, FloatPixel quick_color, std::optional<PokemonData> pokemon);
+    HomeSlot(int row, int col, const PokemonData& pokemon);
 
     // Accessors
     int row() const { return m_row; }
@@ -155,10 +157,12 @@ public:
     void setPokemon(const PokemonData& pokemon);
     void clear();
 
-private:
+    FloatPixel m_quick_color;
     int m_row;
     int m_col;
-    FloatPixel m_quick_color;
+
+
+private:
     std::optional<PokemonData> m_pokemon;
 };
 

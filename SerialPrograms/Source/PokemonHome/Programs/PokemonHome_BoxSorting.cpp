@@ -760,7 +760,7 @@ void BoxSorting::program(SingleSwitchProgramEnvironment& env, ProControllerConte
     send_program_finished_notification(env, NOTIFICATION_PROGRAM_FINISH);
 
 
-    PokemonHome_HomeEnvironment home_manager(env, context);
+    HomeEnvironment home_manager(env, context);
 
     home_manager.navigate_menus_to(env, context, PageID::MAIN_MENU);
 

@@ -1,12 +1,8 @@
 #ifndef PokemonAutomation_PokemonHome_HomeEnvironment_H
 #define PokemonAutomation_PokemonHome_HomeEnvironment_H
 
-#include "CommonFramework/ImageTools/FloatPixel.h"
 #include "NintendoSwitch/NintendoSwitch_SingleSwitchProgram.h"
-#include "Pokemon/Options/Pokemon_StatsHuntFilter.h"
-#include "Pokemon/Pokemon_Types.h"
 #include "PokemonHome/Inference/PokemonHome_PokemonData.h"
-#include "PokemonHome/Options/PokemonHome_BoxSortingTable.h"
 #include <functional>
 #include <unordered_map>
 
@@ -95,64 +91,82 @@ struct CursorActionResponse{
 };
 
 class HomeCursor {
-    const size_t MAX_ROWS = 5;
-    const size_t MAX_COLUMNS = 6;
+    static constexpr int MAX_ROWS = 5;
+    static constexpr int MAX_COLUMNS = 6;
 
 public:
     HomeCursor(SingleSwitchProgramEnvironment&, ProControllerContext&, bool = false, bool = false);
     // HomeCursor(Pokemon&);
-    HomeCursor(size_t, size_t);
-    HomeCursor(HomeCursor, size_t);
-    HomeCursor(size_t, size_t, size_t);
-    HomeCursor(std::pair<size_t,size_t>&);
+    HomeCursor(int, int);
+    HomeCursor(HomeCursor, int);
+    HomeCursor(int, int, int);
+    HomeCursor(std::pair<int,int>&);
     // HomeCursor(HomePokemon);
     HomeCursor();
+
+    bool operator==(const HomeCursor& other) const {
+        return row == other.row &&
+               col == other.col &&
+               box == other.box &&
+               secondary_open == other.secondary_open;
+    }
+
+    bool operator!=(const HomeCursor& other) const {
+        return !(*this == other);
+    }
 
     CursorActionResponse move_cursor_to(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&);
     CursorActionResponse pick_up_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&);
     CursorActionResponse put_down_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&);
-    CursorActionResponse identify_page(SingleSwitchProgramEnvironment&, ProControllerContext&, bool = false, size_t = UINT_MAX);
-    size_t get_page();
-    size_t get_row();   // TODO: Delete after implementing box system
-    size_t get_col();   // TODO: Delete after implementing box system
-    int distance_to(const HomeCursor&);
+    CursorActionResponse identify_page(SingleSwitchProgramEnvironment&, ProControllerContext&, bool = false, int = UINT_MAX);
+    int get_page();
+    int get_row();   // TODO: Delete after implementing box system
+    int get_col();   // TODO: Delete after implementing box system
+    int distance_to(const HomeCursor&) const;
     bool secondary_open;
 
 private:
-    void align_col(SingleSwitchProgramEnvironment&, ProControllerContext&, const size_t&);
-    void align_row(SingleSwitchProgramEnvironment&, ProControllerContext&, const size_t&);
-    CursorActionResponse position_cursor(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&, size_t = 0);
+    void align_col(SingleSwitchProgramEnvironment&, ProControllerContext&, const int&);
+    void align_row(SingleSwitchProgramEnvironment&, ProControllerContext&, const int&);
+    CursorActionResponse position_cursor(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&, int = 0);
     CursorActionResponse navigate_to_page(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&);
     CursorActionResponse locate_position(SingleSwitchProgramEnvironment&, ProControllerContext&, bool = false);
 
-    size_t row;
-    size_t col;
-    size_t box;
+    int row;
+    int col;
+    int box;
 
     // size_t secondary_box;
     bool holding_pokemon;
     // bool InSecondaryBoxes;
 };
 
-class PokemonHome_HomeEnvironment : public SingleSwitchProgramInstance {
+class HomeEnvironment : public SingleSwitchProgramInstance {
 
 public:
-    PokemonHome_HomeEnvironment(SingleSwitchProgramEnvironment& env, ProControllerContext& context);
+    HomeEnvironment(SingleSwitchProgramEnvironment& env, ProControllerContext& context);
 
     void navigate_menus_to(SingleSwitchProgramEnvironment&, ProControllerContext&, const PageID, const GameStatus = GameStatus::CURRENT);
     void navigate_to(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor &);
     void detect_home(SingleSwitchProgramEnvironment&, ProControllerContext&, bool = false);
-    void scroll_filter_menu(SingleSwitchProgramEnvironment&, ProControllerContext&, std::string, size_t = 0);
+    void scroll_filter_menu(SingleSwitchProgramEnvironment&, ProControllerContext&, std::string, int = 0);
     void pick_up_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&);
     void put_down_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&);
     void swap_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor& slot1, const HomeCursor& slot2);
     void bail_out(SingleSwitchProgramEnvironment&env, ProControllerContext&context);
     std::string get_filter_menu_read(SingleSwitchProgramEnvironment& env, ProControllerContext& context);
     std::string get_view();
+    void sort_into_correct_boxes(SingleSwitchProgramEnvironment&, ProControllerContext&, int, int);
 
     size_t get_box();
 
     HomeCursor get_cursor();
+
+    void scan_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext& context, HomeCursor location);
+    PokemonData scan_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext& context);
+
+
+    HomeStorage boxes;  // TODO: Make Private
 
 
 private:
@@ -162,11 +176,13 @@ private:
     std::vector<PageID> find_navigation_path(SingleSwitchProgramEnvironment&, ProControllerContext&, PageID, PageID);
     void perform_navigation_steps(SingleSwitchProgramEnvironment&, ProControllerContext&, std::vector<PageID>&);
     void identify_game_icon(SingleSwitchProgramEnvironment&, ProControllerContext&);
+
+
     std::optional<HomeCursor> cursor;
     GameStatus game_open;
     PageID current_view;
 
-    HomeStorage boxes;
+    PokedexReader pokedex_information;
 
     std::unordered_map<PageID, std::vector<std::pair<PageID, NavigationFunction>>> navigation_map;
     std::unordered_map<std::pair<PageID, PageID>, std::vector<PageID>, pair_hash> navigation_cache;

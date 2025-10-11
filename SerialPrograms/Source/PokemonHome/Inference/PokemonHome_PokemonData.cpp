@@ -256,6 +256,44 @@ std::vector<PokemonInformation> PokemonData::match(const std::vector<std::vector
     return results;
 }
 
+
+bool PokemonData::operator==(const PokemonData& other) const {
+    return id == other.id &&
+           form_id == other.form_id &&
+           form == other.form &&
+           gender == other.gender &&
+           type1 == other.type1 &&
+           type2 == other.type2 &&
+           region == other.region &&
+           ot_id == other.ot_id &&
+           level == other.level &&
+           shiny == other.shiny &&
+           gmax == other.gmax &&
+           ability == other.ability &&
+           tera == other.tera &&
+           prime_example == other.prime_example;
+}
+
+
+bool PokemonData::operator<(const PokemonData& other){
+    if (prime_example != other.prime_example) {
+        return prime_example;
+    }
+    if (shiny != other.shiny) {
+        return shiny;
+    }
+    if (id != other.id) {
+        return id < other.id;
+    }
+    if (form_id != other.form_id){
+        return form_id<other.form_id;
+    }
+    if (level != other.level) {
+        return level > other.level;
+    }
+    return false;
+}
+
 std::string PokemonData::to_string() const {
     QString s;
     s += QString("PokemonData { id: %1, form_id: %2, form: %3, gender: %4, ")
@@ -282,15 +320,19 @@ std::string PokemonData::to_string() const {
 }
 
 HomeSlot::HomeSlot()
-    : m_row(0), m_col(0), m_quick_color(), m_pokemon(std::nullopt) {}
+    : m_quick_color(), m_row(0), m_col(0), m_pokemon(std::nullopt) {}
 
 
 HomeSlot::HomeSlot(int row, int col, FloatPixel quick_color)
-    : m_row(row), m_col(col), m_quick_color(quick_color), m_pokemon(std::nullopt)
+    : m_quick_color(quick_color), m_row(row), m_col(col), m_pokemon(std::nullopt)
 {}
 
 HomeSlot::HomeSlot(int row, int col, FloatPixel quick_color, std::optional<PokemonData> pokemon)
-    : m_row(row), m_col(col), m_quick_color(quick_color), m_pokemon(pokemon)
+    : m_quick_color(quick_color), m_row(row), m_col(col), m_pokemon(pokemon)
+{}
+
+HomeSlot::HomeSlot(int row, int col, const PokemonData& pokemon)
+    : m_quick_color(), m_row(row), m_col(col), m_pokemon(pokemon)
 {}
 
 void HomeSlot::setPokemon(const PokemonData& pokemon) {
