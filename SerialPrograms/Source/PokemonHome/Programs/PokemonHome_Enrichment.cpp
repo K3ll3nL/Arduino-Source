@@ -3412,12 +3412,16 @@ void Enrichment::program(SingleSwitchProgramEnvironment& env, ProControllerConte
 
     context.wait_for_all_requests();
 
-    home_manager.navigate_to(env, context, {0,0,91});
-    home_build_box(env, context, home_manager, 91);
-    home_manager.navigate_to(env, context, {0,0,92});
-    home_build_box(env, context, home_manager, 92);
+    // home_manager.build_box(env, context, 96);
+    // home_manager.build_box(env, context, 97);
 
-    home_manager.sort_into_correct_boxes(env, context, 91, 92);
+    // home_manager.sort_into_correct_boxes(env, context, 96, 97);
+
+    // home_manager.sort_box(env, context, 96);
+    // home_manager.sort_box(env, context, 97);
+
+    home_manager.sort_all_boxes(env, context, HOME_FIRST_BOX, HOME_LAST_BOX);
+
 
     // bool started = false;
     // bool swaps_made = true;
@@ -3463,7 +3467,9 @@ void Enrichment::program(SingleSwitchProgramEnvironment& env, ProControllerConte
     // pbf_press_button(context, BUTTON_A, 10, 3150);
     // pbf_press_button(context, BUTTON_A, 10, 3150);
 
-    // send_program_finished_notification(env, NOTIFICATION_PROGRAM_FINISH);
+    home_manager.navigate_menus_to(env, context, PageID::MAIN_MENU);
+
+    send_program_finished_notification(env, NOTIFICATION_PROGRAM_FINISH);
 
 
     // PokemonSV::AdvanceDialogWatcher evo_message(COLOR_CYAN, PokemonSV::DialogType::DIALOG_BLACK);

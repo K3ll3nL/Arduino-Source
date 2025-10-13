@@ -120,8 +120,11 @@ public:
     CursorActionResponse put_down_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&);
     CursorActionResponse identify_page(SingleSwitchProgramEnvironment&, ProControllerContext&, bool = false, int = UINT_MAX);
     int get_page();
+    int get_page() const ;
     int get_row();   // TODO: Delete after implementing box system
+    int get_row() const ;
     int get_col();   // TODO: Delete after implementing box system
+    int get_col() const ;
     int distance_to(const HomeCursor&) const;
     bool secondary_open;
 
@@ -156,8 +159,10 @@ public:
     void bail_out(SingleSwitchProgramEnvironment&env, ProControllerContext&context);
     std::string get_filter_menu_read(SingleSwitchProgramEnvironment& env, ProControllerContext& context);
     std::string get_view();
-    void sort_into_correct_boxes(SingleSwitchProgramEnvironment&, ProControllerContext&, int, int);
-
+    bool sort_into_correct_boxes(SingleSwitchProgramEnvironment&, ProControllerContext&, int, int);
+    void build_box(SingleSwitchProgramEnvironment&, ProControllerContext&, int);
+    void sort_box(SingleSwitchProgramEnvironment&, ProControllerContext&, int);
+    void sort_all_boxes(SingleSwitchProgramEnvironment&, ProControllerContext&, int, int);
     size_t get_box();
 
     HomeCursor get_cursor();
@@ -186,6 +191,7 @@ private:
 
     std::unordered_map<PageID, std::vector<std::pair<PageID, NavigationFunction>>> navigation_map;
     std::unordered_map<std::pair<PageID, PageID>, std::vector<PageID>, pair_hash> navigation_cache;
+    std::unordered_map<std::pair<int, int>, PokemonData*, pair_hash> best_map;
 };
 
 }

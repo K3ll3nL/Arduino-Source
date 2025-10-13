@@ -107,11 +107,29 @@ public:
         PokemonType tera,
         bool prime_example
         );
+    PokemonData(
+        int id,
+        int form_id,
+        std::string form,
+        StatsHuntGenderFilter gender,
+        PokemonType type1,
+        PokemonType type2,
+        Region region,
+        int ot_id,
+        int level,
+        bool shiny,
+        bool gmax,
+        std::string ability,
+        PokemonType tera,
+        bool prime_example,
+        bool placeholder
+        );
 
     std::vector<PokemonInformation> match(const std::vector<std::vector<PokemonInformation>>& candidates) const;
     bool operator==(const PokemonData& other) const;
     bool operator!=(const PokemonData& other) const { return !(*this == other); }
     bool operator<(const PokemonData& other);
+    bool operator<(const PokemonData& other) const;
 
     std::string to_string() const;
 
@@ -132,6 +150,7 @@ public:
     // std::string pokeball; // TODO: Implement pokeball types
 
     bool prime_example;
+    bool placeholder;
 };
 
 
@@ -150,8 +169,14 @@ public:
     const std::optional<PokemonData>& getPokemon() const { return m_pokemon; }
     std::optional<PokemonData>& getPokemon() { return m_pokemon; }
 
-    bool isOccupied() const { return m_pokemon.has_value(); }
-    bool isEmpty() const { return !m_pokemon.has_value(); }
+    bool isOccupied() const { return m_pokemon.has_value() && !m_pokemon->placeholder; }
+    bool isEmpty() const { return !m_pokemon.has_value();}
+    /* isOccupied speaks to the state of the slot in Pokemon HOME. isEmpty speaks
+     * to the state of the optional. If you want to safely check the pokemon object,
+     * use isEmpty. If you want to konw that you can select the slot in home, use
+     * isOccupied.
+     */
+
 
     // Mutators
     void setPokemon(const PokemonData& pokemon);
@@ -182,16 +207,20 @@ public:
 
     // Copy constructor
     HomeBox(const HomeBox& other);
-
+    HomeBox& operator=(const HomeBox&);
+    HomeBox& operator=(HomeBox&&) noexcept;
     // Accessors
     HomeSlot& at(int row, int col);
     const HomeSlot& at(int row, int col) const;
+    std::optional<std::pair<int, int>> find_pokemon(const PokemonData& target) const;
 
     // Swap Pokémon between two slots in this box
     void swap(int row1, int col1, int row2, int col2);
 
     // Flatten into a vector of existing Pokémon (ignores empty slots)
     std::vector<PokemonData> flatten() const;
+
+    bool loaded;
 
 private:
     std::vector<std::vector<HomeSlot>> m_slots;
@@ -209,7 +238,7 @@ public:
     // Accessors
     HomeBox& at(int box_index);
     const HomeBox& at(int box_index) const;
-
+    std::optional<std::tuple<int, int, int>> find_pokemon(const PokemonData& target) const;
     // Swap Pokémon between any two slots, possibly across boxes
     void extracted(int &box1, int &box2);
     void swapSlots(int box1, int row1, int col1, int box2, int row2, int col2);

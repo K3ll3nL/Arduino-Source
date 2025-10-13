@@ -185,7 +185,7 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
                    {FloatPixel(190.078921, 178.329581, 131.191555), /*Need shiny River form Vivillon*/ FloatPixel(255, 255, 255)},
                    {FloatPixel(167.391114, 182.842832, 186.364297), /*Need shiny Monsoon form Vivillon*/ FloatPixel(255, 255, 255)},
                    {FloatPixel(151.286890, 206.048972, 170.821307), /*Need shiny Savanna form Vivillon*/ FloatPixel(255, 255, 255)},
-                   {FloatPixel(233.181227, 176.330345, 98.137022), /*Need shiny Sun form Vivillon*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(233.181227, 176.330345, 98.137022), /*Need shiny Sun form Vivillon*/ FloatPixel(237.455660, 180.563347, 102.031044)},
                    {FloatPixel(208.253942, 199.788344, 134.279350), /*Need shiny Ocean form Vivillon*/ FloatPixel(255, 255, 255)},
                    {FloatPixel(132.258709, 164.699424, 148.602365), /*Need shiny Jungle form Vivillon*/ FloatPixel(255, 255, 255)},
                    {FloatPixel(210.645851, 216.916552, 186.039003), /*Need shiny Fancy form Vivillon*/ FloatPixel(255, 255, 255)},
@@ -227,7 +227,7 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
             // {720, {{}}} // Hoopa (Confined+Shiny, Unbound+Shiny)
             {745, {{FloatPixel(238.055297, 228.085697, 217.930717), /*Need shiny midday form Lycanroc*/ FloatPixel(255, 255, 255)},
                    {FloatPixel(231.466093, 176.397365, 175.000195), /*Need shiny midnight form Lycanroc*/ FloatPixel(255, 255, 255)},
-                   {/*Need nonshiny dusk form Lycanroc*/ FloatPixel(255, 255, 255), /*Need shiny dusk form Lycanroc*/ FloatPixel(255, 255, 255)}}}, // Lycanroc (Midday+Shiny, Midnight+Shiny, Dusk+Shiny)
+                   {FloatPixel(243.136992, 230.463440, 212.349592), /*Need shiny dusk form Lycanroc*/ FloatPixel(255, 255, 255)}}}, // Lycanroc (Midday+Shiny, Midnight+Shiny, Dusk+Shiny)
             {774, {{FloatPixel(253.261302, 188.247302, 209.165038), /*Need shiny red form Minior*/ FloatPixel(255, 255, 255)},
                    {/*Need nonshiny orange form Minior*/ FloatPixel(255, 255, 255), /*Need shiny orange form Minior*/ FloatPixel(255, 255, 255)},
                    {/*Need nonshiny yellow form Minior*/ FloatPixel(255, 255, 255), /*Need shiny yellow form Minior*/ FloatPixel(255, 255, 255)},
@@ -313,7 +313,7 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
                    {FloatPixel(238.067769, 236.356877, 227.726601), /*Need shiny white-plumage form Squawkabilly*/ FloatPixel(255, 255, 255)}}}, // Squawkabilly
             {978, {{FloatPixel(250.973933, 207.915368, 173.900393), /*Need shiny curly form Tatsugiri*/ FloatPixel(255, 255, 255)},
                    {FloatPixel(253.702647, 244.697281, 245.435829), /*Need shiny droopy form Tatsugiri*/ FloatPixel(255, 255, 255)},
-                   {/*Need nonshiny stretchy form Tatsugiri*/ FloatPixel(255, 255, 255), /*Need shiny stretchy form Tatsugiri*/ FloatPixel(255, 255, 255)}}}, // Tatsugiri
+                   {FloatPixel(254.238997, 254.524763, 243.675036), /*Need shiny stretchy form Tatsugiri*/ FloatPixel(255, 255, 255)}}}, // Tatsugiri
             {982, {{FloatPixel(224.980258, 233.049946, 170.930522), /*Need shiny two-segment form Dudunsparce*/ FloatPixel(255, 255, 255)},
                    {/*Need nonshiny three-segment form Dudunsparce*/ FloatPixel(255, 255, 255), /*Need shiny three-segment form Dudunsparce*/ FloatPixel(255, 255, 255)}}}, // Dudunsparce
             {999, {{FloatPixel(222.680417, 208.518917, 169.581170),FloatPixel(223.853235, 209.191825, 169.646690)},
@@ -359,7 +359,7 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
 
             int i = 0;
             for(auto form_guess: form_candidates){
-                if(euclidean_distance((shiny_stddev_value > 30)? form_guess.second:form_guess.first, pokemon_color)<10){
+                if(euclidean_distance((shiny_stddev_value > 30)? form_guess.second:form_guess.first, pokemon_color)<1){
                     form_id = i;
                 }
                 i++;
@@ -367,7 +367,7 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
 
             if(form_id == -2){
                 logger.log(std::to_string(pokemon_color.r)+", "+std::to_string(pokemon_color.g)+", "+std::to_string(pokemon_color.b));
-                throw std::logic_error("Could not identify visual form. Check PokemonHome_Summary Detector at line 104. RGB Values for extracted box are: ("+std::to_string(pokemon_color.r)+","+std::to_string(pokemon_color.g)+","+std::to_string(pokemon_color.b)+")");
+                throw std::logic_error("Could not identify visual form. Check PokemonHome_Summary Detector at line 104. RGB Values for extracted box are: ("+std::to_string(pokemon_color.r)+", "+std::to_string(pokemon_color.g)+", "+std::to_string(pokemon_color.b)+")");
             }
 
 
@@ -406,7 +406,7 @@ SummaryWatcher::SummaryWatcher(Color color)
     , m_frozen_screen(
           COLOR_CYAN,                      // overlay color for frozen detection
           ImageFloatBox(0.0, 0.0, 1.0, 1.0), // monitor full screen; adjust if needed
-          std::chrono::milliseconds(100),         // wait 0.1 seconds of inactivity
+          std::chrono::milliseconds(100),         // wait 0.05 seconds of inactivity
           5.0                              // RMSD threshold
           )
 {}

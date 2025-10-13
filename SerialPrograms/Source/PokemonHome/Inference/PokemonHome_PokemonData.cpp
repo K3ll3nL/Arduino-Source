@@ -226,9 +226,33 @@ PokemonData::PokemonData(int id, int form_id, std::string form,
     , level(level)               // int: copy
     , shiny(shiny)               // bool: copy
     , gmax(gmax)                 // bool: copy
-    , ability(std::move(ability))           // bool: copy
+    , ability(std::move(ability))
+    , tera(tera)                 // enum: copy
+    , prime_example(prime_example)
+{
+    placeholder = false;
+}
+
+PokemonData::PokemonData(int id, int form_id, std::string form,
+                         StatsHuntGenderFilter gender,
+                         PokemonType type1, PokemonType type2,
+                         Region region, int ot_id, int level,
+                         bool shiny, bool gmax, std::string ability, PokemonType tera, bool prime_example, bool placeholder)
+    : id(id)                     // int: just copy, no move needed
+    , form_id(form_id)           // int: copy
+    , form(std::move(form))      // string: move avoids copy
+    , gender(gender)             // enum: copy
+    , type1(type1)               // enum: copy
+    , type2(type2)               // enum: copy
+    , region(region)             // enum: copy
+    , ot_id(ot_id)               // int: copy
+    , level(level)               // int: copy
+    , shiny(shiny)               // bool: copy
+    , gmax(gmax)                 // bool: copy
+    , ability(std::move(ability))
     , tera(tera)                 // enum: copy
     , prime_example(prime_example) // bool: copy
+    , placeholder(placeholder)
 {}
 
 
@@ -276,6 +300,25 @@ bool PokemonData::operator==(const PokemonData& other) const {
 
 
 bool PokemonData::operator<(const PokemonData& other){
+    if (prime_example != other.prime_example) {
+        return prime_example;
+    }
+    if (shiny != other.shiny) {
+        return shiny;
+    }
+    if (id != other.id) {
+        return id < other.id;
+    }
+    if (form_id != other.form_id){
+        return form_id<other.form_id;
+    }
+    if (level != other.level) {
+        return level > other.level;
+    }
+    return false;
+}
+
+bool PokemonData::operator<(const PokemonData& other) const{
     if (prime_example != other.prime_example) {
         return prime_example;
     }
@@ -353,6 +396,7 @@ HomeBox::HomeBox()
             m_slots[r][c] = HomeSlot(r, c, FloatPixel(), std::nullopt);
         }
     }
+    loaded = false;
 }
 
 // Constructor: fill with Pokémon up to 30
@@ -370,6 +414,7 @@ HomeBox::HomeBox(const std::vector<PokemonData>& pokemon_list)
             }
         }
     }
+    loaded = true;
 }
 
 // Copy constructor
@@ -381,6 +426,22 @@ HomeBox::HomeBox(const HomeBox& other)
             m_slots[r][c] = other.m_slots[r][c];
         }
     }
+}
+
+HomeBox& HomeBox::operator=(const HomeBox& other) {
+    if (this != &other) {
+        m_slots = other.m_slots;
+    }
+    return *this;
+}
+
+
+HomeBox& HomeBox::operator=(HomeBox&& other) noexcept {
+    if (this != &other) {
+        m_slots = std::move(other.m_slots);
+        loaded = other.loaded;
+    }
+    return *this;
 }
 
 // Accessors
@@ -397,6 +458,23 @@ const HomeSlot& HomeBox::at(int row, int col) const {
     }
     return m_slots[row][col];
 }
+
+std::optional<std::pair<int, int>> HomeBox::find_pokemon(const PokemonData& target) const {
+    for (int row = 0; row < MAX_ROWS; row++) {
+        for (int col = 0; col < MAX_COLS; col++) {
+            const HomeSlot& slot = m_slots[row][col];
+
+            if (!slot.isEmpty()) {
+                const PokemonData& data = slot.getPokemon().value();
+                if (data == target) {
+                    return std::make_pair(row, col);
+                }
+            }
+        }
+    }
+    return std::nullopt;
+}
+
 
 // Swap Pokémon between two slots
 void HomeBox::swap(int row1, int col1, int row2, int col2) {
@@ -447,6 +525,19 @@ const HomeBox& HomeStorage::at(int box_index) const {
         throw std::out_of_range("HomeStorage::at: box_index out of range.");
     }
     return m_boxes[box_index];
+}
+
+
+std::optional<std::tuple<int, int, int>> HomeStorage::find_pokemon(const PokemonData& target) const {
+    for (size_t box_index = 0; box_index < m_boxes.size(); box_index++) {
+        const HomeBox& box = m_boxes[box_index];
+        auto pos = box.find_pokemon(target);
+        if (pos.has_value()) {
+            auto [row, col] = *pos;
+            return std::make_tuple(box_index, row, col);
+        }
+    }
+    return std::nullopt;
 }
 
 // Swap Pokémon between two slots (possibly across boxes)
