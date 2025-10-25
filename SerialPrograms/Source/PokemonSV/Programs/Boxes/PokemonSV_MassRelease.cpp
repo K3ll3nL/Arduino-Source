@@ -29,12 +29,11 @@ MassRelease_Descriptor::MassRelease_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSV:MassRelease",
         STRING_POKEMON + " SV", "Mass Release",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSV/MassRelease.md",
+        "Programs/PokemonSV/MassRelease.html",
         "Mass release boxes of " + STRING_POKEMON + ".",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 struct MassRelease_Descriptor::Stats : public StatsTracker{

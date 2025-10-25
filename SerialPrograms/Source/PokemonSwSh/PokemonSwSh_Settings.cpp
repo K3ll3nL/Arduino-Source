@@ -89,23 +89,18 @@ GameSettings::GameSettings()
         "2000 ms"
     )
     , m_start_game_timings("<font size=4><b>Start Game Timings:</b></font>")
-    , START_GAME_MASH0(
-        "<b>1. Start Game Mash:</b><br>Mash A for this long to start the game.",
-        LockMode::LOCK_WHILE_RUNNING,
-        "2000 ms"
-    )
     , START_GAME_WAIT0(
-        "<b>2. Start Game Wait:</b><br>Wait this long for the game to load.",
+        "<b>Start Game Wait:</b><br>Wait this long for the game to load.",
         LockMode::LOCK_WHILE_RUNNING,
         "20000 ms"
     )
     , ENTER_GAME_MASH0(
-        "<b>3. Enter Game Mash:</b><br>Mash A for this long to enter the game.",
+        "<b>Enter Game Mash:</b><br>Mash A for this long to enter the game.",
         LockMode::LOCK_WHILE_RUNNING,
         "3000 ms"
     )
     , ENTER_GAME_WAIT0(
-        "<b>4. Enter Game Wait:</b><br>Wait this long for the game to enter the overworld.",
+        "<b>Enter Game Wait:</b><br>Wait this long for the game to enter the overworld.",
         LockMode::LOCK_WHILE_RUNNING,
         "11000 ms"
     )
@@ -247,7 +242,6 @@ GameSettings::GameSettings()
     PA_ADD_OPTION(ENTER_PROFILE_DELAY0);
 
     PA_ADD_STATIC(m_start_game_timings);
-    PA_ADD_OPTION(START_GAME_MASH0);
     PA_ADD_OPTION(START_GAME_WAIT0);
     PA_ADD_OPTION(ENTER_GAME_MASH0);
     PA_ADD_OPTION(ENTER_GAME_WAIT0);
@@ -292,7 +286,7 @@ GameSettings_Descriptor::GameSettings_Descriptor()
         Color(),
         "PokemonSwSh:GlobalSettings",
         STRING_POKEMON + " SwSh", "Game Settings",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSwSh/PokemonSettings.md",
+        "Programs/PokemonSwSh/PokemonSettings.html",
         "Global " + STRING_POKEMON + " Sword and Shield Settings"
     )
 {}

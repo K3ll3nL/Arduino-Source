@@ -7,6 +7,7 @@
 #ifdef PA_OFFICIAL
 
 #include "CommonFramework/Notifications/ProgramNotifications.h"
+#include "Controllers/ControllerTypes.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
 #include "NintendoSwitch/Programs/NintendoSwitch_DateSkippers.h"
@@ -25,15 +26,11 @@ DaySkipperEU_Descriptor::DaySkipperEU_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSwSh:DaySkipperEU",
         STRING_POKEMON + " SwSh", "Day Skipper (EU)",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSwSh/DaySkipperEU.md",
+        "Programs/PokemonSwSh/DaySkipperEU.html",
         "A day skipper for EU date format that.  (Switch 1: ~7500 skips/hour, Switch 2: 5655 skips/hour)",
+        ProgramControllerClass::StandardController_WithRestrictions,
         FeedbackType::NONE,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {
-            ControllerFeature::TickPrecise,
-            ControllerFeature::NintendoSwitch_ProController,
-            // ControllerFeature::NintendoSwitch_DateSkip,
-        }
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 std::unique_ptr<StatsTracker> DaySkipperEU_Descriptor::make_stats() const{
@@ -82,7 +79,21 @@ DaySkipperEU::DaySkipperEU()
 void DaySkipperEU::run_switch1(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     using namespace DateSkippers::Switch1;
 
-    bool needs_inference = context->performance_class() != ControllerPerformanceClass::SerialPABotBase_Wired;
+    bool needs_inference;
+    switch (context->performance_class()){
+    case ControllerPerformanceClass::SerialPABotBase_Wired:
+        needs_inference = false;
+        break;
+    case ControllerPerformanceClass::SerialPABotBase_Wireless:
+        needs_inference = true;
+        break;
+    default:
+        throw UserSetupError(
+            env.logger(),
+            "This program requires a controller performance class of \"Wired\" or \"Wireless\" for the Switch 1."
+        );
+    }
+
 
     SkipperStats& stats = env.current_stats<SkipperStats>();
     stats.total_skips = SKIPS;
@@ -152,7 +163,7 @@ void DaySkipperEU::run_switch2(SingleSwitchProgramEnvironment& env, ProControlle
     if (context->performance_class() != ControllerPerformanceClass::SerialPABotBase_Wired){
         throw UserSetupError(
             env.logger(),
-            "This program requires a tick precise wired controller."
+            "This program requires a controller performance class of \"Wired\" for the Switch 2."
         );
     }
 

@@ -43,11 +43,11 @@ AutoHost_Descriptor::AutoHost_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSV:AutoHost",
         STRING_POKEMON + " SV", "Auto-Host",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSV/AutoHost.md",
+        "Programs/PokemonSV/AutoHost.html",
         "Auto-host a Tera raid.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController}
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 struct AutoHost_Descriptor::Stats : public StatsTracker{

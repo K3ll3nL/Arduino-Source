@@ -42,11 +42,8 @@ public:
     virtual ControllerType controller_type() const override{
         return ControllerType::NintendoSwitch_WiredController;
     }
-    virtual const ControllerFeatures& controller_features() const override;
     virtual ControllerPerformanceClass performance_class() const override{
-        //  TODO: Change to SerialPABotBase_Wired when we prove it is stable.
         return ControllerPerformanceClass::SerialPABotBase_Wired;
-//        return ControllerPerformanceClass::SysbotBase;
     }
 
     virtual Milliseconds ticksize() const override{
@@ -56,10 +53,7 @@ public:
         return Milliseconds(8);
     }
     virtual Milliseconds timing_variation() const override{
-        //  TODO: Verify it is actually this stable.
-        return ConsoleSettings::instance().TIMING_OPTIONS.WIRED_MICROCONTROLLER;
-//        return ConsoleSettings::instance().TIMING_OPTIONS.SYSBOTBASE;
-//        return Milliseconds(8);
+        return ConsoleSettings::instance().TIMING_OPTIONS.WIRED;
     }
     virtual bool atomic_multibutton() const override{
         return true;
@@ -220,7 +214,10 @@ public:
 
 private:
     virtual void on_message(const std::string& message) override;
-    virtual void push_state(const Cancellable* cancellable, WallDuration duration) override;
+    virtual void execute_state(
+        const Cancellable* cancellable,
+        const SuperscalarScheduler::ScheduleEntry& entry
+    ) override;
 
 
 private:

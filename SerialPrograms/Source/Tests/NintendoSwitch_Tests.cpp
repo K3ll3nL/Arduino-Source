@@ -7,6 +7,7 @@
 
 #include "Common/Compiler.h"
 #include "Common/Cpp/Time.h"
+#include "CommonFramework/Logging/Logger.h"
 #include "CommonFramework/ImageTypes/ImageRGB32.h"
 #include "CommonFramework/ImageTypes/ImageViewRGB32.h"
 #include "CommonFramework/Recording/StreamHistorySession.h"
@@ -28,8 +29,12 @@ using namespace NintendoSwitch;
 int test_NintendoSwitch_UpdatePopupDetector(const ImageViewRGB32& image, bool target){
     auto& logger = global_logger_command_line();
     DummyBotBase botbase(logger);
-    SerialPABotBase::SerialPABotBase_Connection connection(logger, nullptr, {});
-    SerialPABotBase_WiredController controller(logger, connection);
+    SerialPABotBase::SerialPABotBase_Connection connection(logger, "", false);
+    SerialPABotBase_WiredController controller(
+        logger, connection,
+        ControllerType::NintendoSwitch_WiredController,
+        ControllerResetMode::DO_NOT_RESET
+    );
     DummyVideoFeed video_feed;
     DummyVideoOverlay video_overlay;
     DummyAudioFeed audio_feed;

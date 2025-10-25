@@ -95,6 +95,7 @@ void SingleSwitchProgramSession::run_program_instance(SingleSwitchProgramEnviron
         try{
             env.console.controller().cancel_all_commands();
         }catch (...){}
+        std::lock_guard<std::mutex> lg(program_lock());
         m_scope.store(nullptr, std::memory_order_release);
         throw;
     }
@@ -193,7 +194,7 @@ void SingleSwitchProgramSession::internal_run_program(){
             message = e.name();
         }
         report_error(message);
-        e.send_notification(env, m_option.instance().NOTIFICATION_ERROR_FATAL);
+        e.send_fatal_notification(env);
     }catch (Exception& e){
         logger().log("Program stopped with an exception!", COLOR_RED);
         env.console.overlay().add_log("- Program Error -", COLOR_RED);

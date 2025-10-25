@@ -18,8 +18,9 @@ SnapshotDumper_Descriptor::SnapshotDumper_Descriptor()
     : SingleSwitchProgramDescriptor(
         "NintendoSwitch:SnapshotDumper",
         "Nintendo Switch", "Snapshot Dumper",
-        "ComputerControl/blob/master/Wiki/Programs/NintendoSwitch/SnapshotDumper.md",
+        "Programs/NintendoSwitch/SnapshotDumper.html",
         "Periodically take screenshots.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::NONE,
         AllowCommandsWhenRunning::ENABLE_COMMANDS,
         {}

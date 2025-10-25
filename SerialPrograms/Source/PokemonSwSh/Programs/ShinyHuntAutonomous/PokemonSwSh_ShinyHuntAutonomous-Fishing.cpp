@@ -28,12 +28,11 @@ ShinyHuntAutonomousFishing_Descriptor::ShinyHuntAutonomousFishing_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSwSh:ShinyHuntAutonomousFishing",
         STRING_POKEMON + " SwSh", "Shiny Hunt Autonomous - Fishing",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSwSh/ShinyHuntAutonomous-Fishing.md",
+        "Programs/PokemonSwSh/ShinyHuntAutonomous-Fishing.html",
         "Automatically hunt for shiny fishing " + STRING_POKEMON + " using video feedback.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 struct ShinyHuntAutonomousFishing_Descriptor::Stats : public ShinyHuntTracker{

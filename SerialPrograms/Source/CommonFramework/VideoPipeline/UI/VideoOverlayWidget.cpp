@@ -36,7 +36,11 @@ VideoOverlayWidget::VideoOverlayWidget(QWidget& parent, VideoOverlaySession& ses
     , m_images(std::make_shared<std::vector<OverlayImage>>(session.images()))
     , m_log(std::make_shared<std::vector<OverlayLogLine>>(session.log_texts()))
 //    , m_stats(nullptr)
-    , m_stats_paint("VideoOverlayWidget::paintEvent", "ms", 1000, std::chrono::seconds(10))
+    , m_stats_paint(
+        "VideoOverlayWidget::paintEvent",
+        "ms", 1000,
+        std::chrono::seconds(10), 2000
+    )
 {
     setAttribute(Qt::WA_NoSystemBackground);
     setAttribute(Qt::WA_TranslucentBackground);
@@ -99,14 +103,16 @@ void VideoOverlayWidget::paintEvent(QPaintEvent*){
     {
         WriteSpinLock lg(m_lock, "VideoOverlay::paintEvent()");
 
+        //  The order here is important since the latter ones will go on top
+        //  of the earlier ones.
+        if (m_session.enabled_images()){
+            render_images(painter);
+        }
         if (m_session.enabled_boxes()){
             render_boxes(painter);
         }
         if (m_session.enabled_text()){
             render_text(painter);
-        }
-        if (m_session.enabled_images()){
-            render_images(painter);
         }
         if (m_session.enabled_log()){
             render_log(painter);
@@ -124,6 +130,43 @@ void VideoOverlayWidget::paintEvent(QPaintEvent*){
 }
 
 
+void VideoOverlayWidget::render_stats(QPainter& painter){
+    const double TEXT_SIZE = 0.018;
+    const double ROW_HEIGHT = 0.025;
+
+    QColor box_color(10, 10, 10, 200);
+    painter.setPen(box_color);
+
+    int width = this->width();
+    int height = this->height();
+    int start_x = (int)(width * 0.78);
+
+    std::vector<OverlayStatSnapshot> lines = m_session.stats();
+
+    painter.fillRect(
+        start_x,
+        0,
+        width - start_x,
+        (int)(height * (lines.size() * ROW_HEIGHT + 0.02)),
+        box_color
+    );
+
+    size_t c = 0;
+    for (const auto& stat : lines){
+        painter.setPen(QColor((uint32_t)stat.color));
+
+        QFont text_font = this->font();
+        text_font.setPointSizeF(height * TEXT_SIZE);
+        painter.setFont(text_font);
+
+        int x = start_x + width * 0.01;
+        int y = height * ((c + 1) * ROW_HEIGHT + 0.005);
+
+        painter.drawText(QPoint(x, y), QString::fromStdString(stat.text));
+
+        c++;
+    }
+}
 void VideoOverlayWidget::render_boxes(QPainter& painter){
     const int width = this->width();
     const int height = this->height();
@@ -281,43 +324,6 @@ void VideoOverlayWidget::render_log(QPainter& painter){
         painter.drawText(QPoint(xmin, ymin), QString::fromStdString(item.message));
 
         y -= LOG_LINE_SPACING;
-    }
-}
-void VideoOverlayWidget::render_stats(QPainter& painter){
-    const double TEXT_SIZE = 0.018;
-    const double ROW_HEIGHT = 0.025;
-
-    QColor box_color(10, 10, 10, 200);
-    painter.setPen(box_color);
-
-    int width = this->width();
-    int height = this->height();
-    int start_x = (int)(width * 0.78);
-
-    std::vector<OverlayStatSnapshot> lines = m_session.stats();
-
-    painter.fillRect(
-        start_x,
-        0,
-        width - start_x,
-        (int)(height * (lines.size() * ROW_HEIGHT + 0.02)),
-        box_color
-    );
-
-    size_t c = 0;
-    for (const auto& stat : lines){
-        painter.setPen(QColor((uint32_t)stat.color));
-
-        QFont text_font = this->font();
-        text_font.setPointSizeF(height * TEXT_SIZE);
-        painter.setFont(text_font);
-
-        int x = start_x + width * 0.01;
-        int y = height * ((c + 1) * ROW_HEIGHT + 0.005);
-
-        painter.drawText(QPoint(x, y), QString::fromStdString(stat.text));
-
-        c++;
     }
 }
 

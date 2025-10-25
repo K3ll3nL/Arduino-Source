@@ -29,6 +29,8 @@
 #include "PokemonSV/Programs/Eggs/PokemonSV_EggRoutines.h"
 #include "PokemonSV/Programs/Boxes/PokemonSV_BoxRelease.h"
 #include "PokemonSV/Programs/Sandwiches/PokemonSV_SandwichRoutines.h"
+#include "PokemonSV/Programs/AutoStory/PokemonSV_MenuOption.h"
+#include "PokemonSV/Programs/AutoStory/PokemonSV_AutoStoryTools.h"
 #include "PokemonSV_EggAutonomous.h"
 
 namespace PokemonAutomation{
@@ -42,12 +44,11 @@ EggAutonomous_Descriptor::EggAutonomous_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSV:EggAutonomous",
         STRING_POKEMON + " SV", "Egg Autonomous",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSV/EggAutonomous.md",
+        "Programs/PokemonSV/EggAutonomous.html",
         "Automatically get meal power, fetch eggs from a picnic and hatch them.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 struct EggAutonomous_Descriptor::Stats : public StatsTracker{
@@ -111,7 +112,7 @@ EggAutonomous::EggAutonomous()
     , AUTO_SAVING(
         "<b>Auto-Saving:</b><br>Automatically save the game to recover from crashes and allow eggs to be unhatched.<br>" +
         make_text_url(
-            ONLINE_DOC_URL_BASE + "ComputerControl/blob/master/Wiki/Programs/PokemonSV/EggAutonomous.md#auto-saving-mode",
+            ONLINE_DOC_URL_BASE + "Programs/PokemonSV/EggAutonomous.html#auto-saving-mode",
             "See the wiki for the full explanations of each mode."
         ),
         {
@@ -736,6 +737,26 @@ void EggAutonomous::save_game(SingleSwitchProgramEnvironment& env, ProController
     }
 }
 
+void change_settings_egg_program(SingleSwitchProgramEnvironment& env, ProControllerContext& context,  Language language){
+    int8_t options_index = 4;
+    enter_menu_from_overworld(env.program_info(), env.console, context, options_index, MenuSide::RIGHT);
+    MenuOption session(env.console, context, language);
+
+    std::vector<std::pair<MenuOptionItemEnum, std::vector<MenuOptionToggleEnum>>> options = {
+        {MenuOptionItemEnum::TEXT_SPEED, {MenuOptionToggleEnum::FAST}},
+        {MenuOptionItemEnum::SKIP_MOVE_LEARNING, {MenuOptionToggleEnum::ON}},
+        {MenuOptionItemEnum::GIVE_NICKNAMES, {MenuOptionToggleEnum::OFF}},
+        {MenuOptionItemEnum::CAMERA_SUPPORT, {MenuOptionToggleEnum::ON}},
+        {MenuOptionItemEnum::AUTOSAVE, {MenuOptionToggleEnum::OFF}},
+
+    };
+    session.set_options(options); 
+
+    pbf_mash_button(context, BUTTON_A, 1 * TICKS_PER_SECOND);
+    clear_dialog(env.console, context, ClearDialogMode::STOP_TIMEOUT, 5, {CallbackEnum::PROMPT_DIALOG});
+    press_Bs_to_back_to_overworld(env.program_info(), env.console, context);    
+}
+
 
 bool EggAutonomous::handle_recoverable_error(
     SingleSwitchProgramEnvironment& env, ProControllerContext& context,
@@ -746,7 +767,6 @@ bool EggAutonomous::handle_recoverable_error(
     auto& stats = env.current_stats<EggAutonomous_Descriptor::Stats>();
     stats.m_errors++;
     env.update_stats();
-    e.send_notification(env, notification);
 
     if (SAVE_DEBUG_VIDEO){
         // Take a video to give more context for debugging
@@ -767,18 +787,23 @@ bool EggAutonomous::handle_recoverable_error(
         env.log("Don't reset game to protect it.", COLOR_RED);
         return true;
     }
-
+    std::string fail_message = e.message();
     consecutive_failures++;
     if (consecutive_failures >= 3){
         OperationFailedException::fire(
             ErrorReport::SEND_ERROR_REPORT,
-            "Failed 3 times in the row.",
+            "Failed 3 times in the row.\n" + fail_message,
             env.console
         );
     }
+    e.send_recoverable_notification(env);
 
     env.log("Reset game to handle recoverable error");
     reset_game(env.program_info(), env.console, context);
+
+    if (e.message().find("collect_eggs_from_basket") != std::string::npos){
+        change_settings_egg_program(env, context, LANGUAGE);
+    }
 
     return false;
 }

@@ -7,6 +7,7 @@
 #include "Common/Cpp/PrettyPrint.h"
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonFramework/ProgramStats/StatsTracking.h"
+#include "CommonTools/StartupChecks/StartProgramChecks.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "ZeldaTotK_WeaponDuper.h"
 
@@ -18,11 +19,12 @@ WeaponDuper_Descriptor::WeaponDuper_Descriptor()
     : SingleSwitchProgramDescriptor(
         "ZeldaTotK:WeaponDuper",
         "Zelda: TotK", "Weapon Duper",
-        "ComputerControl/blob/master/Wiki/Programs/ZeldaTotK/WeaponDuper.md",
+        "Programs/ZeldaTotK/WeaponDuper.html",
         "Use a glitch to duplicate your weapons (Bows, Shields and Swords)",
+        ProgramControllerClass::StandardController_RequiresPrecision,
         FeedbackType::NONE,
         AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {SerialPABotBase::OLD_NINTENDO_SWITCH_DEFAULT_REQUIREMENTS}
+        {}
     )
 {}
 
@@ -76,6 +78,8 @@ WeaponDuper::WeaponDuper()
 }
 
 void WeaponDuper::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+    StartProgramChecks::check_performance_class_wired_or_wireless(context);
+
     WeaponDuper_Descriptor::Stats& stats = env.current_stats<WeaponDuper_Descriptor::Stats>();
 
     uint32_t c = 0;

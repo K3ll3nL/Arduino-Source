@@ -29,12 +29,11 @@ MagikarpMoveGrinder_Descriptor::MagikarpMoveGrinder_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonLA:MagikarpMoveGrinder",
         STRING_POKEMON + " LA", "Magikarp Move Grinder",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonLA/MagikarpMoveGrinder.md",
+        "Programs/PokemonLA/MagikarpMoveGrinder.html",
         "grind status moves with any style against a Magikarp to finish " + STRING_POKEDEX + " research tasks.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 class MagikarpMoveGrinder_Descriptor::Stats : public StatsTracker{

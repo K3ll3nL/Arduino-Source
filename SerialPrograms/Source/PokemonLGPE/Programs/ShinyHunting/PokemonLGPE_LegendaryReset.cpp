@@ -28,12 +28,11 @@ LegendaryReset_Descriptor::LegendaryReset_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonLGPE:LegendaryReset",
         Pokemon::STRING_POKEMON + " LGPE", "Legendary Reset",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonLGPE/LegendaryReset.md",
+        "Programs/PokemonLGPE/LegendaryReset.html",
         "Shiny hunt Legendary Pokemon by resetting the game.",
+        ProgramControllerClass::SpecializedController,
         FeedbackType::VIDEO_AUDIO,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_RightJoycon},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 
@@ -149,7 +148,7 @@ bool LegendaryReset::run_encounter(SingleSwitchProgramEnvironment& env, JoyconCo
 }
 
 void LegendaryReset::program(SingleSwitchProgramEnvironment& env, CancellableScope& scope){
-    JoyconContext context(scope, env.console.controller<JoyconController>());
+    JoyconContext context(scope, env.console.controller<RightJoycon>());
     assert_16_9_720p_min(env.logger(), env.console);
     LegendaryReset_Descriptor::Stats& stats = env.current_stats<LegendaryReset_Descriptor::Stats>();
 
@@ -202,16 +201,12 @@ void LegendaryReset::program(SingleSwitchProgramEnvironment& env, CancellableSco
             consecutive_failures++;
         }
 
-        //Reset game
-        pbf_press_button(context, BUTTON_HOME, 200ms, 2000ms);
-        reset_game_from_home(env, env.console, context, 3000ms);
-        context.wait_for_all_requests();
-
+        reset_game_from_game(env, env.console, context, &stats.errors, 3000ms);
         stats.resets++;
     }
     //Shiny found, complete the battle
     WallClock start = current_time();
-    BattleArrowWatcher catching_started(COLOR_RED, {0.005, 0.662, 0.049, 0.069});
+    BattleArrowWatcher catching_started(COLOR_RED, {0.004251, 0.638941, 0.062699, 0.115312});
     int res = run_until<JoyconContext>(
         env.console, context,
         [&](JoyconContext& context) {

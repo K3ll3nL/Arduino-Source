@@ -1,4 +1,4 @@
-/*  Shiny Hunt - Legendary Reset
+/*  Shiny Hunt - Overworld Watcher
  *
  *  From: https://github.com/PokemonAutomation/
  *
@@ -15,7 +15,8 @@
 namespace PokemonAutomation{
 namespace NintendoSwitch{
 namespace PokemonLA{
-    using namespace Pokemon;
+
+using namespace Pokemon;
 
 
 OverworldWatcher_Descriptor::OverworldWatcher_Descriptor()
@@ -25,9 +26,10 @@ OverworldWatcher_Descriptor::OverworldWatcher_Descriptor()
         "",
         "This is a test program that simply observes the game and labels things of interest. "
         "This program doesn't really do anything.",
-        FeedbackType::REQUIRED, AllowCommandsWhenRunning::ENABLE_COMMANDS,
-        {},
-        FasterIfTickPrecise::NOT_FASTER
+        ProgramControllerClass::StandardController_NoRestrictions,
+        FeedbackType::REQUIRED,
+        AllowCommandsWhenRunning::ENABLE_COMMANDS,
+        {}
     )
 {}
 
@@ -54,7 +56,7 @@ void OverworldWatcher::program(SingleSwitchProgramEnvironment& env, ProControlle
 
     InferenceSession session(
         context, env.console,
-        {{watcher}}
+        {watcher}
     );
     context.wait_until_cancel();
 }

@@ -7,6 +7,7 @@
 #include "Common/Cpp/PrettyPrint.h"
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonFramework/ProgramStats/StatsTracking.h"
+#include "CommonTools/StartupChecks/StartProgramChecks.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
 #include "ZeldaTotK_ParaglideItemDuper.h"
@@ -19,11 +20,12 @@ ParaglideItemDuper_Descriptor::ParaglideItemDuper_Descriptor()
     : SingleSwitchProgramDescriptor(
         "ZeldaTotK:ParaglideItemDuper",
         "Zelda: TotK", "Paraglide Item Duper",
-        "ComputerControl/blob/master/Wiki/Programs/ZeldaTotK/ParaglideItemDuper.md",
+        "Programs/ZeldaTotK/ParaglideItemDuper.html",
         "Use the Paraglide Menu Sort glitch to duplicate items.",
+        ProgramControllerClass::StandardController_RequiresPrecision,
         FeedbackType::NONE,
         AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {SerialPABotBase::OLD_NINTENDO_SWITCH_DEFAULT_REQUIREMENTS}
+        {}
     )
 {}
 
@@ -66,6 +68,8 @@ ParaglideItemDuper::ParaglideItemDuper()
 }
 
 void ParaglideItemDuper::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+    StartProgramChecks::check_performance_class_wired_or_wireless(context);
+
     ParaglideItemDuper_Descriptor::Stats& stats = env.current_stats<ParaglideItemDuper_Descriptor::Stats>();
 
     /*

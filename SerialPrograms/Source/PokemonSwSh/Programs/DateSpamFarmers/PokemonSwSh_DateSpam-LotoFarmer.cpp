@@ -7,6 +7,7 @@
 #include "Common/Cpp/PrettyPrint.h"
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonFramework/Notifications/EventNotificationsTable.h"
+#include "Controllers/ControllerTypes.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
 #include "Pokemon/Pokemon_Strings.h"
@@ -24,12 +25,11 @@ LotoFarmer_Descriptor::LotoFarmer_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSwSh:LotoFarmer",
         STRING_POKEMON + " SwSh", "Date Spam - Loto Farmer",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSwSh/DateSpam-LotoFarmer.md",
+        "Programs/PokemonSwSh/DateSpam-LotoFarmer.html",
         "Farm the Loto ID.",
+        ProgramControllerClass::StandardController_PerformanceClassSensitive,
         FeedbackType::NONE,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::MUCH_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 
@@ -68,7 +68,11 @@ void LotoFarmer::program(SingleSwitchProgramEnvironment& env, ProControllerConte
     for (uint32_t c = 0; c < SKIPS; c++){
         env.log("Fetch Attempts: " + tostr_u_commas(c));
         home_roll_date_enter_game_autorollback(env.console, context, year);
-        pbf_mash_button(context, BUTTON_B, 90);
+        if (context->performance_class() == ControllerPerformanceClass::SysbotBase){
+            pbf_wait(context, 90);
+        }else{
+            pbf_mash_button(context, BUTTON_B, 90);
+        }
 
         pbf_press_button(context, BUTTON_A, 10, 90);
         pbf_press_button(context, BUTTON_B, 10, 70);

@@ -11,7 +11,8 @@
 #include "CommonFramework/VideoPipeline/VideoFeed.h"
 #include "CommonTools/Images/ImageFilter.h"
 #include "CommonTools/OCR/OCR_RawOCR.h"
-#include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
+#include "NintendoSwitch/Inference/NintendoSwitch_ConsoleTypeDetector.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSV/Inference/Tera/PokemonSV_TeraCodeReader.h"
 #include "PokemonSV_CodeEntry.h"
@@ -122,12 +123,11 @@ VideoFastCodeEntry_Descriptor::VideoFastCodeEntry_Descriptor()
     : MultiSwitchProgramDescriptor(
         "PokemonSV:VideoFastCodeEntry",
         STRING_POKEMON + " SV", "Video Fast Code Entry (V-FCE)",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSV/VideoFastCodeEntry.md",
+        "Programs/PokemonSV/VideoFastCodeEntry.html",
         "Read a 4, 6, or 8 digit link code from someone on your screen and enter it as quickly as possible.",
+        ProgramControllerClass::StandardController_PerformanceClassSensitive,
         FeedbackType::NONE,
         AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::MUCH_FASTER,
         1, 4, 1
     )
 {}
@@ -181,8 +181,14 @@ void VideoFastCodeEntry::program(MultiSwitchProgramEnvironment& env, Cancellable
     }
 
     //  Connect the controller.
-    env.run_in_parallel(scope, [&](ConsoleHandle& console, ProControllerContext& context){
-        pbf_press_button(context, BUTTON_PLUS, 5, 3);
+    env.run_in_parallel(scope, [&](CancellableScope& scope, ConsoleHandle& console){
+        auto* procon = console.controller().cast<ProController>();
+        if (procon == nullptr){
+            return;
+        }
+        ProControllerContext context(scope, *procon);
+        ssf_press_button_ptv(context, BUTTON_R | BUTTON_L);
+        detect_console_type_from_in_game(console, context);
     });
 
     //  Preload 6 threads to OCR the code.

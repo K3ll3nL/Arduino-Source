@@ -36,13 +36,7 @@ ProController_SysbotBase::ProController_SysbotBase(
         return;
     }
 
-    //  Check compatibility.
-
-    ControllerModeStatus mode_status = connection.controller_mode_status();
-    auto iter = mode_status.supported_controllers.find(ControllerType::NintendoSwitch_WiredController);
-    if (iter != mode_status.supported_controllers.end()){
-        m_dispatch_thread = std::thread(&ProController_SysbotBase::thread_body, this);
-    }
+    m_dispatch_thread = std::thread(&ProController_SysbotBase::thread_body, this);
 }
 ProController_SysbotBase::~ProController_SysbotBase(){
     stop();
@@ -62,14 +56,6 @@ void ProController_SysbotBase::stop(){
 }
 
 
-const ControllerFeatures& ProController_SysbotBase::controller_features() const{
-    static const ControllerFeatures features{
-        ControllerFeature::NintendoSwitch_ProController,
-    };
-    return features;
-}
-
-
 
 void ProController_SysbotBase::cancel_all_commands(){
 //    cout << "ProController_SysbotBase::cancel_all_commands()" << endl;
@@ -78,7 +64,7 @@ void ProController_SysbotBase::cancel_all_commands(){
     m_next_state_change = WallClock::min();
     m_command_queue.clear();
     m_cv.notify_all();
-    this->clear_on_next();
+    m_scheduler.clear_on_next();
     m_logger.log("cancel_all_commands(): Command Queue Size = " + std::to_string(queue_size), COLOR_DARKGREEN);
 }
 void ProController_SysbotBase::replace_on_next_command(){
@@ -86,17 +72,23 @@ void ProController_SysbotBase::replace_on_next_command(){
     std::lock_guard<std::mutex> lg(m_state_lock);
     m_cv.notify_all();
     m_replace_on_next = true;
-    this->clear_on_next();
+    m_scheduler.clear_on_next();
     m_logger.log("replace_on_next_command(): Command Queue Size = " + std::to_string(m_command_queue.size()), COLOR_DARKGREEN);
 }
 
 
 void ProController_SysbotBase::wait_for_all(const Cancellable* cancellable){
 //    cout << "ProController_SysbotBase::wait_for_all - Enter()" << endl;
+    SuperscalarScheduler::Schedule schedule;
     std::lock_guard<std::mutex> lg0(m_issue_lock);
+    {
+        std::lock_guard<std::mutex> lg1(m_state_lock);
+        m_logger.log("wait_for_all(): Command Queue Size = " + std::to_string(m_command_queue.size()), COLOR_DARKGREEN);
+        m_scheduler.issue_wait_for_all(schedule);
+    }
+    execute_schedule(cancellable, schedule);
+
     std::unique_lock<std::mutex> lg1(m_state_lock);
-    m_logger.log("wait_for_all(): Command Queue Size = " + std::to_string(m_command_queue.size()), COLOR_DARKGREEN);
-    this->issue_wait_for_all(cancellable);
     m_cv.wait(lg1, [this]{
         return m_next_state_change == WallClock::max() || m_replace_on_next;
     });
@@ -105,9 +97,10 @@ void ProController_SysbotBase::wait_for_all(const Cancellable* cancellable){
     }
 //    cout << "ProController_SysbotBase::wait_for_all - Exit()" << endl;
 }
-void ProController_SysbotBase::push_state(const Cancellable* cancellable, WallDuration duration){
-    //  Must be called inside "m_state_lock".
-
+void ProController_SysbotBase::execute_state(
+    const Cancellable* cancellable,
+    const SuperscalarScheduler::ScheduleEntry& entry
+){
     if (cancellable){
         cancellable->throw_if_cancelled();
     }
@@ -115,35 +108,17 @@ void ProController_SysbotBase::push_state(const Cancellable* cancellable, WallDu
         throw InvalidConnectionStateException("");
     }
 
-    Button buttons = BUTTON_NONE;
-    for (size_t c = 0; c < 14; c++){
-        buttons |= m_buttons[c].is_busy()
-            ? (Button)((uint16_t)1 << c)
-            : BUTTON_NONE;
+    SwitchControllerState controller_state;
+    for (auto& item : entry.state){
+        static_cast<const SwitchCommand&>(*item).apply(controller_state);
     }
 
-    DpadPosition dpad = m_dpad.is_busy() ? m_dpad.position : DPAD_NONE;
-
-    uint8_t left_x = 128;
-    uint8_t left_y = 128;
-    uint8_t right_x = 128;
-    uint8_t right_y = 128;
-    if (m_left_joystick.is_busy()){
-        left_x = m_left_joystick.x;
-        left_y = m_left_joystick.y;
-    }
-    if (m_right_joystick.is_busy()){
-        right_x = m_right_joystick.x;
-        right_y = m_right_joystick.y;
-    }
-
-    std::unique_lock<std::mutex> lg(m_state_lock, std::adopt_lock_t());
-
+    //  Wait until there is space.
+    std::unique_lock<std::mutex> lg(m_state_lock);
     m_cv.wait(lg, [this]{
         return m_command_queue.size() < QUEUE_SIZE || m_replace_on_next;
     });
 
-    lg.release();
 
     if (cancellable){
         cancellable->throw_if_cancelled();
@@ -165,14 +140,14 @@ void ProController_SysbotBase::push_state(const Cancellable* cancellable, WallDu
 
     Command& command = m_command_queue.push_back();
 
-    command.state.buttons = buttons;
-    command.state.dpad = dpad;
-    command.state.left_x = left_x;
-    command.state.left_y = left_y;
-    command.state.right_x = right_x;
-    command.state.right_y = right_y;
+    command.state.buttons = controller_state.buttons;
+    command.state.dpad = controller_state.dpad;
+    command.state.left_x = controller_state.left_stick_x;
+    command.state.left_y = controller_state.left_stick_y;
+    command.state.right_x = controller_state.right_stick_x;
+    command.state.right_y = controller_state.right_stick_y;
 
-    command.duration = std::chrono::duration_cast<Milliseconds>(duration);
+    command.duration = std::chrono::duration_cast<Milliseconds>(entry.duration);
 }
 
 
@@ -289,9 +264,13 @@ void ProController_SysbotBase::send_diff(
 //    cout << message << endl;
     m_connection.write_data(message);
 
+    //  Do not log the contents of the command due to privacy concerns.
+    //  (people entering passwords)
+#if 0
     if (GlobalSettings::instance().LOG_EVERYTHING){
         m_logger.log("sys-botbase: " + message);
     }
+#endif
 }
 
 

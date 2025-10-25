@@ -25,11 +25,11 @@ SandwichMaker_Descriptor::SandwichMaker_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSV:SandwichMaker",
         STRING_POKEMON + " SV", "Sandwich Maker",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSV/SandwichMaker.md",
+        "Programs/PokemonSV/SandwichMaker.html",
         "Make a sandwich of your choice.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController}
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 

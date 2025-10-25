@@ -10,7 +10,6 @@
 #include "CommonTools/InferenceThrottler.h"
 #include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
-#include "NintendoSwitch/Commands/NintendoSwitch_Commands_Routines.h"
 #include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "PokemonSwSh/PokemonSwSh_Settings.h"
 #include "PokemonSwSh/Commands/PokemonSwSh_Commands_GameEntry.h"
@@ -118,7 +117,7 @@ void start_game_from_home_with_inference(
         tolerate_update_menu,
         game_slot,
         user_slot,
-        GameSettings::instance().START_GAME_MASH0
+        ConsoleSettings::instance().START_GAME_MASH
     );
 
     //  Wait for game to load.
@@ -132,21 +131,7 @@ void reset_game_from_home_with_inference(
     bool backup_save,
     uint16_t post_wait_time
 ){
-    bool video_available = (bool)console.video().snapshot();
-    if (video_available ||
-        ConsoleSettings::instance().START_GAME_REQUIRES_INTERNET ||
-        tolerate_update_menu
-    ){
-//        cout << "close game" << endl;
-        close_game(console, context);
-//        cout << "start_game_from_home_with_inference game" << endl;
-        start_game_from_home_with_inference(
-            console, context, tolerate_update_menu, 0, 0, backup_save, post_wait_time
-        );
-        return;
-    }
-
-    fast_reset_game(context, GameSettings::instance().START_GAME_MASH0, 0ms, 0ms, 0ms);
+    from_home_close_and_reopen_game(console, context, tolerate_update_menu);
     context.wait_for_all_requests();
 
     //  Wait for game to load.
@@ -168,7 +153,7 @@ void start_game_from_home(
         tolerate_update_menu
     ){
 //        cout << "close game" << endl;
-        close_game(console, context);
+        close_game_from_home(console, context);
 //        cout << "start_game_from_home_with_inference game" << endl;
         start_game_from_home_with_inference(
             console, context, tolerate_update_menu, game_slot, user_slot, backup_save, post_wait_time
@@ -176,7 +161,7 @@ void start_game_from_home(
         return;
     }
 
-    fast_reset_game(context, GameSettings::instance().START_GAME_MASH0, 0ms, 0ms, 0ms);
+    fast_reset_game(context, ConsoleSettings::instance().START_GAME_MASH, 0ms, 0ms, 0ms);
     context.wait_for_all_requests();
 
     //  Wait for game to load.

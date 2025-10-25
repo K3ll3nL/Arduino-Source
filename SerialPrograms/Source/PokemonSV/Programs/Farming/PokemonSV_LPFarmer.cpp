@@ -27,12 +27,11 @@ LPFarmer_Descriptor::LPFarmer_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSV:LPFarmer",
         STRING_POKEMON + " SV", "LP Farmer",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSV/LPFarmer.md",
+        "Programs/PokemonSV/LPFarmer.html",
         "Farm LP by day skipping Tera raids.",
+        ProgramControllerClass::StandardController_PerformanceClassSensitive,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::MUCH_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 struct LPFarmer_Descriptor::Stats : public StatsTracker{

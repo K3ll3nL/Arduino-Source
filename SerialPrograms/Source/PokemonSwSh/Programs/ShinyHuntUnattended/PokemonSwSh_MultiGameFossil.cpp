@@ -7,7 +7,7 @@
 #include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
-#include "NintendoSwitch/Commands/NintendoSwitch_Commands_Routines.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSwSh/PokemonSwSh_Settings.h"
 #include "PokemonSwSh/Programs/PokemonSwSh_GameEntry.h"
@@ -23,12 +23,11 @@ MultiGameFossil_Descriptor::MultiGameFossil_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSwSh:MultiGameFossil",
         STRING_POKEMON + " SwSh", "Multi-Game Fossil Revive",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSwSh/MultiGameFossil.md",
+        "Programs/PokemonSwSh/MultiGameFossil.html",
         "Revive fossils. Supports multiple saves so you can go afk for longer than 5 hours.",
+        ProgramControllerClass::StandardController_PerformanceClassSensitive,
         FeedbackType::NONE,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 
@@ -140,7 +139,7 @@ void run_fossil_batch(
 
     //  Exit game.
     ssf_press_button(context, BUTTON_HOME, GameSettings::instance().GAME_TO_HOME_DELAY_SAFE0, 80ms);
-    close_game(console, context);
+    close_game_from_home(console, context);
 }
 
 

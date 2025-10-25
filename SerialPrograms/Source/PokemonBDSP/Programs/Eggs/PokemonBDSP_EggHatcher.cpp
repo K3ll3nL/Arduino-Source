@@ -25,12 +25,11 @@ EggHatcher_Descriptor::EggHatcher_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonBDSP:EggHatcher",
         STRING_POKEMON + " BDSP", "Egg Hatcher",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonBDSP/EggHatcher.md",
+        "Programs/PokemonBDSP/EggHatcher.html",
         "Hatch eggs from boxes.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::OPTIONAL_,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 struct EggHatcher_Descriptor::Stats : public StatsTracker{

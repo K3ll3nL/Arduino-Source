@@ -23,35 +23,37 @@ const Resolution DEFAULT_RESOLUTION(1920, 1080);
 
 TimingOptions::TimingOptions()
     : GroupOption(
-        "Timing Options",
+        "Controller Timing Options",
         LockMode::UNLOCK_WHILE_RUNNING,
         EnableMode::ALWAYS_ENABLED,
         true
     )
-    , WIRED_MICROCONTROLLER(
-        "<b>Wired Microcontroller Timing Variation:</b><br>"
+    , WIRED(
+        "<b>Wired Controller Timing Variation:</b><br>"
         "Assume that wired microcontrollers have a timing variation of no greater than this. "
         "This is used to adjust button delays to ensure they go through correctly.",
         LockMode::LOCK_WHILE_RUNNING,
         0ms, 200ms, "0 ms"
     )
-    , WIRELESS_ESP32(
-        "<b>Wireless ESP32 Timing Variation:</b><br>"
-        "Assume that wireless ESP32 controllers have a timing variation of no greater than this. "
+    , WIRELESS(
+        "<b>Wireless Timing Variation:</b><br>"
+        "Assume that wireless controllers have a timing variation of no greater than this. "
         "This is used to adjust button delays to ensure they go through correctly.",
         LockMode::LOCK_WHILE_RUNNING,
         0ms, 200ms, "10 ms"
     )
     , SYSBOTBASE(
-        "<b>sys-botbase Timing Variation:</b><br>"
-        "Assume that sys-botbase controllers have a timing variation of no greater than this. "
-        "This is used to adjust button delays to ensure they go through correctly.",
+        "<b>sys-botbase 2 Timing Variation:</b><br>"
+        "Assume that sys-botbase 2 controllers have a timing variation of no greater than this. "
+        "This is used to adjust button delays to ensure they go through correctly.<br>"
+        "sys-botbase 3 does not use this option since it is as stable as a wired microcontroller "
+        "and is therefore categorized accordingly.",
         LockMode::LOCK_WHILE_RUNNING,
         0ms, 200ms, "150 ms"
     )
 {
-    PA_ADD_OPTION(WIRED_MICROCONTROLLER);
-    PA_ADD_OPTION(WIRELESS_ESP32);
+    PA_ADD_OPTION(WIRED);
+    PA_ADD_OPTION(WIRELESS);
     PA_ADD_OPTION(SYSBOTBASE);
 }
 
@@ -72,6 +74,11 @@ ConsoleSettings::ConsoleSettings()
         "Don't enable this option unless you are encountering issues.",
         LockMode::LOCK_WHILE_RUNNING,
         false
+    )
+    , START_GAME_MASH(
+        "<b>1. Start Game Mash:</b><br>Mash A for this long to start the game.",
+        LockMode::LOCK_WHILE_RUNNING,
+        "2000 ms"
     )
     , SETTINGS_TO_HOME_DELAY0(
         "<b>Settings to Home Delay:</b><br>Delay from pressing home anywhere in the settings to return to the home menu.",
@@ -124,6 +131,7 @@ ConsoleSettings::ConsoleSettings()
 {
     PA_ADD_OPTION(CONTROLLER_SETTINGS);
     PA_ADD_OPTION(TRUST_USER_CONSOLE_SELECTION);
+    PA_ADD_OPTION(START_GAME_MASH);
     PA_ADD_OPTION(SETTINGS_TO_HOME_DELAY0);
     PA_ADD_OPTION(START_GAME_REQUIRES_INTERNET);
     PA_ADD_OPTION(START_GAME_INTERNET_CHECK_DELAY0);
@@ -137,6 +145,7 @@ ConsoleSettings::ConsoleSettings()
         PA_ADD_OPTION(SWITCH1_KEYBOARD_ENTRY0);
         PA_ADD_OPTION(SWITCH2_DIGIT_ENTRY0);
         PA_ADD_OPTION(SWITCH2_KEYBOARD_ENTRY0);
+        PA_ADD_OPTION(KEYBOARD_CONTROLLER_TIMINGS);
     }
     PA_ADD_STATIC(KEYBOARD_SECTION);
     PA_ADD_OPTION(KEYBOARD_MAPPINGS);
@@ -155,7 +164,7 @@ ConsoleSettings_Descriptor::ConsoleSettings_Descriptor()
         Color(),
         "NintendoSwitch:GlobalSettings",
         "Nintendo Switch", "Framework Settings",
-        "ComputerControl/blob/master/Wiki/Programs/NintendoSwitch/FrameworkSettings.md",
+        "Programs/NintendoSwitch/FrameworkSettings.html",
         "Switch Framework Settings"
     )
 {}
@@ -165,12 +174,6 @@ ConsoleSettingsPanel::ConsoleSettingsPanel(const ConsoleSettings_Descriptor& des
     , settings(ConsoleSettings::instance())
 {
     PA_ADD_OPTION(settings);
-
-    settings.CONTROLLER_SETTINGS.set_visibility(
-        settings.CONTROLLER_SETTINGS.current_rows() > 0
-            ? ConfigOptionState::ENABLED
-            : ConfigOptionState::HIDDEN
-    );
 }
 
 

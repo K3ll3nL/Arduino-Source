@@ -10,6 +10,7 @@
 #include "Common/Compiler.h"
 #include "Common/Cpp/AbstractLogger.h"
 #include "Common/Cpp/Time.h"
+#include "Controllers/KeyboardInput/KeyboardEventHandler.h"
 #include "Common/Cpp/CancellableScope.h"
 
 class QKeyEvent;
@@ -19,7 +20,7 @@ namespace PokemonAutomation{
 class RecursiveThrottler;
 enum class ControllerType;
 enum class ControllerPerformanceClass;
-class ControllerFeatures;
+enum class ControllerClass;
 
 
 
@@ -35,6 +36,8 @@ inline Milliseconds round_up_to_ticksize(Milliseconds ticksize, Milliseconds dur
 
 class AbstractController{
 public:
+    static const char NAME[];
+
     virtual ~AbstractController() = default;
 
     virtual Logger& logger() = 0;
@@ -42,10 +45,28 @@ public:
 
 
 public:
+    template <typename ControllerType>
+    ControllerType* cast(){
+        return dynamic_cast<ControllerType*>(this);
+    }
+    template <typename ControllerType>
+    ControllerType& cast_with_exception(){
+        ControllerType* controller = dynamic_cast<ControllerType*>(this);
+        if (!controller){
+            throw_bad_cast(ControllerType::NAME);
+        }
+        return *controller;
+    }
+private:
+    void throw_bad_cast(const char* desired_typename);
+
+
+public:
     //  Static Information
 
+    virtual const char* name() = 0;
     virtual ControllerType controller_type() const = 0;
-    virtual const ControllerFeatures& controller_features() const = 0;
+    virtual ControllerClass controller_class() const = 0;
     virtual ControllerPerformanceClass performance_class() const = 0;
 
     //  If the controller is polled at a fixed interval, this is that interval.
@@ -185,8 +206,13 @@ public:
     virtual void keyboard_release_all(){}
     virtual void keyboard_press(const QKeyEvent& event){}
     virtual void keyboard_release(const QKeyEvent& event){}
+
+    virtual void add_keyboard_listener(KeyboardEventHandler::KeyboardListener& keyboard_listener){};
+    virtual void remove_keyboard_listener(KeyboardEventHandler::KeyboardListener& keyboard_listener){};
 };
 
+
+inline const char AbstractController::NAME[] = "Controller";
 
 
 
@@ -198,7 +224,11 @@ class ControllerContext final : public CancellableScope{
 public:
     using ControllerType = Type;
 
+
 public:
+    virtual ~ControllerContext(){
+        detach();
+    }
     ControllerContext(ControllerType& controller)
         : m_controller(controller)
     {}
@@ -207,10 +237,15 @@ public:
     {
         attach(parent);
     }
-    virtual ~ControllerContext(){
-        detach();
+    template <typename T>
+    ControllerContext(ControllerContext<T>& context)
+        : m_controller(context.controller().template cast_with_exception<Type>())
+    {
+        attach(context);
     }
 
+
+public:
     ControllerType* operator->(){
         m_lifetime_sanitizer.check_usage();
         return &m_controller;
@@ -219,6 +254,8 @@ public:
     operator ControllerType&() const{ return m_controller; }
     ControllerType& controller() const{ return m_controller; }
 
+
+public:
     void wait_for_all_requests() const{
         auto scope = m_lifetime_sanitizer.check_scope();
         m_controller.wait_for_all(this);
@@ -262,6 +299,10 @@ private:
     LifetimeSanitizer m_lifetime_sanitizer;
 };
 
+
+using AbstractControllerContext = ControllerContext<AbstractController>;
+
+using AbstractControllerContext = ControllerContext<AbstractController>;
 
 
 

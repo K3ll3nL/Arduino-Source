@@ -11,8 +11,8 @@
 #include "CommonFramework/VideoPipeline/VideoFeed.h"
 #include "CommonFramework/Tools/ErrorDumper.h"
 #include "CommonTools/Async/InferenceRoutines.h"
-#include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Notification.h"
 #include "Pokemon/Inference/Pokemon_NameReader.h"
 #include "PokemonSwSh/ShinyHuntTracker.h"
@@ -32,11 +32,11 @@ ShinyHuntLakeTrio_Descriptor::ShinyHuntLakeTrio_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonLA:ShinyHunt-LakeTrio",
         STRING_POKEMON + " LA", "Shiny Hunt - Lake Trio",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonLA/ShinyHunt-LakeTrio.md",
+        "Programs/PokemonLA/ShinyHunt-LakeTrio.html",
         "Shiny hunt the lake trio legendaries.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController}
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 std::unique_ptr<StatsTracker> ShinyHuntLakeTrio_Descriptor::make_stats() const{
@@ -126,8 +126,8 @@ void ShinyHuntLakeTrio::program(SingleSwitchProgramEnvironment& env, ProControll
         env.update_stats();
 
         if (reset){
-            pbf_press_button(context, BUTTON_HOME, 80ms, GameSettings::instance().GAME_TO_HOME_DELAY0);
-            if (!reset_game_from_home(env, env.console, context, ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST)){
+            go_home(env.console, context);
+            if (!reset_game_from_home(env, env.console, context)){
                 stats.add_error();
                 continue;
             }

@@ -19,19 +19,29 @@ const EnumStringMap<ControllerInterface> CONTROLLER_INTERFACE_STRINGS{
 
 const EnumStringMap<ControllerType> CONTROLLER_TYPE_STRINGS{
     {ControllerType::None,                                  "None"},
-    {ControllerType::NintendoSwitch_WiredController,        "NS2: Wired Controller"},
+    {ControllerType::HID_Keyboard,                          "HID: Keyboard"},
+    {ControllerType::NintendoSwitch_WiredController,        "NS1: Wired Controller"},
+    {ControllerType::NintendoSwitch_WiredProController,     "NS1: Wired Pro Controller"},
     {ControllerType::NintendoSwitch_WirelessProController,  "NS1: Wireless Pro Controller"},
     {ControllerType::NintendoSwitch_LeftJoycon,             "NS1: Left Joycon"},
     {ControllerType::NintendoSwitch_RightJoycon,            "NS1: Right Joycon"},
+    {ControllerType::NintendoSwitch2_WiredController,       "NS2: Wired Controller"},
+    {ControllerType::NintendoSwitch2_WiredProController,    "NS2: Wired Pro Controller"},
+    {ControllerType::NintendoSwitch2_WirelessProController, "NS2: Wireless Pro Controller"},
+    {ControllerType::NintendoSwitch2_LeftJoycon,            "NS2: Left Joycon"},
+    {ControllerType::NintendoSwitch2_RightJoycon,           "NS2: Right Joycon"},
 };
 
-const EnumStringMap<ControllerFeature> CONTROLLER_FEATURE_STRINGS{
-    {ControllerFeature::TickPrecise,                        "TickPrecise"},
-    {ControllerFeature::NintendoSwitch_ProController,       "NintendoSwitch_ProController"},
-    {ControllerFeature::NintendoSwitch_LeftJoycon,          "NintendoSwitch_LeftJoycon"},
-    {ControllerFeature::NintendoSwitch_RightJoycon,         "NintendoSwitch_RightJoycon"},
-    {ControllerFeature::NintendoSwitch_DateSkip,            "NintendoSwitch_DateSkip"},
-};
+const EnumStringMap<ControllerClass>& CONTROLLER_CLASS_STRINGS(){
+    static EnumStringMap<ControllerClass> database{
+        {ControllerClass::None,                             "None"},
+        {ControllerClass::HID_Keyboard,                     "HID: Keyboard"},
+        {ControllerClass::NintendoSwitch_ProController,     "NS1: Pro Controller"},
+        {ControllerClass::NintendoSwitch_LeftJoycon,        "NS1: Left Joycon"},
+        {ControllerClass::NintendoSwitch_RightJoycon,       "NS1: Right Joycon"},
+    };
+    return database;
+}
 
 
 

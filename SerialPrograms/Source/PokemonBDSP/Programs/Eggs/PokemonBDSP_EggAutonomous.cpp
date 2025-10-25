@@ -30,12 +30,11 @@ EggAutonomous_Descriptor::EggAutonomous_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonBDSP:EggAutonomous",
         STRING_POKEMON + " BDSP", "Egg Autonomous",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonBDSP/EggAutonomous.md",
+        "Programs/PokemonBDSP/EggAutonomous.html",
         "Automatically fetch+hatch eggs and keep all shinies.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 std::unique_ptr<StatsTracker> EggAutonomous_Descriptor::make_stats() const{

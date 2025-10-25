@@ -8,15 +8,19 @@
 #define PokemonAutomation_SerialPABotBase_NS2_WiredController_H
 
 #include "Common/SerialPABotBase/SerialPABotBase_Messages_NS2_WiredController.h"
-#include "ClientSource/Connection/BotBaseMessage.h"
+#include "Controllers/SerialPABotBase/Connection/BotBaseMessage.h"
 
 namespace PokemonAutomation{
 namespace SerialPABotBase{
 
 
+void register_message_converters_NS2_WiredController();
+
+
+
 class DeviceRequest_NS2_WiredController_ControllerStateMs : public BotBaseRequest{
 public:
-    pabb_Message_Report_NS2_WiredController params;
+    pabb_Message_Command_NS2_WiredController_State params;
     DeviceRequest_NS2_WiredController_ControllerStateMs(
         uint16_t milliseconds,
         uint16_t buttons,
@@ -42,7 +46,7 @@ public:
         params.report.right_joystick_y = right_joystick_y;
     }
     virtual BotBaseMessage message() const override{
-        return BotBaseMessage(PABB_MSG_REPORT_NS2_WIRED_CONTROLLER, params);
+        return BotBaseMessage(PABB_MSG_COMMAND_NS2_WIRED_CONTROLLER_STATE, params);
     }
 };
 

@@ -8,7 +8,6 @@
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonFramework/ProgramStats/StatsTracking.h"
 #include "CommonTools/Async/InferenceRoutines.h"
-#include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonLA/PokemonLA_Settings.h"
@@ -30,12 +29,11 @@ FroslassFinder_Descriptor::FroslassFinder_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonLA:AlphaFroslassFinder",
         STRING_POKEMON + " LA", "Alpha Froslass Hunter",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonLA/AlphaFroslassHunter.md",
+        "Programs/PokemonLA/AlphaFroslassHunter.html",
         "Constantly reset to find a Alpha Froslass or any Shiny in the path.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::VIDEO_AUDIO,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 class FroslassFinder_Descriptor::Stats : public StatsTracker, public ShinyStatIncrementer{
@@ -170,8 +168,7 @@ void FroslassFinder::run_iteration(
     env.console.log("No shiny detected, Reset game!");
     pbf_press_button(context, BUTTON_HOME, 160ms, GameSettings::instance().GAME_TO_HOME_DELAY0);
     fresh_from_reset = reset_game_from_home(
-        env, env.console, context,
-        ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST
+        env, env.console, context
     );
 }
 
@@ -194,8 +191,7 @@ void FroslassFinder::program(SingleSwitchProgramEnvironment& env, ProControllerC
 
             pbf_press_button(context, BUTTON_HOME, 160ms, GameSettings::instance().GAME_TO_HOME_DELAY0);
             fresh_from_reset = reset_game_from_home(
-                env, env.console, context,
-                ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST
+                env, env.console, context
             );
         }
     }

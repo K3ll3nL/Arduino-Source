@@ -8,10 +8,15 @@
 #include <QClipboard>
 //#include "Common/Cpp/Exceptions.h"
 #include "Common/Cpp/CancellableScope.h"
-#include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
+#include "NintendoSwitch/Inference/NintendoSwitch_ConsoleTypeDetector.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSV_CodeEntry.h"
 #include "PokemonSV_ClipboardFastCodeEntry.h"
+
+//#include <iostream>
+//using std::cout;
+//using std::endl;
 
 namespace PokemonAutomation{
 namespace NintendoSwitch{
@@ -24,12 +29,11 @@ ClipboardFastCodeEntry_Descriptor::ClipboardFastCodeEntry_Descriptor()
     : MultiSwitchProgramDescriptor(
         "PokemonSV:ClipboardFastCodeEntry",
         STRING_POKEMON + " SV", "Clipboard Fast Code Entry (C-FCE)",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSV/ClipboardFastCodeEntry.md",
+        "Programs/PokemonSV/ClipboardFastCodeEntry.html",
         "Automatically enter a 4, 6, or 8 digit link code from your clipboard.",
+        ProgramControllerClass::StandardController_PerformanceClassSensitive,
         FeedbackType::NONE,
         AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::MUCH_FASTER,
         1, 4, 1
     )
 {}
@@ -44,9 +48,16 @@ void ClipboardFastCodeEntry::update_active_consoles(size_t switch_count){
 
 void ClipboardFastCodeEntry::program(MultiSwitchProgramEnvironment& env, CancellableScope& scope){
     //  Connect the controller.
-    env.run_in_parallel(scope, [&](ConsoleHandle& console, ProControllerContext& context){
-        pbf_press_button(context, BUTTON_R | BUTTON_L, 5, 3);
+    env.run_in_parallel(scope, [&](CancellableScope& scope, ConsoleHandle& console){
+        auto* procon = console.controller().cast<ProController>();
+        if (procon == nullptr){
+            return;
+        }
+        ProControllerContext context(scope, *procon);
+        ssf_press_button_ptv(context, BUTTON_R | BUTTON_L);
+        detect_console_type_from_in_game(console, context);
     });
+
 
     QClipboard* clipboard = QApplication::clipboard();
 #if 0
@@ -66,6 +77,7 @@ void ClipboardFastCodeEntry::program(MultiSwitchProgramEnvironment& env, Cancell
 
     while (true){
         std::string code = clipboard->text().toStdString();
+//        cout << code << endl;
         if (code != start_text && !code.empty()){
             const char* error = enter_code(env, scope, SETTINGS, code, false, false);
             if (error == nullptr){

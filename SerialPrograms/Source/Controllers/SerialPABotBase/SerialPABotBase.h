@@ -9,33 +9,31 @@
 
 #include <stdint.h>
 #include <string>
+#include <set>
 #include <map>
-#include "Controllers/ControllerCapability.h"
+#include "Common/SerialPABotBase/SerialPABotBase_Protocol_IDs.h"
+#include "Controllers/ControllerTypes.h"
 
 namespace PokemonAutomation{
 namespace SerialPABotBase{
 
 
 
-//  Defaults
-extern const ControllerFeatures OLD_NINTENDO_SWITCH_DEFAULT_REQUIREMENTS;
+
+const std::map<pabb_ProgramID, uint32_t>& SUPPORTED_DEVICES();
+const std::map<
+    uint32_t,   //  Major protocol version. (version # / 100)
+    std::map<
+        pabb_ProgramID,
+        uint8_t //  Minimum minor protocol version (version # % 100)
+    >
+>& SUPPORTED_VERSIONS();
 
 
 
-std::string program_name(uint8_t id);
+
 ControllerType id_to_controller_type(uint32_t id);
 uint32_t controller_type_to_id(ControllerType controller_type);
-
-
-
-extern const std::map<
-    uint32_t,   //  Protocol Version
-    std::map<
-        uint32_t,   //  Program ID
-        std::map<ControllerType, ControllerFeatures>
-    >
-> SUPPORTED_VERSIONS;
-
 
 
 

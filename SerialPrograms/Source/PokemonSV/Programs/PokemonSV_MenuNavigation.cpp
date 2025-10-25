@@ -110,7 +110,7 @@ void neutral_day_skip_switch2(ConsoleHandle& console, ProControllerContext& cont
 }
 
 void day_skip_from_overworld(ConsoleHandle& console, ProControllerContext& context){
-    pbf_press_button(context, BUTTON_HOME, 80ms, GameSettings::instance().GAME_TO_HOME_DELAY1);
+    go_home(console, context);
     home_to_date_time(console, context, true);
 
     ConsoleType console_type = console.state().console_type();
@@ -546,7 +546,7 @@ void enter_menu_from_overworld(const ProgramInfo& info, VideoStream& stream, Pro
         default:
             OperationFailedException::fire(
                 ErrorReport::SEND_ERROR_REPORT,
-                "enter_menu_from_overworld(): No recognized state after 30 seconds.",
+                "enter_menu_from_overworld(): No recognized state after 30 seconds. Can't find overworld or main menu.",
                 stream
             );
         }

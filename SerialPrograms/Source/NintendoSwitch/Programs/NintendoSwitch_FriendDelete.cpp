@@ -15,12 +15,11 @@ FriendDelete_Descriptor::FriendDelete_Descriptor()
     : SingleSwitchProgramDescriptor(
         "NintendoSwitch:FriendDelete",
         "Nintendo Switch", "Friend Delete",
-        "ComputerControl/blob/master/Wiki/Programs/NintendoSwitch/FriendDelete.md",
+        "Programs/NintendoSwitch/FriendDelete.html",
         "Mass delete/block all those unwanted friends.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::NONE,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 

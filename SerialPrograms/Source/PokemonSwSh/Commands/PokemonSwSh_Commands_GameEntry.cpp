@@ -4,12 +4,10 @@
  * 
  */
 
-#include <sstream>
-#include "ClientSource/Libraries/MessageConverter.h"
+#include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
-#include "NintendoSwitch/Commands/NintendoSwitch_Commands_Routines.h"
-#include "NintendoSwitch/NintendoSwitch_Settings.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "PokemonSwSh/PokemonSwSh_Settings.h"
 #include "PokemonSwSh_Commands_GameEntry.h"
 //#include "PokemonSwSh_Messages_GameEntry.h"
@@ -70,7 +68,7 @@ void reset_game_from_home(
     if (!ConsoleSettings::instance().START_GAME_REQUIRES_INTERNET && !tolerate_update_menu){
         fast_reset_game(
             context,
-            GameSettings::instance().START_GAME_MASH0,
+            ConsoleSettings::instance().START_GAME_MASH,
             GameSettings::instance().START_GAME_WAIT0,
             GameSettings::instance().ENTER_GAME_MASH0,
             GameSettings::instance().ENTER_GAME_WAIT0
@@ -78,7 +76,7 @@ void reset_game_from_home(
         return;
     }
 
-    close_game(console, context);
+    close_game_from_home(console, context);
     start_game_from_home(context, tolerate_update_menu, 0, 0, false);
 }
 void settings_to_enter_game(ProControllerContext& context, bool fast){
@@ -149,7 +147,7 @@ void start_game_from_home(
     }
 
     bool START_GAME_REQUIRES_INTERNET = ConsoleSettings::instance().START_GAME_REQUIRES_INTERNET;
-    Milliseconds START_GAME_MASH = GameSettings::instance().START_GAME_MASH0;
+    Milliseconds START_GAME_MASH = ConsoleSettings::instance().START_GAME_MASH;
 
     if (!START_GAME_REQUIRES_INTERNET && user_slot == 0){
         //  Mash your way into the game.

@@ -22,22 +22,20 @@ SingleSwitchProgramDescriptor::SingleSwitchProgramDescriptor(
     std::string category, std::string display_name,
     std::string doc_link,
     std::string description,
+    ProgramControllerClass color_class,
     FeedbackType feedback,
     AllowCommandsWhenRunning allow_commands_while_running,
-    ControllerFeatures required_features,
-    FasterIfTickPrecise faster_if_tick_precise,
     bool deprecated
 )
     : ProgramDescriptor(
-        pick_color(required_features, faster_if_tick_precise),
+        pick_color(color_class),
         std::move(identifier),
         std::move(category), std::move(display_name),
         std::move(doc_link),
         std::move(description)
     )
+    , m_color_class(color_class)
     , m_feedback(feedback)
-    , m_required_features(std::move(required_features))
-    , m_faster_if_tick_precise(faster_if_tick_precise)
     , m_allow_commands_while_running(allow_commands_while_running == AllowCommandsWhenRunning::ENABLE_COMMANDS)
     , m_deprecated(deprecated)
 {}
@@ -75,7 +73,7 @@ SingleSwitchProgramInstance::SingleSwitchProgramInstance(
 
 
 void SingleSwitchProgramInstance::program(SingleSwitchProgramEnvironment& env, CancellableScope& scope){
-    ProControllerContext context(scope, env.console.pro_controller());
+    ProControllerContext context(scope, env.console.controller<ProController>());
     program(env, context);
 }
 void SingleSwitchProgramInstance::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
@@ -89,12 +87,6 @@ void SingleSwitchProgramInstance::start_program_controller_check(
     if (!session.ready()){
         throw UserSetupError(session.logger(), "Cannot Start: Controller is not ready.");
     }
-
-    StartProgramChecks::check_controller_features(
-        session.logger(),
-        session.controller()->controller_features(),
-        session.required_features()
-    );
 }
 void SingleSwitchProgramInstance::start_program_feedback_check(
     VideoStream& stream,

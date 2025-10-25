@@ -23,12 +23,11 @@ AutonomousBallThrower_Descriptor::AutonomousBallThrower_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSV:AutonomousBallThrower",
         STRING_POKEMON + " SV", "Autonomous Ball Thrower",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSV/AutonomousBallThrower.md",
+        "Programs/PokemonSV/AutonomousBallThrower.html",
         "Repeatedly throw a ball until you catch the pokemon.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 struct AutonomousBallThrower_Descriptor::Stats : public StatsTracker{

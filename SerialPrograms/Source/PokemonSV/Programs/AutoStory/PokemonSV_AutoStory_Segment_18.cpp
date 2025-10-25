@@ -34,7 +34,7 @@ std::string AutoStory_Segment_18::name() const{
 }
 
 std::string AutoStory_Segment_18::start_text() const{
-    return "Start: Defeated Cascarrafa Gym (Water). At Cascarrafa Gym.";
+    return "Start: Defeated Cascarrafa Gym (Water). At Porto Marinada Pokecenter.";
 }
 
 std::string AutoStory_Segment_18::end_text() const{
@@ -70,22 +70,9 @@ void checkpoint_39(
     AutoStoryStats& stats
 ){
     
-    bool first_attempt = true;
-    while (true){
-    try{
-        if (first_attempt){
-            checkpoint_save(env, context, notif_status_update, stats);
-            first_attempt = false;
-        }         
+    checkpoint_reattempt_loop(env, context, notif_status_update, stats,
+    [&](size_t attempt_number){         
         context.wait_for_all_requests();
-
-        pbf_move_left_joystick(context, 128, 255, 500, 100);
-        pbf_wait(context, 3 * TICKS_PER_SECOND);
-        // wait for overworld after leaving Gym
-        wait_for_overworld(env.program_info(), env.console, context, 30);
-
-        // fly to Porto Marinada pokecenter
-        move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::KEEP_ZOOM, 0, 80, 150});
 
         DirectionDetector direction;
         
@@ -232,15 +219,7 @@ void checkpoint_39(
         run_wild_battle_press_A(env.console, context, BattleStopCondition::STOP_DIALOG, {CallbackEnum::DIALOG_ARROW});
         mash_button_till_overworld(env.console, context, BUTTON_A, 360);
        
-        break;
-    }catch(OperationFailedException&){
-        context.wait_for_all_requests();
-        env.console.log("Resetting from checkpoint.");
-        reset_game(env.program_info(), env.console, context);
-        stats.m_reset++;
-        env.update_stats();
-    }         
-    }
+    });
 
 }
 
@@ -251,13 +230,8 @@ void checkpoint_40(
     AutoStoryStats& stats
 ){
     
-    bool first_attempt = true;
-    while (true){
-    try{
-        if (first_attempt){
-            checkpoint_save(env, context, notif_status_update, stats);
-            first_attempt = false;
-        }         
+    checkpoint_reattempt_loop(env, context, notif_status_update, stats,
+    [&](size_t attempt_number){         
         context.wait_for_all_requests();
         // fly to Mesagoza East
         move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::KEEP_ZOOM, 255, 185, 440});
@@ -357,15 +331,7 @@ void checkpoint_40(
 
         fly_to_overlapping_flypoint(env.program_info(), env.console, context); 
 
-        break;
-    }catch(OperationFailedException&){
-        context.wait_for_all_requests();
-        env.console.log("Resetting from checkpoint.");
-        reset_game(env.program_info(), env.console, context);
-        stats.m_reset++;
-        env.update_stats();
-    }         
-    }
+    });
 
 }
 

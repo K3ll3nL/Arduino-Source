@@ -5,8 +5,8 @@
  */
 
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
-#include "PokemonSwSh/PokemonSwSh_Settings.h"
 #include "PokemonSwSh/Programs/PokemonSwSh_GameEntry.h"
 #include "PokemonSwSh/Programs/PokemonSwSh_ReleaseHelpers.h"
 #include "PokemonSwSh_MassRelease.h"
@@ -21,12 +21,11 @@ MassRelease_Descriptor::MassRelease_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSwSh:MassRelease",
         STRING_POKEMON + " SwSh", "Mass Release",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSwSh/MassRelease.md",
+        "Programs/PokemonSwSh/MassRelease.html",
         "Mass release boxes of " + STRING_POKEMON + ".",
+        ProgramControllerClass::StandardController_PerformanceClassSensitive,
         FeedbackType::NONE,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 
@@ -58,7 +57,7 @@ void MassRelease::program(SingleSwitchProgramEnvironment& env, ProControllerCont
     }
 
     release_boxes(context, BOXES_TO_RELEASE);
-    pbf_press_button(context, BUTTON_HOME, 80ms, GameSettings::instance().HOME_TO_GAME_DELAY0);
+    go_home(env.console, context);
 }
 
 

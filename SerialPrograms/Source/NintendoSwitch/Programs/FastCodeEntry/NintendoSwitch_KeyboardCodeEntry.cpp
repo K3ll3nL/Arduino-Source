@@ -12,6 +12,7 @@
 #include "NintendoSwitch/Options/NintendoSwitch_CodeEntrySettingsOption.h"
 #include "NintendoSwitch/Inference/NintendoSwitch_ConsoleTypeDetector.h"
 #include "NintendoSwitch_CodeEntryTools.h"
+#include "NintendoSwitch_KeyboardEntryMappings.h"
 #include "NintendoSwitch_KeyboardCodeEntry.h"
 
 //#include <iostream>
@@ -23,93 +24,87 @@ namespace NintendoSwitch{
 namespace FastCodeEntry{
 
 
-struct KeyboardEntryPosition{
-    uint8_t row;
-    uint8_t col;
-};
 
-static const std::map<char, KeyboardEntryPosition>& KEYBOARD_POSITIONS_QWERTY(){
-    static const std::map<char, KeyboardEntryPosition> map{
-        {'1', {0, 0}},
-        {'2', {0, 1}},
-        {'3', {0, 2}},
-        {'4', {0, 3}},
-        {'5', {0, 4}},
-        {'6', {0, 5}},
-        {'7', {0, 6}},
-        {'8', {0, 7}},
-        {'9', {0, 8}},
-        {'0', {0, 9}},
 
-        {'Q', {1, 0}},
-        {'W', {1, 1}},
-        {'E', {1, 2}},
-        {'R', {1, 3}},
-        {'T', {1, 4}},
-        {'Y', {1, 5}},
-        {'U', {1, 6}},
-        {'P', {1, 9}},
+void keyboard_enter_code(
+    ConsoleHandle& console, AbstractControllerContext& context,
+    KeyboardLayout keyboard_layout, const std::string& code,
+    bool include_plus
+){
+    auto* keyboard = context->cast<StandardHid::Keyboard>();
+    if (keyboard){
+        StandardHid::KeyboardContext subcontext(context);
+        keyboard_enter_code(console, subcontext, keyboard_layout, code, include_plus);
+        return;
+    }
 
-        {'A', {2, 0}},
-        {'S', {2, 1}},
-        {'D', {2, 2}},
-        {'F', {2, 3}},
-        {'G', {2, 4}},
-        {'H', {2, 5}},
-        {'J', {2, 6}},
-        {'K', {2, 7}},
-        {'L', {2, 8}},
+    auto* procon = context->cast<ProController>();
+    if (procon){
+        ProControllerContext subcontext(context);
+        keyboard_enter_code(console, subcontext, keyboard_layout, code, include_plus);
+        return;
+    }
 
-        {'X', {3, 1}},
-        {'C', {3, 2}},
-        {'V', {3, 3}},
-        {'B', {3, 4}},
-        {'N', {3, 5}},
-        {'M', {3, 6}},
-    };
-    return map;
+    throw UserSetupError(
+        console, "Unsupported controller type."
+    );
 }
-static const std::map<char, KeyboardEntryPosition>& KEYBOARD_POSITIONS_AZERTY(){
-    static const std::map<char, KeyboardEntryPosition> map{
-        {'1', {0, 0}},
-        {'2', {0, 1}},
-        {'3', {0, 2}},
-        {'4', {0, 3}},
-        {'5', {0, 4}},
-        {'6', {0, 5}},
-        {'7', {0, 6}},
-        {'8', {0, 7}},
-        {'9', {0, 8}},
-        {'0', {0, 9}},
 
-        {'A', {1, 0}},
-        {'E', {1, 2}},
-        {'R', {1, 3}},
-        {'T', {1, 4}},
-        {'Y', {1, 5}},
-        {'U', {1, 6}},
-        {'P', {1, 9}},
 
-        {'Q', {2, 0}},
-        {'S', {2, 1}},
-        {'D', {2, 2}},
-        {'F', {2, 3}},
-        {'G', {2, 4}},
-        {'H', {2, 5}},
-        {'J', {2, 6}},
-        {'K', {2, 7}},
-        {'L', {2, 8}},
-        {'M', {2, 9}},
 
-        {'W', {3, 0}},
-        {'X', {3, 1}},
-        {'C', {3, 2}},
-        {'V', {3, 3}},
-        {'B', {3, 4}},
-        {'N', {3, 5}},
-    };
-    return map;
+
+
+void keyboard_enter_code(
+    ConsoleHandle& console, StandardHid::KeyboardContext& context,
+    KeyboardLayout keyboard_layout, const std::string& code,
+    bool include_plus
+){
+    using namespace StandardHid;
+
+    Milliseconds delay = ConsoleSettings::instance().KEYBOARD_CONTROLLER_TIMINGS.TIME_UNIT;
+    Milliseconds hold = ConsoleSettings::instance().KEYBOARD_CONTROLLER_TIMINGS.HOLD;
+    Milliseconds cool = ConsoleSettings::instance().KEYBOARD_CONTROLLER_TIMINGS.COOLDOWN;
+
+    Milliseconds parallel_delay = ConsoleSettings::instance().KEYBOARD_CONTROLLER_TIMINGS.PARLLELIZE
+        ? 0ms
+        : delay;
+
+    const std::map<char, KeyboardKey>& MAP = KEYBOARD_MAPPINGS(keyboard_layout);
+
+    std::vector<KeyboardKey> HID_ids;
+    for (char ch : code){
+        auto iter = MAP.find(ch);
+        if (iter == MAP.end()){
+            throw_and_log<OperationFailedException>(
+                console, ErrorReport::NO_ERROR_REPORT,
+                "Invalid code character."
+            );
+        }
+        HID_ids.emplace_back(iter->second);
+//        context->issue_key(&context, delay, hold, cool, iter->second);
+    }
+
+    for (size_t c = 1; c < HID_ids.size(); c++){
+        KeyboardKey curr = HID_ids[c - 1];
+        KeyboardKey next = HID_ids[c];
+        context->issue_key(&context, curr < next ? parallel_delay : delay, hold, cool, curr);
+    }
+    if (!HID_ids.empty()){
+        context->issue_key(&context, parallel_delay, hold, cool, HID_ids.back());
+    }
+
+    if (include_plus){
+        context->issue_key(&context, delay, hold, cool, KeyboardKey::KEY_ENTER);
+        context->issue_key(&context, delay, hold, cool, KeyboardKey::KEY_ENTER);
+        context->issue_key(&context, delay, hold, cool, KeyboardKey::KEY_ENTER);
+    }
 }
+
+
+
+
+
+
 
 
 
@@ -262,18 +257,7 @@ void keyboard_enter_code(
     bool include_plus
 ){
     //  Calculate the coordinates.
-    auto get_keyboard_layout = [](KeyboardLayout keyboard_layout){
-        switch (keyboard_layout){
-        case KeyboardLayout::QWERTY:
-            return KEYBOARD_POSITIONS_QWERTY();
-        case KeyboardLayout::AZERTY:
-            return KEYBOARD_POSITIONS_AZERTY();
-        default:
-            return KEYBOARD_POSITIONS_QWERTY();
-        }
-    };
-
-    const std::map<char, KeyboardEntryPosition>& POSITION_MAP = get_keyboard_layout(keyboard_layout);
+    const std::map<char, KeyboardEntryPosition>& POSITION_MAP = KEYBOARD_POSITIONS(keyboard_layout);
     std::vector<KeyboardEntryPosition> positions;
     for (char ch : code){
         auto iter = POSITION_MAP.find(ch);
@@ -287,11 +271,7 @@ void keyboard_enter_code(
     }
 
 
-    ConsoleType console_type = console.state().console_type();
-    if (console_type == ConsoleType::Unknown){
-        console.log("Unknown Switch type. Try to detect.", COLOR_ORANGE);
-        console_type = detect_console_type_from_in_game(console, context);
-    }
+    ConsoleType console_type = detect_console_type_from_in_game(console, context);
     bool switch2;
     if (is_switch1(console_type)){
         switch2 = false;

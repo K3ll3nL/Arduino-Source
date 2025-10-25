@@ -8,6 +8,7 @@
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonFramework/ProgramStats/StatsTracking.h"
 #include "CommonTools/Async/InferenceRoutines.h"
+#include "CommonTools/StartupChecks/StartProgramChecks.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonBDSP/PokemonBDSP_Settings.h"
@@ -29,14 +30,11 @@ MoneyFarmerRoute210_Descriptor::MoneyFarmerRoute210_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonBDSP:MoneyFarmerRoute210",
         STRING_POKEMON + " BDSP", "Money Farmer (Route 210)",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonBDSP/MoneyFarmerRoute210.md",
+        "Programs/PokemonBDSP/MoneyFarmerRoute210.html",
         "Farm money by using VS Seeker to rebattle the Ace Trainer couple on Route 210.",
+        ProgramControllerClass::StandardController_RequiresPrecision,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {
-            ControllerFeature::TickPrecise,
-            ControllerFeature::NintendoSwitch_ProController,
-        }
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 struct MoneyFarmerRoute210_Descriptor::Stats : public StatsTracker{
@@ -340,6 +338,8 @@ bool MoneyFarmerRoute210::has_pp(uint8_t pp0[4], uint8_t pp1[4]){
 
 
 void MoneyFarmerRoute210::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+    StartProgramChecks::check_performance_class_wired_or_wireless(context);
+
     MoneyFarmerRoute210_Descriptor::Stats& stats = env.current_stats<MoneyFarmerRoute210_Descriptor::Stats>();
 
     uint8_t pp0[4] = {

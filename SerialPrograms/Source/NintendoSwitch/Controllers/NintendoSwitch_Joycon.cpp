@@ -24,6 +24,11 @@ namespace NintendoSwitch{
 using namespace std::chrono_literals;
 
 
+const char JoyconController::NAME[] = "Nintendo Switch: Joycon";
+const char LeftJoycon::NAME[] = "Nintendo Switch: Left Joycon";
+const char RightJoycon::NAME[] = "Nintendo Switch: Right Joycon";
+
+
 
 class JoyconController::KeyboardManager final :
     public PokemonAutomation::KeyboardManager<JoyconState, JoyconDeltas>
@@ -52,6 +57,7 @@ public:
         stop();
     }
     virtual void send_state(const ControllerState& state) override{
+        
         const JoyconState& switch_state = static_cast<const JoyconState&>(state);
 #if 0
         m_controller->logger().log(
@@ -66,6 +72,7 @@ public:
             return;
         }
         Milliseconds ticksize = m_controller->ticksize();
+        WallClock time_stamp = current_time();
         static_cast<JoyconController*>(m_controller)->issue_full_controller_state(
             nullptr,
             switch_state.buttons,
@@ -73,6 +80,7 @@ public:
             switch_state.joystick_y,
             ticksize == Milliseconds::zero() ? 2000ms : ticksize * 255
         );
+        report_keyboard_command_sent(time_stamp, switch_state);
     }
 };
 
@@ -101,7 +109,13 @@ void JoyconController::keyboard_release(const QKeyEvent& event){
     m_keyboard_manager->on_key_release(event);
 }
 
+void JoyconController::add_keyboard_listener(KeyboardEventHandler::KeyboardListener& keyboard_listener){
+    m_keyboard_manager->add_listener(keyboard_listener);
+}
 
+void JoyconController::remove_keyboard_listener(KeyboardEventHandler::KeyboardListener& keyboard_listener){
+    m_keyboard_manager->remove_listener(keyboard_listener);
+}
 
 
 

@@ -28,12 +28,11 @@ StatsReset_Descriptor::StatsReset_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSwSh:StatsReset",
         STRING_POKEMON + " SwSh", "Stats Reset",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSwSh/StatsReset.md",
+        "Programs/PokemonSwSh/StatsReset.html",
         "Repeatedly receive gift " + STRING_POKEMON + " until you get the stats you want.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 struct StatsReset_Descriptor::Stats : public StatsTracker{

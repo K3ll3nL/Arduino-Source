@@ -44,7 +44,6 @@ public:
     virtual ControllerType controller_type() const override{
         return ControllerType::NintendoSwitch_WiredController;
     }
-    virtual const ControllerFeatures& controller_features() const override;
     virtual ControllerPerformanceClass performance_class() const override{
         return ControllerPerformanceClass::SysbotBase;
     }
@@ -216,7 +215,10 @@ public:
 
 
 private:
-    virtual void push_state(const Cancellable* cancellable, WallDuration duration) override;
+    virtual void execute_state(
+        const Cancellable* cancellable,
+        const SuperscalarScheduler::ScheduleEntry& entry
+    ) override;
 
     void send_diff(
         const ProControllerState& old_state,

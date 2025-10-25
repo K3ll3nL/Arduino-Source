@@ -47,12 +47,11 @@ ItemPrinterRNG_Descriptor::ItemPrinterRNG_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSV:ItemPrinterRNG",
         Pokemon::STRING_POKEMON + " SV", "Item Printer RNG",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSV/ItemPrinterRNG.md",
+        "Programs/PokemonSV/ItemPrinterRNG.html",
         "Farm the Item Printer using RNG Manipulation.",
+        ProgramControllerClass::StandardController_PerformanceClassSensitive,
         FeedbackType::VIDEO_AUDIO,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 
@@ -360,7 +359,7 @@ ItemPrinterPrizeResult ItemPrinterRNG::run_print_at_date(
 
         case 2:{
             env.log("Detected prompt dialog.");
-            pbf_press_button(context, BUTTON_HOME, 80ms, GameSettings::instance().GAME_TO_HOME_DELAY1);
+            go_home(env.console, context);
             home_to_date_time(env.console, context, true);
             pbf_press_button(context, BUTTON_A, 10, 30);
             context.wait_for_all_requests();
@@ -1044,7 +1043,7 @@ void ItemPrinterRNG::program(SingleSwitchProgramEnvironment& env, ProControllerC
     }catch (ProgramFinishedException&){}
 
     if (FIX_TIME_WHEN_DONE){
-        pbf_press_button(context, BUTTON_HOME, 80ms, GameSettings::instance().GAME_TO_HOME_DELAY1);
+        go_home(env.console, context);
         home_to_date_time(env.console, context, false);
         pbf_press_button(context, BUTTON_A, 20, 105);
         pbf_press_button(context, BUTTON_A, 20, 105);

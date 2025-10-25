@@ -10,14 +10,6 @@
 namespace PokemonAutomation{
 
 
-//  This is used only for the UI to indicate if a program may be faster on
-//  tick-precise controllers. There is no functional effect.
-enum class FasterIfTickPrecise{
-    NOT_FASTER,
-    FASTER,
-    MUCH_FASTER,
-};
-
 
 enum class ControllerInterface{
     None,
@@ -30,32 +22,18 @@ enum class ControllerInterface{
 enum class ControllerType{
     None,
 
-    //  This is for all the generic wired controllers.
-    //  These do not support gyro or rumble.
-    NintendoSwitch_WiredController,
+    HID_Keyboard,
 
-    //  The official Pro Controller, connected over USB.
-//    NintendoSwitch_WiredProController,
-
+    NintendoSwitch_WiredController,     //  Generic 3rd party wired controller.
+    NintendoSwitch_WiredProController,  //  The official Pro Controller, connected over USB.
     NintendoSwitch_WirelessProController,
     NintendoSwitch_LeftJoycon,
     NintendoSwitch_RightJoycon,
-};
-
-
-enum class ControllerFeature{
-    TickPrecise,
-
-    //  If we add support gyro or rumble, we will need to split this feature
-    //  since the Pokken controller doesn't support those.
-    NintendoSwitch_ProController,
-
-    NintendoSwitch_LeftJoycon,
-    NintendoSwitch_RightJoycon,
-
-    //  This is leftover from the days of RPCs. But we keep it here as a hack to
-    //  lock ESP32 out of the day skippers since it's too unstable to run those.
-    NintendoSwitch_DateSkip,
+    NintendoSwitch2_WiredController,    //  Generic 3rd party wired controller.
+    NintendoSwitch2_WiredProController, //  The official Pro Controller, connected over USB.
+    NintendoSwitch2_WirelessProController,
+    NintendoSwitch2_LeftJoycon,
+    NintendoSwitch2_RightJoycon,
 };
 
 
@@ -64,6 +42,14 @@ enum class ControllerPerformanceClass{
     SerialPABotBase_Wired,
     SerialPABotBase_Wireless,
     SysbotBase,
+};
+
+enum class ControllerClass{
+    None,
+    HID_Keyboard,
+    NintendoSwitch_ProController,
+    NintendoSwitch_LeftJoycon,
+    NintendoSwitch_RightJoycon,
 };
 
 

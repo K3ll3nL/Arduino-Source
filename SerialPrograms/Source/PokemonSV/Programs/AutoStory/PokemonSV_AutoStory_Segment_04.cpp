@@ -35,11 +35,11 @@ std::string AutoStory_Segment_04::name() const{
 }
 
 std::string AutoStory_Segment_04::start_text() const{
-    return "Start: Finished catch tutorial. Walked to the cliff and heard mystery cry.";
+    return "Start: Finished catch tutorial. Walked to the cliff and heard mystery cry. Standing in front of Nemona near the cliff.";
 }
 
 std::string AutoStory_Segment_04::end_text() const{
-    return "End: Saved the Legendary. Escaped from the Houndoom cave.";
+    return "End: Saved the Legendary. Escaped from the Houndoom cave. Standing next to Koraidon/Miraidon just outside the cave exit.";
 }
 
 void AutoStory_Segment_04::run_segment(
@@ -67,13 +67,9 @@ void checkpoint_08(
     EventNotificationOption& notif_status_update,
     AutoStoryStats& stats
 ){
-    bool first_attempt = true;
-    while (true){
-    try{
-        if (first_attempt){
-            checkpoint_save(env, context, notif_status_update, stats);
-            first_attempt = false;
-        }         
+    checkpoint_reattempt_loop(env, context, notif_status_update, stats,
+    [&](size_t attempt_number){
+
         context.wait_for_all_requests();
 
         realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_NEW_MARKER, 230, 70, 100);
@@ -192,15 +188,9 @@ void checkpoint_08(
         
         mash_button_till_overworld(env.console, context, BUTTON_A);
 
-        break;
-    }catch(OperationFailedException&){
-        context.wait_for_all_requests();
-        env.console.log("Resetting from checkpoint.");
-        reset_game(env.program_info(), env.console, context);
-        stats.m_reset++;
-        env.update_stats();
-    }            
-    }
+    
+    });
+
 
 }
 

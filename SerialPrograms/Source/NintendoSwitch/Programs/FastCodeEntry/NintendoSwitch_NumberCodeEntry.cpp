@@ -12,6 +12,7 @@
 #include "NintendoSwitch/Inference/NintendoSwitch_ConsoleTypeDetector.h"
 #include "NintendoSwitch_CodeEntryTools.h"
 #include "NintendoSwitch_NumberCodeEntry.h"
+#include "NintendoSwitch_KeyboardCodeEntry.h"
 
 //#include <iostream>
 //using std::cout;
@@ -20,6 +21,107 @@
 namespace PokemonAutomation{
 namespace NintendoSwitch{
 namespace FastCodeEntry{
+
+
+
+
+void numberpad_enter_code(
+    ConsoleHandle& console, AbstractControllerContext& context,
+    const std::string& code,
+    bool include_plus
+){
+    auto* keyboard = dynamic_cast<StandardHid::Keyboard*>(&context.controller());
+    if (keyboard){
+        StandardHid::KeyboardContext subcontext(context);
+        keyboard_enter_code(console, subcontext, KeyboardLayout::QWERTY, code, include_plus);
+        return;
+    }
+
+    auto* procon = dynamic_cast<ProController*>(&context.controller());
+    if (procon){
+        ProControllerContext subcontext(context);
+        numberpad_enter_code(console, subcontext, code, include_plus);
+        return;
+    }
+
+    throw UserSetupError(
+        console, "Unsupported controller type."
+    );
+}
+
+
+
+
+#if 0
+void numberpad_enter_code(
+    ConsoleHandle& console, StandardHid::KeyboardContext& context,
+    const std::string& code,
+    bool include_plus
+){
+    using namespace StandardHid;
+
+    Milliseconds delay = ConsoleSettings::instance().KEYBOARD_CONTROLLER_TIMINGS.TIME_UNIT;
+    Milliseconds hold = ConsoleSettings::instance().KEYBOARD_CONTROLLER_TIMINGS.HOLD;
+    Milliseconds cool = ConsoleSettings::instance().KEYBOARD_CONTROLLER_TIMINGS.COOLDOWN;
+
+    static const std::map<char, KeyboardKey> MAP{
+        {0, KeyboardKey::KEY_KP_0},
+        {1, KeyboardKey::KEY_KP_1},
+        {2, KeyboardKey::KEY_KP_2},
+        {3, KeyboardKey::KEY_KP_3},
+        {4, KeyboardKey::KEY_KP_4},
+        {5, KeyboardKey::KEY_KP_5},
+        {6, KeyboardKey::KEY_KP_6},
+        {7, KeyboardKey::KEY_KP_7},
+        {8, KeyboardKey::KEY_KP_8},
+        {9, KeyboardKey::KEY_KP_9},
+        {'0', KeyboardKey::KEY_KP_0},
+        {'1', KeyboardKey::KEY_KP_1},
+        {'2', KeyboardKey::KEY_KP_2},
+        {'3', KeyboardKey::KEY_KP_3},
+        {'4', KeyboardKey::KEY_KP_4},
+        {'5', KeyboardKey::KEY_KP_5},
+        {'6', KeyboardKey::KEY_KP_6},
+        {'7', KeyboardKey::KEY_KP_7},
+        {'8', KeyboardKey::KEY_KP_8},
+        {'9', KeyboardKey::KEY_KP_9},
+    };
+
+    for (char ch : code){
+        auto iter = MAP.find(ch);
+        if (iter == MAP.end()){
+            throw_and_log<OperationFailedException>(
+                console, ErrorReport::NO_ERROR_REPORT,
+                "Invalid code character."
+            );
+        }
+        context->issue_key(&context, delay, hold, cool, iter->second);
+    }
+
+    if (include_plus){
+        context->issue_key(&context, delay, hold, cool, KeyboardKey::KEY_ENTER);
+        context->issue_key(&context, delay, hold, cool, KeyboardKey::KEY_ENTER);
+        context->issue_key(&context, delay, hold, cool, KeyboardKey::KEY_ENTER);
+    }
+}
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 struct NumberEntryPosition{
@@ -195,11 +297,7 @@ void numberpad_enter_code(
     }
 
 
-    ConsoleType console_type = console.state().console_type();
-    if (console_type == ConsoleType::Unknown){
-        console.log("Unknown Switch type. Try to detect.", COLOR_ORANGE);
-        console_type = detect_console_type_from_in_game(console, context);
-    }
+    ConsoleType console_type = detect_console_type_from_in_game(console, context);
     bool switch2;
     if (is_switch1(console_type)){
         switch2 = false;

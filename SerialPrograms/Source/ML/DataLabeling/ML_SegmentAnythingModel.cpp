@@ -14,6 +14,8 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 #include "3rdParty/ONNX/OnnxToolsPA.h"
+#include "CommonFramework/Globals.h"
+#include "ML/Models/ML_ONNXRuntimeHelpers.h"
 #include "ML_SegmentAnythingModelConstants.h"
 #include "ML_SegmentAnythingModel.h"
 #include "ML_AnnotationIO.h"
@@ -21,28 +23,10 @@
 namespace PokemonAutomation{
 namespace ML{
 
-Ort::SessionOptions create_session_option(){
-    return Ort::SessionOptions{};
-
-    // create session using Apple ML
-
-    // Ort::SessionOptions so;
-    // std::unordered_map<std::string, std::string> provider_options;
-    // provider_options["ModelFormat"] = "NeuralNetwork"; 
-    // so.AppendExecutionProvider("CoreML", provider_options);
-    // return so;
-}
-
-
-template<typename T, class Buffer, class Shape> Ort::Value create_tensor(const OrtMemoryInfo* memory_info, Buffer& buffer, const Shape& shape){
-    return Ort::Value::CreateTensor<T>(memory_info, buffer.data(), buffer.size(),
-        shape.data(), shape.size());
-}
-
 
 SAMEmbedderSession::SAMEmbedderSession(const std::string& model_path)
-    : session_options(create_session_option())
-    , session{env, str_to_onnx_str(model_path).c_str(), session_options}
+    : m_session_options{create_session_options(ML_MODEL_CACHE_PATH() + "SAMEmbedder/")}
+    , session{create_session(m_env, m_session_options, model_path, ML_MODEL_CACHE_PATH() + "SAMEmbedder/")}
     , memory_info{Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU)}
     , input_names{session.GetInputNames()}
     , output_names{session.GetOutputNames()}
@@ -81,8 +65,8 @@ void SAMEmbedderSession::run(cv::Mat& input_image, std::vector<float>& model_out
 
 
 SAMSession::SAMSession(const std::string& model_path)
-    : session_options(create_session_option())
-    , session{env, str_to_onnx_str(model_path).c_str(), session_options}
+    : m_session_options{create_session_options(ML_MODEL_CACHE_PATH() + "SAM/")}
+    , session{create_session(m_env, m_session_options, model_path, ML_MODEL_CACHE_PATH() + "SAM/")}
     , memory_info{Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU)}
     , input_names{session.GetInputNames()}
     , output_names{session.GetOutputNames()}

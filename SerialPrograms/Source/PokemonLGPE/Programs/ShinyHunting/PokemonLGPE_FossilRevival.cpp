@@ -27,12 +27,11 @@ FossilRevival_Descriptor::FossilRevival_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonLGPE:FossilRevival",
         Pokemon::STRING_POKEMON + " LGPE", "Fossil Revival",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonLGPE/FossilRevival.md",
+        "Programs/PokemonLGPE/FossilRevival.html",
         "Shiny hunt fossil Pokemon by reviving and resetting.",
+        ProgramControllerClass::SpecializedController,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_RightJoycon},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 
@@ -169,7 +168,7 @@ void FossilRevival::run_revives(SingleSwitchProgramEnvironment& env, JoyconConte
 }
 
 void FossilRevival::program(SingleSwitchProgramEnvironment& env, CancellableScope& scope){
-    JoyconContext context(scope, env.console.controller<JoyconController>());
+    JoyconContext context(scope, env.console.controller<RightJoycon>());
     assert_16_9_720p_min(env.logger(), env.console);
     FossilRevival_Descriptor::Stats& stats = env.current_stats<FossilRevival_Descriptor::Stats>();
 
@@ -288,11 +287,7 @@ void FossilRevival::program(SingleSwitchProgramEnvironment& env, CancellableScop
                 "Out of Pokemon to check and no shiny found. Resetting game."
             );
 
-            //Reset game
-            pbf_press_button(context, BUTTON_HOME, 200ms, 2000ms);
-            reset_game_from_home(env, env.console, context, 3000ms);
-            context.wait_for_all_requests();
-
+            reset_game_from_game(env, env.console, context, &stats.errors, 3000ms);
             stats.resets++;
             env.update_stats();
         }

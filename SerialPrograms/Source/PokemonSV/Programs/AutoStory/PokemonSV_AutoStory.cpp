@@ -3,11 +3,15 @@
  *  From: https://github.com/PokemonAutomation/
  *
  */
+#include "CommonFramework/Exceptions/OperationFailedException.h"
+#include "CommonTools/Async/InferenceRoutines.h"
+
 
 #include "CommonFramework/GlobalSettingsPanel.h"
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonFramework/VideoPipeline/VideoFeed.h"
 #include "CommonFramework/ProgramStats/StatsTracking.h"
+#include "CommonTools/StartupChecks/StartProgramChecks.h"
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "Pokemon/Pokemon_Strings.h"
@@ -42,6 +46,17 @@
 #include "PokemonSV_AutoStory_Segment_22.h"
 #include "PokemonSV_AutoStory_Segment_23.h"
 #include "PokemonSV_AutoStory_Segment_24.h"
+#include "PokemonSV_AutoStory_Segment_25.h"
+#include "PokemonSV_AutoStory_Segment_26.h"
+#include "PokemonSV_AutoStory_Segment_27.h"
+#include "PokemonSV_AutoStory_Segment_28.h"
+#include "PokemonSV_AutoStory_Segment_29.h"
+#include "PokemonSV_AutoStory_Segment_30.h"
+#include "PokemonSV_AutoStory_Segment_31.h"
+#include "PokemonSV_AutoStory_Segment_32.h"
+#include "PokemonSV_AutoStory_Segment_33.h"
+#include "PokemonSV_AutoStory_Segment_34.h"
+#include "PokemonSV_AutoStory_Segment_35.h"
 #include "PokemonSV_AutoStory.h"
 
 #include <iostream>
@@ -84,8 +99,19 @@ std::vector<std::unique_ptr<AutoStory_Segment>> make_autoStory_segment_list(){
     segment_list.emplace_back(std::make_unique<AutoStory_Segment_20>());
     segment_list.emplace_back(std::make_unique<AutoStory_Segment_21>());
     segment_list.emplace_back(std::make_unique<AutoStory_Segment_22>());
-    // segment_list.emplace_back(std::make_unique<AutoStory_Segment_23>());
-    // segment_list.emplace_back(std::make_unique<AutoStory_Segment_24>());
+    segment_list.emplace_back(std::make_unique<AutoStory_Segment_23>());
+    segment_list.emplace_back(std::make_unique<AutoStory_Segment_24>());
+    segment_list.emplace_back(std::make_unique<AutoStory_Segment_25>());
+    segment_list.emplace_back(std::make_unique<AutoStory_Segment_26>());
+    segment_list.emplace_back(std::make_unique<AutoStory_Segment_27>());
+    segment_list.emplace_back(std::make_unique<AutoStory_Segment_28>());
+    segment_list.emplace_back(std::make_unique<AutoStory_Segment_29>());
+    segment_list.emplace_back(std::make_unique<AutoStory_Segment_30>());
+    segment_list.emplace_back(std::make_unique<AutoStory_Segment_31>());
+    segment_list.emplace_back(std::make_unique<AutoStory_Segment_32>());
+    segment_list.emplace_back(std::make_unique<AutoStory_Segment_33>());
+    segment_list.emplace_back(std::make_unique<AutoStory_Segment_34>());
+    // segment_list.emplace_back(std::make_unique<AutoStory_Segment_35>());
 
     return segment_list;
 };
@@ -149,11 +175,12 @@ AutoStory_Descriptor::AutoStory_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSV:AutoStory",
         STRING_POKEMON + " SV", "Auto Story",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSV/AutoStory.md",
+        "Programs/PokemonSV/AutoStory.html",
         "Progress through the mainstory of SV.",
+        ProgramControllerClass::StandardController_RequiresPrecision,
         FeedbackType::VIDEO_AUDIO,
         AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {SerialPABotBase::OLD_NINTENDO_SWITCH_DEFAULT_REQUIREMENTS}
+        {}
     )
 {}
 
@@ -195,31 +222,38 @@ AutoStory::AutoStory()
         StorySection::TUTORIAL
     )    
     , STARTPOINT_TUTORIAL(
-        "<b>Start Point:</b><br>Program will start with this segment.",
+        "<b>Start Point:</b>", //<br>Program will start with this segment.
         TUTORIAL_SEGMENTS_SELECT_DATABASE(),
         LockMode::LOCK_WHILE_RUNNING,
         "0"
     )
     , ENDPOINT_TUTORIAL(
-        "<b>End Point:</b><br>Program will stop after completing this segment.",
+        "<b>End Point:</b>", //<br>Program will stop after completing this segment.
         TUTORIAL_SEGMENTS_SELECT_DATABASE(),
         LockMode::UNLOCK_WHILE_RUNNING,
         "9"
     )   
     , STARTPOINT_MAINSTORY(
-        "<b>Start Point:</b><br>Program will start with this segment.",
+        "<b>Start Point:</b>", //<br>Program will start with this segment.
         MAINSTORY_SEGMENTS_SELECT_DATABASE(),
         LockMode::UNLOCK_WHILE_RUNNING,
         "10"
     )
     , ENDPOINT_MAINSTORY(
-        "<b>End Point:</b><br>Program will stop after completing this segment.",
+        "<b>End Point:</b>", //<br>Program will stop after completing this segment.
         MAINSTORY_SEGMENTS_SELECT_DATABASE(),
         LockMode::UNLOCK_WHILE_RUNNING,
         "10"
     )       
+    , SETUP_NOTE{
+        "NOTE: Make sure you have selected the correct Start Point. "
+        "Make sure your player character is in the exact correct start position for that Start Point, "
+        "especially if your start point is NOT at the beginning of the Tutorial/Main Story. "
+        "Read the Start Point's description to help with finding the correct start position. "
+        "For Start Points that are at Pokecenters, ensure that you fly there so that your character is in the exactly correct start position."
+    }    
     , MAINSTORY_NOTE{
-        "Ensure you have a level 100 Gardevoir with the moves in the following order: Moonblast, Dazzling Gleam, Psychic, Mystical Fire.<br>"
+        "Ensure you have a level 100 Gardevoir with the moves in the following order: Moonblast, Dazzling Gleam, Mystical Fire, Misty Terrain.<br>"
         "Also, make sure you have two other strong pokemon (e.g. level 100 Talonflames)<br>"
         "Refer to the documentation on github for more details."
     }
@@ -393,12 +427,48 @@ AutoStory::AutoStory()
         "direction in radians",
         LockMode::UNLOCK_WHILE_RUNNING,
         0
-    )           
+    )   
+    , FLYPOINT_TYPE(
+        "<b>Flypoint type:</b><br>"
+        "For print_flypoint_location() and move_cursor_to_position_offset_from_flypoint()",
+        {
+            {FlyPoint::POKECENTER,         "pokecenter",           "Pokecenter"},
+            {FlyPoint::FAST_TRAVEL,            "fast-travel",              "Fast Travel"},
+        },
+        LockMode::UNLOCK_WHILE_RUNNING,
+        FlyPoint::POKECENTER
+    )   
+    , TEST_FLYPOINT_LOCATIONS(
+        "<b>TEST: print_flypoint_location():</b>",
+        LockMode::UNLOCK_WHILE_RUNNING,
+        false
+    ) 
+    , TEST_MOVE_CURSOR_OFFSET_FROM_FLYPOINT(
+        "<b>TEST: move_cursor_to_position_offset_from_flypoint():</b>",
+        LockMode::UNLOCK_WHILE_RUNNING,
+        false
+    )
+    , X_OFFSET(
+        "X offset from flypoint",
+        LockMode::UNLOCK_WHILE_RUNNING,
+        0
+    )
+    , Y_OFFSET(
+        "Y offset from flypoint",
+        LockMode::UNLOCK_WHILE_RUNNING,
+        0
+    )
 {
 
     if (PreloadSettings::instance().DEVELOPER_MODE){
         PA_ADD_OPTION(m_advanced_options);
         PA_ADD_OPTION(CHANGE_SETTINGS);
+
+        PA_ADD_OPTION(FLYPOINT_TYPE);
+        PA_ADD_OPTION(TEST_FLYPOINT_LOCATIONS);
+        PA_ADD_OPTION(TEST_MOVE_CURSOR_OFFSET_FROM_FLYPOINT);
+        PA_ADD_OPTION(X_OFFSET);
+        PA_ADD_OPTION(Y_OFFSET);
 
         PA_ADD_OPTION(TEST_CURRENT_DIRECTION);
         PA_ADD_OPTION(TEST_CHANGE_DIRECTION);
@@ -436,6 +506,7 @@ AutoStory::AutoStory()
 
 
     PA_ADD_OPTION(LANGUAGE);
+    PA_ADD_OPTION(SETUP_NOTE);
     PA_ADD_OPTION(STORY_SECTION);
     PA_ADD_OPTION(STARTPOINT_TUTORIAL);
     PA_ADD_OPTION(MAINSTORY_NOTE);
@@ -466,10 +537,10 @@ AutoStory::AutoStory()
 }
 
 void AutoStory::on_config_value_changed(void* object){
-    ConfigOptionState state = (STARTPOINT_TUTORIAL.index() <= 1)
-        ? ConfigOptionState::ENABLED
-        : ConfigOptionState::HIDDEN;
-    STARTERCHOICE.set_visibility(state);
+    // ConfigOptionState state = (STARTPOINT_TUTORIAL.index() <= 1 && STORY_SECTION == StorySection::TUTORIAL)
+    //     ? ConfigOptionState::ENABLED
+    //     : ConfigOptionState::HIDDEN;
+    // STARTERCHOICE.set_visibility(state);
 
     if (STORY_SECTION == StorySection::TUTORIAL){
         STARTPOINT_TUTORIAL.set_visibility(ConfigOptionState::ENABLED);
@@ -628,8 +699,52 @@ void AutoStory::test_checkpoints(
     checkpoint_list.push_back([&](){checkpoint_53(env, context, notif_status_update, stats);});
     checkpoint_list.push_back([&](){checkpoint_54(env, context, notif_status_update, stats);});
     checkpoint_list.push_back([&](){checkpoint_55(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_56(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_57(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_58(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_59(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_60(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_61(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_62(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_63(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_64(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_65(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_66(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_67(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_68(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_69(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_70(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_71(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_72(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_73(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_74(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_75(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_76(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_77(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_78(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_79(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_80(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_81(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_82(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_83(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_84(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_85(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_86(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_87(env, context, notif_status_update, stats, language, starter_choice);});
+    checkpoint_list.push_back([&](){checkpoint_88(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_89(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_90(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_91(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_92(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_93(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_94(env, context, notif_status_update, stats);});
+    checkpoint_list.push_back([&](){checkpoint_95(env, context, notif_status_update, stats);});
     
-
+    
+    if (end == 0){
+        end = start;
+    }
+    stream.log("test_checkpoints: start: " + std::to_string(start) + ", end:" + std::to_string(end));
     for (int checkpoint = start; checkpoint <= end; checkpoint++){
         if (checkpoint == 0){
             stream.log("checkpoint_0");
@@ -740,6 +855,19 @@ void AutoStory::run_autostory(SingleSwitchProgramEnvironment& env, ProController
 }
 
 void AutoStory::test_code(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+
+    if (TEST_FLYPOINT_LOCATIONS){
+        print_flypoint_location(env.program_info(), env.console, context, FLYPOINT_TYPE);
+        // print_flypoint_location(env.program_info(), env.console, context, FlyPoint::FAST_TRAVEL);
+        return;
+    }
+
+    if (TEST_MOVE_CURSOR_OFFSET_FROM_FLYPOINT){
+        move_cursor_to_position_offset_from_flypoint(env.program_info(), env.console, context, FLYPOINT_TYPE, {X_OFFSET, Y_OFFSET});
+
+        return;
+    }
+
     if (TEST_CURRENT_DIRECTION){
         DirectionDetector direction;
         // direction.change_direction(env.program_info(), env.console, context, DIR_RADIANS);
@@ -769,6 +897,7 @@ void AutoStory::test_code(SingleSwitchProgramEnvironment& env, ProControllerCont
     if (ENABLE_TEST_CHECKPOINTS){
         // test individual checkpoints
         test_checkpoints(env, env.console, context, START_CHECKPOINT, END_CHECKPOINT, LOOP_CHECKPOINT, START_LOOP, END_LOOP);
+        GO_HOME_WHEN_DONE.run_end_of_program(context);
         return;
     }
     
@@ -788,7 +917,9 @@ void AutoStory::test_code(SingleSwitchProgramEnvironment& env, ProControllerCont
         //     128, 0, 60, 10, false);
 
         DirectionDetector direction;
-        
+
+
+
         return;
     }
 
@@ -798,11 +929,12 @@ void AutoStory::test_code(SingleSwitchProgramEnvironment& env, ProControllerCont
 }
 
 void AutoStory::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+    StartProgramChecks::check_performance_class_wired_or_wireless(context);
     assert_16_9_720p_min(env.logger(), env.console);
 
 
     // test code
-    if (ENABLE_TEST_CHECKPOINTS || ENABLE_TEST_REALIGN || ENABLE_MISC_TEST || TEST_PBF_LEFT_JOYSTICK || TEST_PBF_LEFT_JOYSTICK2 || TEST_CHANGE_DIRECTION || TEST_CURRENT_DIRECTION){
+    if (TEST_FLYPOINT_LOCATIONS || TEST_MOVE_CURSOR_OFFSET_FROM_FLYPOINT || ENABLE_TEST_CHECKPOINTS || ENABLE_TEST_REALIGN || ENABLE_MISC_TEST || TEST_PBF_LEFT_JOYSTICK || TEST_PBF_LEFT_JOYSTICK2 || TEST_CHANGE_DIRECTION || TEST_CURRENT_DIRECTION){
         test_code(env, context);
         return;
     }
@@ -831,3 +963,4 @@ void AutoStory::program(SingleSwitchProgramEnvironment& env, ProControllerContex
 }
 }
 }
+

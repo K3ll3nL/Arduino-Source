@@ -90,6 +90,7 @@ std::vector<ImageFloatBox> FastTravelDetector::detect_all(const ImageViewRGB32& 
 
     ImagePixelBox pixel_search_area = floatbox_to_pixelbox(screen.width(), screen.height(), m_box);    
     match_template_by_waterfill(
+        screen.size(),
         extract_box_reference(screen, m_box), 
         FastTravelMatcher::instance(),
         filters,
@@ -122,14 +123,13 @@ void FastTravelWatcher::make_overlays(VideoOverlaySet& items) const{
 }
 
 bool FastTravelWatcher::process_frame(const ImageViewRGB32& screen, WallClock timestamp){
-    std::vector<ImageFloatBox> hits = m_detector.detect_all(screen);
+    m_hits = m_detector.detect_all(screen);
 
-    m_hits.reset(hits.size());
-    for (const ImageFloatBox& hit : hits){
-        m_hits.emplace_back(m_overlay, hit, COLOR_MAGENTA);
+    m_hit_boxes.reset(m_hits.size());
+    for (const ImageFloatBox& hit : m_hits){
+        m_hit_boxes.emplace_back(m_overlay, hit, COLOR_MAGENTA);
     }
-
-    return !hits.empty();
+    return !m_hits.empty();
 }
 
 

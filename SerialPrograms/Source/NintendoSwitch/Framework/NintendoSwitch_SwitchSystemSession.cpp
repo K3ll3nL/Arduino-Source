@@ -4,6 +4,7 @@
  *
  */
 
+#include "CommonFramework/VideoPipeline/Stats/MemoryUtilizationStats.h"
 #include "CommonFramework/VideoPipeline/Stats/CpuUtilizationStats.h"
 #include "CommonFramework/VideoPipeline/Stats/ThreadUtilizationStats.h"
 #include "Integrations/ProgramTracker.h"
@@ -32,6 +33,8 @@ SwitchSystemSession::~SwitchSystemSession(){
     ProgramTracker::instance().remove_console(m_console_id);
     m_overlay.remove_stat(*m_main_thread_utilization);
     m_overlay.remove_stat(*m_cpu_utilization);
+    m_overlay.remove_stat(m_memory_usage->m_process);
+    m_overlay.remove_stat(m_memory_usage->m_system);
 }
 SwitchSystemSession::SwitchSystemSession(
     SwitchSystemOption& option,
@@ -41,15 +44,18 @@ SwitchSystemSession::SwitchSystemSession(
     : m_console_number(console_number)
     , m_logger(global_logger_raw(), "Console " + std::to_string(console_number))
     , m_option(option)
-    , m_controller(m_logger, option.m_controller, option.m_required_features)
+    , m_controller(m_logger, option.m_controller)
     , m_video(m_logger, option.m_video)
     , m_audio(m_logger, option.m_audio)
     , m_overlay(m_logger, option.m_overlay)
     , m_history(m_logger)
+    , m_memory_usage(new MemoryUtilizationStats())
     , m_cpu_utilization(new CpuUtilizationStat())
     , m_main_thread_utilization(new ThreadUtilizationStat(current_thread_handle(), "Main Qt Thread:"))
 {
     m_console_id = ProgramTracker::instance().add_console(program_id, *this);
+    m_overlay.add_stat(m_memory_usage->m_system);
+    m_overlay.add_stat(m_memory_usage->m_process);
     m_overlay.add_stat(*m_cpu_utilization);
     m_overlay.add_stat(*m_main_thread_utilization);
 

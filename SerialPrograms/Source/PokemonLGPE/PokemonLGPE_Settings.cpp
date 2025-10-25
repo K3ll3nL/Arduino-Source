@@ -28,23 +28,18 @@ GameSettings::GameSettings()
         "1000 ms"
     )
     , m_start_game_timings("<font size=4><b>Start Game Timings:</b></font>")
-    , START_GAME_MASH0(
-        "<b>1. Start Game Mash:</b><br>Mash A for this long to start the game.",
-        LockMode::LOCK_WHILE_RUNNING,
-        "2000 ms"
-    )
     , START_GAME_WAIT1(
-        "<b>2. Start Game Wait:</b><br>Wait this long for the game to load.",
+        "<b>Start Game Wait:</b><br>Wait this long for the game to load.",
         LockMode::LOCK_WHILE_RUNNING,
         "20 s"
     )
     , ENTER_GAME_MASH0(
-        "<b>3. Enter Game Mash:</b><br>Mash A for this long to enter the game.",
+        "<b>Enter Game Mash:</b><br>Mash A for this long to enter the game.",
         LockMode::LOCK_WHILE_RUNNING,
         "5 s"
     )
     , ENTER_GAME_WAIT0(
-        "<b>4. Enter Game Wait:</b><br>Wait this long for the opening animations to finish.",
+        "<b>Enter Game Wait:</b><br>Wait this long for the opening animations to finish.",
         LockMode::LOCK_WHILE_RUNNING,
         "15 s"
     )
@@ -66,7 +61,6 @@ GameSettings::GameSettings()
     PA_ADD_OPTION(GAME_TO_HOME_DELAY0);
 
     PA_ADD_STATIC(m_start_game_timings);
-    PA_ADD_OPTION(START_GAME_MASH0);
     PA_ADD_OPTION(START_GAME_WAIT1);
     PA_ADD_OPTION(ENTER_GAME_MASH0);
     PA_ADD_OPTION(ENTER_GAME_WAIT0);
@@ -85,7 +79,7 @@ GameSettings_Descriptor::GameSettings_Descriptor()
         Color(),
         "PokemonLGPE:GlobalSettings",
         STRING_POKEMON + " LGPE", "Game Settings",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonLGPE/PokemonSettings.md",
+        "Programs/PokemonLGPE/PokemonSettings.html",
         "Global " + STRING_POKEMON + " Let's Go Settings"
     )
 {}

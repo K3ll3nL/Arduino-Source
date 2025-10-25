@@ -10,7 +10,8 @@
 #include "CommonFramework/VideoPipeline/VideoOverlayScopes.h"
 #include "CommonFramework/Tools/VideoStream.h"
 #include "CommonTools/VisualDetectors/BlackBorderDetector.h"
-#include "Controllers/ControllerCapability.h"
+#include "Controllers/ControllerTypes.h"
+#include "Controllers/Controller.h"
 #include "StartProgramChecks.h"
 
 namespace PokemonAutomation{
@@ -49,21 +50,20 @@ void check_border(VideoStream& stream){
 
 
 
-void check_controller_features(
-    Logger& logger,
-    const ControllerFeatures& capabilities,
-    const ControllerFeatures& required_features
-){
-    std::string missing_feature = capabilities.contains_all(required_features);
-    if (missing_feature.empty()){
+void check_performance_class_wired_or_wireless(AbstractController& controller){
+    switch (controller.performance_class()){
+    case ControllerPerformanceClass::SerialPABotBase_Wired:
+    case ControllerPerformanceClass::SerialPABotBase_Wireless:
         return;
+    default:
+        throw UserSetupError(
+            controller.logger(),
+            "Incompatible Controller:\n\n"
+            "This program requires a controller with performance class \"Wired\" or \"Wireless\".\n\n"
+            "If you are using sys-botbase 2, please upgrade to sys-botbase 3."
+        );
     }
-    throw UserSetupError(
-        logger,
-        "Cannot start program. The controller is missing the feature: " + missing_feature
-    );
 }
-
 
 
 

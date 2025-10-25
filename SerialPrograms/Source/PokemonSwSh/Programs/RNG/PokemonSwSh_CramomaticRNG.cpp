@@ -45,12 +45,11 @@ CramomaticRNG_Descriptor::CramomaticRNG_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSwSh:CramomaticRNG",
         STRING_POKEMON + " SwSh", "Cram-o-matic RNG",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSwSh/CramomaticRNG.md",
+        "Programs/PokemonSwSh/CramomaticRNG.html",
         "Perform RNG manipulation to get rare balls from the Cram-o-matic.",
+        ProgramControllerClass::StandardController_PerformanceClassSensitive,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::MUCH_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 

@@ -4,12 +4,12 @@
  *
  */
 
-#include <map>
 #include <mutex>
 #include <condition_variable>
 #include "Common/Cpp/Exceptions.h"
-#include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+//#include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
+#include "NintendoSwitch/Inference/NintendoSwitch_ConsoleTypeDetector.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSV_CodeEntry.h"
 #include "PokemonSV_FastCodeEntry.h"
@@ -30,12 +30,11 @@ FastCodeEntry_Descriptor::FastCodeEntry_Descriptor()
     : MultiSwitchProgramDescriptor(
         "PokemonSV:FastCodeEntry",
         STRING_POKEMON + " SV", "Fast Code Entry (FCE)",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSV/FastCodeEntry.md",
+        "Programs/PokemonSV/FastCodeEntry.html",
         "Quickly enter a 4, 6, or 8 digit link code.",
+        ProgramControllerClass::StandardController_RequiresPrecision,
         FeedbackType::NONE,
         AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::MUCH_FASTER,
         1, 4, 1
     )
 {}
@@ -141,8 +140,14 @@ void FastCodeEntry::program(MultiSwitchProgramEnvironment& env, CancellableScope
     }
 
     //  Connect the controller.
-    env.run_in_parallel(scope, [&](ConsoleHandle& console, ProControllerContext& context){
+    env.run_in_parallel(scope, [&](CancellableScope& scope, ConsoleHandle& console){
+        auto* procon = console.controller().cast<ProController>();
+        if (procon == nullptr){
+            return;
+        }
+        ProControllerContext context(scope, *procon);
         ssf_press_button_ptv(context, BUTTON_R | BUTTON_L);
+        detect_console_type_from_in_game(console, context);
     });
 
     FceCodeListener listener(CODE);

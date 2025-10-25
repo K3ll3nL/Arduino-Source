@@ -4,14 +4,11 @@
  *
  */
 
-#include "CommonFramework/VideoPipeline/VideoFeed.h"
 #include "CommonFramework/Tools/ErrorDumper.h"
 #include "CommonFramework/Tools/ProgramEnvironment.h"
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "CommonTools/VisualDetectors/BlackScreenDetector.h"
-#include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
-#include "NintendoSwitch/Commands/NintendoSwitch_Commands_Routines.h"
 #include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "PokemonBDSP/PokemonBDSP_Settings.h"
 #include "PokemonBDSP_GameEntry.h"
@@ -36,7 +33,7 @@ bool gamemenu_to_ingame(
     stream.log("Waiting to enter game...");
     int ret = wait_until(
         stream, context,
-        std::chrono::milliseconds(enter_game_timeout * (1000 / TICKS_PER_SECOND)),
+        enter_game_timeout,
         {{detector}}
     );
     if (ret == 0){
@@ -74,23 +71,8 @@ bool reset_game_from_home(
     bool tolerate_update_menu,
     Milliseconds post_wait_time
 ){
-    bool video_available = (bool)console.video().snapshot();
-    if (video_available ||
-        ConsoleSettings::instance().START_GAME_REQUIRES_INTERNET ||
-        tolerate_update_menu
-    ){
-        close_game(console, context);
-        start_game_from_home(
-            console,
-            context,
-            tolerate_update_menu,
-            0, 0,
-            GameSettings::instance().START_GAME_MASH0
-        );
-    }else{
-        pbf_press_button(context, BUTTON_X, 50, 0);
-        pbf_mash_button(context, BUTTON_A, GameSettings::instance().START_GAME_MASH0);
-    }
+    from_home_close_and_reopen_game(console, context, true);
+
     bool ret = openedgame_to_ingame(
         env, console, context,
         GameSettings::instance().START_GAME_WAIT0,

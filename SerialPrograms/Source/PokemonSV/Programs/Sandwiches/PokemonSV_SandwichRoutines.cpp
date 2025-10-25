@@ -1105,7 +1105,7 @@ void run_sandwich_maker(
                     stream.log("Read nothing on center plate label.");
                     OperationFailedException::fire(
                         ErrorReport::SEND_ERROR_REPORT,
-                        "No ingredient found on center plate label.",
+                        "run_sandwich_maker: No ingredient found on center plate label.\n" + language_warning(language),
                         stream,
                         std::move(screen)
                     );

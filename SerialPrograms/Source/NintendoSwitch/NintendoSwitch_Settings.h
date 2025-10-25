@@ -28,8 +28,8 @@ public:
     TimingOptions();
 
 public:
-    MillisecondsOption WIRED_MICROCONTROLLER;
-    MillisecondsOption WIRELESS_ESP32;
+    MillisecondsOption WIRED;
+    MillisecondsOption WIRELESS;
     MillisecondsOption SYSBOTBASE;
 };
 
@@ -43,6 +43,7 @@ public:
     ControllerSettingsTable CONTROLLER_SETTINGS;
 
     BooleanCheckBoxOption TRUST_USER_CONSOLE_SELECTION;
+    MillisecondsOption START_GAME_MASH;
     MillisecondsOption SETTINGS_TO_HOME_DELAY0;
     BooleanCheckBoxOption START_GAME_REQUIRES_INTERNET;
     MillisecondsOption START_GAME_INTERNET_CHECK_DELAY0;
@@ -58,6 +59,7 @@ public:
     KeyboardEntryTimingsOption  SWITCH1_KEYBOARD_ENTRY0;
     DigitEntryTimingsOption     SWITCH2_DIGIT_ENTRY0;
     KeyboardEntryTimingsOption  SWITCH2_KEYBOARD_ENTRY0;
+    KeyboardControllerTimingsOption KEYBOARD_CONTROLLER_TIMINGS;
 
     SectionDividerOption KEYBOARD_SECTION;
     KeyboardMappingOption KEYBOARD_MAPPINGS;

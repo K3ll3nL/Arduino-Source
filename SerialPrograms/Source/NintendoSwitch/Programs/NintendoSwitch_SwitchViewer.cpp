@@ -20,7 +20,7 @@ SwitchViewer_Descriptor::SwitchViewer_Descriptor()
         Color(),
         "NintendoSwitch:SwitchViewer",
         "Nintendo Switch", "Switch Viewer",
-        "ComputerControl/blob/master/Wiki/Programs/NintendoSwitch/SwitchViewer.md",
+        "Programs/NintendoSwitch/SwitchViewer.html",
         "View status information from one or more running programs."
     )
 {}
@@ -30,7 +30,6 @@ SwitchViewer_Descriptor::SwitchViewer_Descriptor()
 SwitchViewer::SwitchViewer(const SwitchViewer_Descriptor& descriptor)
     : PanelInstance(descriptor)
     , m_switches(
-        {},
         FeedbackType::NONE,
         AllowCommandsWhenRunning::DISABLE_COMMANDS,
         1, 4, 1

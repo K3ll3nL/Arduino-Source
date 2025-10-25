@@ -10,76 +10,131 @@
 #ifndef PokemonAutomation_NintendoSwitch_ControllerWithScheduler_H
 #define PokemonAutomation_NintendoSwitch_ControllerWithScheduler_H
 
-#include <mutex>
-#include "Common/Cpp/RecursiveThrottler.h"
-#include "Controllers/SuperscalarScheduler.h"
-#include "NintendoSwitch_ControllerState.h"
+#include "Common/Cpp/CancellableScope.h"
+#include "Controllers/Schedulers/ControllerWithScheduler.h"
+#include "NintendoSwitch_ControllerButtons.h"
 
 namespace PokemonAutomation{
 namespace NintendoSwitch{
 
 
+struct SwitchControllerState{
+    Button buttons = BUTTON_NONE;
+    DpadPosition dpad = DpadPosition::DPAD_NONE;
+    uint8_t left_stick_x = 128;
+    uint8_t left_stick_y = 128;
+    uint8_t right_stick_x = 128;
+    uint8_t right_stick_y = 128;
 
-struct SwitchButton_Dpad : public ExecutionResource{
-    DpadPosition position;
+    uint16_t gyro[6] = {};
 };
-struct SwitchButton_Joystick : public ExecutionResource{
+
+
+enum class SwitchResource{
+    BUTTON_NONE,
+    BUTTON_Y,
+    BUTTON_B,
+    BUTTON_A,
+    BUTTON_X,
+    BUTTON_L,
+    BUTTON_R,
+    BUTTON_ZL,
+    BUTTON_ZR,
+    BUTTON_MINUS,
+    BUTTON_PLUS,
+    BUTTON_LCLICK,
+    BUTTON_RCLICK,
+    BUTTON_HOME,
+    BUTTON_CAPTURE,
+    BUTTON_GR,
+    BUTTON_GL,
+    BUTTON_UP,
+    BUTTON_RIGHT,
+    BUTTON_DOWN,
+    BUTTON_LEFT,
+    BUTTON_LEFT_SL,
+    BUTTON_LEFT_SR,
+    BUTTON_RIGHT_SL,
+    BUTTON_RIGHT_SR,
+    BUTTON_C,
+
+    DPAD,
+    JOYSTICK_LEFT,
+    JOYSTICK_RIGHT,
+
+    GYRO_ACCEL_X,
+    GYRO_ACCEL_Y,
+    GYRO_ACCEL_Z,
+    GYRO_ROTATE_X,
+    GYRO_ROTATE_Y,
+    GYRO_ROTATE_Z,
+};
+
+class SwitchCommand : public SchedulerResource{
+public:
+    using SchedulerResource::SchedulerResource;
+    virtual void apply(SwitchControllerState& state) const = 0;
+};
+class SwitchCommand_Button : public SwitchCommand{
+public:
+    SwitchCommand_Button(SwitchResource id)
+        : SwitchCommand((size_t)id)
+    {}
+    virtual void apply(SwitchControllerState& state) const{
+        state.buttons |= (Button)((ButtonFlagType)1 << id);
+    }
+};
+struct SwitchCommand_Dpad : public SwitchCommand{
+    DpadPosition position;
+
+    SwitchCommand_Dpad(DpadPosition position)
+        : SwitchCommand((size_t)SwitchResource::DPAD)
+        , position(position)
+    {}
+    virtual void apply(SwitchControllerState& state) const override{
+        state.dpad = position;
+    }
+};
+struct SwitchCommand_LeftJoystick : public SwitchCommand{
     uint8_t x;
     uint8_t y;
+
+    SwitchCommand_LeftJoystick(uint8_t x, uint8_t y)
+        : SwitchCommand((size_t)SwitchResource::JOYSTICK_LEFT)
+        , x(x), y(y)
+    {}
+    virtual void apply(SwitchControllerState& state) const override{
+        state.left_stick_x = x;
+        state.left_stick_y = y;
+    }
 };
-struct SwitchGyro : public ExecutionResource{
+struct SwitchCommand_RightJoystick : public SwitchCommand{
+    uint8_t x;
+    uint8_t y;
+
+    SwitchCommand_RightJoystick(uint8_t x, uint8_t y)
+        : SwitchCommand((size_t)SwitchResource::JOYSTICK_RIGHT)
+        , x(x), y(y)
+    {}
+    virtual void apply(SwitchControllerState& state) const override{
+        state.right_stick_x = x;
+        state.right_stick_y = y;
+    }
+};
+struct SwitchCommand_Gyro : public SwitchCommand{
     int16_t value;
-};
-struct ControllerSchedulerState{
-    ExecutionResource m_buttons[TOTAL_BUTTONS];
-    SwitchButton_Dpad m_dpad;
-    SwitchButton_Joystick m_left_joystick;
-    SwitchButton_Joystick m_right_joystick;
 
-    SwitchGyro m_accel_x;
-    SwitchGyro m_accel_y;
-    SwitchGyro m_accel_z;
-    SwitchGyro m_rotation_x;
-    SwitchGyro m_rotation_y;
-    SwitchGyro m_rotation_z;
-
-    bool is_active() const{
-        for (size_t c = 0; c < TOTAL_BUTTONS; c++){
-            if (m_buttons[c].is_busy()){
-                return true;
-            }
-        }
-        if (m_dpad.is_busy()) return true;
-        if (m_left_joystick.is_busy()) return true;
-        if (m_right_joystick.is_busy()) return true;
-
-        if (m_accel_x.is_busy()) return true;
-        if (m_accel_y.is_busy()) return true;
-        if (m_accel_z.is_busy()) return true;
-        if (m_rotation_x.is_busy()) return true;
-        if (m_rotation_y.is_busy()) return true;
-        if (m_rotation_z.is_busy()) return true;
-
-        return false;
-    }
-
-    std::vector<ExecutionResource*> make_resource_list(){
-        std::vector<ExecutionResource*> ret;
-        for (size_t c = 0; c < TOTAL_BUTTONS; c++){
-            ret.emplace_back(m_buttons + c);
-        }
-        ret.emplace_back(&m_dpad);
-        ret.emplace_back(&m_left_joystick);
-        ret.emplace_back(&m_right_joystick);
-        ret.emplace_back(&m_accel_x);
-        ret.emplace_back(&m_accel_y);
-        ret.emplace_back(&m_accel_z);
-        ret.emplace_back(&m_rotation_x);
-        ret.emplace_back(&m_rotation_y);
-        ret.emplace_back(&m_rotation_z);
-        return ret;
+    SwitchCommand_Gyro(SwitchResource id, int16_t value)
+        : SwitchCommand((size_t)id)
+        , value(value)
+    {}
+    virtual void apply(SwitchControllerState& state) const override{
+        size_t index = (ButtonFlagType)id - (ButtonFlagType)SwitchResource::GYRO_ACCEL_X;
+        state.gyro[index] = value;
     }
 };
+
+
 
 
 struct SplitDpad{
@@ -115,23 +170,14 @@ inline SplitDpad convert_unified_to_split_dpad(DpadPosition dpad){
 
 
 
-class ControllerWithScheduler :
-    protected ControllerSchedulerState,
-    protected SuperscalarScheduler
-{
+class ControllerWithScheduler : public PokemonAutomation::ControllerWithScheduler{
 public:
-    ControllerWithScheduler(Logger& logger);
-
-    RecursiveThrottler& logging_throttler(){
-        return m_logging_throttler;
-    }
+    using PokemonAutomation::ControllerWithScheduler::ControllerWithScheduler;
 
 
 public:
     //  Superscalar Commands (the "ssf" framework)
 
-    void issue_barrier(const Cancellable* cancellable);
-    void issue_nop(const Cancellable* cancellable, Milliseconds duration);
     void issue_buttons(
         const Cancellable* cancellable,
         Milliseconds delay, Milliseconds hold, Milliseconds cooldown,
@@ -155,7 +201,7 @@ public:
 
     void issue_gyro(
         const Cancellable* cancellable,
-        SwitchGyro& gyro, const char* name,
+        SwitchResource id, const char* name,
         Milliseconds delay, Milliseconds hold, Milliseconds cooldown,
         int16_t value
     );
@@ -164,42 +210,42 @@ public:
         Milliseconds delay, Milliseconds hold, Milliseconds cooldown,
         int16_t value
     ){
-        issue_gyro(cancellable, m_accel_x, "issue_gyro_accel_x", delay, hold, cooldown, value);
+        issue_gyro(cancellable, SwitchResource::GYRO_ACCEL_X, "issue_gyro_accel_x", delay, hold, cooldown, value);
     }
     void issue_gyro_accel_y(
         const Cancellable* cancellable,
         Milliseconds delay, Milliseconds hold, Milliseconds cooldown,
         int16_t value
     ){
-        issue_gyro(cancellable, m_accel_y, "issue_gyro_accel_y", delay, hold, cooldown, value);
+        issue_gyro(cancellable, SwitchResource::GYRO_ACCEL_Y, "issue_gyro_accel_y", delay, hold, cooldown, value);
     }
     void issue_gyro_accel_z(
         const Cancellable* cancellable,
         Milliseconds delay, Milliseconds hold, Milliseconds cooldown,
         int16_t value
     ){
-        issue_gyro(cancellable, m_accel_z, "issue_gyro_accel_z", delay, hold, cooldown, value);
+        issue_gyro(cancellable, SwitchResource::GYRO_ACCEL_Z, "issue_gyro_accel_z", delay, hold, cooldown, value);
     }
     void issue_gyro_rotate_x(
         const Cancellable* cancellable,
         Milliseconds delay, Milliseconds hold, Milliseconds cooldown,
         int16_t value
     ){
-        issue_gyro(cancellable, m_rotation_x, "issue_gyro_rotate_x", delay, hold, cooldown, value);
+        issue_gyro(cancellable, SwitchResource::GYRO_ROTATE_X, "issue_gyro_rotate_x", delay, hold, cooldown, value);
     }
     void issue_gyro_rotate_y(
         const Cancellable* cancellable,
         Milliseconds delay, Milliseconds hold, Milliseconds cooldown,
         int16_t value
     ){
-        issue_gyro(cancellable, m_rotation_y, "issue_gyro_rotate_y", delay, hold, cooldown, value);
+        issue_gyro(cancellable, SwitchResource::GYRO_ROTATE_Y, "issue_gyro_rotate_y", delay, hold, cooldown, value);
     }
     void issue_gyro_rotate_z(
         const Cancellable* cancellable,
         Milliseconds delay, Milliseconds hold, Milliseconds cooldown,
         int16_t value
     ){
-        issue_gyro(cancellable, m_rotation_z, "issue_gyro_rotate_z", delay, hold, cooldown, value);
+        issue_gyro(cancellable, SwitchResource::GYRO_ROTATE_Z, "issue_gyro_rotate_z", delay, hold, cooldown, value);
     }
 
     void issue_full_controller_state(
@@ -234,42 +280,6 @@ public:
         Milliseconds delay, Milliseconds hold, Milliseconds cooldown,
         DpadPosition direction  //  Diagonals not allowed.
     );
-
-
-protected:
-#if 0
-    class LoggingSuppressScope{
-    public:
-        LoggingSuppressScope(std::atomic<size_t>& counter)
-            : m_counter(counter)
-        {
-            m_counter++;
-        }
-        ~LoggingSuppressScope(){
-            m_counter--;
-        }
-    private:
-        std::atomic<size_t>& m_counter;
-    };
-#endif
-
-//    virtual void push_state(const Cancellable* cancellable, WallDuration duration) override;
-
-
-protected:
-    Logger& m_logger;
-//    std::atomic<size_t> m_logging_suppress;
-    RecursiveThrottler m_logging_throttler;
-
-    //  If you need both of these locks, always acquire "m_issue_lock" first.
-
-    //  This lock makes sure that only one command is issued at a time. It can
-    //  be held for long periods of time if the command queue is full.
-    std::mutex m_issue_lock;
-
-    //  This lock protects the state/fields of this class and subclasses.
-    //  This lock is never held for a long time.
-    std::mutex m_state_lock;
 };
 
 

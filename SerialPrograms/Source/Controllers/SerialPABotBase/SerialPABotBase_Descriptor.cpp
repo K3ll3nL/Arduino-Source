@@ -4,12 +4,14 @@
  *
  */
 
+#include <QSerialPortInfo>
 #include <QWidget>
 #include "Common/Cpp/Json/JsonValue.h"
 #include "Controllers/ControllerTypeStrings.h"
 #include "SerialPABotBase_Descriptor.h"
 #include "SerialPABotBase_SelectorWidget.h"
 
+#include "Controllers/StandardHid/StandardHid_Keyboard_SerialPABotBase.h"
 #include "NintendoSwitch/Controllers/SerialPABotBase/NintendoSwitch_SerialPABotBase_WiredController.h"
 #include "NintendoSwitch/Controllers/SerialPABotBase/NintendoSwitch_SerialPABotBase_WirelessProController.h"
 #include "NintendoSwitch/Controllers/SerialPABotBase/NintendoSwitch_SerialPABotBase_WirelessJoycon.h"
@@ -31,49 +33,64 @@ bool SerialPABotBase_Descriptor::operator==(const ControllerDescriptor& x) const
     if (typeid(*this) != typeid(x)){
         return false;
     }
-    return m_port.portName() == static_cast<const SerialPABotBase_Descriptor&>(x).m_port.portName();
+    return m_name == static_cast<const SerialPABotBase_Descriptor&>(x).m_name;
 }
 
 
 std::string SerialPABotBase_Descriptor::display_name() const{
-    if (m_port.isNull()){
-        return "";
+#if 0
+    QSerialPortInfo info(QString::fromStdString(m_name));
+    if (info.isNull()){
+        return m_name;
     }
-//    if (PreloadSettings::instance().DEVELOPER_MODE){
-        return m_port.portName().toStdString();
-//    }
-//    return m_port.portName().toStdString() + " - " + m_port.description().toStdString();
+    return m_name + " - " + info.manufacturer().toStdString();
+#else
+    return m_name;
+#endif
 }
 void SerialPABotBase_Descriptor::load_json(const JsonValue& json){
     const std::string* name = json.to_string();
     if (name == nullptr || name->empty()){
         return;
     }
-    m_port = (QSerialPortInfo(QString::fromStdString(*name)));
+    m_name = *name;
 }
 JsonValue SerialPABotBase_Descriptor::to_json() const{
-    return m_port.isNull() ? "" : m_port.portName().toStdString();
+    return m_name;
 }
 
 std::unique_ptr<ControllerConnection> SerialPABotBase_Descriptor::open_connection(
     Logger& logger,
-    std::optional<ControllerType> change_controller
+    bool set_to_null_controller
 ) const{
     return std::unique_ptr<ControllerConnection>(
-        new SerialPABotBase_Connection(logger, &m_port, change_controller)
+        new SerialPABotBase_Connection(logger, m_name, set_to_null_controller)
     );
 }
 std::unique_ptr<AbstractController> SerialPABotBase_Descriptor::make_controller(
     Logger& logger,
     ControllerConnection& connection,
-    ControllerType controller_type
+    ControllerType controller_type,
+    ControllerResetMode reset_mode
 ) const{
     switch (controller_type){
+    case ControllerType::HID_Keyboard:
+        return std::unique_ptr<AbstractController>(
+            new PokemonAutomation::StandardHid::SerialPABotBase_Keyboard(
+                logger,
+                static_cast<SerialPABotBase_Connection&>(connection),
+                reset_mode
+            )
+        );
+
     case ControllerType::NintendoSwitch_WiredController:
+    case ControllerType::NintendoSwitch2_WiredController:
         return std::unique_ptr<AbstractController>(
             new PokemonAutomation::NintendoSwitch::SerialPABotBase_WiredController(
                 logger,
-                static_cast<SerialPABotBase_Connection&>(connection)
+                static_cast<SerialPABotBase_Connection&>(connection),
+                controller_type,
+                reset_mode
             )
         );
 
@@ -81,17 +98,26 @@ std::unique_ptr<AbstractController> SerialPABotBase_Descriptor::make_controller(
         return std::unique_ptr<AbstractController>(
             new PokemonAutomation::NintendoSwitch::SerialPABotBase_WirelessProController(
                 logger,
-                static_cast<SerialPABotBase_Connection&>(connection)
+                static_cast<SerialPABotBase_Connection&>(connection),
+                reset_mode
             )
         );
 
     case ControllerType::NintendoSwitch_LeftJoycon:
-    case ControllerType::NintendoSwitch_RightJoycon:
         return std::unique_ptr<AbstractController>(
-            new PokemonAutomation::NintendoSwitch::SerialPABotBase_WirelessJoycon(
+            new PokemonAutomation::NintendoSwitch::SerialPABotBase_WirelessLeftJoycon(
                 logger,
                 static_cast<SerialPABotBase_Connection&>(connection),
-                controller_type
+                reset_mode
+            )
+        );
+
+    case ControllerType::NintendoSwitch_RightJoycon:
+        return std::unique_ptr<AbstractController>(
+            new PokemonAutomation::NintendoSwitch::SerialPABotBase_WirelessRightJoycon(
+                logger,
+                static_cast<SerialPABotBase_Connection&>(connection),
+                reset_mode
             )
         );
 

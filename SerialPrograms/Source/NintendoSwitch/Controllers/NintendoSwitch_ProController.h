@@ -10,8 +10,9 @@
 #define PokemonAutomation_NintendoSwitch_Controller_H
 
 #include "Common/Cpp/Containers/Pimpl.h"
-#include "NintendoSwitch_ControllerState.h"
+#include "Controllers/ControllerTypes.h"
 #include "Controllers/Controller.h"
+#include "NintendoSwitch_ControllerButtons.h"
 
 //#include <iostream>
 //using std::cout;
@@ -60,6 +61,17 @@ public:
     ProController(Logger& logger);
     virtual ~ProController();
 
+public:
+    static const char NAME[];
+    virtual const char* name() override{
+        return NAME;
+    };
+    virtual ControllerClass controller_class() const override{
+        return ControllerClass::NintendoSwitch_ProController;
+    }
+
+
+protected:
     //  Must call before destruction begins.
     void stop() noexcept;
 
@@ -199,7 +211,7 @@ public:
     //  This will use either the dpad or either joystick - whichever is
     //  available first in the pipeline.
     //
-    //  The intended use-case of this for fast scrolling in the system menu
+    //  The intended use-case of this is for fast scrolling in the system menu
     //  where all 3 buttons have the same effect and can be used at the same
     //  time.
     //
@@ -217,6 +229,8 @@ public:
     virtual void keyboard_press(const QKeyEvent& event) override;
     virtual void keyboard_release(const QKeyEvent& event) override;
 
+    virtual void add_keyboard_listener(KeyboardEventHandler::KeyboardListener& keyboard_listener) override;
+    virtual void remove_keyboard_listener(KeyboardEventHandler::KeyboardListener& keyboard_listener) override;
 
 private:
     class KeyboardManager;

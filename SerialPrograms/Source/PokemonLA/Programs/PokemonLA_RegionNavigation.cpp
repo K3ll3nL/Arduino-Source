@@ -265,6 +265,13 @@ void goto_camp_from_jubilife(
     context.wait_for(std::chrono::milliseconds(500));
 
     DpadPosition direction = location.region < MapRegion::HIGHLANDS ? DPAD_RIGHT : DPAD_LEFT;
+    if (location.region == MapRegion::JUBILIFE){
+        OperationFailedException::fire(
+            ErrorReport::SEND_ERROR_REPORT,
+            std::string("Should not choose Jubilife Village as destination when leaving camp"),
+            stream
+        );
+    }
 
     //  Move to region.
     MapRegion current_region = MapRegion::NONE;
@@ -465,7 +472,7 @@ void goto_camp_from_overworld(
     context.wait_for(GameSettings::instance().POST_WARP_DELAY0);
 }
 
-void goto_any_camp_from_overworld(
+void fast_travel_from_overworld(
     ProgramEnvironment& env, VideoStream& stream, ProControllerContext& context,
     const TravelLocation& location
 ){
@@ -524,7 +531,7 @@ void goto_any_camp_from_overworld(
                 {{detector}}
             );
             if (ret >= 0){
-                stream.log("Flying back to camp...");
+                stream.log("Fast traveling...");
                 pbf_wait(context, 50);
                 if (location.warp_slot != 0){
                     for (size_t c = 0; c < location.warp_slot; c++){

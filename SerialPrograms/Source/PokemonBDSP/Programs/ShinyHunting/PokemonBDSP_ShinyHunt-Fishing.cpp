@@ -25,12 +25,11 @@ ShinyHuntFishing_Descriptor::ShinyHuntFishing_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonBDSP:ShinyHuntFishing",
         STRING_POKEMON + " BDSP", "Shiny Hunt - Fishing",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonBDSP/ShinyHunt-Fishing.md",
+        "Programs/PokemonBDSP/ShinyHunt-Fishing.html",
         "Shiny hunt fishing " + STRING_POKEMON + ".",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 struct ShinyHuntFishing_Descriptor::Stats : public PokemonSwSh::ShinyHuntTracker{

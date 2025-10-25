@@ -11,7 +11,6 @@
 #include "CommonFramework/VideoPipeline/VideoFeed.h"
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
-#include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "Pokemon/Inference/Pokemon_NameReader.h"
 #include "PokemonLA/PokemonLA_Settings.h"
@@ -37,12 +36,11 @@ RamanasCombeeFinder_Descriptor::RamanasCombeeFinder_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonLA:Ramanas Island Combee Finder",
         STRING_POKEMON + " LA", "Ramanas Combee Finder",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonLA/RamanasCombeeFinder.md",
+        "Programs/PokemonLA/RamanasCombeeFinder.html",
         "Check Ramanas Island Tree until a Combee is found.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 class RamanasCombeeFinder_Descriptor::Stats : public StatsTracker{
@@ -342,10 +340,7 @@ void RamanasCombeeFinder::program(SingleSwitchProgramEnvironment& env, ProContro
             e.send_notification(env, NOTIFICATION_ERROR_RECOVERABLE);
 
             pbf_press_button(context, BUTTON_HOME, 160ms, GameSettings::instance().GAME_TO_HOME_DELAY0);
-            fresh_from_reset = reset_game_from_home(
-                env, env.console, context,
-                ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST
-            );
+            fresh_from_reset = reset_game_from_home(env, env.console, context);
         }
     }
 

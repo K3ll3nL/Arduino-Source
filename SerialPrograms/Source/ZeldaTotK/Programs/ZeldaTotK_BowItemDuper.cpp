@@ -7,6 +7,7 @@
 #include "Common/Cpp/PrettyPrint.h"
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonFramework/ProgramStats/StatsTracking.h"
+#include "CommonTools/StartupChecks/StartProgramChecks.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "ZeldaTotK_BowItemDuper.h"
 
@@ -20,11 +21,12 @@ BowItemDuper_Descriptor::BowItemDuper_Descriptor()
     : SingleSwitchProgramDescriptor(
         "ZeldaTotK:BowItemDuper",
         "Zelda: TotK", "Bow Item Duper",
-        "ComputerControl/blob/master/Wiki/Programs/ZeldaTotK/BowItemDuper.md",
+        "Programs/ZeldaTotK/BowItemDuper.html",
         "Use the Bow Swap Glitch to farm any fusable items.",
+        ProgramControllerClass::StandardController_RequiresPrecision,
         FeedbackType::NONE,
         AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {SerialPABotBase::OLD_NINTENDO_SWITCH_DEFAULT_REQUIREMENTS}
+        {}
     )
 {}
 
@@ -69,6 +71,8 @@ BowItemDuper::BowItemDuper()
 }
 
 void BowItemDuper::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+    StartProgramChecks::check_performance_class_wired_or_wireless(context);
+
     // assert_16_9_720p_min(env.logger(), env.console);
 
     // just do a forever loop where we have to do stuff

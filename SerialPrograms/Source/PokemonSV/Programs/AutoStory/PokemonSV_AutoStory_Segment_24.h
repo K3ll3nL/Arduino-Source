@@ -27,6 +27,36 @@ public:
 };
 
 
+// start: At East Province (Area Three) Watchtower.
+// end: Beat Orthworm phase 1
+void checkpoint_55(
+    SingleSwitchProgramEnvironment& env,
+    ProControllerContext& context,
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats
+);
+
+// start: Beat Orthworm phase 1
+// end: Beat Orthworm phase 2
+void checkpoint_56(
+    SingleSwitchProgramEnvironment& env,
+    ProControllerContext& context,
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats
+);
+
+// start: Beat Orthworm phase 2
+// end: At East Province (Area Three) Pokecenter.
+void checkpoint_57(
+    SingleSwitchProgramEnvironment& env,
+    ProControllerContext& context,
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats
+);
+
+
+
+
 
 
 }

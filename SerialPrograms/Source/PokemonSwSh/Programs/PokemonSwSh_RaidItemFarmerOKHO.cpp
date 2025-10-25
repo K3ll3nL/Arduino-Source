@@ -5,11 +5,11 @@
  */
 
 #include "Common/Cpp/PrettyPrint.h"
-//#include "NintendoSwitch/Commands/NintendoSwitch_Commands_Device.h"
-#include "NintendoSwitch/Commands/NintendoSwitch_Commands_Routines.h"
+#include "CommonTools/StartupChecks/StartProgramChecks.h"
 #include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSwSh/Commands/PokemonSwSh_Commands_GameEntry.h"
 #include "PokemonSwSh/Commands/PokemonSwSh_Commands_DateSpam.h"
@@ -20,19 +20,19 @@
 namespace PokemonAutomation{
 namespace NintendoSwitch{
 namespace PokemonSwSh{
-    using namespace Pokemon;
+
+using namespace Pokemon;
 
 
 RaidItemFarmerOHKO_Descriptor::RaidItemFarmerOHKO_Descriptor()
     : MultiSwitchProgramDescriptor(
         "PokemonSwSh:RaidItemFarmerOHKO",
         STRING_POKEMON + " SwSh", "Raid Item Farmer (OHKO)",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSwSh/RaidItemFarmerOHKO.md",
+        "Programs/PokemonSwSh/RaidItemFarmerOHKO.html",
         "Farm items from raids that can be OHKO'ed. (requires multiple Switches)",
+        ProgramControllerClass::StandardController_RequiresPrecision,
         FeedbackType::NONE,
         AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {SerialPABotBase::OLD_NINTENDO_SWITCH_DEFAULT_REQUIREMENTS},
-        FasterIfTickPrecise::NOT_FASTER,
         2, 4, 2
     )
 {}
@@ -98,7 +98,7 @@ RaidItemFarmerOHKO::RaidItemFarmerOHKO()
 }
 
 void RaidItemFarmerOHKO::program(MultiSwitchProgramEnvironment& env, CancellableScope& scope){
-    ProControllerContext host(scope, env.consoles[0].pro_controller());
+    ProControllerContext host(scope, env.consoles[0].controller<ProController>());
     size_t switches = env.consoles.size();
 
     WallDuration TOUCH_DATE_INTERVAL = TOUCH_DATE_INTERVAL0;
@@ -106,6 +106,7 @@ void RaidItemFarmerOHKO::program(MultiSwitchProgramEnvironment& env, Cancellable
     env.run_in_parallel(
         scope,
         [](ConsoleHandle& console, ProControllerContext& context){
+            StartProgramChecks::check_performance_class_wired_or_wireless(context);
             grip_menu_connect_go_home(context);
         }
     );
@@ -174,7 +175,7 @@ void RaidItemFarmerOHKO::program(MultiSwitchProgramEnvironment& env, Cancellable
                     //  Add a little extra wait time since correctness matters here.
                     ssf_press_button(context, BUTTON_HOME, GameSettings::instance().GAME_TO_HOME_DELAY_SAFE0, 80ms);
 
-                    close_game(console, context);
+                    close_game_from_home(console, context);
 
                     //  Touch the date.
                     if (TOUCH_DATE_INTERVAL > 0ms && current_time() - last_touch >= TOUCH_DATE_INTERVAL){

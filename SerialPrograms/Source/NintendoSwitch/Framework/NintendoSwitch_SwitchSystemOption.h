@@ -19,7 +19,7 @@
 #include "CommonFramework/AudioPipeline/AudioOption.h"
 #include "CommonFramework/VideoPipeline/VideoSourceDescriptor.h"
 #include "CommonFramework/VideoPipeline/VideoOverlayOption.h"
-#include "Controllers/ControllerCapability.h"
+#include "CommonFramework/Panels/ProgramDescriptor.h"
 #include "Controllers/ControllerDescriptor.h"
 #include "NintendoSwitch/Options/NintendoSwitch_ModelType.h"
 
@@ -28,11 +28,7 @@ namespace PokemonAutomation{
 namespace NintendoSwitch{
 
 
-//Color pick_color(FeedbackType feedback);
-Color pick_color(
-    const ControllerFeatures& required_features,
-    FasterIfTickPrecise faster_if_tick_precise
-);
+Color pick_color(ProgramControllerClass color_class);
 
 
 // options to control and monitor a Switch. It inlcudes
@@ -48,11 +44,9 @@ class SwitchSystemOption{
 
 public:
     SwitchSystemOption(
-        const ControllerFeatures& required_features,
         bool allow_commands_while_running
     );
     SwitchSystemOption(
-        const ControllerFeatures& required_features,
         bool allow_commands_while_running,
         const JsonValue& json
     );
@@ -62,7 +56,6 @@ public:
 
 
 public:
-    const ControllerFeatures& m_required_features;
     const bool m_allow_commands_while_running;
 
     ControllerOption m_controller;

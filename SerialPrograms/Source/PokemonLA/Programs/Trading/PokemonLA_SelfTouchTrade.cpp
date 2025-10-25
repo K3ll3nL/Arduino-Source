@@ -27,12 +27,11 @@ SelfTouchTrade_Descriptor::SelfTouchTrade_Descriptor()
     : MultiSwitchProgramDescriptor(
         "PokemonLA:SelfTouchTrade",
         STRING_POKEMON + " LA", "Self Touch Trade",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonLA/SelfTouchTrade.md",
+        "Programs/PokemonLA/SelfTouchTrade.html",
         "Repeatedly trade " + STRING_POKEMON + " between two local Switches to fill up research.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::REQUIRED,
         AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER,
         2, 2, 2
     )
 {}
@@ -169,7 +168,7 @@ void SelfTouchTrade::program(MultiSwitchProgramEnvironment& env, CancellableScop
     uint8_t col = 0;
 
     bool host0 = HOSTING_SWITCH == HostingSwitch::Switch0;
-    ProControllerContext host_context(scope, (host0 ? env.consoles[0] : env.consoles[1]).pro_controller());
+    ProControllerContext host_context(scope, (host0 ? env.consoles[0] : env.consoles[1]).controller<ProController>());
     ConsoleHandle& host = host0 ? env.consoles[0] : env.consoles[1];
     ConsoleHandle& recv = host0 ? env.consoles[1] : env.consoles[0];
 

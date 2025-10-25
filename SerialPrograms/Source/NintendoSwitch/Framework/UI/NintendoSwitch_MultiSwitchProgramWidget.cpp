@@ -60,8 +60,7 @@ MultiSwitchProgramWidget2::MultiSwitchProgramWidget2(
         descriptor.display_name(),
         descriptor.doc_link(),
         descriptor.description(),
-        descriptor.required_features(),
-        descriptor.faster_if_tick_precise()
+        descriptor.color_class()
     );
     layout->addWidget(header);
 
@@ -70,7 +69,10 @@ MultiSwitchProgramWidget2::MultiSwitchProgramWidget2(
         box.warning(
             nullptr,
             "Deprecation Notice",
-            "This program is deprecated and no longer maintained. Please consider using a newer alternative."
+            QString::fromStdString(
+                "The program \"" + descriptor.display_name() + "\" is deprecated "
+                "and no longer maintained. Please consider using a newer alternative."
+            )
         );
     }
 

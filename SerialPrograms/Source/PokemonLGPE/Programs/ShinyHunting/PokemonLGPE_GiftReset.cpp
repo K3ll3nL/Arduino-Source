@@ -27,12 +27,11 @@ GiftReset_Descriptor::GiftReset_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonLGPE:GiftReset",
         Pokemon::STRING_POKEMON + " LGPE", "Gift Reset",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonLGPE/GiftReset.md",
+        "Programs/PokemonLGPE/GiftReset.html",
         "Shiny hunt gift Pokemon by resetting the game.",
+        ProgramControllerClass::SpecializedController,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_RightJoycon},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 
@@ -78,7 +77,7 @@ GiftReset::GiftReset()
 }
 
 void GiftReset::program(SingleSwitchProgramEnvironment& env, CancellableScope& scope){
-    JoyconContext context(scope, env.console.controller<JoyconController>());
+    JoyconContext context(scope, env.console.controller<RightJoycon>());
     assert_16_9_720p_min(env.logger(), env.console);
     GiftReset_Descriptor::Stats& stats = env.current_stats<GiftReset_Descriptor::Stats>();
 
@@ -183,11 +182,7 @@ void GiftReset::program(SingleSwitchProgramEnvironment& env, CancellableScope& s
                 "Not shiny. Resetting game."
             );
 
-            //Reset game
-            pbf_press_button(context, BUTTON_HOME, 200ms, 2000ms);
-            reset_game_from_home(env, env.console, context, 3000ms);
-            context.wait_for_all_requests();
-
+            reset_game_from_game(env, env.console, context, &stats.errors, 3000ms);
             stats.resets++;
             env.update_stats();
         }

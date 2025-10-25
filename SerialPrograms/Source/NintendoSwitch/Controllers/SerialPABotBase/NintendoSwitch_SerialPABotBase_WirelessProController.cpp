@@ -4,8 +4,8 @@
  *
  */
 
-#include "Common/SerialPABotBase/SerialPABotBase_Messages_ESP32.h"
-#include "ClientSource/Libraries/MessageConverter.h"
+#include "Common/SerialPABotBase/SerialPABotBase_Messages_NS1_WirelessControllers.h"
+#include "Controllers/SerialPABotBase/Connection/MessageConverter.h"
 #include "NintendoSwitch_SerialPABotBase_WirelessProController.h"
 
 //#include <iostream>
@@ -19,13 +19,15 @@ namespace NintendoSwitch{
 
 SerialPABotBase_WirelessProController::SerialPABotBase_WirelessProController(
     Logger& logger,
-    SerialPABotBase::SerialPABotBase_Connection& connection
+    SerialPABotBase::SerialPABotBase_Connection& connection,
+    ControllerResetMode reset_mode
 )
     : ProController(logger)
     , SerialPABotBase_WirelessController(
         logger,
         connection,
-        ControllerType::NintendoSwitch_WirelessProController
+        ControllerType::NintendoSwitch_WirelessProController,
+        reset_mode
     )
 {}
 SerialPABotBase_WirelessProController::~SerialPABotBase_WirelessProController(){
@@ -34,10 +36,17 @@ SerialPABotBase_WirelessProController::~SerialPABotBase_WirelessProController(){
 }
 
 
-void SerialPABotBase_WirelessProController::push_state(const Cancellable* cancellable, WallDuration duration){
-    //  https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering/blob/master/bluetooth_hid_notes.md
+void SerialPABotBase_WirelessProController::execute_state(
+    const Cancellable* cancellable,
+    const SuperscalarScheduler::ScheduleEntry& entry
+){
+    SwitchControllerState controller_state;
+    for (auto& item : entry.state){
+        static_cast<const SwitchCommand&>(*item).apply(controller_state);
+    }
 
-    PABB_NintendoSwitch_ButtonState buttons{
+    //  https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering/blob/master/bluetooth_hid_notes.md
+    pabb_NintendoSwitch_WirelessController_State0x30_Buttons buttons{
         .button3 = 0,
         .button4 = 0,
         .button5 = 0,
@@ -47,10 +56,10 @@ void SerialPABotBase_WirelessProController::push_state(const Cancellable* cancel
     };
 
 //    Button all_buttons =
-    populate_report_buttons(buttons);
+    populate_report_buttons(buttons, controller_state);
 
-    if (m_dpad.is_busy()){
-        SplitDpad dpad = convert_unified_to_split_dpad(m_dpad.position);
+    {
+        SplitDpad dpad = convert_unified_to_split_dpad(controller_state.dpad);
         buttons.button5 |= (dpad.down  ? 1 : 0) << 0;
         buttons.button5 |= (dpad.up    ? 1 : 0) << 1;
         buttons.button5 |= (dpad.right ? 1 : 0) << 2;
@@ -58,22 +67,18 @@ void SerialPABotBase_WirelessProController::push_state(const Cancellable* cancel
     }
 
     //  Left Stick
-    if (m_left_joystick.is_busy()){
-        encode_joystick<JOYSTICK_MIN_THRESHOLD, JOYSTICK_MAX_THRESHOLD>(
-            buttons.left_joystick,
-            m_left_joystick.x, m_left_joystick.y
-        );
-    }
+    encode_joystick<JOYSTICK_MIN_THRESHOLD, JOYSTICK_MAX_THRESHOLD>(
+        buttons.left_joystick,
+        controller_state.left_stick_x, controller_state.left_stick_y
+    );
 
     //  Right Stick
-    if (m_right_joystick.is_busy()){
-        encode_joystick<JOYSTICK_MIN_THRESHOLD, JOYSTICK_MAX_THRESHOLD>(
-            buttons.right_joystick,
-            m_right_joystick.x, m_right_joystick.y
-        );
-    }
+    encode_joystick<JOYSTICK_MIN_THRESHOLD, JOYSTICK_MAX_THRESHOLD>(
+        buttons.right_joystick,
+        controller_state.right_stick_x, controller_state.right_stick_y
+    );
 
-    PABB_NintendoSwitch_GyroState gyro{
+    pabb_NintendoSwitch_WirelessController_State0x30_Gyro gyro{
         0x0000,
         0x0000,
         0x0000,
@@ -81,16 +86,16 @@ void SerialPABotBase_WirelessProController::push_state(const Cancellable* cancel
         0x0000,
         0x0000,
     };
-    bool gyro_active = populate_report_gyro(gyro);
+    bool gyro_active = populate_report_gyro(gyro, controller_state);
 
 //    gyro_active = true;
 //    gyro.rotation_y = 0x00ff;
 //    gyro.rotation_z = 0x000f;
 
     if (!gyro_active){
-        issue_report(cancellable, duration, buttons);
+        issue_report(cancellable, entry.duration, buttons);
     }else{
-        issue_report(cancellable, duration, buttons, gyro);
+        issue_report(cancellable, entry.duration, buttons, gyro);
     }
 
 #if 0

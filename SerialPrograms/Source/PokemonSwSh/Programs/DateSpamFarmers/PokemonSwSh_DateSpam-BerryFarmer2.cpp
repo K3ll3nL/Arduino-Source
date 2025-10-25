@@ -32,12 +32,11 @@ BerryFarmer2_Descriptor::BerryFarmer2_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSwSh:BerryFarmer2",
         STRING_POKEMON + " SwSh", "Date Spam - Berry Farmer 2",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSwSh/DateSpam-BerryFarmer2.md",
+        "Programs/PokemonSwSh/DateSpam-BerryFarmer2.html",
         "Farm berries using Feedback.",
+        ProgramControllerClass::StandardController_PerformanceClassSensitive,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::MUCH_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 

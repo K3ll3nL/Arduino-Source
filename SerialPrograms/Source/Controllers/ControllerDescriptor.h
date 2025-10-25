@@ -13,7 +13,7 @@
 #include <map>
 #include "Common/Cpp/AbstractLogger.h"
 //#include "Common/Cpp/Json/JsonObject.h"
-#include "ControllerCapability.h"
+#include "ControllerTypes.h"
 #include "Controller.h"
 
 class QWidget;
@@ -25,6 +25,15 @@ class InterfaceType;
 class ControllerDescriptor;
 class ControllerConnection;
 class ControllerSelectorWidget;
+
+
+
+enum class ControllerResetMode{
+    DO_NOT_RESET,
+    SIMPLE_RESET,
+    RESET_AND_CLEAR_STATE,
+};
+
 
 
 //
@@ -105,12 +114,13 @@ public:
 public:
     virtual std::unique_ptr<ControllerConnection> open_connection(
         Logger& logger,
-        std::optional<ControllerType> change_controller
+        bool set_to_null_controller
     ) const = 0;
     virtual std::unique_ptr<AbstractController> make_controller(
         Logger& logger,
         ControllerConnection& connection,
-        ControllerType controller_type
+        ControllerType controller_type,
+        ControllerResetMode reset_mode
     ) const = 0;
 
     virtual QWidget* make_selector_QtWidget(ControllerSelectorWidget& parent) const = 0;

@@ -11,7 +11,6 @@
 #include "CommonFramework/VideoPipeline/VideoFeed.h"
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
-#include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "Pokemon/Pokemon_Notification.h"
 #include "Pokemon/Inference/Pokemon_NameReader.h"
@@ -33,12 +32,11 @@ LeapGrinder_Descriptor::LeapGrinder_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonLA:Leap Grinder",
         STRING_POKEMON + " LA", "Leap Grinder",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonLA/LeapGrinder.md",
+        "Programs/PokemonLA/LeapGrinder.html",
         "Shake trees and ores to grind tasks",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::VIDEO_AUDIO,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 class LeapGrinder_Descriptor::Stats : public StatsTracker{
@@ -317,10 +315,7 @@ void LeapGrinder::program(SingleSwitchProgramEnvironment& env, ProControllerCont
             e.send_notification(env, NOTIFICATION_ERROR_RECOVERABLE);
 
             pbf_press_button(context, BUTTON_HOME, 160ms, GameSettings::instance().GAME_TO_HOME_DELAY0);
-            fresh_from_reset = reset_game_from_home(
-                env, env.console, context,
-                ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST
-            );
+            fresh_from_reset = reset_game_from_home(env, env.console, context);
             // Switch from items to pokemons
             pbf_press_button(context, BUTTON_X, 20, 30);
         }

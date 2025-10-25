@@ -4,24 +4,28 @@
 #include <QFileInfo>
 //#include <QTextStream>
 #include <QMessageBox>
-#include <Integrations/DppIntegration/DppClient.h>
+#include "Common/Cpp/Concurrency/AsyncTask.h"
 #include "Common/Cpp/Exceptions.h"
 #include "Common/Cpp/ImageResolution.h"
+#include "Globals.h"
+#include "GlobalSettingsPanel.h"
 #include "PersistentSettings.h"
 #include "Tests/CommandLineTests.h"
 #include "ErrorReports/ProgramDumper.h"
 #include "ErrorReports/ErrorReports.h"
 #include "Environment/HardwareValidation.h"
+#include "Integrations/DiscordSettingsOption.h"
+#include "Integrations/DiscordSocial/DiscordSocial.h"
+#include "Integrations/DppIntegration/DppClient.h"
 #include "Logging/Logger.h"
 #include "Logging/OutputRedirector.h"
 //#include "Tools/StatsDatabase.h"
-#include "Globals.h"
-#include "GlobalSettingsPanel.h"
 //#include "Windows/DpiScaler.h"
 #include "Startup/SetupSettings.h"
 #include "Startup/NewVersionCheck.h"
+#include "CommonFramework/VideoPipeline/Backends/CameraImplementations.h"
+#include "CommonTools/OCR/OCR_RawOCR.h"
 #include "Windows/MainWindow.h"
-
 
 #include <iostream>
 using std::cout;
@@ -70,6 +74,9 @@ int main(int argc, char *argv[]){
     OutputRedirector redirect_stdout(std::cout, "stdout", Color());
     OutputRedirector redirect_stderr(std::cerr, "stderr", COLOR_RED);
 
+    //  Preload all the cameras now so we don't hang the UI later on.
+    get_all_cameras();
+
     QDir().mkpath(QString::fromStdString(SETTINGS_PATH()));
     QDir().mkpath(QString::fromStdString(SCREENSHOTS_PATH()));
 
@@ -85,7 +92,6 @@ int main(int argc, char *argv[]){
             return 1;
         }
 
-        std::cout << "Loading from program setting JSON: " << PROGRAM_SETTING_JSON_PATH() << std::endl;
         PERSISTENT_SETTINGS().read();
 
         if (!migrate_stats(logger)){
@@ -116,6 +122,12 @@ int main(int argc, char *argv[]){
         discord_settings.on_config_value_changed(nullptr);
     }
 
+#ifdef PA_SOCIAL_SDK
+    if (GlobalSettings::instance().RICH_PRESENCE){
+        Integration::DiscordSocialSDK::DiscordSocial::instance().run();
+    }
+#endif
+
     set_working_directory();
 
     //  Run this asynchronously to we don't block startup.
@@ -136,6 +148,10 @@ int main(int argc, char *argv[]){
 #ifdef PA_DPP
     Integration::DppClient::Client::instance().disconnect();
 #endif
+
+    //  We must clear the OCR cache or it will crash on Linux when the library
+    //  unloads before the cache is destructed from static memory.
+    OCR::clear_cache();
 
     return ret;
 }

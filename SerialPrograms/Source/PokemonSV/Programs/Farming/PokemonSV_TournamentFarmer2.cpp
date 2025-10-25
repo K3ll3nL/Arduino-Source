@@ -31,11 +31,11 @@ TournamentFarmer2_Descriptor::TournamentFarmer2_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSV:TournamentFarmer2",
         STRING_POKEMON + " SV", "Tournament Farmer 2",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSV/TournamentFarmer2.md",
+        "Programs/PokemonSV/TournamentFarmer2.html",
         "Farm the Academy Ace Tournament for money and prizes. (version 2)",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController}
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 

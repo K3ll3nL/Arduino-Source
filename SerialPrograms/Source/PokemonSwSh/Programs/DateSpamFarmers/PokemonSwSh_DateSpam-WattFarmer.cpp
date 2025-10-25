@@ -6,6 +6,7 @@
 
 #include "Common/Cpp/PrettyPrint.h"
 #include "CommonFramework/Notifications/ProgramNotifications.h"
+#include "Controllers/ControllerTypes.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
 #include "Pokemon/Pokemon_Strings.h"
@@ -24,12 +25,11 @@ WattFarmer_Descriptor::WattFarmer_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSwSh:WattFarmer",
         STRING_POKEMON + " SwSh", "Date Spam - Watt Farmer",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSwSh/DateSpam-WattFarmer.md",
+        "Programs/PokemonSwSh/DateSpam-WattFarmer.html",
         "Farm watts. (7.2 seconds/fetch, 1 million watts/hour with a tick-precise controller)",
+        ProgramControllerClass::StandardController_PerformanceClassSensitive,
         FeedbackType::NONE,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::MUCH_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 
@@ -85,7 +85,11 @@ void WattFarmer::program(SingleSwitchProgramEnvironment& env, ProControllerConte
         env.log("Fetch Attempts: " + tostr_u_commas(c));
 
         home_roll_date_enter_game_autorollback(env.console, context, year);
-        pbf_mash_button(context, BUTTON_B, 90);
+        if (context->performance_class() == ControllerPerformanceClass::SysbotBase){
+            pbf_wait(context, 90);
+        }else{
+            pbf_mash_button(context, BUTTON_B, 90);
+        }
 
         ssf_press_button_ptv(context, BUTTON_A, 40ms);
         pbf_mash_button(context, BUTTON_B, EXIT_DEN_WAIT);

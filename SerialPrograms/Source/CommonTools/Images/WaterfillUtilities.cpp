@@ -18,6 +18,8 @@
 #include "WaterfillUtilities.h"
 
 #include <iostream>
+//using std::cout;
+//using std::endl;
 
 
 namespace PokemonAutomation{
@@ -72,10 +74,11 @@ std::pair<PackedBinaryMatrix, size_t> remove_center_pixels(
 }
 
 bool match_template_by_waterfill(
-    const ImageViewRGB32 &image,
-    const ImageMatch::WaterfillTemplateMatcher &matcher,
-    const std::vector<std::pair<uint32_t, uint32_t>> &filters,
-    const std::pair<size_t, size_t> &area_thresholds,
+    Resolution input_resolution,
+    const ImageViewRGB32& image,
+    const ImageMatch::WaterfillTemplateMatcher& matcher,
+    const std::vector<std::pair<uint32_t, uint32_t>>& filters,
+    const std::pair<size_t, size_t>& area_thresholds,
     double rmsd_threshold,
     std::function<bool(Kernels::Waterfill::WaterfillObject& object)> check_matched_object)
 {
@@ -96,6 +99,7 @@ bool match_template_by_waterfill(
         std::cout << ")" << std::endl;
     }
     std::vector<PokemonAutomation::PackedBinaryMatrix> matrices = compress_rgb32_to_binary_range(image, filters);
+//    cout << matrices.size() << endl;
 
     bool detected = false;
     bool stop_match = false;
@@ -116,10 +120,12 @@ bool match_template_by_waterfill(
         std::unique_ptr<Kernels::Waterfill::WaterfillSession> session = Kernels::Waterfill::make_WaterfillSession();
         Kernels::Waterfill::WaterfillObject object;
         const size_t min_area = area_thresholds.first;
+//        cout << "min_area = " << min_area << endl;
         session->set_source(matrix);
         auto finder = session->make_iterator(min_area);
         const bool keep_object_matrix = false;
         while (finder->find_next(object, keep_object_matrix)){
+//            cout << "object.area = " << object.area << endl;
             if (PreloadSettings::debug().IMAGE_TEMPLATE_MATCHING){
                 std::cout << "------------" << std::endl;
                 std::cout << "Object area: " << object.area << std::endl;
@@ -128,12 +134,18 @@ bool match_template_by_waterfill(
             if (object.area > area_thresholds.second){
                 continue;
             }
-            double rmsd = matcher.rmsd_original(image, object);
+            double rmsd = matcher.rmsd_original(input_resolution, image, object);
             if (PreloadSettings::debug().IMAGE_TEMPLATE_MATCHING){
                 std::cout << "Object rmsd: " << rmsd << std::endl;
             }
 
             if (rmsd < rmsd_threshold){
+#if 0
+                std::cout << "Object rmsd: " << rmsd << std::endl;
+//                static int c = 0;
+//                extract_box_reference(image, object).save("match-" + std::to_string(c++) + ".png");
+#endif
+
                 detected = true;
                 
                 if (check_matched_object(object)){

@@ -26,12 +26,11 @@ EggFetcher_Descriptor::EggFetcher_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSV:EggFetcher",
         STRING_POKEMON + " SV", "Egg Fetcher",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSV/EggFetcher.md",
+        "Programs/PokemonSV/EggFetcher.html",
         "Automatically fetch eggs from a picnic.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 struct EggFetcher_Descriptor::Stats : public StatsTracker{
@@ -102,12 +101,13 @@ void EggFetcher::program(SingleSwitchProgramEnvironment& env, ProControllerConte
             picnic_at_zero_gate(env.program_info(), env.console, context);
             // Now we are at picnic. We are at one end of picnic table while the egg basket is at the other end
 
+#if 1
             bool can_make_sandwich = eat_egg_sandwich_at_picnic(env, env.console, context,
                 EGG_SANDWICH.EGG_SANDWICH_TYPE, LANGUAGE);
             if (can_make_sandwich == false){
                 throw UserSetupError(env.console, "No sandwich recipe or ingredients. Cannot open and select the sandwich recipe.");
             }
-
+#endif
             stats.m_sandwiches++;
             env.update_stats();
 
@@ -119,8 +119,14 @@ void EggFetcher::program(SingleSwitchProgramEnvironment& env, ProControllerConte
             };
 
             const size_t basket_wait_seconds = (EGG_SANDWICH.EGG_SANDWICH_TYPE == EggSandwichType::GREAT_PEANUT_BUTTER ? 180 : 120);
-            collect_eggs_after_sandwich(env.program_info(), env.console, context, basket_wait_seconds,
-                EGGS_TO_FETCH, num_eggs_collected, basket_check_callback);
+            collect_eggs_after_sandwich(
+                env.program_info(),
+                env.console, context,
+                basket_wait_seconds,
+                EGGS_TO_FETCH,
+                num_eggs_collected,
+                basket_check_callback
+            );
 
             leave_picnic(env.program_info(), env.console, context);
             

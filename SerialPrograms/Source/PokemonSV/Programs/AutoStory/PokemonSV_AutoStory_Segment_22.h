@@ -27,32 +27,45 @@ public:
 };
 
 
-// start: At East Province (Area One) Pokecenter.
-// end: At gate of Team Star (Fire) base.
-void checkpoint_47(
+// start: Defeated Team Star (Fire). At East Province (Area Two) Pokecenter.
+// end: At Levincia (South) Pokecenter.
+void checkpoint_50(
     SingleSwitchProgramEnvironment& env,
     ProControllerContext& context,
     EventNotificationOption& notif_status_update,
     AutoStoryStats& stats
 );
 
-// start: At gate of Team Star (Fire) base.
-// end: Beat Team Star (Fire)
-void checkpoint_48(
+// start: At Levincia (South) Pokecenter.
+// end: At Levincia gym building. Talked to Hassel, met Rika.
+void checkpoint_51(
     SingleSwitchProgramEnvironment& env,
     ProControllerContext& context,
     EventNotificationOption& notif_status_update,
     AutoStoryStats& stats
 );
 
-// start: Beat Team Star (Fire)
-// end: At East Province (Area Two) Pokecenter.
-void checkpoint_49(
+
+// start: At Levincia gym building. Talked to Hassel, met Rika.
+// end: Finished Levincia gym challenge.
+void checkpoint_52(
     SingleSwitchProgramEnvironment& env,
     ProControllerContext& context,
     EventNotificationOption& notif_status_update,
     AutoStoryStats& stats
 );
+
+
+// start: Finished Levincia gym challenge. Standing outside Levincia gym.
+// end: Defeated Levincia Gym (Electric). At Levincia (North) Pokecenter.
+void checkpoint_53(
+    SingleSwitchProgramEnvironment& env,
+    ProControllerContext& context,
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats
+);
+
+
 
 
 

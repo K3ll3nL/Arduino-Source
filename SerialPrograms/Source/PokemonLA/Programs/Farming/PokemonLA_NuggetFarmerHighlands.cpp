@@ -8,7 +8,6 @@
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonFramework/ProgramStats/StatsTracking.h"
 #include "CommonTools/Async/InferenceRoutines.h"
-#include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonLA/PokemonLA_Settings.h"
@@ -36,12 +35,11 @@ NuggetFarmerHighlands_Descriptor::NuggetFarmerHighlands_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonLA:NuggetFarmerHighlands",
         STRING_POKEMON + " LA", "Nugget Farmer (Highlands)",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonLA/NuggetFarmerHighlands.md",
+        "Programs/PokemonLA/NuggetFarmerHighlands.html",
         "Farm nuggets off the Miss Fortune sisters in the Coronet Highlands.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::VIDEO_AUDIO,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 class NuggetFarmerHighlands_Descriptor::Stats : public StatsTracker, public ShinyStatIncrementer{
@@ -240,10 +238,7 @@ void NuggetFarmerHighlands::program(SingleSwitchProgramEnvironment& env, ProCont
             e.send_notification(env, NOTIFICATION_ERROR_RECOVERABLE);
 
             pbf_press_button(context, BUTTON_HOME, 160ms, GameSettings::instance().GAME_TO_HOME_DELAY0);
-            fresh_from_reset = reset_game_from_home(
-                env, env.console, context,
-                ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST
-            );
+            fresh_from_reset = reset_game_from_home(env, env.console, context);
         }
     }
 

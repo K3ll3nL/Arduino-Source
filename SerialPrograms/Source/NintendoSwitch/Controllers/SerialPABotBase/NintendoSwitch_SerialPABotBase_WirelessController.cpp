@@ -4,12 +4,10 @@
  *
  */
 
-#include "Common/Cpp/PrettyPrint.h"
-#include "Common/Cpp/Concurrency/ReverseLockGuard.h"
 #include "CommonFramework/Options/Environment/ThemeSelectorOption.h"
+#include "Controllers/SerialPABotBase/SerialPABotBase.h"
 #include "Controllers/SerialPABotBase/SerialPABotBase_Routines_Protocol.h"
-#include "Controllers/SerialPABotBase/SerialPABotBase_Routines_ESP32.h"
-#include "NintendoSwitch/NintendoSwitch_Settings.h"
+#include "Controllers/SerialPABotBase/SerialPABotBase_Routines_NS1_WirelessControllers.h"
 #include "NintendoSwitch_SerialPABotBase_WirelessController.h"
 
 //#include <iostream>
@@ -30,7 +28,8 @@ using namespace std::chrono_literals;
 SerialPABotBase_WirelessController::SerialPABotBase_WirelessController(
     Logger& logger,
     SerialPABotBase::SerialPABotBase_Connection& connection,
-    ControllerType controller_type
+    ControllerType controller_type,
+    ControllerResetMode reset_mode
 )
     : SerialPABotBase_Controller(
         logger,
@@ -38,41 +37,128 @@ SerialPABotBase_WirelessController::SerialPABotBase_WirelessController(
         connection
     )
     , m_controller_type(controller_type)
-    , m_timing_variation(ConsoleSettings::instance().TIMING_OPTIONS.WIRELESS_ESP32)
-    , m_stopping(false)
-    , m_status_thread(&SerialPABotBase_WirelessController::status_thread, this)
-{}
+{
+    using namespace SerialPABotBase;
+
+    switch (reset_mode){
+    case PokemonAutomation::ControllerResetMode::DO_NOT_RESET:
+        break;
+    case PokemonAutomation::ControllerResetMode::SIMPLE_RESET:
+        set_info();
+        connection.botbase()->issue_request_and_wait(
+            DeviceRequest_change_controller_mode(controller_type_to_id(controller_type)),
+            nullptr
+        );
+        break;
+    case PokemonAutomation::ControllerResetMode::RESET_AND_CLEAR_STATE:
+        set_info();
+        connection.botbase()->issue_request_and_wait(
+            DeviceRequest_reset_to_controller(controller_type_to_id(controller_type)),
+            nullptr
+        );
+        break;
+    }
+
+    //  Re-read the controller.
+    ControllerType current_controller = connection.refresh_controller_type();
+    if (current_controller != controller_type){
+        throw SerialProtocolException(logger, PA_CURRENT_FUNCTION, "Failed to set controller type.");
+    }
+
+    m_status_thread.reset(new SerialPABotBase::ControllerStatusThread(
+        connection, *this
+    ));
+}
 SerialPABotBase_WirelessController::~SerialPABotBase_WirelessController(){
     stop();
-    m_status_thread.join();
 }
 void SerialPABotBase_WirelessController::stop(){
-    if (m_stopping.exchange(true)){
-        return;
-    }
-    m_scope.cancel(nullptr);
+    m_status_thread.reset();
+}
+
+void SerialPABotBase_WirelessController::set_info(){
+    using namespace SerialPABotBase;
+
+    uint8_t controller_mac_address[6] = {};
     {
-        std::unique_lock<std::mutex> lg(m_sleep_lock);
-        if (m_serial){
-            m_serial->notify_all();
+        BotBaseMessage response = m_serial->issue_request_and_wait(
+            DeviceRequest_read_mac_address(controller_type_to_id(m_controller_type)),
+            nullptr
+        );
+        if (response.body.size() == sizeof(seqnum_t) + sizeof(controller_mac_address)){
+            memcpy(
+                controller_mac_address,
+                response.body.data() + sizeof(seqnum_t),
+                sizeof(controller_mac_address)
+            );
+        }else{
+            m_logger.log(
+                "Invalid response size to PABB_MSG_ESP32_REQUEST_READ_SPI: body = " + std::to_string(response.body.size()),
+                COLOR_RED
+            );
         }
-        m_cv.notify_all();
     }
+
+    NintendoSwitch::ControllerProfile profile =
+        PokemonAutomation::NintendoSwitch::ConsoleSettings::instance().CONTROLLER_SETTINGS.get_or_make_profile(
+            controller_mac_address,
+            m_handle.device_name(),
+            m_controller_type
+        );
+
+    PABB_NintendoSwitch_ControllerColors colors;
+    {
+        Color color(profile.body_color);
+        colors.body[0] = color.red();
+        colors.body[1] = color.green();
+        colors.body[2] = color.blue();
+    }
+    {
+        Color color(profile.button_color);
+        colors.buttons[0] = color.red();
+        colors.buttons[1] = color.green();
+        colors.buttons[2] = color.blue();
+    }
+    {
+        Color color(profile.left_grip);
+        colors.left_grip[0] = color.red();
+        colors.left_grip[1] = color.green();
+        colors.left_grip[2] = color.blue();
+    }
+    {
+        Color color(profile.right_grip);
+        colors.right_grip[0] = color.red();
+        colors.right_grip[1] = color.green();
+        colors.right_grip[2] = color.blue();
+    }
+
+    m_serial->issue_request_and_wait(
+        MessageControllerWriteSpi(
+            m_controller_type,
+            0x00006050, sizeof(PABB_NintendoSwitch_ControllerColors),
+            &colors
+        ),
+        nullptr
+    );
 }
 
 
 
 
 
-Button SerialPABotBase_WirelessController::populate_report_buttons(PABB_NintendoSwitch_ButtonState& buttons){
+Button SerialPABotBase_WirelessController::populate_report_buttons(
+    pabb_NintendoSwitch_WirelessController_State0x30_Buttons& buttons,
+    const SwitchControllerState& controller_state
+){
     //  https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering/blob/master/bluetooth_hid_notes.md
 
     Button all_buttons = BUTTON_NONE;
     for (size_t c = 0; c < TOTAL_BUTTONS; c++){
-        if (!m_buttons[c].is_busy()){
+        Button button = (Button)((ButtonFlagType)1 << c);
+        if (!(controller_state.buttons & button)){
             continue;
         }
-        Button button = (Button)((ButtonFlagType)1 << c);
+
         all_buttons |= button;
         switch (button){
         //  Right
@@ -108,34 +194,25 @@ Button SerialPABotBase_WirelessController::populate_report_buttons(PABB_Nintendo
     }
     return all_buttons;
 }
-bool SerialPABotBase_WirelessController::populate_report_gyro(PABB_NintendoSwitch_GyroState& gyro){
+bool SerialPABotBase_WirelessController::populate_report_gyro(
+    pabb_NintendoSwitch_WirelessController_State0x30_Gyro& gyro,
+    const SwitchControllerState& controller_state
+){
+    gyro.accel_x = controller_state.gyro[0];
+    gyro.accel_y = controller_state.gyro[1];
+    gyro.accel_z = controller_state.gyro[2];
+    gyro.rotation_x = controller_state.gyro[3];
+    gyro.rotation_y = controller_state.gyro[4];
+    gyro.rotation_z = controller_state.gyro[5];
+
     bool gyro_active = false;
-    {
-        if (m_accel_x.is_busy()){
-            gyro.accel_x = m_accel_x.value;
-            gyro_active = true;
-        }
-        if (m_accel_y.is_busy()){
-            gyro.accel_y = m_accel_y.value;
-            gyro_active = true;
-        }
-        if (m_accel_z.is_busy()){
-            gyro.accel_z = m_accel_z.value;
-            gyro_active = true;
-        }
-        if (m_rotation_x.is_busy()){
-            gyro.rotation_x = m_rotation_x.value;
-            gyro_active = true;
-        }
-        if (m_rotation_y.is_busy()){
-            gyro.rotation_y = m_rotation_y.value;
-            gyro_active = true;
-        }
-        if (m_rotation_z.is_busy()){
-            gyro.rotation_z = m_rotation_z.value;
-            gyro_active = true;
-        }
-    }
+    gyro_active |= gyro.accel_x != 0;
+    gyro_active |= gyro.accel_y != 0;
+    gyro_active |= gyro.accel_z != 0;
+    gyro_active |= gyro.rotation_x != 0;
+    gyro_active |= gyro.rotation_y != 0;
+    gyro_active |= gyro.rotation_z != 0;
+//    cout << "gyro_active = " << gyro_active << endl;
     return gyro_active;
 }
 
@@ -143,12 +220,8 @@ bool SerialPABotBase_WirelessController::populate_report_gyro(PABB_NintendoSwitc
 void SerialPABotBase_WirelessController::issue_report(
     const Cancellable* cancellable,
     WallDuration duration,
-    const PABB_NintendoSwitch_ButtonState& buttons
+    const pabb_NintendoSwitch_WirelessController_State0x30_Buttons& buttons
 ){
-    //  Release the state lock since we are no longer touching state.
-    //  This loop can block indefinitely if the command queue is full.
-    ReverseLockGuard<std::mutex> lg(m_state_lock);
-
     //  We will not do any throttling or timing adjustments here. We'll defer
     //  to the microcontroller to do that for us.
 
@@ -170,15 +243,11 @@ void SerialPABotBase_WirelessController::issue_report(
 void SerialPABotBase_WirelessController::issue_report(
     const Cancellable* cancellable,
     WallDuration duration,
-    const PABB_NintendoSwitch_ButtonState& buttons,
-    const PABB_NintendoSwitch_GyroState& gyro
+    const pabb_NintendoSwitch_WirelessController_State0x30_Buttons& buttons,
+    const pabb_NintendoSwitch_WirelessController_State0x30_Gyro& gyro
 ){
-    //  Release the state lock since we are no longer touching state.
-    //  This loop can block indefinitely if the command queue is full.
-    ReverseLockGuard<std::mutex> lg(m_state_lock);
-
     //  TODO: For now we duplicate the gyro data to all 3 5ms segments.
-    PABB_NintendoSwitch_GyroStateX3 gyro3{
+    pabb_NintendoSwitch_WirelessController_State0x30_GyroX3 gyro3{
         gyro, gyro, gyro
     };
 
@@ -238,164 +307,93 @@ void SerialPABotBase_WirelessController::issue_report(
 
 
 
-void SerialPABotBase_WirelessController::status_thread(){
-    constexpr std::chrono::milliseconds PERIOD(1000);
-    std::atomic<WallClock> last_ack(current_time());
-
-    //  Read controller colors.
-    std::string color_html;
-#if 1
-    try{
-        m_logger.log("Reading Controller Colors...");
-
-        using ControllerColors = PABB_NintendoSwitch_ControllerColors;
-
-        BotBaseMessage response = m_serial->issue_request_and_wait(
-            SerialPABotBase::MessageControllerReadSpi(
-                m_controller_type,
-                0x00006050, sizeof(ControllerColors)
-            ),
-            &m_scope
-        );
-
-        ControllerColors colors{};
-        if (response.body.size() == sizeof(seqnum_t) + sizeof(ControllerColors)){
-            memcpy(&colors, response.body.data() + sizeof(seqnum_t), sizeof(ControllerColors));
-        }else{
-            m_logger.log(
-                "Invalid response size to PABB_MSG_ESP32_REQUEST_READ_SPI: body = " + std::to_string(response.body.size()),
-                COLOR_RED
-            );
-            m_handle.set_status_line1("Error: See log for more information.", COLOR_RED);
-            return;
-        }
-        m_logger.log("Reading Controller Colors... Done");
-
-        switch (m_controller_type){
-        case ControllerType::NintendoSwitch_WirelessProController:{
-            Color left(colors.left_grip[0], colors.left_grip[1], colors.left_grip[2]);
-            Color body(colors.body[0], colors.body[1], colors.body[2]);
-            Color right(colors.right_grip[0], colors.right_grip[1], colors.right_grip[2]);
-            color_html += html_color_text("&#x2b24;", left);
-            color_html += " " + html_color_text("&#x2b24;", body);
-            color_html += " " + html_color_text("&#x2b24;", right);
-            break;
-        }
-        case ControllerType::NintendoSwitch_LeftJoycon:
-        case ControllerType::NintendoSwitch_RightJoycon:{
-            Color body(colors.body[0], colors.body[1], colors.body[2]);
-            color_html = html_color_text("&#x2b24;", body);
-            break;
-        }
-        default:;
-        }
-
-    }catch (Exception& e){
-        e.log(m_logger);
-        m_handle.set_status_line1("Error: See log for more information.", COLOR_RED);
-        return;
-    }
-#endif
-
-
-    std::thread watchdog([&, this]{
-        WallClock next_ping = current_time();
-        while (true){
-            if (m_stopping.load(std::memory_order_relaxed) || !m_handle.is_ready()){
-                break;
-            }
-
-            auto last = current_time() - last_ack.load(std::memory_order_relaxed);
-            std::chrono::duration<double> seconds = last;
-            if (last > 2 * PERIOD){
-                std::string text = "Last Ack: " + tostr_fixed(seconds.count(), 3) + " seconds ago";
-                m_handle.set_status_line1(text, COLOR_RED);
-//                m_logger.log("Connection issue detected. Turning on all logging...");
-//                settings.log_everything.store(true, std::memory_order_release);
-            }
-
-            std::unique_lock<std::mutex> lg(m_sleep_lock);
-            if (m_stopping.load(std::memory_order_relaxed) || !m_handle.is_ready()){
-                break;
-            }
-
-            WallClock now = current_time();
-            next_ping += PERIOD;
-            if (now + PERIOD < next_ping){
-                next_ping = now + PERIOD;
-            }
-            m_cv.wait_until(lg, next_ping);
-        }
-    });
-
-    WallClock next_ping = current_time();
-    while (true){
-        if (m_stopping.load(std::memory_order_relaxed) || !m_handle.is_ready()){
-            break;
-        }
-
-        std::string error;
+void SerialPABotBase_WirelessController::update_status(Cancellable& cancellable){
+    if (m_color_html.empty()){
         try{
-            pabb_MsgAckRequestI32 response;
-            m_serial->issue_request_and_wait(
-                SerialPABotBase::MessageControllerStatus(),
-                &m_scope
-            ).convert<PABB_MSG_ACK_REQUEST_I32>(m_logger, response);
-            last_ack.store(current_time(), std::memory_order_relaxed);
+            m_logger.log("Reading Controller Colors...");
 
-            uint32_t status = response.data;
-            bool status_connected = status & 1;
-            bool status_ready     = status & 2;
+            using ControllerColors = PABB_NintendoSwitch_ControllerColors;
 
-            std::string str;
-            str += "Connected: " + (status_connected
-                ? html_color_text("Yes", theme_friendly_darkblue())
-                : html_color_text("No", COLOR_RED)
+            BotBaseMessage response = m_serial->issue_request_and_wait(
+                SerialPABotBase::MessageControllerReadSpi(
+                    m_controller_type,
+                    0x00006050, sizeof(ControllerColors)
+                ),
+                &cancellable
             );
-            str += " - Ready: " + (status_ready
-                ? html_color_text("Yes", theme_friendly_darkblue())
-                : html_color_text("No", COLOR_RED)
-            );
-            str += " - " + color_html;
 
-            m_handle.set_status_line1(str);
-        }catch (OperationCancelledException&){
-            break;
-        }catch (InvalidConnectionStateException&){
-            break;
-        }catch (SerialProtocolException& e){
-            error = e.message();
-        }catch (ConnectionException& e){
-            error = e.message();
-        }catch (...){
-            error = "Unknown error.";
-        }
-        if (!error.empty()){
-            stop();
-            m_handle.set_status_line1(error, COLOR_RED);
-            break;
-        }
+            ControllerColors colors{};
+            if (response.body.size() == sizeof(seqnum_t) + sizeof(ControllerColors)){
+                memcpy(&colors, response.body.data() + sizeof(seqnum_t), sizeof(ControllerColors));
+            }else{
+                m_logger.log(
+                    "Invalid response size to PABB_MSG_ESP32_REQUEST_READ_SPI: body = " + std::to_string(response.body.size()),
+                    COLOR_RED
+                );
+//                m_handle.set_status_line1("Error: See log for more information.", COLOR_RED);
+                return;
+            }
+            m_logger.log("Reading Controller Colors... Done");
 
-//        cout << "lock()" << endl;
-        std::unique_lock<std::mutex> lg(m_sleep_lock);
-//        cout << "lock() - done" << endl;
-        if (m_stopping.load(std::memory_order_relaxed) || !m_handle.is_ready()){
-            break;
-        }
+            switch (m_controller_type){
+            case ControllerType::NintendoSwitch_WirelessProController:{
+                Color left(colors.left_grip[0], colors.left_grip[1], colors.left_grip[2]);
+                Color body(colors.body[0], colors.body[1], colors.body[2]);
+                Color right(colors.right_grip[0], colors.right_grip[1], colors.right_grip[2]);
+                m_color_html += html_color_text("&#x2b24;", left);
+                m_color_html += " " + html_color_text("&#x2b24;", body);
+                m_color_html += " " + html_color_text("&#x2b24;", right);
+                break;
+            }
+            case ControllerType::NintendoSwitch_LeftJoycon:
+            case ControllerType::NintendoSwitch_RightJoycon:{
+                Color body(colors.body[0], colors.body[1], colors.body[2]);
+                m_color_html = html_color_text("&#x2b24;", body);
+                break;
+            }
+            default:;
+            }
 
-        WallClock now = current_time();
-        next_ping += PERIOD;
-        if (now + PERIOD < next_ping){
-            next_ping = now + PERIOD;
+        }catch (Exception& e){
+            e.log(m_logger);
+            throw;
         }
-        m_cv.wait_until(lg, next_ping);
     }
 
-    {
-        std::unique_lock<std::mutex> lg(m_sleep_lock);
-        m_cv.notify_all();
-    }
-    watchdog.join();
+
+    pabb_MsgAckRequestI32 response;
+    m_serial->issue_request_and_wait(
+        SerialPABotBase::MessageControllerStatus(),
+        &cancellable
+    ).convert<PABB_MSG_ACK_REQUEST_I32>(m_logger, response);
+
+    uint32_t status = response.data;
+//            bool status_connected = status & 1;
+    bool status_ready     = status & 2;
+    bool status_paired    = status & 4;
+
+    std::string str;
+    str += "Paired: " + (status_paired
+        ? html_color_text("Yes", theme_friendly_darkblue())
+        : html_color_text("No", COLOR_RED)
+    );
+#if 0
+    str += "Connected: " + (status_connected
+        ? html_color_text("Yes", theme_friendly_darkblue())
+        : html_color_text("No", COLOR_RED)
+    );
+#endif
+    str += " - Connected: " + (status_ready
+        ? html_color_text("Yes", theme_friendly_darkblue())
+        : html_color_text("No", COLOR_RED)
+    );
+    str += " - " + m_color_html;
+
+    m_handle.set_status_line1(str);
+}
+
+void SerialPABotBase_WirelessController::stop_with_error(std::string message){
+    SerialPABotBase_Controller::stop_with_error(std::move(message));
 }
 
 

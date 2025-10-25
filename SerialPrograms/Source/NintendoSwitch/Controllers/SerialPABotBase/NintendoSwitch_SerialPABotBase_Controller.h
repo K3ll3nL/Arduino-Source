@@ -7,7 +7,7 @@
 #ifndef PokemonAutomation_NintendoSwitch_SerialPABotBase_Controller_H
 #define PokemonAutomation_NintendoSwitch_SerialPABotBase_Controller_H
 
-#include "ClientSource/Connection/BotBase.h"
+#include "Controllers/SerialPABotBase/Connection/BotBase.h"
 #include "Controllers/SerialPABotBase/SerialPABotBase_Connection.h"
 #include "NintendoSwitch/Controllers/NintendoSwitch_ControllerWithScheduler.h"
 
@@ -54,7 +54,6 @@ protected:
     //  access these asynchronously.
     SerialPABotBase::SerialPABotBase_Connection& m_handle;
     BotBaseController* m_serial;
-    ControllerFeatures m_supported_features;
 
     mutable SpinLock m_error_lock;
     std::string m_error_string;

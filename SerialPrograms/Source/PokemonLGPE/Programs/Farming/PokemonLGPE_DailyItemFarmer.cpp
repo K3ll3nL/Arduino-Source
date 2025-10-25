@@ -4,22 +4,22 @@
  *
  */
 
-#include "CommonFramework/Exceptions/OperationFailedException.h"
+//#include "CommonFramework/Exceptions/OperationFailedException.h"
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonFramework/ProgramStats/StatsTracking.h"
-#include "CommonFramework/VideoPipeline/VideoFeed.h"
-#include "CommonTools/Async/InferenceRoutines.h"
+//#include "CommonFramework/VideoPipeline/VideoFeed.h"
+//#include "CommonTools/Async/InferenceRoutines.h"
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
+#include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/Controllers/NintendoSwitch_Joycon.h"
 #include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "NintendoSwitch/Programs/DateSpam/NintendoSwitch_HomeToDateTime.h"
-#include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "Pokemon/Pokemon_Strings.h"
-#include "CommonTools/VisualDetectors/BlackScreenDetector.h"
+//#include "CommonTools/VisualDetectors/BlackScreenDetector.h"
 #include "PokemonLGPE/Commands/PokemonLGPE_DateSpam.h"
-#include "PokemonLGPE/Inference/PokemonLGPE_ShinySymbolDetector.h"
-#include "PokemonLGPE/Programs/PokemonLGPE_GameEntry.h"
+//#include "PokemonLGPE/Inference/PokemonLGPE_ShinySymbolDetector.h"
+//#include "PokemonLGPE/Programs/PokemonLGPE_GameEntry.h"
 #include "PokemonSwSh/Commands/PokemonSwSh_Commands_DateSpam.h"
 #include "PokemonLGPE_DailyItemFarmer.h"
 
@@ -31,12 +31,11 @@ DailyItemFarmer_Descriptor::DailyItemFarmer_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonLGPE:DailyItemFarmer",
         Pokemon::STRING_POKEMON + " LGPE", "Daily Item Farmer",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonLGPE/DailyItemFarmer.md",
+        "Programs/PokemonLGPE/DailyItemFarmer.html",
         "Farm daily item respawns (ex. fossils) by date-skipping.",
+        ProgramControllerClass::SpecializedController,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_RightJoycon},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 
@@ -157,7 +156,7 @@ void DailyItemFarmer::start_local_trade(SingleSwitchProgramEnvironment& env, Joy
 }
 
 void DailyItemFarmer::program(SingleSwitchProgramEnvironment& env, CancellableScope& scope){
-    JoyconContext context(scope, env.console.controller<JoyconController>());
+    JoyconContext context(scope, env.console.controller<RightJoycon>());
     assert_16_9_720p_min(env.logger(), env.console);
     DailyItemFarmer_Descriptor::Stats& stats = env.current_stats<DailyItemFarmer_Descriptor::Stats>();
 
@@ -215,7 +214,7 @@ void DailyItemFarmer::program(SingleSwitchProgramEnvironment& env, CancellableSc
     }
 
     if (FIX_TIME_WHEN_DONE){
-        pbf_press_button(context, BUTTON_HOME, 80ms, 1000ms);
+        go_home(env.console, context);
         home_to_date_time(env.console, context, false);
         pbf_press_button(context, BUTTON_A, 50ms, 500ms);
         pbf_press_button(context, BUTTON_A, 50ms, 500ms);

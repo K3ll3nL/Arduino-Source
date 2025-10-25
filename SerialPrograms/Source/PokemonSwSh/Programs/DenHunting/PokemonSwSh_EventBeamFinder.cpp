@@ -22,12 +22,11 @@ EventBeamFinder_Descriptor::EventBeamFinder_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSwSh:EventBeamFinder",
         STRING_POKEMON + " SwSh", "Event Beam Finder",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSwSh/EventBeamFinder.md",
+        "Programs/PokemonSwSh/EventBeamFinder.html",
         "Drop wishing pieces until you find an event den.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::NONE,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 

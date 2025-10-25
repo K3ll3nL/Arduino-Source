@@ -22,12 +22,11 @@ EggFetcher_Descriptor::EggFetcher_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonBDSP:EggFetcher",
         STRING_POKEMON + " BDSP", "Egg Fetcher",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonBDSP/EggFetcher.md",
+        "Programs/PokemonBDSP/EggFetcher.html",
         "Automatically fetch eggs from the daycare man.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::NONE,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 struct EggFetcher_Descriptor::Stats : public StatsTracker{

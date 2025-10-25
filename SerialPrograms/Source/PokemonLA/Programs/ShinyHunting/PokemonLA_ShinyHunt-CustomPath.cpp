@@ -8,7 +8,6 @@
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonFramework/ProgramStats/StatsTracking.h"
 #include "CommonTools/Async/InferenceRoutines.h"
-#include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonLA/PokemonLA_Settings.h"
@@ -33,12 +32,11 @@ ShinyHuntCustomPath_Descriptor::ShinyHuntCustomPath_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonLA:ShinyHunt-CustomPath",
         STRING_POKEMON + " LA", "Shiny Hunt - Custom Path",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonLA/ShinyHunt-CustomPath.md",
+        "Programs/PokemonLA/ShinyHunt-CustomPath.html",
         "Repeatedly travel on a custom path to shiny hunt " + STRING_POKEMON + " around it.",
+        ProgramControllerClass::StandardController_PerformanceClassSensitive,
         FeedbackType::VIDEO_AUDIO,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController,},
-        FasterIfTickPrecise::FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 class ShinyHuntCustomPath_Descriptor::Stats : public StatsTracker, public ShinyStatIncrementer{
@@ -115,7 +113,7 @@ ShinyHuntCustomPath::ShinyHuntCustomPath()
 
 void ShinyHuntCustomPath::do_non_listen_action(
     VideoStream& stream, ProControllerContext& context,
-    const CustomPathTableRow2& row
+    const CustomPathTableRow& row
 ){
     stream.log("Execute action " + row.action.current_display());
     switch(row.action){
@@ -215,12 +213,12 @@ void ShinyHuntCustomPath::do_non_listen_action(
 
 void ShinyHuntCustomPath::run_path(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
 
-    std::vector<std::unique_ptr<CustomPathTableRow2>> table = PATH.PATH.copy_snapshot();
+    std::vector<std::unique_ptr<CustomPathTableRow>> table = PATH.PATH.copy_snapshot();
 
     //  Check whether the user has set shiny sound listen action:
     {
         bool has_listen_action = false;
-        for (const std::unique_ptr<CustomPathTableRow2>& row : table){
+        for (const std::unique_ptr<CustomPathTableRow>& row : table){
             if (row->action == PathAction::START_LISTEN){
                 has_listen_action = true;
                 break;
@@ -251,7 +249,7 @@ void ShinyHuntCustomPath::run_path(SingleSwitchProgramEnvironment& env, ProContr
     int ret = run_until<ProControllerContext>(
         env.console, context,
         [&](ProControllerContext& context){
-            for (const std::unique_ptr<CustomPathTableRow2>& row : table){
+            for (const std::unique_ptr<CustomPathTableRow>& row : table){
                 if (row->action == PathAction::START_LISTEN){
                     listen_for_shiny.store(true, std::memory_order_release);
                     continue;
@@ -305,8 +303,7 @@ void ShinyHuntCustomPath::program(SingleSwitchProgramEnvironment& env, ProContro
                 env.console.log("Resetting by closing the game.");
                 pbf_press_button(context, BUTTON_HOME, 160ms, GameSettings::instance().GAME_TO_HOME_DELAY0);
                 fresh_from_reset = reset_game_from_home(
-                    env, env.console, context,
-                    ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST
+                    env, env.console, context
                 );
             }else{
                 env.console.log("Resetting by going to village.");
@@ -333,8 +330,7 @@ void ShinyHuntCustomPath::program(SingleSwitchProgramEnvironment& env, ProContro
             time_reset_run_count = 0;
             pbf_press_button(context, BUTTON_HOME, 160ms, GameSettings::instance().GAME_TO_HOME_DELAY0);
             fresh_from_reset = reset_game_from_home(
-                env, env.console, context,
-                ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST
+                env, env.console, context
             );
         }
 

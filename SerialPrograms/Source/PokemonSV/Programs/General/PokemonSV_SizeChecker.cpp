@@ -30,12 +30,11 @@ SizeChecker_Descriptor::SizeChecker_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSV:SizeChecker",
         STRING_POKEMON + " SV", "Size Checker",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSV/SizeChecker.md",
+        "Programs/PokemonSV/SizeChecker.html",
         "Check boxes of " + STRING_POKEMON + " for size marks.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 struct SizeChecker_Descriptor::Stats : public StatsTracker{

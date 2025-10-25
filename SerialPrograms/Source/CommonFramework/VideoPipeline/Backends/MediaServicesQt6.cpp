@@ -24,9 +24,9 @@ GlobalMediaServices::~GlobalMediaServices(){
     m_thread.join();
 }
 GlobalMediaServices::GlobalMediaServices()
-    : m_thread(&GlobalMediaServices::thread_body, this)
+    : m_refresh_cameras(true)
 {
-    refresh_cameras();
+//    refresh_cameras();
 
     m_media_devices.connect(
         &m_media_devices, &QMediaDevices::videoInputsChanged,
@@ -36,6 +36,8 @@ GlobalMediaServices::GlobalMediaServices()
             m_cv.notify_all();
         }
     );
+
+    m_thread = std::thread(&GlobalMediaServices::thread_body, this);
 }
 
 

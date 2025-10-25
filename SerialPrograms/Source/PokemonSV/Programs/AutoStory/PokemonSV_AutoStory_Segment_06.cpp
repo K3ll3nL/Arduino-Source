@@ -33,11 +33,11 @@ std::string AutoStory_Segment_06::name() const{
 }
 
 std::string AutoStory_Segment_06::start_text() const{
-    return "Start: Battled Arven, received Legendary's Pokeball. Talked to Nemona at Lighthouse.";
+    return "Start: Battled Arven, received Legendary's Pokeball. Talked to Nemona at roof of Lighthouse.";
 }
 
 std::string AutoStory_Segment_06::end_text() const{
-    return "End: At Los Platos Pokecenter.";
+    return "End: At Los Platos Pokecenter. Cleared Let's go tutorial.";
 }
 
 void AutoStory_Segment_06::run_segment(
@@ -67,13 +67,8 @@ void checkpoint_11(
     EventNotificationOption& notif_status_update,
     AutoStoryStats& stats
 ){
-    bool first_attempt = true;
-    while (true){
-    try{
-        if (first_attempt){
-            checkpoint_save(env, context, notif_status_update, stats);
-            first_attempt = false;
-        } 
+    checkpoint_reattempt_loop(env, context, notif_status_update, stats,
+    [&](size_t attempt_number){ 
 
         context.wait_for_all_requests();
         do_action_and_monitor_for_battles(env.program_info(), env.console, context,
@@ -98,7 +93,13 @@ void checkpoint_11(
                 pbf_move_left_joystick(context, 0, 128, 40, 50);
                 realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
             }
-        );          
+        );
+
+        // cover for case where you fall into water. 
+        // This will clear the dialog telling you that you fell into water, 
+        // therefore preventing false positives on clear_dialog() assuming we're talking to Nemona.
+        pbf_mash_button(context, BUTTON_A, 5000ms);
+        context.wait_for_all_requests();
         
 
         env.console.log("clear_dialog: Talk with Nemona at Los Platos. Clear Let's go tutorial. Stop when detect overworld.");
@@ -109,15 +110,7 @@ void checkpoint_11(
         env.console.log("Reached Los Platos");
         env.console.overlay().add_log("Reached Los Platos", COLOR_WHITE);
 
-        break;
-    }catch(OperationFailedException&){
-        context.wait_for_all_requests();
-        env.console.log("Resetting from checkpoint.");
-        reset_game(env.program_info(), env.console, context);
-        stats.m_reset++;
-        env.update_stats();
-    }             
-    }
+    });
 
 }
 

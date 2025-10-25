@@ -53,8 +53,8 @@ FileWindowLogger::FileWindowLogger(const std::string& path)
     , m_stopping(false)
 {
     bool exists = m_file.exists();
-    m_file.open(QIODevice::WriteOnly | QIODevice::Append);
-    if (!exists){
+    bool opened = m_file.open(QIODevice::WriteOnly | QIODevice::Append);
+    if (!exists && opened){
         std::string bom = "\xef\xbb\xbf";
         m_file.write(bom.c_str(), bom.size());
     }
@@ -228,6 +228,7 @@ FileWindowLoggerWindow::FileWindowLoggerWindow(FileWindowLogger& logger, QWidget
 //    m_statusbar->setObjectName(QString::fromUtf8("statusbar"));
 //    setStatusBar(m_statusbar);
     setWindowTitle("Program Output");
+    this->setWindowIcon(QIcon(QString::fromStdString(RESOURCE_PATH() + "icon.png")));
 
     m_text->setReadOnly(true);
     m_text->setAcceptRichText(true);

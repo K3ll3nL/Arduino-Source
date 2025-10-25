@@ -9,7 +9,7 @@
 //#include "NintendoSwitch/Commands/NintendoSwitch_Commands_Device.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
-#include "NintendoSwitch/Commands/NintendoSwitch_Commands_Routines.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "Pokemon/Pokemon_Strings.h"
 //#include "PokemonSwSh/Commands/PokemonSwSh_Commands_GameEntry.h"
@@ -30,12 +30,11 @@ AutoHostMultiGame_Descriptor::AutoHostMultiGame_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSwSh:AutoHostMultiGame",
         STRING_POKEMON + " SwSh", "Auto-Host Multi-Game",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSwSh/AutoHost-MultiGame.md",
+        "Programs/PokemonSwSh/AutoHost-MultiGame.html",
         "Run AutoHost-Rolling across multiple game saves. (Up to 16 dens!)",
+        ProgramControllerClass::StandardController_PerformanceClassSensitive,
         FeedbackType::OPTIONAL_,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 std::unique_ptr<StatsTracker> AutoHostMultiGame_Descriptor::make_stats() const{
@@ -224,7 +223,7 @@ void AutoHostMultiGame::program(SingleSwitchProgramEnvironment& env, ProControll
 
             //  Exit game.
             pbf_press_button(context, BUTTON_HOME, 160ms, GameSettings::instance().GAME_TO_HOME_DELAY_SAFE0);
-            close_game(env.console, context);
+            close_game_from_home(env.console, context);
 
             //  Post-raid delay.
             pbf_wait(context, game.post_raid_delay);

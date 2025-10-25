@@ -7,7 +7,6 @@
 #include "Common/Cpp/PrettyPrint.h"
 #include "CommonFramework/VideoPipeline/VideoFeed.h"
 //#include "NintendoSwitch/Commands/NintendoSwitch_Commands_Device.h"
-#include "NintendoSwitch/Commands/NintendoSwitch_Commands_Routines.h"
 #include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
@@ -31,12 +30,11 @@ AutoHostRolling_Descriptor::AutoHostRolling_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSwSh:AutoHostRolling",
         STRING_POKEMON + " SwSh", "Auto-Host Rolling",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSwSh/AutoHost-Rolling.md",
+        "Programs/PokemonSwSh/AutoHost-Rolling.html",
         "Roll N days, host, SR and repeat. Also supports hard-locks and soft-locks.",
+        ProgramControllerClass::StandardController_PerformanceClassSensitive,
         FeedbackType::OPTIONAL_,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 std::unique_ptr<StatsTracker> AutoHostRolling_Descriptor::make_stats() const{
@@ -197,7 +195,7 @@ void AutoHostRolling::program(SingleSwitchProgramEnvironment& env, ProController
 
         //  Exit game.
         ssf_press_button(context, BUTTON_HOME, GameSettings::instance().GAME_TO_HOME_DELAY_SAFE0, 160ms);
-        close_game(env.console, context);
+        close_game_from_home(env.console, context);
 
         //  Post-raid delay.
         pbf_wait(context, EXTRA_DELAY_BETWEEN_RAIDS0);

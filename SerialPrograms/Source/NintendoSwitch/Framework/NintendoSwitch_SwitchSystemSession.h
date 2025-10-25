@@ -30,6 +30,7 @@
 #include "NintendoSwitch_SwitchSystemOption.h"
 
 namespace PokemonAutomation{
+    class MemoryUtilizationStats;
     class CpuUtilizationStat;
     class ThreadUtilizationStat;
 namespace NintendoSwitch{
@@ -50,7 +51,6 @@ public:
 
 public:
     size_t console_number() const{ return m_console_number; }
-    const ControllerFeatures& required_features() const{ return m_option.m_required_features; }
     bool allow_commands_while_running() const{ return m_option.m_allow_commands_while_running; }
 
     Logger& logger(){ return m_logger; }
@@ -91,6 +91,7 @@ private:
 
     StreamHistorySession m_history;
 
+    std::unique_ptr<MemoryUtilizationStats> m_memory_usage;
     std::unique_ptr<CpuUtilizationStat> m_cpu_utilization;
     std::unique_ptr<ThreadUtilizationStat> m_main_thread_utilization;
 };

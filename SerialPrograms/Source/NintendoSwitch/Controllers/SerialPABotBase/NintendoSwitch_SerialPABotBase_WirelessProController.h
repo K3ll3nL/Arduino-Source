@@ -25,7 +25,8 @@ class SerialPABotBase_WirelessProController final :
 public:
     SerialPABotBase_WirelessProController(
         Logger& logger,
-        SerialPABotBase::SerialPABotBase_Connection& connection
+        SerialPABotBase::SerialPABotBase_Connection& connection,
+        ControllerResetMode reset_mode
     );
     ~SerialPABotBase_WirelessProController();
 
@@ -43,9 +44,6 @@ public:
 public:
     virtual ControllerType controller_type() const override{
         return ControllerType::NintendoSwitch_WirelessProController;
-    }
-    virtual const ControllerFeatures& controller_features() const override{
-        return m_supported_features;
     }
     virtual ControllerPerformanceClass performance_class() const override{
         return ControllerPerformanceClass::SerialPABotBase_Wireless;
@@ -212,7 +210,10 @@ public:
 
 
 private:
-    virtual void push_state(const Cancellable* cancellable, WallDuration duration) override;
+    virtual void execute_state(
+        const Cancellable* cancellable,
+        const SuperscalarScheduler::ScheduleEntry& entry
+    ) override;
 };
 
 

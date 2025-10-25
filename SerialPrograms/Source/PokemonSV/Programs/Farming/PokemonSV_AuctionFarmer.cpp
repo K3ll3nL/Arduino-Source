@@ -22,7 +22,8 @@
 #include "Kernels/Waterfill/Kernels_Waterfill_Session.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
-#include "PokemonSV/PokemonSV_Settings.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
+//#include "PokemonSV/PokemonSV_Settings.h"
 #include "PokemonSV/Inference/Dialogs/PokemonSV_DialogDetector.h"
 #include "PokemonSV/Inference/PokemonSV_AuctionItemNameReader.h"
 #include "PokemonSV/Inference/Overworld/PokemonSV_OverworldDetector.h"
@@ -44,12 +45,11 @@ AuctionFarmer_Descriptor::AuctionFarmer_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSV:AuctionFarmer",
         STRING_POKEMON + " SV", "Auction Farmer",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSV/AuctionFarmer.md",
+        "Programs/PokemonSV/AuctionFarmer.html",
         "Check auctions and bid on items.",
+        ProgramControllerClass::StandardController_PerformanceClassSensitive,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::MUCH_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 
@@ -179,17 +179,17 @@ void AuctionFarmer::reset_auctions(SingleSwitchProgramEnvironment& env, ProContr
     try{
         if (do_full_reset){
             if (year == MAX_YEAR){
-                pbf_press_button(context, BUTTON_HOME, 80ms, GameSettings::instance().GAME_TO_HOME_DELAY1);
+                go_home(env.console, context);
                 PokemonSwSh::home_roll_date_enter_game_autorollback(env.console, context, year);
             }
             save_game_from_overworld(env.program_info(), env.console, context);
 
-            pbf_press_button(context, BUTTON_HOME, 80ms, GameSettings::instance().GAME_TO_HOME_DELAY1);
+            go_home(env.console, context);
             PokemonSwSh::home_roll_date_enter_game_autorollback(env.console, context, year);
         }
         pbf_wait(context, 1 * TICKS_PER_SECOND);
 
-        pbf_press_button(context, BUTTON_HOME, 80ms, GameSettings::instance().GAME_TO_HOME_DELAY1);
+        go_home(env.console, context);
         context.wait_for_all_requests();
         reset_game_from_home(env.program_info(), env.console, context, TICKS_PER_SECOND);
     }catch (OperationFailedException& e){

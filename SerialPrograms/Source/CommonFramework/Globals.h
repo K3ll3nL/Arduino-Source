@@ -2,6 +2,12 @@
  *
  *  From: https://github.com/PokemonAutomation/
  *
+ *  Defines basic program related const values (version numbers, program names, URLs, etc.)
+ *  and paths to various folders (setting folder, screenshot folder, etc.).
+ *  CAUTION: since the program's runtime base path is initialized only after Qt is initialized,
+ *  do not call any path functions defined here until after Qt is initialized in the main function.
+ * 
+ *  Also defines program state enum and program feedback type enum.
  */
 
 #ifndef PokemonAutomation_Globals_H
@@ -31,10 +37,14 @@ extern const std::string GITHUB_LINK_URL;
 extern const std::string DISCORD_LINK_TEXT;
 extern const std::string DISCORD_LINK_URL_PROGRAM;
 extern const std::string DISCORD_LINK_URL_EMBED;
+extern const std::string DISCORD_LINK_URL_SDK;
 
 extern const std::string COMPILER_VERSION;
 
 extern const size_t LOG_HISTORY_LINES;
+
+// Path to the parent folder that holds all other folders, e.g. settings folder, screenshot folder, etc. 
+const std::string& RUNTIME_BASE_PATH();
 
 // Folder path (end with "/") to hold program setting files.
 const std::string& SETTINGS_PATH();
@@ -62,6 +72,10 @@ const std::string& TRAINING_PATH();
 
 // Folder path (end with "/") to hold data annotation for ML labeling programs
 const std::string& ML_ANNOTATION_PATH();
+// Folder path (end with "/") to hold model cache for model inferences. This is only used on macOS
+// for the Apple CoreML model acceleration framework can create model cache for faster model inference
+// sessions.
+const std::string& ML_MODEL_CACHE_PATH();
 
 
 enum class ProgramState{

@@ -8,7 +8,6 @@
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonFramework/ProgramStats/StatsTracking.h"
 #include "CommonTools/Async/InferenceRoutines.h"
-#include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonLA/PokemonLA_Settings.h"
@@ -31,12 +30,11 @@ UnownFinder_Descriptor::UnownFinder_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonLA:UnownFinder",
         STRING_POKEMON + " LA", "Unown Hunter",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonLA/UnownHunter.md",
+        "Programs/PokemonLA/UnownHunter.html",
         "Constantly reset to find a Shiny Unown or any Shiny in the path.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::VIDEO_AUDIO,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 class UnownFinder_Descriptor::Stats : public StatsTracker, public ShinyStatIncrementer{
@@ -192,8 +190,7 @@ void UnownFinder::program(SingleSwitchProgramEnvironment& env, ProControllerCont
 
             pbf_press_button(context, BUTTON_HOME, 160ms, GameSettings::instance().GAME_TO_HOME_DELAY0);
             fresh_from_reset = reset_game_from_home(
-                env, env.console, context,
-                ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST
+                env, env.console, context
             );
         }
     }

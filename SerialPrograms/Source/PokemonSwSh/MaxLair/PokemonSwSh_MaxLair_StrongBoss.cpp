@@ -32,12 +32,11 @@ MaxLairStrongBoss_Descriptor::MaxLairStrongBoss_Descriptor()
     : MultiSwitchProgramDescriptor(
         "PokemonSwSh:MaxLair-StrongBoss",
         STRING_POKEMON + " SwSh", "Max Lair - Strong Boss",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSwSh/MaxLair-StrongBoss.md",
+        "Programs/PokemonSwSh/MaxLair-StrongBoss.html",
         "Auto Max Lair 2.0 - Run Dynamax Adventures and intelligently reset to keep paths that have high win rates.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::REQUIRED,
         AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER,
         1, 4, 1
     )
 {}

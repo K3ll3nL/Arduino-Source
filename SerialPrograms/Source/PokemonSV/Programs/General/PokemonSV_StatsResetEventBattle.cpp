@@ -73,12 +73,11 @@ StatsResetEventBattle_Descriptor::StatsResetEventBattle_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSV:StatsResetEventBattle",
         STRING_POKEMON + " SV", "Stats Reset - Event Battle",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSV/StatsResetEventBattle.md",
+        "Programs/PokemonSV/StatsResetEventBattle.html",
         "Repeatedly catch Bloodmoon Ursaluna or Pecharunt until you get the stats you want.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 struct StatsResetEventBattle_Descriptor::Stats : public StatsTracker{

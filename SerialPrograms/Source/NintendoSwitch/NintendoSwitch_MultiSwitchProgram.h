@@ -15,8 +15,7 @@
 #include "CommonFramework/Notifications/EventNotificationOption.h"
 #include "CommonFramework/Tools/ProgramEnvironment.h"
 #include "CommonFramework/Panels/ProgramDescriptor.h"
-#include "Controllers/ControllerCapability.h"
-#include "Controllers/SerialPABotBase/SerialPABotBase.h"
+#include "NintendoSwitch/Controllers/NintendoSwitch_ProController.h"
 #include "NintendoSwitch/NintendoSwitch_ConsoleHandle.h"
 
 namespace PokemonAutomation{
@@ -76,19 +75,17 @@ public:
         std::string category, std::string display_name,
         std::string doc_link,
         std::string description,
+        ProgramControllerClass color_class,
         FeedbackType feedback,
         AllowCommandsWhenRunning allow_commands_while_running,
-        ControllerFeatures required_features,
-        FasterIfTickPrecise faster_if_tick_precise,
         size_t min_switches,
         size_t max_switches,
         size_t default_switches,
         bool deprecated = false
     );
 
+    ProgramControllerClass color_class() const{ return m_color_class; }
     FeedbackType feedback() const{ return m_feedback; }
-    const ControllerFeatures& required_features() const{ return m_required_features; }
-    FasterIfTickPrecise faster_if_tick_precise() const{ return m_faster_if_tick_precise; }
     bool allow_commands_while_running() const{ return m_allow_commands_while_running; }
     bool deprecated() const{ return m_deprecated; }
 
@@ -100,9 +97,8 @@ public:
     virtual std::unique_ptr<MultiSwitchProgramInstance> make_instance() const{ return nullptr; }
 
 private:
+    const ProgramControllerClass m_color_class;
     const FeedbackType m_feedback;
-    const ControllerFeatures m_required_features;
-    const FasterIfTickPrecise m_faster_if_tick_precise;
     const bool m_allow_commands_while_running;
     const bool m_deprecated;
 

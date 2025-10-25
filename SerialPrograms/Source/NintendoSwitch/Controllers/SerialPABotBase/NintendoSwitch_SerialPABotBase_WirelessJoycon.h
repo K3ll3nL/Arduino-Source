@@ -15,21 +15,24 @@ namespace PokemonAutomation{
 namespace NintendoSwitch{
 
 
-class SerialPABotBase_WirelessJoycon final :
-    public JoyconController,
+template <typename JoyconType>
+class SerialPABotBase_WirelessJoycon :
+    public JoyconType,
     public SerialPABotBase_WirelessController
 {
     static constexpr uint16_t JOYSTICK_MIN_THRESHOLD = 1874;
     static constexpr uint16_t JOYSTICK_MAX_THRESHOLD = 260;
 
-public:
+protected:
     SerialPABotBase_WirelessJoycon(
         Logger& logger,
         SerialPABotBase::SerialPABotBase_Connection& connection,
-        ControllerType controller_type
+        ControllerType controller_type,
+        ControllerResetMode reset_mode
     );
-    ~SerialPABotBase_WirelessJoycon();
 
+
+public:
     virtual Logger& logger() override{
         return m_logger;
     }
@@ -44,9 +47,6 @@ public:
 public:
     virtual ControllerType controller_type() const override{
         return m_controller_type;
-    }
-    virtual const ControllerFeatures& controller_features() const override{
-        return m_supported_features;
     }
     virtual ControllerPerformanceClass performance_class() const override{
         return ControllerPerformanceClass::SerialPABotBase_Wireless;
@@ -160,14 +160,45 @@ public:
     ) override;
 
 
-private:
-    void push_state_left_joycon(const Cancellable* cancellable, WallDuration duration);
-    void push_state_right_joycon(const Cancellable* cancellable, WallDuration duration);
-    virtual void push_state(const Cancellable* cancellable, WallDuration duration) override;
+protected:
+    void execute_state_left_joycon(
+        const Cancellable* cancellable,
+        const SuperscalarScheduler::ScheduleEntry& entry
+    );
+    void execute_state_right_joycon(
+        const Cancellable* cancellable,
+        const SuperscalarScheduler::ScheduleEntry& entry
+    );
+    virtual void execute_state(
+        const Cancellable* cancellable,
+        const SuperscalarScheduler::ScheduleEntry& entry
+    ) override;
 
     ControllerType m_controller_type;
     Button m_valid_buttons;
 };
+
+
+
+class SerialPABotBase_WirelessLeftJoycon final : public SerialPABotBase_WirelessJoycon<LeftJoycon>{
+public:
+    SerialPABotBase_WirelessLeftJoycon(
+        Logger& logger,
+        SerialPABotBase::SerialPABotBase_Connection& connection,
+        ControllerResetMode reset_mode
+    );
+    ~SerialPABotBase_WirelessLeftJoycon();
+};
+class SerialPABotBase_WirelessRightJoycon final : public SerialPABotBase_WirelessJoycon<RightJoycon>{
+public:
+    SerialPABotBase_WirelessRightJoycon(
+        Logger& logger,
+        SerialPABotBase::SerialPABotBase_Connection& connection,
+        ControllerResetMode reset_mode
+    );
+    ~SerialPABotBase_WirelessRightJoycon();
+};
+
 
 
 

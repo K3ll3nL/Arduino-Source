@@ -26,12 +26,11 @@ SkipToFullMoon_Descriptor::SkipToFullMoon_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonLA:SkipToFullMoon",
         STRING_POKEMON + " LA", "Skip to Full Moon",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonLA/SkipToFullMoon.md",
+        "Programs/PokemonLA/SkipToFullMoon.html",
         "Skip nights until full moon.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 

@@ -4,10 +4,11 @@
  *
  */
 
-#include "Common/Cpp/PrettyPrint.h"
+//#include "Common/Cpp/PrettyPrint.h"
 #include "CommonFramework/Exceptions/OperationFailedException.h"
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "CommonTools/VisualDetectors/BlackScreenDetector.h"
+#include "CommonTools/StartupChecks/StartProgramChecks.h"
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonFramework/ProgramStats/StatsTracking.h"
 #include "CommonFramework/VideoPipeline/VideoFeed.h"
@@ -26,11 +27,12 @@ LegendaryHuntEmerald_Descriptor::LegendaryHuntEmerald_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonRSE:LegendaryHuntEmerald",
         Pokemon::STRING_POKEMON + " RSE", "Legendary Hunt (Emerald)",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonRSE/LegendaryHuntEmerald.md",
+        "Programs/PokemonRSE/LegendaryHuntEmerald.html",
         "Use the Run Away method to shiny hunt legendaries in Emerald.",
+        ProgramControllerClass::StandardController_RequiresPrecision,
         FeedbackType::VIDEO_AUDIO,
         AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {SerialPABotBase::OLD_NINTENDO_SWITCH_DEFAULT_REQUIREMENTS}
+        {}
     )
 {}
 
@@ -449,6 +451,8 @@ void LegendaryHuntEmerald::reset_lugia(SingleSwitchProgramEnvironment& env, ProC
 }
 
 void LegendaryHuntEmerald::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+    StartProgramChecks::check_performance_class_wired_or_wireless(context);
+
     LegendaryHuntEmerald_Descriptor::Stats& stats = env.current_stats<LegendaryHuntEmerald_Descriptor::Stats>();
 
     /*

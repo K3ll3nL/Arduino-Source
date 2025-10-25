@@ -37,7 +37,7 @@ std::string AutoStory_Segment_17::start_text() const{
 }
 
 std::string AutoStory_Segment_17::end_text() const{
-    return "End: Defeated Cascarrafa Gym (Water). At Cascarrafa Gym.";
+    return "End: Defeated Cascarrafa Gym (Water). At Porto Marinada Pokecenter.";
 }
 
 void AutoStory_Segment_17::run_segment(
@@ -69,13 +69,8 @@ void checkpoint_37(
     AutoStoryStats& stats
 ){
     
-    bool first_attempt = true;
-    while (true){
-    try{
-        if (first_attempt){
-            checkpoint_save(env, context, notif_status_update, stats);
-            first_attempt = false;
-        }         
+    checkpoint_reattempt_loop(env, context, notif_status_update, stats,
+    [&](size_t attempt_number){         
         context.wait_for_all_requests();
         DirectionDetector direction;
         do_action_and_monitor_for_battles(env.program_info(), env.console, context,
@@ -105,15 +100,7 @@ void checkpoint_37(
         mash_button_till_overworld(env.console, context, BUTTON_A, 360);
 
        
-        break;
-    }catch(OperationFailedException&){
-        context.wait_for_all_requests();
-        env.console.log("Resetting from checkpoint.");
-        reset_game(env.program_info(), env.console, context);
-        stats.m_reset++;
-        env.update_stats();
-    }         
-    }
+    });
 
 }
 
@@ -124,13 +111,8 @@ void checkpoint_38(
     AutoStoryStats& stats
 ){
     
-    bool first_attempt = true;
-    while (true){
-    try{
-        if (first_attempt){
-            checkpoint_save(env, context, notif_status_update, stats);
-            first_attempt = false;
-        }         
+    checkpoint_reattempt_loop(env, context, notif_status_update, stats,
+    [&](size_t attempt_number){         
         context.wait_for_all_requests();
         move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::KEEP_ZOOM, 255, 180, 170});
         DirectionDetector direction;
@@ -177,16 +159,18 @@ void checkpoint_38(
         env.console.log("Battle Water Gym.");
         run_trainer_battle_press_A(env.console, context, BattleStopCondition::STOP_DIALOG);
         mash_button_till_overworld(env.console, context, BUTTON_A, 360);
-
-        break;
-    }catch(OperationFailedException&){
+        
+        // Gym now defeated. now in Cascaraffa gym building
         context.wait_for_all_requests();
-        env.console.log("Resetting from checkpoint.");
-        reset_game(env.program_info(), env.console, context);
-        stats.m_reset++;
-        env.update_stats();
-    }         
-    }
+        pbf_move_left_joystick(context, 128, 255, 500, 100);
+        pbf_wait(context, 3 * TICKS_PER_SECOND);
+        // wait for overworld after leaving Gym
+        wait_for_overworld(env.program_info(), env.console, context, 30);
+
+        // fly to Porto Marinada pokecenter
+        move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::KEEP_ZOOM, 0, 80, 150});        
+
+    });
 
 }
 

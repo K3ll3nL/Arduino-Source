@@ -8,11 +8,11 @@
 #define PokemonAutomation_PokemonSV_AutoStoryTools_H
 
 #include <functional>
-#include <unordered_set>
 #include "CommonFramework/Language.h"
 #include "CommonFramework/ImageTools/ImageBoxes.h"
 #include "CommonFramework/ProgramStats/StatsTracking.h"
 #include "NintendoSwitch/NintendoSwitch_SingleSwitchProgram.h"
+#include "PokemonSV/Programs/PokemonSV_WorldNavigation.h"
 // #include "PokemonSV/Programs/PokemonSV_Navigation.h"
 
 namespace PokemonAutomation{
@@ -36,10 +36,6 @@ struct AutoStoryStats : public StatsTracker{
 };    
 
 
-enum class BattleStopCondition{
-    STOP_OVERWORLD,
-    STOP_DIALOG,
-};
 
 enum class ClearDialogMode{
     STOP_OVERWORLD,
@@ -50,19 +46,7 @@ enum class ClearDialogMode{
 };
 
 
-enum class CallbackEnum{
-    ADVANCE_DIALOG,
-    OVERWORLD,
-    PROMPT_DIALOG,
-    WHITE_A_BUTTON,
-    DIALOG_ARROW,
-    BATTLE,
-    TUTORIAL,
-    BLACK_DIALOG_BOX,
-    NEXT_POKEMON,
-    SWAP_MENU,
-    MOVE_SELECT,
-};
+
 
 enum class StartPoint{
     INTRO_CUTSCENE,
@@ -81,11 +65,7 @@ enum class StarterChoice{
     QUAXLY,
 };
 
-enum class PlayerRealignMode{
-    REALIGN_NEW_MARKER,
-    REALIGN_OLD_MARKER,
-    REALIGN_NO_MARKER,
-};
+
 
 enum class NavigationStopCondition{
     STOP_DIALOG,
@@ -94,11 +74,7 @@ enum class NavigationStopCondition{
     STOP_BATTLE,
 };
 
-enum class NavigationMovementMode{
-    DIRECTIONAL_ONLY,
-    DIRECTIONAL_SPAM_A,
-    CLEAR_WITH_LETS_GO,
-};
+
 
 struct AutoStoryOptions{
     Language language;
@@ -119,29 +95,6 @@ public:
         AutoStoryStats& stats) const = 0;
 };
 
-// spam A button to choose the first move for trainer battles
-// detect_wipeout: can be false if you have multiple pokemon in your party, since an exception will be thrown if your lead faints.
-// throw exception if wipeout or if your lead faints.
-void run_trainer_battle_press_A(
-    VideoStream& stream,
-    ProControllerContext& context,
-    BattleStopCondition stop_condition,
-    std::unordered_set<CallbackEnum> enum_optional_callbacks = {},
-    bool detect_wipeout = false
-);
-
-// spam A button to choose the first move for wild battles
-// detect_wipeout: can be false if you have multiple pokemon in your party, since an exception will be thrown if your lead faints.
-// throw exception if wipeout or if your lead faints.
-void run_wild_battle_press_A(
-    VideoStream& stream,
-    ProControllerContext& context,
-    BattleStopCondition stop_condition,
-    std::unordered_set<CallbackEnum> enum_optional_callbacks = {},
-    bool detect_wipeout = false
-);
-
-void select_top_move(VideoStream& stream, ProControllerContext& context, size_t consecutive_move_select);
 
 // press A to clear tutorial screens
 // throw exception if tutorial screen never detected
@@ -164,6 +117,28 @@ bool confirm_marker_present(
     ProControllerContext& context
 );
 
+// align player orientation based on the alignment mode
+// The direction is specified by (x, y):
+// x = 0 : left
+// x = 128 : neutral
+// x = 255 : right
+// y = 0 : up
+// y = 128 : neutral
+// y = 255 : down
+// - REALIGN_NEW_MARKER: place down a map marker, which will align the player towards the marker
+// location of the marker is set with move_x, move_y, move_duration
+// - REALIGN_OLD_MARKER: assuming a marker is already set, open and close the map, 
+// which will align the player towards the marker
+// - REALIGN_NO_MARKER: move player towards in the direction set by move_x, move_y, move_duration
+// then re-align the camera
+void realign_player(
+    const ProgramInfo& info,
+    VideoStream& stream, ProControllerContext& context,
+    PlayerRealignMode realign_mode,
+    uint8_t move_x = 0, uint8_t move_y = 0, uint16_t move_duration = 0
+);
+
+
 // move character with ssf left joystick, as per given x, y, until 
 // stop_condition is met (e.g. Dialog detected). 
 // throw exception if reaches timeout before detecting stop condition
@@ -179,7 +154,7 @@ void overworld_navigation(const ProgramInfo& info, VideoStream& stream, ProContr
 void config_option(ProControllerContext& context, int change_option_value);
 
 // enter menu and swap the first and third moves for your starter
-void swap_starter_moves(const ProgramInfo& info, VideoStream& stream, ProControllerContext& context, Language language);
+void swap_starter_moves(SingleSwitchProgramEnvironment& env, ProControllerContext& context, Language language);
 
 // run the given `action`. if detect a battle, stop the action, and throw exception
 void do_action_and_monitor_for_battles(
@@ -203,6 +178,16 @@ void handle_unexpected_battles(
         VideoStream& stream,
         ProControllerContext& context)
     >&& action
+);
+
+// run the given `action`. if detect the overworld, stop the action, and throw exception
+void do_action_and_monitor_for_overworld(
+    const ProgramInfo& info, 
+    VideoStream& stream,
+    ProControllerContext& context,
+    std::function<void(const ProgramInfo& info, 
+        VideoStream& stream,
+        ProControllerContext& context)>&& action
 );
 
 // if stationary in overworld for an amount of time (seconds_stationary), run `recovery_action` then try `action` again
@@ -292,25 +277,11 @@ void change_settings(SingleSwitchProgramEnvironment& env, ProControllerContext& 
 
 void checkpoint_save(SingleSwitchProgramEnvironment& env, ProControllerContext& context, EventNotificationOption& notif_status_update, AutoStoryStats& stats);
 
-enum class ZoomChange{
-    ZOOM_IN,
-    ZOOM_IN_TWICE,
-    ZOOM_OUT,
-    ZOOM_OUT_TWICE,
-    KEEP_ZOOM,
-};
-
-struct MoveCursor{
-    ZoomChange zoom_change;
-    uint8_t move_x;
-    uint8_t move_y;
-    uint16_t move_duration;
-};
 
 // place a marker on the map, not relative to the current player position, but based on a fixed landmark, such as a pokecenter
 // How this works:
 //  - cursor is moved to a point near the landmark, as per `move_cursor_near_landmark`
-//  - move the cursor onto the landmark using `detect_closest_pokecenter_and_move_map_cursor_there`.
+//  - move the cursor onto the landmark using `detect_closest_flypoint_and_move_map_cursor_there`.
 //  - confirm that the pokecenter is centered within cursor. If not, close map app, and re-try.
 //  - cursor is moved to target location, as per `move_cursor_to_target`. A marker is placed down here.
 void realign_player_from_landmark(
@@ -331,11 +302,42 @@ void move_cursor_towards_flypoint_and_go_there(
     const ProgramInfo& info, 
     VideoStream& stream,
     ProControllerContext& context,
-    MoveCursor move_cursor_near_flypoint
+    MoveCursor move_cursor_near_flypoint, 
+    FlyPoint fly_point = FlyPoint::POKECENTER
 );
 
 
 void check_num_sunflora_found(SingleSwitchProgramEnvironment& env, ProControllerContext& context, int expected_number);
+
+// run given action, with max_attempts number of attempts
+// save prior to first attempt
+// throw exception if we try to exceed max_attempts.
+void checkpoint_reattempt_loop(
+    SingleSwitchProgramEnvironment& env, 
+    ProControllerContext& context, 
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats,
+    std::function<void(size_t attempt_number)>&& action
+);
+
+void checkpoint_reattempt_loop_tutorial(
+    SingleSwitchProgramEnvironment& env, 
+    ProControllerContext& context, 
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats,
+    std::function<void(size_t attempt_number)>&& action
+);
+
+
+
+
+
+
+
+
+
+
+
 
 }
 }

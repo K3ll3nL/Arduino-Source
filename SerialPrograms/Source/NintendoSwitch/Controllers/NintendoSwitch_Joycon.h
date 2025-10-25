@@ -8,7 +8,8 @@
 #define PokemonAutomation_NintendoSwitch_Joycon_H
 
 #include "Common/Cpp/Containers/Pimpl.h"
-#include "NintendoSwitch_ControllerState.h"
+#include "NintendoSwitch_ControllerButtons.h"
+#include "Controllers/ControllerTypes.h"
 #include "Controllers/Controller.h"
 
 namespace PokemonAutomation{
@@ -56,6 +57,15 @@ public:
     JoyconController(Logger& logger, ControllerType controller_type);
     virtual ~JoyconController();
 
+
+public:
+    static const char NAME[];
+    virtual const char* name() override{
+        return NAME;
+    };
+
+
+protected:
     //  Must call before destruction begins.
     void stop() noexcept;
 
@@ -162,6 +172,9 @@ public:
     virtual void keyboard_press(const QKeyEvent& event) override;
     virtual void keyboard_release(const QKeyEvent& event) override;
 
+    virtual void add_keyboard_listener(KeyboardEventHandler::KeyboardListener& keyboard_listener) override;
+    virtual void remove_keyboard_listener(KeyboardEventHandler::KeyboardListener& keyboard_listener) override;
+
 
 private:
     class KeyboardManager;
@@ -170,6 +183,30 @@ private:
 
 
 
+class LeftJoycon : public JoyconController{
+public:
+    using JoyconController::JoyconController;
+
+    static const char NAME[];
+    virtual const char* name() override{
+        return NAME;
+    };
+    virtual ControllerClass controller_class() const override{
+        return ControllerClass::NintendoSwitch_LeftJoycon;
+    }    
+};
+class RightJoycon : public JoyconController{
+public:
+    using JoyconController::JoyconController;
+
+    static const char NAME[];
+    virtual const char* name() override{
+        return NAME;
+    };
+    virtual ControllerClass controller_class() const override{
+        return ControllerClass::NintendoSwitch_RightJoycon;
+    } 
+};
 
 
 

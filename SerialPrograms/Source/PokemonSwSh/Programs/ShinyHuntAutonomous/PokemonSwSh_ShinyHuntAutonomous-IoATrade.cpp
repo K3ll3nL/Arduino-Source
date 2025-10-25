@@ -28,12 +28,11 @@ ShinyHuntAutonomousIoATrade_Descriptor::ShinyHuntAutonomousIoATrade_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSwSh:ShinyHuntAutonomousIoATrade",
         STRING_POKEMON + " SwSh", "Shiny Hunt Autonomous - IoA Trade",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSwSh/ShinyHuntAutonomous-IoATrade.md",
+        "Programs/PokemonSwSh/ShinyHuntAutonomous-IoATrade.html",
         "Hunt for shiny Isle of Armor trade using video feedback.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 std::unique_ptr<StatsTracker> ShinyHuntAutonomousIoATrade_Descriptor::make_stats() const{

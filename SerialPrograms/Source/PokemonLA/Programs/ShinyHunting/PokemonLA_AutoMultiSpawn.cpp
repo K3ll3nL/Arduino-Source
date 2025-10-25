@@ -17,6 +17,7 @@
 #include "CommonFramework/Tools/DebugDumper.h"
 #include "CommonTools/Async/InterruptableCommands.h"
 #include "CommonTools/Async/InferenceRoutines.h"
+#include "CommonTools/StartupChecks/StartProgramChecks.h"
 #include "NintendoSwitch/Controllers/NintendoSwitch_ProController.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "Pokemon/Inference/Pokemon_NameReader.h"
@@ -83,7 +84,7 @@ std::pair<bool, PokemonDetails> control_focus_to_throw(
         context,
         env.console.logger(),
         env.realtime_dispatcher(),
-        env.console.pro_controller()
+        env.console.controller<ProController>()
     );
 
     // First, let controller press ZL non-stop to start focusing on a pokemon
@@ -203,11 +204,12 @@ AutoMultiSpawn_Descriptor::AutoMultiSpawn_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonLA:AutoMultiSpawn",
         STRING_POKEMON + " LA", "Auto Multi-Spawn",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonLA/AutoMultiSpawn.md",
+        "Programs/PokemonLA/AutoMultiSpawn.html",
         "Advance a path in MultiSpawn shiny hunting method.",
+        ProgramControllerClass::StandardController_RequiresPrecision,
         FeedbackType::REQUIRED,
         AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {SerialPABotBase::OLD_NINTENDO_SWITCH_DEFAULT_REQUIREMENTS}
+        {}
     )
 {}
 
@@ -276,6 +278,8 @@ std::vector<int> parse_multispawn_path(SingleSwitchProgramEnvironment& env, cons
 
 
 void AutoMultiSpawn::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+    StartProgramChecks::check_performance_class_wired_or_wireless(context);
+
     //  Connect the controller.
     pbf_press_button(context, BUTTON_LCLICK, 5, 5);
 
@@ -302,7 +306,7 @@ void AutoMultiSpawn::program(SingleSwitchProgramEnvironment& env, ProControllerC
         env.log("The path is: " + os.str());
     }
     
-    goto_any_camp_from_overworld(env, env.console, context, TravelLocations::instance().Mirelands_Mirelands);
+    fast_travel_from_overworld(env, env.console, context, TravelLocations::instance().Mirelands_Mirelands);
     change_time_of_day_at_tent(env.console, context, path_times[0], Camp::MIRELANDS_MIRELANDS);
 
     for(size_t iStep = 0; iStep < path_despawns.size(); iStep++){
@@ -354,7 +358,7 @@ void AutoMultiSpawn::advance_one_path_step(
         pbf_press_button(context, BUTTON_X, 20, 230);
     }
 
-    goto_any_camp_from_overworld(env, env.console, context, TravelLocations::instance().Mirelands_Mirelands);
+    fast_travel_from_overworld(env, env.console, context, TravelLocations::instance().Mirelands_Mirelands);
     
     // We try at most three battles to remove pokemon
     size_t already_removed_pokemon = 0;
@@ -423,7 +427,7 @@ size_t AutoMultiSpawn::try_one_battle_to_remove_pokemon(
         env.log("Cannot focus on any pokemon. Retry.");
         // TODO: escape routine may scare wild pokemon. A better way is to reset and load from the backup save?
         // or load from a previous save?
-        goto_any_camp_from_overworld(env, env.console, context, TravelLocations::instance().Mirelands_Mirelands);
+        fast_travel_from_overworld(env, env.console, context, TravelLocations::instance().Mirelands_Mirelands);
         // TODO: May need to reset time of day here
     }
 
@@ -559,7 +563,7 @@ size_t AutoMultiSpawn::try_one_battle_to_remove_pokemon(
         }
     }
 
-    goto_any_camp_from_overworld(env, env.console, context, TravelLocations::instance().Mirelands_Mirelands);
+    fast_travel_from_overworld(env, env.console, context, TravelLocations::instance().Mirelands_Mirelands);
     return num_removed_pokemon;
 }
 

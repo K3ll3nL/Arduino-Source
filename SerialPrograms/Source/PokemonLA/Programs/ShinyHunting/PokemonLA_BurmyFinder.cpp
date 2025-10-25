@@ -13,7 +13,6 @@
 #include "CommonFramework/VideoPipeline/VideoFeed.h"
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
-#include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "Pokemon/Pokemon_Notification.h"
 #include "Pokemon/Inference/Pokemon_NameReader.h"
@@ -44,12 +43,11 @@ BurmyFinder_Descriptor::BurmyFinder_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonLA:Burmy Hunter",
         STRING_POKEMON + " LA", "Burmy Hunter",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonLA/BurmyHunter.md",
+        "Programs/PokemonLA/BurmyHunter.html",
         "Check nearby trees for a possible Shiny, Alpha or Alpha Shiny Burmy",
+        ProgramControllerClass::StandardController_PerformanceClassSensitive,
         FeedbackType::VIDEO_AUDIO,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 class BurmyFinder_Descriptor::Stats : public StatsTracker{
@@ -286,7 +284,7 @@ void BurmyFinder::go_to_height_camp(SingleSwitchProgramEnvironment& env, ProCont
     int ret = run_until<ProControllerContext>(
         env.console, context,
         [&](ProControllerContext& context){
-            goto_any_camp_from_overworld(env, env.console, context, TravelLocations::instance().Fieldlands_Heights);
+            fast_travel_from_overworld(env, env.console, context, TravelLocations::instance().Fieldlands_Heights);
         },
         {
             {battle_menu_detector},
@@ -303,7 +301,7 @@ void BurmyFinder::go_to_height_camp(SingleSwitchProgramEnvironment& env, ProCont
         // Finish battle
         handle_battle(env, context);
         // Go back to camp
-        goto_any_camp_from_overworld(env, env.console, context, TravelLocations::instance().Fieldlands_Heights);
+        fast_travel_from_overworld(env, env.console, context, TravelLocations::instance().Fieldlands_Heights);
     }
 }
 
@@ -845,8 +843,7 @@ void BurmyFinder::program(SingleSwitchProgramEnvironment& env, ProControllerCont
 
             pbf_press_button(context, BUTTON_HOME, 160ms, GameSettings::instance().GAME_TO_HOME_DELAY0);
             fresh_from_reset = reset_game_from_home(
-                env, env.console, context,
-                ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST
+                env, env.console, context
             );
         }
     }

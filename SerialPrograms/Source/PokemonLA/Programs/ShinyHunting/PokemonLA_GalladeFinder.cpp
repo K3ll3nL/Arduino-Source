@@ -8,7 +8,6 @@
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonFramework/ProgramStats/StatsTracking.h"
 #include "CommonTools/Async/InferenceRoutines.h"
-#include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonLA/PokemonLA_Settings.h"
@@ -27,12 +26,11 @@ GalladeFinder_Descriptor::GalladeFinder_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonLA:GalladeFinder",
         STRING_POKEMON + " LA", "Alpha Gallade Hunter",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonLA/AlphaGalladeHunter.md",
+        "Programs/PokemonLA/AlphaGalladeHunter.html",
         "Constantly reset the Snowpoint Temple to find Shiny Alpha Gallade.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::VIDEO_AUDIO,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 class GalladeFinder_Descriptor::Stats : public StatsTracker, public ShinyStatIncrementer{
@@ -167,7 +165,7 @@ void GalladeFinder::run_iteration(SingleSwitchProgramEnvironment& env, ProContro
     env.console.log("No shiny detected, restarting the game!");
 
     pbf_press_button(context, BUTTON_HOME, 160ms, GameSettings::instance().GAME_TO_HOME_DELAY0);
-    reset_game_from_home(env, env.console, context, ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST);
+    reset_game_from_home(env, env.console, context);
 }
 
 
@@ -187,7 +185,7 @@ void GalladeFinder::program(SingleSwitchProgramEnvironment& env, ProControllerCo
             e.send_notification(env, NOTIFICATION_ERROR_RECOVERABLE);
 
             pbf_press_button(context, BUTTON_HOME, 160ms, GameSettings::instance().GAME_TO_HOME_DELAY0);
-            reset_game_from_home(env, env.console, context, ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST);
+            reset_game_from_home(env, env.console, context);
         }
     }
 

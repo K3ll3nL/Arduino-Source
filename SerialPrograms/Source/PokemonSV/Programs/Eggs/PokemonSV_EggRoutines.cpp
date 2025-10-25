@@ -13,6 +13,7 @@
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
+#include "NintendoSwitch/NintendoSwitch_SingleSwitchProgram.h"
 #include "Pokemon/Options/Pokemon_StatsHuntFilter.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSV/Inference/PokemonSV_WhiteButtonDetector.h"
@@ -150,7 +151,7 @@ void do_egg_cycle_motion(
             stream
         );
         break;
-    case 2:
+    default:
         dump_image_and_throw_recoverable_exception(
             info, stream, "NoEggToHatch",
             "hatch_eggs_at_zero_gate(): No more egg hatch after 10 minutes."
@@ -351,6 +352,65 @@ void collect_eggs_after_sandwich(
     //  Recall your ride to reduce obstacles.
     pbf_press_button(context, BUTTON_PLUS, 20, 105);
 
+#if 0
+    // this sequence will purposefully fail if Camera support is off. 
+    // If we fail to reach the egg basket, we can then check that Camera support is on.
+
+    //  Move forward to table
+    pbf_move_left_joystick(context, 128, 0, 80, 40);
+    //  Move left
+    pbf_move_left_joystick(context, 0, 128, 40, 40);
+    //  Move forward to pass table
+    pbf_move_left_joystick(context, 128, 0, 80, 40);
+    //  Move right
+    pbf_move_left_joystick(context, 255, 128, 40, 85);
+    //  Move back/right to align to basket
+    pbf_move_left_joystick(context, 240, 255, 40, 40);
+
+    //  Move closer to the basket, up to the table
+    pbf_press_button(context, BUTTON_L, 20, 105);
+    pbf_move_left_joystick(context, 128, 0, 100, 40);
+
+    //  face away from the table
+    pbf_press_button(context, BUTTON_L, 20, 105);
+    pbf_move_left_joystick(context, 128, 255, 10, 40);  
+#endif
+
+#if 1
+    // this sequence will work with both Camera Support being Off and On
+
+    //  Move forward to table
+    pbf_move_left_joystick(context, 128, 0, 320ms, 480ms);
+
+    //  Move left
+    pbf_move_left_joystick(context, 0, 128, 80ms, 480ms);
+    pbf_press_button(context, BUTTON_L, 120ms, 480ms);
+    pbf_move_left_joystick(context, 128, 0, 320ms, 480ms);
+
+    //  Move forward to pass table
+    pbf_move_left_joystick(context, 255, 128, 80ms, 480ms);
+    pbf_press_button(context, BUTTON_L, 120ms, 480ms);
+    pbf_move_left_joystick(context, 128, 0, 640ms, 480ms);
+
+    //  Move right
+    pbf_move_left_joystick(context, 255, 128, 80ms, 480ms);
+    pbf_press_button(context, BUTTON_L, 120ms, 480ms);
+    pbf_move_left_joystick(context, 128, 0, 320ms, 480ms);
+
+    //  Turn right to face basket
+    pbf_move_left_joystick(context, 255, 128, 80ms, 480ms);
+    pbf_press_button(context, BUTTON_L, 120ms, 480ms);
+
+    //  Move closer to the basket, up to the table
+    pbf_move_left_joystick(context, 128, 0, 800ms, 480ms);
+
+    //  back away from the table, then face forwards towards the basket again
+    pbf_move_left_joystick(context, 128, 255, 200ms, 480ms);
+    pbf_move_left_joystick(context, 128, 0, 80ms, 480ms);
+    pbf_press_button(context, BUTTON_L, 120ms, 480ms);   
+#endif
+
+#if 0
     //  Move left
     pbf_move_left_joystick(context, 0, 128, 40, 40);
     //  Move forward to pass table
@@ -363,6 +423,7 @@ void collect_eggs_after_sandwich(
     //  Move closer to the basket.
     pbf_press_button(context, BUTTON_L, 20, 105);
     pbf_move_left_joystick(context, 128, 0, 10, 40);
+#endif
 
 
     context.wait_for_all_requests();
@@ -757,7 +818,11 @@ bool check_baby_info(
     gender_detector.make_overlays(overlay_set);
     BoxNatureDetector nature_detector(stream.overlay(), LANGUAGE);
 
-    const int shiny_ret = wait_until(stream, context, std::chrono::milliseconds(200), {shiny_detector});
+    const int shiny_ret = wait_until(
+        stream, context,
+        std::chrono::milliseconds(500),
+        {shiny_detector}
+    );
     const bool shiny = (shiny_ret == 0);
     VideoSnapshot screen = stream.video().snapshot();
     
@@ -777,3 +842,4 @@ bool check_baby_info(
 }
 }
 }
+

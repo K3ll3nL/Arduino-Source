@@ -27,12 +27,11 @@ AlolanTrade_Descriptor::AlolanTrade_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonLGPE:AlolanTrade",
         Pokemon::STRING_POKEMON + " LGPE", "Alolan Trade",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonLGPE/AlolanTrade.md",
+        "Programs/PokemonLGPE/AlolanTrade.html",
         "Shiny hunt Alolan forms by trading in-game.",
+        ProgramControllerClass::SpecializedController,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_RightJoycon},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 
@@ -137,7 +136,7 @@ void AlolanTrade::run_trade(SingleSwitchProgramEnvironment& env, JoyconContext& 
 }
 
 void AlolanTrade::program(SingleSwitchProgramEnvironment& env, CancellableScope& scope){
-    JoyconContext context(scope, env.console.controller<JoyconController>());
+    JoyconContext context(scope, env.console.controller<RightJoycon>());
     assert_16_9_720p_min(env.logger(), env.console);
     AlolanTrade_Descriptor::Stats& stats = env.current_stats<AlolanTrade_Descriptor::Stats>();
 
@@ -281,11 +280,8 @@ void AlolanTrade::program(SingleSwitchProgramEnvironment& env, CancellableScope&
                 "Out of Pokemon to trade and no shiny found. Resetting game."
             );
 
-            //Reset game
-            pbf_press_button(context, BUTTON_HOME, 200ms, 2000ms);
-            reset_game_from_home(env, env.console, context, 3000ms);
-            context.wait_for_all_requests();
 
+            reset_game_from_game(env, env.console, context, &stats.errors, 3000ms);
             stats.resets++;
             env.update_stats();
         }

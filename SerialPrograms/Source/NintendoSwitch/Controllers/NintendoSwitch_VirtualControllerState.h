@@ -8,7 +8,7 @@
 #define PokemonAutomation_NintendoSwitch_VirtualControllerState_H
 
 #include "Controllers/KeyboardInput/KeyboardInput.h"
-#include "NintendoSwitch_ControllerState.h"
+#include "NintendoSwitch_ControllerButtons.h"
 
 namespace PokemonAutomation{
 namespace NintendoSwitch{
@@ -19,6 +19,8 @@ public:
     virtual void clear() override;
     virtual bool operator==(const ControllerState& x) const override;
     virtual bool is_neutral() const override;
+
+    virtual JsonObject serialize_state() const override;
 
 public:
     Button buttons = BUTTON_NONE;
@@ -51,6 +53,8 @@ public:
     virtual void clear() override;
     virtual bool operator==(const ControllerState& x) const override;
     virtual bool is_neutral() const override;
+
+    virtual JsonObject serialize_state() const override;
 
 public:
     Button buttons = BUTTON_NONE;

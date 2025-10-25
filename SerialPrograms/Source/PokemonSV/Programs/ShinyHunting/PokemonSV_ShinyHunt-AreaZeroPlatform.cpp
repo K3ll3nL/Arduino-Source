@@ -44,12 +44,11 @@ ShinyHuntAreaZeroPlatform_Descriptor::ShinyHuntAreaZeroPlatform_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSV:ShinyHuntAreaZeroPlatform",
         STRING_POKEMON + " SV", "Shiny Hunt - Area Zero Platform",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSV/ShinyHunt-AreaZeroPlatform.md",
+        "Programs/PokemonSV/ShinyHunt-AreaZeroPlatform.html",
         "Shiny hunt the isolated platform at the bottom of Area Zero.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::VIDEO_AUDIO,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 struct ShinyHuntAreaZeroPlatform_Descriptor::Stats : public LetsGoEncounterBotStats{

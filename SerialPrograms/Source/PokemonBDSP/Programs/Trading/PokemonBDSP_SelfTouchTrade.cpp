@@ -22,12 +22,11 @@ SelfTouchTrade_Descriptor::SelfTouchTrade_Descriptor()
     : MultiSwitchProgramDescriptor(
         "PokemonBDSP:SelfTouchTrade",
         STRING_POKEMON + " BDSP", "Self Touch Trade",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonBDSP/SelfTouchTrade.md",
+        "Programs/PokemonBDSP/SelfTouchTrade.html",
         "Touch trade boxes of " + STRING_POKEMON + " between two local Switches.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::REQUIRED,
         AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER,
         2, 2, 2
     )
 {}
@@ -71,7 +70,7 @@ void SelfTouchTrade::program(MultiSwitchProgramEnvironment& env, CancellableScop
     env.update_stats();
 
     size_t host_index = HOSTING_SWITCH == HostingSwitch::Switch0 ? 0 : 1;
-    ProControllerContext host(scope, env.consoles[host_index].pro_controller());
+    ProControllerContext host(scope, env.consoles[host_index].controller<ProController>());
 
     //  Swap trade all the boxes.
     for (uint8_t box = 0; box < BOXES_TO_TRADE; box++){

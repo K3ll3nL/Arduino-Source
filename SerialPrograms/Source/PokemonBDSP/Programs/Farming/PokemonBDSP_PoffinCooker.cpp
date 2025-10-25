@@ -23,12 +23,11 @@ PoffinCooker_Descriptor::PoffinCooker_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonBDSP:PoffinCooker",
         STRING_POKEMON + " BDSP", "Poffin Cooker",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonBDSP/PoffinCooker.md",
+        "Programs/PokemonBDSP/PoffinCooker.html",
         "Cook Poffins.",
+        ProgramControllerClass::StandardController_PerformanceClassSensitive,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::MUCH_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 struct PoffinCooker_Descriptor::Stats : public StatsTracker{

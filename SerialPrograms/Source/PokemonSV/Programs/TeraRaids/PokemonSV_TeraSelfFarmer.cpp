@@ -41,12 +41,11 @@ TeraSelfFarmer_Descriptor::TeraSelfFarmer_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSV:TeraSelfFarmer",
         STRING_POKEMON + " SV", "Tera Self Farmer",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSV/TeraSelfFarmer.md",
+        "Programs/PokemonSV/TeraSelfFarmer.html",
         "Farm items and " + STRING_POKEMON + " from Tera raids. Can also hunt for shiny and high reward raids.",
+        ProgramControllerClass::StandardController_PerformanceClassSensitive,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::MUCH_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 struct TeraSelfFarmer_Descriptor::Stats : public StatsTracker{
@@ -189,7 +188,7 @@ bool TeraSelfFarmer::run_raid(SingleSwitchProgramEnvironment& env, ProController
 
 
     if (CATCH_ON_WIN.FIX_TIME_ON_CATCH){
-        pbf_press_button(context, BUTTON_HOME, 80ms, GameSettings::instance().GAME_TO_HOME_DELAY1);
+        go_home(env.console, context);
         home_to_date_time(env.console, context, false);
         pbf_press_button(context, BUTTON_A, 20, 105);
         pbf_press_button(context, BUTTON_A, 20, 105);

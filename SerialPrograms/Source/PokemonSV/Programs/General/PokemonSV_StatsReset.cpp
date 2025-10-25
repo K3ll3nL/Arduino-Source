@@ -35,12 +35,11 @@ StatsReset_Descriptor::StatsReset_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSV:StatsReset",
         STRING_POKEMON + " SV", "Stats Reset",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSV/StatsReset.md",
+        "Programs/PokemonSV/StatsReset.html",
         "Repeatedly catch static encounters until you get the stats you want.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 struct StatsReset_Descriptor::Stats : public StatsTracker{

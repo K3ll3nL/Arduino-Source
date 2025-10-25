@@ -8,7 +8,6 @@
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonFramework/ProgramStats/StatsTracking.h"
 #include "CommonTools/Async/InferenceRoutines.h"
-#include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonLA/PokemonLA_Settings.h"
@@ -27,12 +26,11 @@ PostMMOSpawnReset_Descriptor::PostMMOSpawnReset_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonLA:PostMMOSpawnReset",
         STRING_POKEMON + " LA", "Post-MMO Spawn Reset",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonLA/PostMMOSpawnReset.md",
+        "Programs/PokemonLA/PostMMOSpawnReset.html",
         "Constantly reset the spawn after MMO finishes.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::VIDEO_AUDIO,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 class PostMMOSpawnReset_Descriptor::Stats : public StatsTracker, public ShinyStatIncrementer{
@@ -112,7 +110,7 @@ void PostMMOSpawnReset::run_iteration(SingleSwitchProgramEnvironment& env, ProCo
         int ret = run_until<ProControllerContext>(
             env.console, context,
             [this, &env](ProControllerContext& context){
-                reset_game_from_home(env, env.console, context, ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST);
+                reset_game_from_home(env, env.console, context);
                 env.console.log("Entered game! Checking shiny sound...");
 
                 // forward portion

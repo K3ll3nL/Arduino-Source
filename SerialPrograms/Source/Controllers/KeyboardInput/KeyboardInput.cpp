@@ -12,6 +12,10 @@
 #include "Controllers/KeyboardInput/GlobalQtKeyMap.h"
 #include "KeyboardInput.h"
 
+//#include <iostream>
+//using std::cout;
+//using std::endl;
+
 namespace PokemonAutomation{
 
 
@@ -39,7 +43,9 @@ void KeyboardInputController::stop() noexcept{
         std::lock_guard<std::mutex> lg(m_sleep_lock);
         m_cv.notify_all();
     }
-    m_thread.join();
+    if (m_thread.joinable()){
+        m_thread.join();
+    }
 }
 
 void KeyboardInputController::clear_state(){
@@ -52,7 +58,7 @@ void KeyboardInputController::clear_state(){
     m_cv.notify_all();
 }
 void KeyboardInputController::on_key_press(const QKeyEvent& key){
-//    cout << "press: " << key.key() << ", native = " << key.nativeVirtualKey() << endl;
+//    cout << "press: " << key.key() << ", native = " << key.nativeVirtualKey() << ", scancode = " << key.nativeScanCode() << endl;
 
 //    QKeySequence seq((Qt::Key)key.key());
 //    cout << "button: " << seq.toString().toStdString() << endl;

@@ -6,6 +6,7 @@
 
 #include "Common/Cpp/PrettyPrint.h"
 #include "CommonFramework/Notifications/ProgramNotifications.h"
+#include "CommonFramework/Tools/ErrorDumper.h"
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
@@ -29,12 +30,11 @@ ShinyHuntAutonomousRegigigas2_Descriptor::ShinyHuntAutonomousRegigigas2_Descript
     : SingleSwitchProgramDescriptor(
         "PokemonSwSh:ShinyHuntAutonomousRegigigas2",
         STRING_POKEMON + " SwSh", "Shiny Hunt Autonomous - Regigigas2",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSwSh/ShinyHuntAutonomous-Regigigas2.md",
+        "Programs/PokemonSwSh/ShinyHuntAutonomous-Regigigas2.html",
         "Automatically hunt for shiny Regigigas using video feedback.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 std::unique_ptr<StatsTracker> ShinyHuntAutonomousRegigigas2_Descriptor::make_stats() const{
@@ -60,6 +60,7 @@ ShinyHuntAutonomousRegigigas2::ShinyHuntAutonomousRegigigas2()
         &ENCOUNTER_BOT_OPTIONS.NOTIFICATION_NONSHINY,
         &ENCOUNTER_BOT_OPTIONS.NOTIFICATION_SHINY,
         &NOTIFICATION_PROGRAM_FINISH,
+        &NOTIFICATION_ERROR_RECOVERABLE,
         &NOTIFICATION_ERROR_FATAL,
     })
 {
@@ -78,7 +79,7 @@ bool ShinyHuntAutonomousRegigigas2::kill_and_return(VideoStream& stream, ProCont
     pbf_mash_button(context, BUTTON_A, 4000ms);
 
     while (true){
-        RaidCatchDetector detector(stream.overlay());
+        RaidCatchWatcher detector(stream.overlay());
         YCommIconDetector overworld(true);
         context.wait_for_all_requests();
         int result = wait_until(
@@ -139,6 +140,12 @@ void ShinyHuntAutonomousRegigigas2::program(SingleSwitchProgramEnvironment& env,
                 if (result < 0){
                     stats.add_error();
                     env.update_stats();
+                    if (NOTIFICATION_ERROR_RECOVERABLE.ok_to_send_now(env.logger())){
+                        dump_image(
+                            env.logger(), env.program_info(), env.console,
+                            "Start of battle not detected after 30 seconds."
+                        );
+                    }
                     break;
                 }
                 env.log("Detected battle start.");

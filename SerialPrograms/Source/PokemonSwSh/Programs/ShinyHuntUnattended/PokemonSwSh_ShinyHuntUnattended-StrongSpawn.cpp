@@ -5,6 +5,7 @@
  */
 
 #include "Common/Cpp/PrettyPrint.h"
+#include "CommonTools/StartupChecks/StartProgramChecks.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
 #include "NintendoSwitch/NintendoSwitch_Settings.h"
@@ -23,12 +24,11 @@ ShinyHuntUnattendedStrongSpawn_Descriptor::ShinyHuntUnattendedStrongSpawn_Descri
     : SingleSwitchProgramDescriptor(
         "PokemonSwSh:ShinyHuntUnattendedStrongSpawn",
         STRING_POKEMON + " SwSh", "Shiny Hunt Unattended - Strong Spawn",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSwSh/ShinyHuntUnattended-StrongSpawn.md",
+        "Programs/PokemonSwSh/ShinyHuntUnattended-StrongSpawn.html",
         "Hunt for shiny strong spawns. Stop when a shiny is found.",
+        ProgramControllerClass::StandardController_RequiresPrecision,
         FeedbackType::NONE,
         AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {SerialPABotBase::OLD_NINTENDO_SWITCH_DEFAULT_REQUIREMENTS},
-        FasterIfTickPrecise::NOT_FASTER,
         true
     )
 {}
@@ -57,6 +57,8 @@ ShinyHuntUnattendedStrongSpawn::ShinyHuntUnattendedStrongSpawn()
 
 
 void ShinyHuntUnattendedStrongSpawn::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+    StartProgramChecks::check_performance_class_wired_or_wireless(context);
+
     if (START_LOCATION.start_in_grip_menu()){
         grip_menu_connect_go_home(context);
     }else{
@@ -80,7 +82,7 @@ void ShinyHuntUnattendedStrongSpawn::program(SingleSwitchProgramEnvironment& env
 
         //  Switch to mashing ZR instead of A to get into the game.
         //  Mash your way into the game.
-        Milliseconds duration = GameSettings::instance().START_GAME_MASH0;
+        Milliseconds duration = ConsoleSettings::instance().START_GAME_MASH;
         if (ConsoleSettings::instance().START_GAME_REQUIRES_INTERNET){
             //  Need to wait a bit longer for the internet check.
             duration += ConsoleSettings::instance().START_GAME_INTERNET_CHECK_DELAY0;

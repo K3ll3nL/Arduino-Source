@@ -4,16 +4,17 @@
  *
  */
 
+#include <atomic>
 #include "3rdParty/ONNX/OnnxToolsPA.h"
 #include "Common/Cpp/Time.h"
-#include "ClientSource/Connection/BotBase.h"
-#include "CommonFramework/ImageTypes/ImageRGB32.h"
+//#include "CommonFramework/ImageTypes/ImageRGB32.h"
 #include "CommonFramework/ImageTypes/ImageViewRGB32.h"
 #include "CommonFramework/ImageTools/ImageBoxes.h"
-#include "CommonTools/Async/InferenceRoutines.h"
-#include "CommonTools/Async/InferenceSession.h"
-#include "CommonTools/InferenceCallbacks/VisualInferenceCallback.h"
 #include "CommonFramework/VideoPipeline/VideoOverlay.h"
+#include "CommonFramework/VideoPipeline/VideoOverlayScopes.h"
+#include "CommonTools/Async/InferenceRoutines.h"
+//#include "CommonTools/Async/InferenceSession.h"
+#include "CommonTools/InferenceCallbacks/VisualInferenceCallback.h"
 #include "TestDudunsparceFormDetector.h"
 
 #include <opencv2/imgproc.hpp>
@@ -22,7 +23,7 @@
 #include <onnxruntime_cxx_api.h>
 
 #include <limits>
-#include <vector>
+//#include <vector>
 #include <iostream>
 using std::cout, std::endl;
 
@@ -137,8 +138,9 @@ TestDudunsparceFormDetector_Descriptor::TestDudunsparceFormDetector_Descriptor()
         "Nintendo Switch", "Test Dudunsparce Form Detector",
         "",
         "Test ML model on Dudunsparce form in SV box system",
-        FeedbackType::NONE, AllowCommandsWhenRunning::ENABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController}
+        ProgramControllerClass::StandardController_NoRestrictions,
+        FeedbackType::NONE,
+        AllowCommandsWhenRunning::ENABLE_COMMANDS
     )
 {}
 

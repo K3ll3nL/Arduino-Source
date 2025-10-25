@@ -26,12 +26,11 @@ ShinyHuntAutonomousStrongSpawn_Descriptor::ShinyHuntAutonomousStrongSpawn_Descri
     : SingleSwitchProgramDescriptor(
         "PokemonSwSh:ShinyHuntAutonomousStrongSpawn",
         STRING_POKEMON + " SwSh", "Shiny Hunt Autonomous - Strong Spawn",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSwSh/ShinyHuntAutonomous-StrongSpawn.md",
+        "Programs/PokemonSwSh/ShinyHuntAutonomous-StrongSpawn.html",
         "Automatically hunt for shiny strong spawns using video feedback.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 std::unique_ptr<StatsTracker> ShinyHuntAutonomousStrongSpawn_Descriptor::make_stats() const{

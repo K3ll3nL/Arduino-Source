@@ -6,6 +6,7 @@
 
 #include "Common/Cpp/PrettyPrint.h"
 #include "CommonFramework/Notifications/ProgramNotifications.h"
+#include "Controllers/ControllerTypes.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
 #include "Pokemon/Pokemon_Strings.h"
@@ -23,12 +24,11 @@ StowOnSideFarmer_Descriptor::StowOnSideFarmer_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSwSh:StowOnSideFarmer",
         STRING_POKEMON + " SwSh", "Date Spam - Stow-On-Side Farmer",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSwSh/DateSpam-StowOnSideFarmer.md",
+        "Programs/PokemonSwSh/DateSpam-StowOnSideFarmer.html",
         "Farm the Stow-on-Side items dealer.",
+        ProgramControllerClass::StandardController_PerformanceClassSensitive,
         FeedbackType::NONE,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::MUCH_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 
@@ -68,7 +68,11 @@ void StowOnSideFarmer::program(SingleSwitchProgramEnvironment& env, ProControlle
     for (uint32_t c = 0; c < SKIPS; c++){
         env.log("Fetch Attempts: " + tostr_u_commas(c));
         home_roll_date_enter_game_autorollback(env.console, context, year);
-        pbf_mash_button(context, BUTTON_B, 90);
+        if (context->performance_class() == ControllerPerformanceClass::SysbotBase){
+            pbf_wait(context, 90);
+        }else{
+            pbf_mash_button(context, BUTTON_B, 90);
+        }
 
         ssf_press_button_ptv(context, BUTTON_A, 160ms);
         pbf_mash_button(context, BUTTON_ZL, 385);

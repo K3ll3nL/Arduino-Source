@@ -4,7 +4,6 @@
  * 
  */
 
-#include "ClientSource/Libraries/MessageConverter.h"
 #include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch_Commands_Superscalar.h"
@@ -118,6 +117,19 @@ void pbf_mash_button(JoyconContext& context, Button button, Milliseconds duratio
     ssf_mash1_button(context, button, duration);
 }
 
+void pbf_controller_state(
+    JoyconContext& context,
+    Button button,
+    uint8_t x, uint8_t y,
+    Milliseconds duration
+){
+    context->issue_full_controller_state(
+        &context,
+        button,
+        x, y,
+        duration
+    );
+}
 
 
 

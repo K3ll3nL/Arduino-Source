@@ -6,6 +6,7 @@
 
 #include "Common/Cpp/PrettyPrint.h"
 #include "CommonFramework/Notifications/ProgramNotifications.h"
+#include "Controllers/ControllerTypes.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
 #include "Pokemon/Pokemon_Strings.h"
@@ -23,12 +24,11 @@ BerryFarmer_Descriptor::BerryFarmer_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSwSh:BerryFarmer",
         STRING_POKEMON + " SwSh", "Date Spam - Berry Farmer",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSwSh/DateSpam-BerryFarmer.md",
+        "Programs/PokemonSwSh/DateSpam-BerryFarmer.html",
         "Farm berries.",
+        ProgramControllerClass::StandardController_PerformanceClassSensitive,
         FeedbackType::NONE,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::MUCH_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 
@@ -69,7 +69,11 @@ void BerryFarmer::program(SingleSwitchProgramEnvironment& env, ProControllerCont
         env.log("Fetch Attempts: " + tostr_u_commas(c));
 
         home_roll_date_enter_game_autorollback(env.console, context, year);
-        pbf_mash_button(context, BUTTON_B, 90);
+        if (context->performance_class() == ControllerPerformanceClass::SysbotBase){
+            pbf_wait(context, 90);
+        }else{
+            pbf_mash_button(context, BUTTON_B, 90);
+        }
 
         pbf_press_button(context, BUTTON_A, 10, 10);
         pbf_mash_button(context, BUTTON_ZL, 385);

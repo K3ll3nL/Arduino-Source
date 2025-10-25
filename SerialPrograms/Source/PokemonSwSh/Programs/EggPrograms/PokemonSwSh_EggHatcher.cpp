@@ -24,12 +24,11 @@ EggHatcher_Descriptor::EggHatcher_Descriptor()
     : SingleSwitchProgramDescriptor(
         "PokemonSwSh:EggHatcher",
         STRING_POKEMON + " SwSh", "Egg Hatcher",
-        "ComputerControl/blob/master/Wiki/Programs/PokemonSwSh/EggHatcher.md",
+        "Programs/PokemonSwSh/EggHatcher.html",
         "Hatch eggs from boxes.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::NONE,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 

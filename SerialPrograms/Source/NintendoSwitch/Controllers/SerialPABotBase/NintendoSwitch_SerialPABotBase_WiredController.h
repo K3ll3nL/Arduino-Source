@@ -7,7 +7,7 @@
 #ifndef PokemonAutomation_NintendoSwitch_SerialPABotBase_WiredControllerNS1_H
 #define PokemonAutomation_NintendoSwitch_SerialPABotBase_WiredControllerNS1_H
 
-#include "Controllers/ControllerCapability.h"
+#include "Controllers/SerialPABotBase/SerialPABotBase_StatusThread.h"
 #include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch/Controllers/NintendoSwitch_ProController.h"
 #include "NintendoSwitch_SerialPABotBase_Controller.h"
@@ -16,9 +16,12 @@ namespace PokemonAutomation{
 namespace NintendoSwitch{
 
 
+
+
 class SerialPABotBase_WiredController final :
     public ProController,
-    public SerialPABotBase_Controller
+    public SerialPABotBase_Controller,
+    private SerialPABotBase::ControllerStatusThreadCallback
 {
 public:
     using ContextType = ProControllerContext;
@@ -27,7 +30,9 @@ public:
 public:
     SerialPABotBase_WiredController(
         Logger& logger,
-        SerialPABotBase::SerialPABotBase_Connection& connection
+        SerialPABotBase::SerialPABotBase_Connection& connection,
+        ControllerType controller_type,
+        ControllerResetMode reset_mode
     );
     ~SerialPABotBase_WiredController();
     void stop();
@@ -45,10 +50,7 @@ public:
 
 public:
     virtual ControllerType controller_type() const override{
-        return ControllerType::NintendoSwitch_WiredController;
-    }
-    virtual const ControllerFeatures& controller_features() const override{
-        return m_supported_features;
+        return m_controller_type;
     }
     virtual ControllerPerformanceClass performance_class() const override{
         return ControllerPerformanceClass::SerialPABotBase_Wired;
@@ -61,7 +63,7 @@ public:
         return Milliseconds(8);
     }
     virtual Milliseconds timing_variation() const override{
-        return ConsoleSettings::instance().TIMING_OPTIONS.WIRED_MICROCONTROLLER;
+        return ConsoleSettings::instance().TIMING_OPTIONS.WIRED;
     }
     virtual bool atomic_multibutton() const override{
         return true;
@@ -218,21 +220,24 @@ public:
 
 
 private:
+    virtual void update_status(Cancellable& cancellable) override;
+    virtual void stop_with_error(std::string message) override;
+
+
+private:
     template <typename Type>
     PA_FORCE_INLINE Type milliseconds_to_ticks_8ms(Type milliseconds){
         return milliseconds / 8 + (milliseconds % 8 + 7) / 8;
     }
-    virtual void push_state(const Cancellable* cancellable, WallDuration duration) override;
-
-    void status_thread();
+    virtual void execute_state(
+        const Cancellable* cancellable,
+        const SuperscalarScheduler::ScheduleEntry& entry
+    ) override;
 
 
 private:
-    CancellableHolder<CancellableScope> m_scope;
-    std::atomic<bool> m_stopping;
-    std::mutex m_sleep_lock;
-    std::condition_variable m_cv;
-    std::thread m_status_thread;
+    const ControllerType m_controller_type;
+    std::unique_ptr<SerialPABotBase::ControllerStatusThread> m_status_thread;
 };
 
 

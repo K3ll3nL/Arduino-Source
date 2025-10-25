@@ -19,7 +19,6 @@
 #include "PokemonSV/Inference/Overworld/PokemonSV_StationaryOverworldWatcher.h"
 #include "PokemonSV/Inference/PokemonSV_MainMenuDetector.h"
 #include "PokemonSV/Programs/PokemonSV_MenuNavigation.h"
-#include "PokemonSV/Programs/PokemonSV_WorldNavigation.h"
 #include "PokemonSV/Programs/PokemonSV_GameEntry.h"
 #include "PokemonSV/Programs/PokemonSV_SaveGame.h"
 #include "PokemonSV/Programs/Battles/PokemonSV_Battles.h"
@@ -41,178 +40,7 @@ namespace PokemonSV{
 
 
 
-// spam A button to choose the first move
-// throw exception if wipeout or if your lead faints.
-void run_battle_press_A(
-    VideoStream& stream,
-    ProControllerContext& context,
-    BattleStopCondition stop_condition,
-    std::unordered_set<CallbackEnum> enum_optional_callbacks,
-    bool detect_wipeout
-){
-    int16_t num_times_seen_overworld = 0;
-    size_t consecutive_move_select = 0;
-    while (true){
-        NormalBattleMenuWatcher battle(COLOR_BLUE);
-        SwapMenuWatcher         fainted(COLOR_PURPLE);
-        OverworldWatcher        overworld(stream.logger(), COLOR_CYAN);
-        AdvanceDialogWatcher    dialog(COLOR_RED);
-        DialogArrowWatcher dialog_arrow(COLOR_RED, stream.overlay(), {0.850, 0.820, 0.020, 0.050}, 0.8365, 0.846);
-        GradientArrowWatcher next_pokemon(COLOR_BLUE, GradientArrowType::RIGHT, {0.50, 0.51, 0.30, 0.10});
-        MoveSelectWatcher move_select_menu(COLOR_YELLOW);
 
-        std::vector<PeriodicInferenceCallback> callbacks; 
-        std::vector<CallbackEnum> enum_all_callbacks;
-        //  mandatory callbacks: Battle, Overworld, Advance Dialog, Swap menu, Move select
-        //  optional callbacks: DIALOG_ARROW, NEXT_POKEMON
-
-        // merge the mandatory and optional callbacks as a set, to avoid duplicates. then convert to vector
-        std::unordered_set<CallbackEnum> enum_all_callbacks_set{CallbackEnum::BATTLE, CallbackEnum::OVERWORLD, CallbackEnum::ADVANCE_DIALOG, CallbackEnum::SWAP_MENU, CallbackEnum::MOVE_SELECT}; // mandatory callbacks
-        enum_all_callbacks_set.insert(enum_optional_callbacks.begin(), enum_optional_callbacks.end()); // append the mandatory and optional callback sets together
-        enum_all_callbacks.assign(enum_all_callbacks_set.begin(), enum_all_callbacks_set.end());
-
-        for (const CallbackEnum& enum_callback : enum_all_callbacks){
-            switch(enum_callback){
-            case CallbackEnum::ADVANCE_DIALOG:
-                callbacks.emplace_back(dialog);
-                break;                
-            case CallbackEnum::OVERWORLD:
-                callbacks.emplace_back(overworld);
-                break;
-            case CallbackEnum::DIALOG_ARROW:
-                callbacks.emplace_back(dialog_arrow);
-                break;
-            case CallbackEnum::BATTLE:
-                callbacks.emplace_back(battle);
-                break;
-            case CallbackEnum::NEXT_POKEMON: // to detect the "next pokemon" prompt.
-                callbacks.emplace_back(next_pokemon);
-                break;
-            case CallbackEnum::SWAP_MENU:  // detecting Swap Menu implies your lead fainted.
-                callbacks.emplace_back(fainted);
-                break;                     
-            case CallbackEnum::MOVE_SELECT:
-                callbacks.emplace_back(move_select_menu);
-                break;
-            default:
-                throw InternalProgramError(nullptr, PA_CURRENT_FUNCTION, "run_battle_press_A: Unknown callback requested.");
-            }
-        }        
-        context.wait_for_all_requests();
-
-        int ret = wait_until(
-            stream, context,
-            std::chrono::seconds(90),
-            callbacks
-        );
-        context.wait_for(std::chrono::milliseconds(100));
-        if (ret < 0){
-            OperationFailedException::fire(
-                ErrorReport::SEND_ERROR_REPORT,
-                "run_battle_press_A(): Timed out. Did not detect expected stop condition.",
-                stream
-            );
-        }        
-
-        CallbackEnum enum_callback = enum_all_callbacks[ret];
-        switch (enum_callback){
-        case CallbackEnum::BATTLE: // battle
-            stream.log("Detected battle menu.");
-            consecutive_move_select = 0;
-            pbf_press_button(context, BUTTON_A, 20, 105);
-            break;
-        case CallbackEnum::MOVE_SELECT:
-            stream.log("Detected move select. Spam first move");
-            consecutive_move_select++;
-            select_top_move(stream, context, consecutive_move_select);
-            break;
-        case CallbackEnum::OVERWORLD: // overworld
-            stream.log("Detected overworld, battle over.");
-            num_times_seen_overworld++;
-            if (stop_condition == BattleStopCondition::STOP_OVERWORLD){
-                return;
-            }
-            if(num_times_seen_overworld > 30){
-                OperationFailedException::fire(
-                    ErrorReport::SEND_ERROR_REPORT,
-                    "run_battle_press_A(): Stuck in overworld. Did not detect expected stop condition.",
-                    stream
-                );  
-            }            
-            break;
-        case CallbackEnum::ADVANCE_DIALOG: // advance dialog
-            stream.log("Detected dialog.");
-
-            if (detect_wipeout){
-                context.wait_for_all_requests();
-                WipeoutDetector wipeout;
-                VideoSnapshot screen = stream.video().snapshot();
-                // dump_snapshot(console);
-                if (wipeout.detect(screen)){
-                    OperationFailedException::fire(
-                        ErrorReport::SEND_ERROR_REPORT,
-                        "run_battle_press_A(): Detected wipeout. All pokemon fainted.",
-                        stream
-                    );                
-                }
-            }
-
-            if (stop_condition == BattleStopCondition::STOP_DIALOG){
-                return;
-            }
-            pbf_press_button(context, BUTTON_A, 20, 105);
-            break;
-        case CallbackEnum::DIALOG_ARROW:  // dialog arrow
-            stream.log("run_battle_press_A: Detected dialog arrow.");
-            pbf_press_button(context, BUTTON_A, 20, 105);
-            break;
-        case CallbackEnum::NEXT_POKEMON:
-            stream.log("run_battle_press_A: Detected prompt for bringing in next pokemon. Keep current pokemon.");
-            pbf_mash_button(context, BUTTON_B, 100);
-            break;
-        case CallbackEnum::SWAP_MENU:
-            OperationFailedException::fire(
-                ErrorReport::SEND_ERROR_REPORT,
-                "run_battle_press_A(): Lead pokemon fainted.",
-                stream
-            );        
-        default:
-            throw InternalProgramError(nullptr, PA_CURRENT_FUNCTION, "run_battle_press_A: Unknown callback triggered.");
-          
-        }
-    }
-}
-
-void run_trainer_battle_press_A(
-    VideoStream& stream,
-    ProControllerContext& context,
-    BattleStopCondition stop_condition,
-    std::unordered_set<CallbackEnum> enum_optional_callbacks,
-    bool detect_wipeout
-){
-    enum_optional_callbacks.insert(CallbackEnum::NEXT_POKEMON);  // always check for the "Next pokemon" prompt when in trainer battles
-    run_battle_press_A(stream, context, stop_condition, enum_optional_callbacks, detect_wipeout);
-}
-
-void run_wild_battle_press_A(
-    VideoStream& stream,
-    ProControllerContext& context,
-    BattleStopCondition stop_condition,
-    std::unordered_set<CallbackEnum> enum_optional_callbacks,
-    bool detect_wipeout
-){
-    run_battle_press_A(stream, context, stop_condition, enum_optional_callbacks, detect_wipeout);
-}
-
-void select_top_move(VideoStream& stream, ProControllerContext& context, size_t consecutive_move_select){
-    if (consecutive_move_select > 3){
-        // to handle case where move is disabled/out of PP/taunted
-        stream.log("Failed to select a move 3 times. Choosing a different move.", COLOR_RED);
-        pbf_press_dpad(context, DPAD_DOWN, 20, 40);
-    }
-    pbf_mash_button(context, BUTTON_A, 100);
-
-}
 
 void clear_tutorial(VideoStream& stream, ProControllerContext& context, uint16_t seconds_timeout){
     bool seen_tutorial = false;
@@ -264,7 +92,7 @@ void clear_dialog(VideoStream& stream, ProControllerContext& context,
 
         AdvanceDialogWatcher    advance_dialog(COLOR_RED);
         OverworldWatcher    overworld(stream.logger(), COLOR_CYAN);
-        PromptDialogWatcher prompt(COLOR_YELLOW);
+        PromptDialogWatcher prompt(COLOR_YELLOW, {0.50, 0.25, 0.40, 0.65});
         WhiteButtonWatcher  whitebutton(COLOR_GREEN, WhiteButton::ButtonA_DarkBackground, {0.725, 0.833, 0.024, 0.045}); // {0.650, 0.650, 0.140, 0.240}
         DialogArrowWatcher dialog_arrow(COLOR_RED, stream.overlay(), {0.850, 0.820, 0.020, 0.050}, 0.8365, 0.846);
         NormalBattleMenuWatcher battle(COLOR_ORANGE);
@@ -307,20 +135,32 @@ void clear_dialog(VideoStream& stream, ProControllerContext& context,
         }
 
 
-        int ret = wait_until(
+        // int ret = wait_until(
+        //     stream, context,
+        //     std::chrono::seconds(seconds_timeout),
+        //     callbacks
+        // );
+
+        WallClock start_inference = current_time();
+        int ret = run_until<ProControllerContext>(
             stream, context,
-            std::chrono::seconds(seconds_timeout),
+            [&](ProControllerContext& context){
+
+                if (mode == ClearDialogMode::STOP_TIMEOUT){
+                    context.wait_for(Seconds(seconds_timeout));
+                }else{ // press A every 8 seconds, until we time out.
+                    auto button_press_period = Seconds(8);
+                    while (true){
+                        if (current_time() - start_inference + button_press_period > Seconds(seconds_timeout)){
+                            break;
+                        }
+                        context.wait_for(button_press_period);
+                        pbf_press_button(context, BUTTON_A, 160ms, 0ms);
+                    }
+                }
+            },
             callbacks
         );
-        // int ret = run_until<ProControllerContext>(
-        //     console, context,
-        //     [&](ProControllerContext& context){
-        //         for (size_t j = 0; j < seconds_timeout/3; j++){
-        //             pbf_press_button(context, BUTTON_A, 20, 3*TICKS_PER_SECOND-20);
-        //         }
-        //     },
-        //     {overworld, prompt, whitebutton, advance_dialog, battle}
-        // );
         context.wait_for(std::chrono::milliseconds(100));
         if (ret < 0){
             stream.log("clear_dialog(): Timed out.");
@@ -423,6 +263,52 @@ bool confirm_marker_present(
 
 }
 
+void realign_player(const ProgramInfo& info, VideoStream& stream, ProControllerContext& context,
+    PlayerRealignMode realign_mode,
+    uint8_t move_x, uint8_t move_y, uint16_t move_duration
+){
+    stream.log("Realigning player direction...");
+    switch (realign_mode){
+    case PlayerRealignMode::REALIGN_NEW_MARKER:
+        stream.log("Setting new map marker...");
+
+        handle_unexpected_battles(info, stream, context,
+        [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+            open_map_from_overworld(info, stream, context);
+        });
+
+        pbf_press_button(context, BUTTON_ZR, 20, 105);
+        pbf_move_left_joystick(context, move_x, move_y, move_duration, 1 * TICKS_PER_SECOND);
+        pbf_press_button(context, BUTTON_A, 20, 105);
+        pbf_press_button(context, BUTTON_A, 20, 105);
+
+        handle_unexpected_battles(info, stream, context,
+        [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){        
+            leave_phone_to_overworld(info, stream, context);
+        });
+        return;     
+    case PlayerRealignMode::REALIGN_OLD_MARKER:
+        handle_unexpected_battles(info, stream, context,
+        [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+            open_map_from_overworld(info, stream, context, false);
+        });
+
+        handle_unexpected_battles(info, stream, context,
+        [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){        
+            leave_phone_to_overworld(info, stream, context);
+        });
+
+        pbf_press_button(context, BUTTON_L, 20, 105);
+        return;
+    case PlayerRealignMode::REALIGN_NO_MARKER:
+        pbf_move_left_joystick(context, move_x, move_y, move_duration, 1 * TICKS_PER_SECOND);
+        pbf_press_button(context, BUTTON_L, 20, 105);
+        return;
+    }  
+
+}
+
+
 void overworld_navigation(
     const ProgramInfo& info, 
     VideoStream& stream,
@@ -471,8 +357,8 @@ void overworld_navigation(
                         if (movement_mode == NavigationMovementMode::DIRECTIONAL_ONLY){
                             pbf_wait(context, seconds_realign * TICKS_PER_SECOND);
                         } else if (movement_mode == NavigationMovementMode::DIRECTIONAL_SPAM_A){
-                            for (size_t j = 0; j < seconds_realign; j++){
-                                pbf_press_button(context, BUTTON_A, 20, 105);
+                            for (size_t j = 0; j < 5 * seconds_realign; j++){
+                                pbf_press_button(context, BUTTON_A, 20, 5);
                             }
                         }
                     }
@@ -551,57 +437,52 @@ void overworld_navigation(
 
 void config_option(ProControllerContext& context, int change_option_value){
     for (int i = 0; i < change_option_value; i++){
-        pbf_press_dpad(context, DPAD_RIGHT, 15, 20);
+        pbf_press_dpad(context, DPAD_RIGHT, 13, 20);
     }
-    pbf_press_dpad(context, DPAD_DOWN,  15, 20);
+    pbf_press_dpad(context, DPAD_DOWN,  13, 20);
 }
 
-void swap_starter_moves(const ProgramInfo& info, VideoStream& stream, ProControllerContext& context, Language language){
-    WallClock start = current_time();
-    while (true){
-        if (current_time() - start > std::chrono::minutes(3)){
-            OperationFailedException::fire(
-                ErrorReport::SEND_ERROR_REPORT,
-                "swap_starter_moves(): Failed to swap the starter moves after 3 minutes.",
-                stream
-            );
-        }
-        // start in the overworld
-        press_Bs_to_back_to_overworld(info, stream, context);
+void swap_starter_moves(SingleSwitchProgramEnvironment& env, ProControllerContext& context, Language language){
+    const ProgramInfo& info = env.program_info();
+    VideoStream& stream = env.console;
 
-        // open menu, select your starter
-        enter_menu_from_overworld(info, stream, context, 0, MenuSide::LEFT);
+    // start in the overworld
+    press_Bs_to_back_to_overworld(info, stream, context);
 
-        // enter Pokemon summary screen
-        pbf_press_button(context, BUTTON_A, 20, 5 * TICKS_PER_SECOND);
-        pbf_press_dpad(context, DPAD_RIGHT, 15, 1 * TICKS_PER_SECOND);
-        pbf_press_button(context, BUTTON_Y, 20, 40);
+    // open menu, select your starter
+    enter_menu_from_overworld(info, stream, context, 0, MenuSide::LEFT);
 
-        // select move 1
-        pbf_press_button(context, BUTTON_A, 20, 40);  
-        pbf_press_dpad(context, DPAD_DOWN,  15, 40);
-        pbf_press_dpad(context, DPAD_DOWN,  15, 40);
-        // extra button presses to avoid drops
-        pbf_press_dpad(context, DPAD_DOWN,  15, 40); 
-        pbf_press_dpad(context, DPAD_DOWN,  15, 40);
+    // enter Pokemon summary screen
+    pbf_press_button(context, BUTTON_A, 20, 5 * TICKS_PER_SECOND);
+    pbf_press_dpad(context, DPAD_RIGHT, 15, 1 * TICKS_PER_SECOND);
+    pbf_press_button(context, BUTTON_Y, 20, 40);
 
-        // select move 3. swap move 1 and move 3.
-        pbf_press_button(context, BUTTON_A, 20, 40);    
+    // select move 1
+    pbf_press_button(context, BUTTON_A, 20, 40);  
+    pbf_press_dpad(context, DPAD_DOWN,  15, 40);
+    pbf_press_dpad(context, DPAD_DOWN,  15, 40);
+    // extra button presses to avoid drops
+    pbf_press_dpad(context, DPAD_DOWN,  15, 40); 
+    pbf_press_dpad(context, DPAD_DOWN,  15, 40);
 
-        // confirm that Ember/Leafage/Water Gun is in slot 1
-        context.wait_for_all_requests();
-        VideoSnapshot screen = stream.video().snapshot();
-        PokemonMovesReader reader(language);
-        std::string top_move = reader.read_move(stream.logger(), screen, 0);
-        stream.log("Current top move: " + top_move);
-        if (top_move != "ember" && top_move != "leafage" && top_move != "water-gun"){
-            stream.log("Failed to swap moves. Re-try.");
-            continue;
-        }   
+    // select move 3. swap move 1 and move 3.
+    pbf_press_button(context, BUTTON_A, 20, 40);    
 
-
-        break;    
-    }
+    // confirm that Ember/Leafage/Water Gun is in slot 1
+    context.wait_for_all_requests();
+    VideoSnapshot screen = stream.video().snapshot();
+    PokemonMovesReader reader(language);
+    std::string top_move = reader.read_move(stream.logger(), screen, 0);
+    stream.log("Current top move: " + top_move);
+    if (top_move != "ember" && top_move != "leafage" && top_move != "water-gun"){
+        stream.log("Unable to confirm that the moves actually swapped.");
+        OperationFailedException exception(
+            ErrorReport::SEND_ERROR_REPORT,
+            "swap_starter_moves: Unable to confirm that the moves actually swapped.\n" + language_warning(language),
+            stream
+        );
+        exception.send_recoverable_notification(env);
+    }   
 
 }
 
@@ -782,6 +663,40 @@ void handle_unexpected_battles(
             run_wild_battle_press_A(stream, context, BattleStopCondition::STOP_OVERWORLD);
         }
     }
+}
+
+void do_action_and_monitor_for_overworld(
+    const ProgramInfo& info, 
+    VideoStream& stream,
+    ProControllerContext& context,
+    std::function<
+        void(const ProgramInfo& info, 
+        VideoStream& stream,
+        ProControllerContext& context)
+    >&& action
+){
+
+    OverworldWatcher overworld(stream.logger(), COLOR_CYAN);
+
+    int ret = run_until<ProControllerContext>(
+        stream, context,
+        [&](ProControllerContext& context){
+            context.wait_for_all_requests();
+            action(info, stream, context);
+        },
+        {overworld}        
+    );
+    if (ret < 0){
+        // successfully completed action detecting the overworld
+        return;
+    }else if (ret == 0){
+        OperationFailedException::fire(
+            ErrorReport::SEND_ERROR_REPORT,
+            "do_action_and_monitor_for_overworld(): Failed to complete action. Detected overworld.",
+            stream
+        );                
+    }
+
 }
 
 void handle_when_stationary_in_overworld(
@@ -1028,6 +943,12 @@ void realign_player_from_landmark(
     stream.log("Realigning player direction, using a landmark...");
     WallClock start = current_time();
 
+    const int MAX_TRY_COUNT = 17;
+    int try_count = 0;
+
+    // failures to fly to pokecenter are often when the Switch lags. from my testing, a 1.4-1.5 adjustment factor seems to work
+    const std::array<double, MAX_TRY_COUNT> adjustment_table =  {1, 1.4, 1, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 0.9, 0.8, 1.4}; // {1, 1.4, 1.5};
+
     while (true){
         if (current_time() - start > std::chrono::minutes(5)){
             OperationFailedException::fire(
@@ -1065,7 +986,8 @@ void realign_player_from_landmark(
             pbf_move_left_joystick(context, move_x1, move_y1, move_duration1, 1 * TICKS_PER_SECOND);
 
             // move cursor to pokecenter
-            if (!detect_closest_pokecenter_and_move_map_cursor_there(info, stream, context, 0.29)){
+            double push_scale = 0.29 * adjustment_table[try_count];
+            if (!detect_closest_flypoint_and_move_map_cursor_there(info, stream, context, FlyPoint::POKECENTER, push_scale)){
                 OperationFailedException::fire(
                     ErrorReport::SEND_ERROR_REPORT,
                     "realign_player_from_landmark(): No visible pokecenter found on map.",
@@ -1109,8 +1031,16 @@ void realign_player_from_landmark(
         }catch (UnexpectedBattleException&){
             run_wild_battle_press_A(stream, context, BattleStopCondition::STOP_OVERWORLD);
         }catch (OperationFailedException&){
-            // reset to overworld if failed to center on the pokecenter, and re-try
-            leave_phone_to_overworld(info, stream, context);
+            try_count++;
+            if (try_count >= MAX_TRY_COUNT){
+                OperationFailedException::fire(
+                    ErrorReport::SEND_ERROR_REPORT,
+                    "fly_to_closest_pokecenter_on_map(): At min warpable map level, pokecenter was detected, but failed to fly there.",
+                    stream
+                );                
+            }
+            stream.log("Failed to find the fly menu item. Restart the closest Pokecenter travel process.");
+            press_Bs_to_back_to_overworld(info, stream, context);
         }
     }
     
@@ -1138,9 +1068,16 @@ void move_cursor_towards_flypoint_and_go_there(
     const ProgramInfo& info, 
     VideoStream& stream,
     ProControllerContext& context,
-    MoveCursor move_cursor_near_flypoint
+    MoveCursor move_cursor_near_flypoint,
+    FlyPoint fly_point
 ){
     WallClock start = current_time();
+
+    const int MAX_TRY_COUNT = 17;
+    int try_count = 0;
+    
+    // failures to fly to pokecenter are often when the Switch lags. from my testing, a 1.4-1.5 adjustment factor seems to work
+    const std::array<double, MAX_TRY_COUNT> adjustment_table =  {1, 1.4, 1, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 0.9, 0.8, 1.4}; // {1, 1.4, 1.5};
 
     while (true){
         if (current_time() - start > std::chrono::minutes(5)){
@@ -1178,7 +1115,8 @@ void move_cursor_towards_flypoint_and_go_there(
             uint16_t move_duration1 = move_cursor_near_flypoint.move_duration;
             pbf_move_left_joystick(context, move_x1, move_y1, move_duration1, 1 * TICKS_PER_SECOND);
 
-            if (!fly_to_visible_closest_pokecenter_cur_zoom_level(info, stream, context)){
+            double push_scale = 0.29 * adjustment_table[try_count];
+            if (!fly_to_visible_closest_flypoint_cur_zoom_level(info, stream, context, fly_point, push_scale)){
                 OperationFailedException::fire(
                     ErrorReport::SEND_ERROR_REPORT,
                     "move_cursor_towards_flypoint_and_go_there(): No visible pokecenter found on map.",
@@ -1191,8 +1129,16 @@ void move_cursor_towards_flypoint_and_go_there(
         }catch (UnexpectedBattleException&){
             run_wild_battle_press_A(stream, context, BattleStopCondition::STOP_OVERWORLD);
         }catch (OperationFailedException&){
-            // reset to overworld if failed to center on the pokecenter, and re-try
-            leave_phone_to_overworld(info, stream, context);
+            try_count++;
+            if (try_count >= MAX_TRY_COUNT){
+                OperationFailedException::fire(
+                    ErrorReport::SEND_ERROR_REPORT,
+                    "move_cursor_towards_flypoint_and_go_there(): At given zoom level, pokecenter was detected, but failed to fly there.",
+                    stream
+                );                
+            }
+            stream.log("Failed to find the fly menu item. Restart the closest Pokecenter travel process.");
+            press_Bs_to_back_to_overworld(info, stream, context);
         }
     }
     
@@ -1220,8 +1166,90 @@ void check_num_sunflora_found(SingleSwitchProgramEnvironment& env, ProController
 
 }
 
+void checkpoint_reattempt_loop(
+    SingleSwitchProgramEnvironment& env, 
+    ProControllerContext& context, 
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats,
+    std::function<void(size_t attempt_number)>&& action
+){
+    size_t max_attempts = 100;
+    for (size_t i = 0;;i++){
+    try{
+        if (i==0){
+            checkpoint_save(env, context, notif_status_update, stats);
+        }
+
+        context.wait_for_all_requests();
+        action(i);
+
+        enter_menu_from_overworld(env.program_info(), env.console, context, -1);
+       
+        break;
+    }catch(OperationFailedException& e){
+        if (i > max_attempts){
+            OperationFailedException::fire(
+                ErrorReport::SEND_ERROR_REPORT,
+                "Autostory checkpoint failed " + std::to_string(max_attempts) + " times.\n"
+                "Make sure you selected the correct Start Point, and your character is in the exactly correct starting position."
+                "Also, make sure you have set the correct Language.\n" + e.message(),
+                env.console
+            );
+        }
+        context.wait_for_all_requests();
+        env.console.log("Resetting from checkpoint.");
+        reset_game(env.program_info(), env.console, context);
+        stats.m_reset++;
+        env.update_stats();
+    }         
+    }
+
+}
+
+void checkpoint_reattempt_loop_tutorial(
+    SingleSwitchProgramEnvironment& env, 
+    ProControllerContext& context, 
+    EventNotificationOption& notif_status_update,
+    AutoStoryStats& stats,
+    std::function<void(size_t attempt_number)>&& action
+){
+    size_t max_attempts = 100;
+    for (size_t i = 0;;i++){
+    try{
+        if(i==0){
+            save_game_tutorial(env.program_info(), env.console, context);
+            stats.m_checkpoint++;
+            env.update_stats();
+            send_program_status_notification(env, notif_status_update, "Saved at checkpoint.");     
+        }
+        
+        context.wait_for_all_requests();
+        action(i);
+
+        break;  
+    }catch(OperationFailedException& e){
+        if (i > max_attempts){
+            OperationFailedException::fire(
+                ErrorReport::SEND_ERROR_REPORT,
+                "Autostory checkpoint failed " + std::to_string(max_attempts) + " times.\n"
+                "Make sure you selected the correct Start Point, and your character is in the exactly correct starting position."
+                "Also, make sure you have set the correct Language.\n" + e.message(),
+                env.console
+            );
+        }        
+        context.wait_for_all_requests();
+        env.console.log("Resetting from checkpoint.");
+        reset_game(env.program_info(), env.console, context);
+        stats.m_reset++;
+        env.update_stats();
+    }
+    }    
+}
+
+
 
 
 }
 }
 }
+

@@ -25,8 +25,8 @@ namespace PokemonAutomation{
 
 const bool IS_BETA_VERSION = true;
 const int PROGRAM_VERSION_MAJOR = 0;
-const int PROGRAM_VERSION_MINOR = 54;
-const int PROGRAM_VERSION_PATCH = 32;
+const int PROGRAM_VERSION_MINOR = 59;
+const int PROGRAM_VERSION_PATCH = 3;
 
 const std::string PROGRAM_VERSION_BASE =
     "v" + std::to_string(PROGRAM_VERSION_MAJOR) +
@@ -45,17 +45,17 @@ const std::string PROGRAM_VERSION = PROGRAM_VERSION_BASE + "-user";
 
 const std::string PROGRAM_NAME = "Pok\u00e9mon Automation";
 
-const std::string ONLINE_DOC_URL_BASE = "https://github.com/PokemonAutomation/";
+const std::string ONLINE_DOC_URL_BASE = "https://pokemonautomation.github.io/";
 const std::string PROJECT_SOURCE_URL = "https://github.com/PokemonAutomation/Arduino-Source/";
 const std::string RESOURCES_URL_BASE = "https://github.com/PokemonAutomation/Packages/";
 
 
 
 //  This the URL that we display. We don't actually use this for linking.
-const std::string GITHUB_LINK_TEXT = "github.com/PokemonAutomation";
+const std::string GITHUB_LINK_TEXT = "pokemonautomation.github.io";
 
 //  This is the URL that we actually link to.
-const std::string GITHUB_LINK_URL = "https://github.com/PokemonAutomation/About/blob/master/README.md";
+const std::string GITHUB_LINK_URL = "https://pokemonautomation.github.io";
 
 
 
@@ -69,6 +69,9 @@ const std::string DISCORD_LINK_URL_PROGRAM = "https://discord.gg/BSjDp27";
 
 //  URL to use in the Discord notifications/embeds.
 const std::string DISCORD_LINK_URL_EMBED = "https://discord.gg/xMJcveK";
+
+// URL to use in the DiscordSocialSDK integration.
+const std::string DISCORD_LINK_URL_SDK = "https://discord.gg/gn9YEyjjAV";
 
 
 
@@ -144,11 +147,6 @@ std::string get_runtime_base_path(){
     return "./";
 }
 
-const std::string& RUNTIME_BASE_PATH(){
-    static std::string path = get_runtime_base_path();
-    return path;
-}
-
 std::string get_setting_path(){
     return RUNTIME_BASE_PATH() + "UserSettings/";
 }
@@ -166,6 +164,11 @@ std::string get_user_file_path(){
 }
 
 } // anonymous namespace
+
+const std::string& RUNTIME_BASE_PATH(){
+    static std::string path = get_runtime_base_path();
+    return path;
+}
 
 const std::string& SETTINGS_PATH(){
     static std::string path = get_setting_path();
@@ -202,6 +205,11 @@ const std::string& TRAINING_PATH(){
 
 const std::string& ML_ANNOTATION_PATH(){
     static const std::string path = RUNTIME_BASE_PATH() + "DataAnnotation/";
+    return path;
+}
+
+const std::string& ML_MODEL_CACHE_PATH(){
+    static const std::string path = RUNTIME_BASE_PATH() + "ModelCache/";
     return path;
 }
 

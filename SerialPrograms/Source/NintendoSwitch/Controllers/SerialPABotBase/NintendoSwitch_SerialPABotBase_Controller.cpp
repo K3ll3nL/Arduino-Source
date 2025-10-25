@@ -5,9 +5,7 @@
  */
 
 #include "Common/Cpp/Exceptions.h"
-#include "ClientSource/Connection/BotBaseMessage.h"
 #include "Controllers/ControllerTypeStrings.h"
-#include "Controllers/ControllerCapability.h"
 #include "NintendoSwitch_SerialPABotBase_Controller.h"
 
 //#include <iostream>
@@ -37,17 +35,10 @@ SerialPABotBase_Controller::SerialPABotBase_Controller(
 
     //  Check compatibility.
 
-    ControllerModeStatus mode_status = connection.controller_mode_status();
     logger.log(
         "SerialPABotBase_Controller(): ControllerType = " +
-        CONTROLLER_TYPE_STRINGS.get_string(mode_status.current_controller)
+        CONTROLLER_TYPE_STRINGS.get_string(connection.current_controller())
     );
-
-    std::map<ControllerType, ControllerFeatures>& controllers = mode_status.supported_controllers;
-    auto iter = controllers.find(controller_type);
-    if (iter != controllers.end()){
-        m_supported_features = std::move(iter->second);
-    }
 }
 
 
@@ -59,7 +50,7 @@ void SerialPABotBase_Controller::cancel_all_commands(){
         throw InvalidConnectionStateException(error_string());
     }
     m_serial->stop_all_commands();
-    this->clear_on_next();
+    m_scheduler.clear_on_next();
 }
 void SerialPABotBase_Controller::replace_on_next_command(){
     std::lock_guard<std::mutex> lg(m_state_lock);
@@ -67,11 +58,12 @@ void SerialPABotBase_Controller::replace_on_next_command(){
         throw InvalidConnectionStateException(error_string());
     }
     m_serial->next_command_interrupt();
-    this->clear_on_next();
+    m_scheduler.clear_on_next();
 }
 
 
 void SerialPABotBase_Controller::wait_for_all(const Cancellable* cancellable){
+    SuperscalarScheduler::Schedule schedule;
     std::lock_guard<std::mutex> lg0(m_issue_lock);
     {
         std::lock_guard<std::mutex> lg1(m_state_lock);
@@ -85,8 +77,9 @@ void SerialPABotBase_Controller::wait_for_all(const Cancellable* cancellable){
             throw InvalidConnectionStateException(error_string());
         }
 
-        this->issue_wait_for_all(cancellable);
+        m_scheduler.issue_wait_for_all(schedule);
     }
+    execute_schedule(cancellable, schedule);
     m_serial->wait_for_all_requests(cancellable);
 }
 

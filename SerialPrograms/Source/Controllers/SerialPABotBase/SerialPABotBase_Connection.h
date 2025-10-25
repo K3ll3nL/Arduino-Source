@@ -8,14 +8,14 @@
 #define PokemonAutomation_Controllers_SerialPABotBase_Connection_H
 
 #include <memory>
+//#include <set>
 #include <mutex>
 #include <condition_variable>
 #include <thread>
-#include "ClientSource/Connection/BotBase.h"
-#include "ClientSource/Connection/MessageLogger.h"
+//#include "Common/SerialPABotBase/SerialPABotBase_Protocol_IDs.h"
+#include "Controllers/SerialPABotBase/Connection/BotBase.h"
+#include "Controllers/SerialPABotBase/Connection/MessageLogger.h"
 #include "Controllers/ControllerConnection.h"
-
-class QSerialPortInfo;
 
 namespace PokemonAutomation{
     class PABotBase;
@@ -26,44 +26,27 @@ class SerialPABotBase_Connection : public ControllerConnection{
 public:
     SerialPABotBase_Connection(
         Logger& logger,
-        const QSerialPortInfo* port,
-        std::optional<ControllerType> change_controller
+        const std::string& name,
+        bool set_to_null_controller
     );
     ~SerialPABotBase_Connection();
 
 
 public:
-//    uint8_t program_id() const{
-//        return m_program_id;
-//    }
+    const std::string& device_name() const{
+        return m_device_name;
+    }
     BotBaseController* botbase();
 
-public:
-    virtual ControllerModeStatus controller_mode_status() const override;
+    ControllerType refresh_controller_type();
 
 
 private:
-    const std::map<uint32_t, std::map<ControllerType, ControllerFeatures>>&
-    get_programs_for_protocol(uint32_t protocol);
-
-    const std::map<ControllerType, ControllerFeatures>&
-    get_controllers_for_program(
-        const std::map<uint32_t, std::map<ControllerType, ControllerFeatures>>& available_programs,
-        uint32_t program_id
-    );
-
     void process_queue_size();
-    ControllerType get_controller_type(
-        const std::map<ControllerType, ControllerFeatures>& available_controllers
-    );
+    void throw_incompatible_protocol();
+    ControllerType process_device(bool set_to_null_controller);
 
-    ControllerModeStatus read_device_specs(
-        std::optional<ControllerType> change_controller
-    );
-
-    void thread_body(
-        std::optional<ControllerType> change_controller
-    );
+    void thread_body(bool set_to_null_controller);
 
 
 private:
@@ -73,7 +56,7 @@ private:
     uint32_t m_protocol = 0;
     uint32_t m_version = 0;
     uint8_t m_program_id = 0;
-    ControllerModeStatus m_mode_status;
+    std::string m_program_name;
 
     std::thread m_status_thread;
     std::unique_ptr<PABotBase> m_botbase;
