@@ -117,7 +117,9 @@ public:
 
     CursorActionResponse move_cursor_to(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&);
     CursorActionResponse pick_up_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&);
+    CursorActionResponse pick_up_pokemon_multi(SingleSwitchProgramEnvironment&, ProControllerContext&);
     CursorActionResponse put_down_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&);
+    CursorActionResponse put_down_pokemon_multi(SingleSwitchProgramEnvironment&, ProControllerContext&);
     CursorActionResponse identify_page(SingleSwitchProgramEnvironment&, ProControllerContext&, bool = false, int = UINT_MAX);
     int get_page();
     int get_page() const ;
@@ -149,19 +151,21 @@ class HomeEnvironment : public SingleSwitchProgramInstance {
 public:
     HomeEnvironment(SingleSwitchProgramEnvironment& env, ProControllerContext& context);
 
-    void navigate_menus_to(SingleSwitchProgramEnvironment&, ProControllerContext&, const PageID, const GameStatus = GameStatus::CURRENT);
+    bool navigate_menus_to(SingleSwitchProgramEnvironment&, ProControllerContext&, const PageID, const GameStatus = GameStatus::CURRENT);
     void navigate_to(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor &);
     void detect_home(SingleSwitchProgramEnvironment&, ProControllerContext&, bool = false);
     void scroll_filter_menu(SingleSwitchProgramEnvironment&, ProControllerContext&, std::string, int = 0);
     void pick_up_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&);
+    void pick_up_pokemon_multi(SingleSwitchProgramEnvironment&, ProControllerContext&);
     void put_down_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&);
+    void put_down_pokemon_multi(SingleSwitchProgramEnvironment&, ProControllerContext&);
     void swap_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor& slot1, const HomeCursor& slot2);
     void bail_out(SingleSwitchProgramEnvironment&env, ProControllerContext&context);
     std::string get_filter_menu_read(SingleSwitchProgramEnvironment& env, ProControllerContext& context);
     std::string get_view();
     bool sort_into_correct_boxes(SingleSwitchProgramEnvironment&, ProControllerContext&, int, int);
     void build_box(SingleSwitchProgramEnvironment&, ProControllerContext&, int);
-    void sort_box(SingleSwitchProgramEnvironment&, ProControllerContext&, int);
+    bool sort_box(SingleSwitchProgramEnvironment&, ProControllerContext&, int);
     void sort_all_boxes(SingleSwitchProgramEnvironment&, ProControllerContext&, int, int);
     size_t get_box();
 
@@ -179,10 +183,10 @@ private:
 
     void initialize_navigation_map(SingleSwitchProgramEnvironment&, ProControllerContext&);
     std::vector<PageID> find_navigation_path(SingleSwitchProgramEnvironment&, ProControllerContext&, PageID, PageID);
-    void perform_navigation_steps(SingleSwitchProgramEnvironment&, ProControllerContext&, std::vector<PageID>&);
+    bool perform_navigation_steps(SingleSwitchProgramEnvironment&, ProControllerContext&, std::vector<PageID>&);
     void identify_game_icon(SingleSwitchProgramEnvironment&, ProControllerContext&);
-
-
+    bool reconcile_box(SingleSwitchProgramEnvironment&, ProControllerContext&, int, bool);
+    void scan_box(SingleSwitchProgramEnvironment&, ProControllerContext&, int);
     std::optional<HomeCursor> cursor;
     GameStatus game_open;
     PageID current_view;

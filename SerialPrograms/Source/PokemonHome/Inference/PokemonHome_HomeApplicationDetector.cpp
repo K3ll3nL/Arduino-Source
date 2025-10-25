@@ -507,7 +507,7 @@ bool HomeLogoutDialogueDetector::detect(const ImageViewRGB32& screen){
 
     char chars[] = "\n\r—";
 
-    // Search for the dialogue text to say, "Logging into Pokémon HOME..."
+    // Search for the dialogue text to say, "Your Boxes have been saved!"
     ImageFloatBox login_dialogue(0.155, 0.82, 0.37, 0.06);
     std::string login_text = OCR::ocr_read(Language::English, extract_box_reference(screen, login_dialogue));
     for(auto a:chars){login_text.erase(std::remove(login_text.begin(),login_text.end(), a),login_text.end());}

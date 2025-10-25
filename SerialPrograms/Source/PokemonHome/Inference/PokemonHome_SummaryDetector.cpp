@@ -218,7 +218,7 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
             {710, {{/*Need nonshiny average form Pumpkaboo*/ FloatPixel(255, 255, 255), /*Need shiny average form Pumpkaboo*/ FloatPixel(255, 255, 255)},
                    {/*Need nonshiny small form Pumpkaboo*/ FloatPixel(255, 255, 255), /*Need shiny small form Pumpkaboo*/ FloatPixel(255, 255, 255)},
                    {FloatPixel(176.666792, 145.626349, 106.988353), /*Need shiny large form Pumpkaboo*/ FloatPixel(255, 255, 255)},
-                   {/*Need nonshiny super form Pumpkaboo*/ FloatPixel(255, 255, 255), /*Need shiny super form Pumpkaboo*/ FloatPixel(255, 255, 255)}}}, // Pumpkaboo (Average+Shiny, Small+Shiny, Large+Shiny, Super+Shiny)
+                   {FloatPixel(168.906404, 137.023159, 97.643662), /*Need shiny super form Pumpkaboo*/ FloatPixel(255, 255, 255)}}}, // Pumpkaboo (Average+Shiny, Small+Shiny, Large+Shiny, Super+Shiny)
             // {711, {{}}} // Gourgeist (Average+Shiny, Small+Shiny, Large+Shiny, Super+Shiny)
             {718, {{FloatPixel(142.745968, 150.517538, 112.791267), /*Need shiny 50 form Zygarde*/ FloatPixel(255, 255, 255)},
                    {FloatPixel(142.745968, 150.517538, 112.791267), /*Need shiny 50-power-construct form Zygarde*/ FloatPixel(255, 255, 255)},
@@ -406,7 +406,7 @@ SummaryWatcher::SummaryWatcher(Color color)
     , m_frozen_screen(
           COLOR_CYAN,                      // overlay color for frozen detection
           ImageFloatBox(0.0, 0.0, 1.0, 1.0), // monitor full screen; adjust if needed
-          std::chrono::milliseconds(100),         // wait 0.05 seconds of inactivity
+          std::chrono::milliseconds(250),         // wait 0.25 seconds of inactivity
           5.0                              // RMSD threshold
           )
 {}

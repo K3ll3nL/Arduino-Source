@@ -1,6 +1,9 @@
 #ifndef POKEMONHOME_POKEMONDATA_H
 #define POKEMONHOME_POKEMONDATA_H
 
+#include "Common/Cpp/Json/JsonArray.h"
+#include "Common/Cpp/Json/JsonValue.h"
+#include "Common/Cpp/Json/JsonObject.h"
 #include "CommonFramework/ImageTools/FloatPixel.h"
 #include "Pokemon/Options/Pokemon_StatsHuntFilter.h"
 #include "Pokemon/Pokemon_Types.h"
@@ -124,6 +127,7 @@ public:
         bool prime_example,
         bool placeholder
         );
+    PokemonData(const JsonObject& obj);
 
     std::vector<PokemonInformation> match(const std::vector<std::vector<PokemonInformation>>& candidates) const;
     bool operator==(const PokemonData& other) const;
@@ -132,6 +136,7 @@ public:
     bool operator<(const PokemonData& other) const;
 
     std::string to_string() const;
+    JsonValue to_json();
 
     int id;
     int form_id;
@@ -161,6 +166,7 @@ public:
     HomeSlot(int row, int col, FloatPixel quick_color);
     HomeSlot(int row, int col, FloatPixel quick_color, std::optional<PokemonData> pokemon);
     HomeSlot(int row, int col, const PokemonData& pokemon);
+    HomeSlot(const JsonObject& obj);
 
     // Accessors
     int row() const { return m_row; }
@@ -204,7 +210,7 @@ public:
 
     // Constructor: fills with provided Pokémon up to 30 (row-major order)
     explicit HomeBox(const std::vector<PokemonData>& pokemon_list);
-
+    HomeBox(const JsonValue& json);
     // Copy constructor
     HomeBox(const HomeBox& other);
     HomeBox& operator=(const HomeBox&);
@@ -218,7 +224,9 @@ public:
     void swap(int row1, int col1, int row2, int col2);
 
     // Flatten into a vector of existing Pokémon (ignores empty slots)
-    std::vector<PokemonData> flatten() const;
+    std::vector<PokemonData*> flatten();
+
+    JsonArray to_json();
 
     bool loaded;
 
@@ -243,8 +251,11 @@ public:
     void extracted(int &box1, int &box2);
     void swapSlots(int box1, int row1, int col1, int box2, int row2, int col2);
 
+    void store(int box);
+    bool load(int box);
+
     // Flatten all boxes into a vector of existing Pokémon (ignores empty slots)
-    std::vector<PokemonData> flatten() const;
+    std::vector<PokemonData*> flatten();
 
 private:
     std::vector<HomeBox> m_boxes;

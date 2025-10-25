@@ -1,10 +1,10 @@
 #include "PokemonHome_PokemonData.h"
-#include "Common/Cpp/Json/JsonArray.h"
-#include "Common/Cpp/Json/JsonValue.h"
-#include "Common/Cpp/Json/JsonObject.h"
 #include "CommonFramework/Globals.h"
+#include <fstream>
+#include <filesystem>
 #include <format>
 #include <Qstring>
+#include <iostream>
 
 namespace PokemonAutomation{
 namespace NintendoSwitch{
@@ -16,6 +16,30 @@ StatsHuntGenderFilter string_to_gender(const std::string& gender_str){
     if (gender_str == "genderless") return StatsHuntGenderFilter::Genderless;
     return StatsHuntGenderFilter::Any; // fallback / default
 }
+
+inline PokemonType string_to_type(const std::string& s){
+    if (s == "none")     return PokemonType::NONE;
+    if (s == "normal")   return PokemonType::NORMAL;
+    if (s == "fire")     return PokemonType::FIRE;
+    if (s == "fighting") return PokemonType::FIGHTING;
+    if (s == "water")    return PokemonType::WATER;
+    if (s == "flying")   return PokemonType::FLYING;
+    if (s == "grass")    return PokemonType::GRASS;
+    if (s == "poison")   return PokemonType::POISON;
+    if (s == "electric") return PokemonType::ELECTRIC;
+    if (s == "ground")   return PokemonType::GROUND;
+    if (s == "psychic")  return PokemonType::PSYCHIC;
+    if (s == "rock")     return PokemonType::ROCK;
+    if (s == "ice")      return PokemonType::ICE;
+    if (s == "bug")      return PokemonType::BUG;
+    if (s == "dragon")   return PokemonType::DRAGON;
+    if (s == "ghost")    return PokemonType::GHOST;
+    if (s == "dark")     return PokemonType::DARK;
+    if (s == "steel")    return PokemonType::STEEL;
+    if (s == "fairy")    return PokemonType::FAIRY;
+    return PokemonType::NONE; // fallback
+}
+
 
 static std::string region_to_string(Region r){
     switch(r){
@@ -161,28 +185,6 @@ void PokedexReader::load_pokedex(){
             // Types
             const JsonArray& typesArray = obj->get_array_throw("types");
 
-            auto string_to_type = [](const std::string& s) -> PokemonType{
-                if (s == "normal")   return PokemonType::NORMAL;
-                if (s == "fire")     return PokemonType::FIRE;
-                if (s == "fighting") return PokemonType::FIGHTING;
-                if (s == "water")    return PokemonType::WATER;
-                if (s == "flying")   return PokemonType::FLYING;
-                if (s == "grass")    return PokemonType::GRASS;
-                if (s == "poison")   return PokemonType::POISON;
-                if (s == "electric") return PokemonType::ELECTRIC;
-                if (s == "ground")   return PokemonType::GROUND;
-                if (s == "psychic")  return PokemonType::PSYCHIC;
-                if (s == "rock")     return PokemonType::ROCK;
-                if (s == "ice")      return PokemonType::ICE;
-                if (s == "bug")      return PokemonType::BUG;
-                if (s == "dragon")   return PokemonType::DRAGON;
-                if (s == "ghost")    return PokemonType::GHOST;
-                if (s == "dark")     return PokemonType::DARK;
-                if (s == "steel")    return PokemonType::STEEL;
-                if (s == "fairy")    return PokemonType::FAIRY;
-                return PokemonType::NONE;
-            };
-
             pokemon.Type1(string_to_type(typesArray[0].to_string_throw()));
             if (typesArray.size() > 1){
                 pokemon.Type2(string_to_type(typesArray[1].to_string_throw()));
@@ -255,6 +257,24 @@ PokemonData::PokemonData(int id, int form_id, std::string form,
     , placeholder(placeholder)
 {}
 
+PokemonData::PokemonData(const JsonObject& obj) {
+    id            = obj.get_integer_throw("id");
+    form_id       = obj.get_integer_throw("form_id");
+    form          = obj.get_string_throw("form");
+    gender        = string_to_gender(obj.get_string_throw("gender"));
+    type1         = string_to_type(obj.get_string_throw("type1"));
+    type2         = string_to_type(obj.get_string_throw("type2"));
+    region        = string_to_region(obj.get_string_throw("region"));
+    ot_id         = obj.get_integer_throw("ot_id");
+    level         = obj.get_integer_throw("level");
+    shiny         = obj.get_boolean_throw("shiny");
+    gmax          = obj.get_boolean_throw("gmax");
+    ability       = obj.get_string_throw("ability");
+    tera          = string_to_type(obj.get_string_throw("tera"));
+    prime_example = obj.get_boolean_throw("prime_example");
+    placeholder   = obj.get_boolean_throw("placeholder");
+}
+
 
 
 
@@ -302,38 +322,60 @@ bool PokemonData::operator==(const PokemonData& other) const {
 bool PokemonData::operator<(const PokemonData& other){
     if (prime_example != other.prime_example) {
         return prime_example;
+    }else{
+        if(prime_example){
+            if (id != other.id) {
+                return id < other.id;
+            }
+            if (form_id != other.form_id){
+                return form_id<other.form_id;
+            }
+        }else{
+            if (shiny != other.shiny) {
+                return shiny;
+            }
+            if (id != other.id) {
+                return id < other.id;
+            }
+            if (form_id != other.form_id){
+                return form_id<other.form_id;
+            }
+            if (level != other.level) {
+                return level > other.level;
+            }
+        }
     }
-    if (shiny != other.shiny) {
-        return shiny;
-    }
-    if (id != other.id) {
-        return id < other.id;
-    }
-    if (form_id != other.form_id){
-        return form_id<other.form_id;
-    }
-    if (level != other.level) {
-        return level > other.level;
-    }
+
     return false;
 }
 
 bool PokemonData::operator<(const PokemonData& other) const{
     if (prime_example != other.prime_example) {
         return prime_example;
+    }else{
+        if(prime_example){
+            if (id != other.id) {
+                return id < other.id;
+            }
+            if (form_id != other.form_id){
+                return form_id<other.form_id;
+            }
+        }else{
+            if (shiny != other.shiny) {
+                return shiny;
+            }
+            if (id != other.id) {
+                return id < other.id;
+            }
+            if (form_id != other.form_id){
+                return form_id<other.form_id;
+            }
+            if (level != other.level) {
+                return level > other.level;
+            }
+        }
     }
-    if (shiny != other.shiny) {
-        return shiny;
-    }
-    if (id != other.id) {
-        return id < other.id;
-    }
-    if (form_id != other.form_id){
-        return form_id<other.form_id;
-    }
-    if (level != other.level) {
-        return level > other.level;
-    }
+
     return false;
 }
 
@@ -362,6 +404,27 @@ std::string PokemonData::to_string() const {
     return s.toStdString();
 }
 
+JsonValue PokemonData::to_json(){
+    JsonObject pokemon;
+    pokemon["id"] = id;
+    pokemon["form_id"] = form_id;
+    pokemon["form"] = form;
+    pokemon["gender"] = gender_to_string(gender);
+    pokemon["type1"] = type_to_string(type1);
+    pokemon["type2"] = type_to_string(type2);
+    pokemon["region"] = region_to_string(region);
+    pokemon["ot_id"] = ot_id;
+    pokemon["level"] = level;
+    pokemon["shiny"] = shiny;
+    pokemon["gmax"] = gmax;
+    pokemon["ability"] = ability;
+    pokemon["tera"] = type_to_string(tera);
+    pokemon["prime_example"] = prime_example;
+    pokemon["placeholder"] = placeholder;
+
+    return pokemon;
+}
+
 HomeSlot::HomeSlot()
     : m_quick_color(), m_row(0), m_col(0), m_pokemon(std::nullopt) {}
 
@@ -377,6 +440,25 @@ HomeSlot::HomeSlot(int row, int col, FloatPixel quick_color, std::optional<Pokem
 HomeSlot::HomeSlot(int row, int col, const PokemonData& pokemon)
     : m_quick_color(), m_row(row), m_col(col), m_pokemon(pokemon)
 {}
+
+HomeSlot::HomeSlot(const JsonObject& obj) {
+    m_row = obj.get_integer_throw("row");
+    m_col = obj.get_integer_throw("column");
+
+    auto temp = obj.get_object("quick_color");
+    if(!temp){
+        m_quick_color = FloatPixel();
+    }else{
+        m_quick_color = FloatPixel(temp->get_double_throw("r"), temp->get_double_throw("g"), temp->get_double_throw("b")); // assuming FloatPixel has from_json
+    }
+
+    if (!obj.get_object("Pokemon")) {
+        m_pokemon = std::nullopt;
+    } else {
+        m_pokemon = PokemonData(*obj.get_object("Pokemon"));
+    }
+}
+
 
 void HomeSlot::setPokemon(const PokemonData& pokemon) {
     m_pokemon = pokemon;
@@ -427,6 +509,34 @@ HomeBox::HomeBox(const HomeBox& other)
         }
     }
 }
+
+HomeBox::HomeBox(const JsonValue& json)
+    : m_slots(MAX_ROWS, std::vector<HomeSlot>(MAX_COLS))
+{
+    const JsonArray* slots_arr = json.to_array();
+    if (!slots_arr) {
+        throw std::runtime_error("HomeBox JSON is not an array");
+    }
+
+    for (const JsonValue& entry : *slots_arr) {
+        const JsonObject* obj = entry.to_object();
+        if (!obj) {
+            throw std::runtime_error("Invalid entry in array: Expected a JSON object.");
+        }
+
+        int row = obj->get_integer_throw("row");
+        int col = obj->get_integer_throw("column");
+
+        // Let HomeSlot parse itself
+        m_slots[row][col] = HomeSlot(*obj);
+    }
+
+    loaded = true;
+}
+
+
+
+
 
 HomeBox& HomeBox::operator=(const HomeBox& other) {
     if (this != &other) {
@@ -487,22 +597,63 @@ void HomeBox::swap(int row1, int col1, int row2, int col2) {
     auto& slot2 = m_slots[row2][col2];
 
     std::swap(slot1.getPokemon(), slot2.getPokemon());
+    std::swap(slot1.m_quick_color, slot2.m_quick_color);
 }
 
 // Flatten into vector (skip blanks)
-std::vector<PokemonData> HomeBox::flatten() const {
-    std::vector<PokemonData> result;
+std::vector<PokemonData*> HomeBox::flatten() {
+    std::vector<PokemonData*> result;
     result.reserve(MAX_ROWS * MAX_COLS);
 
     for (int r = 0; r < MAX_ROWS; r++) {
         for (int c = 0; c < MAX_COLS; c++) {
-            const auto& slot = m_slots[r][c];
+            auto& slot = m_slots[r][c];
             if (slot.getPokemon().has_value()) {
-                result.push_back(*slot.getPokemon());
+                result.push_back(&(*slot.getPokemon()));
             }
         }
     }
     return result;
+}
+
+JsonArray HomeBox::to_json() {
+    JsonArray pokemon_data;
+
+    for (int poke_nb = 0; poke_nb < 30; poke_nb++) {
+        JsonObject pokemon;
+        int row = poke_nb / 6;
+        int col = poke_nb % 6;
+
+        pokemon["row"] = row;
+        pokemon["column"] = col;
+
+        HomeSlot slot = at(row,col);
+
+        if (!slot.isEmpty()) {
+            try {
+                pokemon["Pokemon"] = slot.getPokemon()->to_json();
+                JsonObject quick_color;
+                quick_color["r"] = slot.quick_color().r;
+                quick_color["g"] = slot.quick_color().g;
+                quick_color["b"] = slot.quick_color().b;
+                pokemon["quick_color"] = JsonValue(std::move(quick_color));
+            } catch (const std::exception& e) {
+                std::cerr << "Error converting Pokemon to JSON at row " << row
+                          << ", column " << col << ": " << e.what() << std::endl;
+                pokemon["Pokemon"] = "error";
+            }
+        } else {
+            pokemon["Pokemon"] = "blank";
+        }
+
+        try {
+            pokemon_data.push_back(std::move(pokemon));
+        } catch (const std::exception& e) {
+            std::cerr << "Error adding Pokemon to JSON array: " << e.what() << std::endl;
+        }
+    }
+
+    return pokemon_data;
 }
 
 
@@ -529,12 +680,12 @@ const HomeBox& HomeStorage::at(int box_index) const {
 
 
 std::optional<std::tuple<int, int, int>> HomeStorage::find_pokemon(const PokemonData& target) const {
-    for (size_t box_index = 0; box_index < m_boxes.size(); box_index++) {
+    for (int box_index = 0; box_index < 200; box_index++) {
         const HomeBox& box = m_boxes[box_index];
         auto pos = box.find_pokemon(target);
         if (pos.has_value()) {
             auto [row, col] = *pos;
-            return std::make_tuple(box_index, row, col);
+            return std::make_tuple(row, col, box_index);
         }
     }
     return std::nullopt;
@@ -555,12 +706,64 @@ void HomeStorage::swapSlots(
     std::swap(slot1, slot2);
 }
 
+void HomeStorage::store(int box){
+    if (box < 0 || box >= BOX_COUNT) {
+        throw std::out_of_range("HomeStorage::store: box index out of range.");
+    }
+
+    // Get the JSON representation from the HomeBox
+    JsonArray j = m_boxes[box].to_json();
+
+    std::filesystem::path folder = "Home Storage";
+    std::filesystem::create_directories(folder); // ensure folder exists
+    std::filesystem::path file_path = folder / (std::to_string(box) + ".json");
+
+    // Write JSON to file (pretty-print with 4-space indent)
+    std::ofstream out(file_path);
+    if (!out.is_open()) {
+        throw std::runtime_error("Failed to open file for writing: " + file_path.string());
+    }
+
+    out << j.dump(4);  // pretty-printed JSON
+    out.close();
+}
+
+
+bool HomeStorage::load(int box){
+    std::filesystem::path path = std::filesystem::path("Home Storage") / (std::to_string(box) + ".json");
+    if (!std::filesystem::exists(path)){
+        return false; // file doesn't exist
+    }
+
+    std::ifstream file(path);
+    if (!file.is_open()){
+        return false; // failed to open
+    }
+
+    // Read entire file into a string
+    std::string file_contents((std::istreambuf_iterator<char>(file)),
+                              std::istreambuf_iterator<char>());
+
+    try{
+        JsonValue json = parse_json(file_contents);
+        m_boxes.at(box) = HomeBox(json);
+    }catch(const std::exception& e){
+        std::cerr << "Failed to load box " << box << ": " << e.what() << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+
+
+
 // Flatten all boxes into a single vector (skip empty slots)
-std::vector<PokemonData> HomeStorage::flatten() const {
-    std::vector<PokemonData> result;
+std::vector<PokemonData*> HomeStorage::flatten() {
+    std::vector<PokemonData*> result;
     result.reserve(BOX_COUNT * HomeBox::MAX_ROWS * HomeBox::MAX_COLS);
 
-    for (const auto& box : m_boxes) {
+    for (auto& box : m_boxes) {
         auto box_flat = box.flatten();
         result.insert(result.end(), box_flat.begin(), box_flat.end());
     }

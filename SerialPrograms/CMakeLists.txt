@@ -1316,10 +1316,14 @@ file(GLOB MAIN_SOURCES
     Source/PokemonHome/PokemonHome_Settings.h
     Source/PokemonHome/Programs/HomeEnvironment/PokemonHome_HomeEnvironment.cpp
     Source/PokemonHome/Programs/HomeEnvironment/PokemonHome_HomeEnvironment.h
+    Source/PokemonHome/Programs/Enrichment_Tools.cpp
+    Source/PokemonHome/Programs/Enrichment_Tools.h
     Source/PokemonHome/Programs/PokemonHome_BoxSorting.cpp
     Source/PokemonHome/Programs/PokemonHome_BoxSorting.h
     Source/PokemonHome/Programs/PokemonHome_Enrichment.cpp
     Source/PokemonHome/Programs/PokemonHome_Enrichment.h
+    Source/PokemonHome/Programs/PokemonHome_Enrichment2.cpp
+    Source/PokemonHome/Programs/PokemonHome_Enrichment2.h
     Source/PokemonHome/Programs/PokemonHome_GenerateNameOCR.cpp
     Source/PokemonHome/Programs/PokemonHome_GenerateNameOCR.h
     Source/PokemonHome/Programs/PokemonHome_PageSwap.cpp
