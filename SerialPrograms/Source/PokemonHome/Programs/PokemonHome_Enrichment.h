@@ -19,11 +19,11 @@ class Pokemon {
 public:
     PokemonType type1;
     PokemonType type2;
-    float national_dex_number;
+    int national_dex_number;
     bool shiny;
     bool gmax;
     StatsHuntGenderFilter gender;
-    uint16_t level;
+    int level;
     int form_id;
     int ot_id;
 
@@ -42,7 +42,10 @@ public:
     }
 
     // Default constructor
-    Pokemon();
+    Pokemon() : type1(PokemonType::NONE), type2(PokemonType::NONE), national_dex_number(0), shiny(false), gmax(false), gender(StatsHuntGenderFilter::Genderless),
+                level(0), form_id(0), ot_id(0), color(), current_box(0), current_row(0), current_col(0) {}
+    Pokemon(PokemonData other) : type1(other.type1), type2(other.type2), national_dex_number(other.id), shiny(other.shiny), gmax(other.gmax), gender(other.gender),
+                            level(other.level), form_id(other.form_id), ot_id(other.ot_id), color(), current_box(0), current_row(0), current_col(0) {}
 
     void update_national_id();
 

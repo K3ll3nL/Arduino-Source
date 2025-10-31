@@ -4,6 +4,7 @@
 #include "CommonTools/OCR/OCR_NumberReader.h"
 #include "PokemonHome/Inference/PokemonHome_AbilityReader.h"
 #include "PokemonHome/Inference/PokemonHome_BoxGenderDetector.h"
+#include <iostream>
 #include <unordered_map>
 
 namespace PokemonAutomation{
@@ -103,7 +104,7 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
 
         static std::unordered_map<int, std::vector<std::pair<FloatPixel, FloatPixel>>> visual_forms = {
             {25, {{FloatPixel(248.564141, 220.904500, 74.276412), /*Need shiny pikachu-m form Pikachu*/ FloatPixel(255, 255, 255)},
-                   {FloatPixel(248.549586, 220.900558, 74.309764), /*Need shiny pikachu-f form Pikachu*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(248.594196, 220.895341, 74.365152), /*Need shiny pikachu-f form Pikachu*/ FloatPixel(255, 255, 255)},
                    {FloatPixel(241.680927, 208.992175, 95.705435), /*Need shiny pikachu-original-cap form Pikachu*/ FloatPixel(255, 255, 255)},
                    {FloatPixel(234.432471, 196.569238, 73.098768), /*Need shiny pikachu-hoenn-cap form Pikachu*/ FloatPixel(255, 255, 255)},
                    {FloatPixel(232.633454, 198.147125, 80.908562), /*Need shiny pikachu-sinnoh-cap form Pikachu*/ FloatPixel(255, 255, 255)},
@@ -215,16 +216,19 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
                    {/*Need nonshiny La Reine form Furfrou*/ FloatPixel(255, 255, 255), /*Need shiny La Reine form Furfrou*/ FloatPixel(255, 255, 255)},
                    {FloatPixel(228.011032, 185.871507, 162.710187), /*Need shiny Kabuki form Furfrou*/ FloatPixel(255, 255, 255)},
                    {/*Need nonshiny Pharoah form Furfrou*/ FloatPixel(255, 255, 255), /*Need shiny Pharoah form Furfrou*/ FloatPixel(255, 255, 255)}}}, // Furfrou (Normal+Shiny, Heart+Shiny, Star+Shiny, Diamond+Shiny, Debutante+Shiny, Matron+Shiny, Dandy+Shiny, La Reine+Shiny, Kabuki+Shiny, Pharoah+Shiny)
-            {710, {{/*Need nonshiny average form Pumpkaboo*/ FloatPixel(255, 255, 255), /*Need shiny average form Pumpkaboo*/ FloatPixel(255, 255, 255)},
-                   {/*Need nonshiny small form Pumpkaboo*/ FloatPixel(255, 255, 255), /*Need shiny small form Pumpkaboo*/ FloatPixel(255, 255, 255)},
-                   {FloatPixel(176.666792, 145.626349, 106.988353), /*Need shiny large form Pumpkaboo*/ FloatPixel(255, 255, 255)},
-                   {FloatPixel(168.906404, 137.023159, 97.643662), /*Need shiny super form Pumpkaboo*/ FloatPixel(255, 255, 255)}}}, // Pumpkaboo (Average+Shiny, Small+Shiny, Large+Shiny, Super+Shiny)
-            // {711, {{}}} // Gourgeist (Average+Shiny, Small+Shiny, Large+Shiny, Super+Shiny)
+            {710, {{FloatPixel(176.750779, 145.625794, 106.997542), /*Need shiny average form Pumpkaboo*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny small form Pumpkaboo*/ FloatPixel(176.750779, 145.625794, 106.997542), /*Need shiny small form Pumpkaboo*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny large form Pumpkaboo*/ FloatPixel(255, 255, 255), /*Need shiny large form Pumpkaboo*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny super form Pumpkaboo*/ FloatPixel(255, 255, 255), /*Need shiny super form Pumpkaboo*/ FloatPixel(255, 255, 255)}}}, // Pumpkaboo (Average+Shiny, Small+Shiny, Large+Shiny, Super+Shiny)
+            {711, {{/*Need nonshiny Average form Gourgeist*/ FloatPixel(255, 255, 255), /*Need shiny Average form Gourgeist*/ FloatPixel(255, 255, 255)},
+                   {FloatPixel(218.149718, 191.864447, 156.577827), /*Need shiny Small form Gourgeist*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny Large form Gourgeist*/ FloatPixel(255, 255, 255), /*Need shiny Large form Gourgeist*/ FloatPixel(255, 255, 255)},
+                   {/*Need nonshiny Super form Gourgeist*/ FloatPixel(255, 255, 255), /*Need shiny Super form Gourgeist*/ FloatPixel(255, 255, 255)}}}, // Gourgeist (Average+Shiny, Small+Shiny, Large+Shiny, Super+Shiny)
             {718, {{FloatPixel(142.745968, 150.517538, 112.791267), /*Need shiny 50 form Zygarde*/ FloatPixel(255, 255, 255)},
                    {FloatPixel(142.745968, 150.517538, 112.791267), /*Need shiny 50-power-construct form Zygarde*/ FloatPixel(255, 255, 255)},
                    {/*Need nonshiny 10 form Zygarde*/ FloatPixel(255, 255, 255), /*Need shiny 10 form Zygarde*/ FloatPixel(255, 255, 255)},
                    {/*Need nonshiny 10-power-construct form Zygarde*/ FloatPixel(255, 255, 255), /*Need shiny 10-power-construct form Zygarde*/ FloatPixel(255, 255, 255)}}},
-            // {720, {{}}} // Hoopa (Confined+Shiny, Unbound+Shiny)
+            // {720, {}} // Hoopa (Confined+Shiny, Unbound+Shiny)
             {745, {{FloatPixel(238.055297, 228.085697, 217.930717), /*Need shiny midday form Lycanroc*/ FloatPixel(255, 255, 255)},
                    {FloatPixel(231.466093, 176.397365, 175.000195), /*Need shiny midnight form Lycanroc*/ FloatPixel(255, 255, 255)},
                    {FloatPixel(243.136992, 230.463440, 212.349592), /*Need shiny dusk form Lycanroc*/ FloatPixel(255, 255, 255)}}}, // Lycanroc (Midday+Shiny, Midnight+Shiny, Dusk+Shiny)
@@ -320,8 +324,7 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
                    {FloatPixel(227.996058, 232.016789, 224.896271), /*Need shiny Roaming form Gimmighoul*/ FloatPixel(255, 255, 255)}}} // Gimmighoul
         };
 
-        std::unordered_map<int, std::pair<bool,bool>> issue_list = {
-            {711, {true,true}}, // TODO: FIX THIS
+        std::unordered_map<int, std::pair<bool,bool>> issue_list = { // TODO: FIX THIS
             {774, {false,true}},
             {854,{true,true}},
             {855,{true,true}},
@@ -355,30 +358,56 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
                 );
             // throw std::logic_error("Unidentifiable form encountered. Unknown solution.");
         }else{
-            auto& form_candidates = visual_forms[national_dex_number];
+            double best_distance = 10;
+            const PokemonInformation* best_match = nullptr;
+            (void)best_match;
 
-            int i = 0;
-            for(auto form_guess: form_candidates){
-                if(euclidean_distance((shiny_stddev_value > 30)? form_guess.second:form_guess.first, pokemon_color)<1){
-                    form_id = i;
+            // Check color similarity vs. your reference map (visual_forms)
+            auto it = visual_forms.find(national_dex_number);
+            if (it != visual_forms.end()){
+                const auto& variants = it->second;
+
+                for (const auto& candidate : matches){
+                    int fid = candidate.form_id.value_or(-1);
+                    if (fid >= 0 && fid < (int)variants.size()){
+                        const auto& [normal_color, shiny_color] = variants[fid];
+                        const FloatPixel& target_color = shiny_stddev_value > 30 ? shiny_color : normal_color;
+                        double distance = euclidean_distance(pokemon_color, target_color);
+                        if (distance < best_distance){
+                            best_distance = distance;
+                            best_match = &candidate;
+                            form_id = best_match->form_id.value();
+                        }
+                    }
                 }
-                i++;
             }
 
-            if(form_id == -2){
-                logger.log(std::to_string(pokemon_color.r)+", "+std::to_string(pokemon_color.g)+", "+std::to_string(pokemon_color.b));
-                throw std::logic_error("Could not identify visual form. Check PokemonHome_Summary Detector at line 104. RGB Values for extracted box are: ("+std::to_string(pokemon_color.r)+", "+std::to_string(pokemon_color.g)+", "+std::to_string(pokemon_color.b)+")");
+            if (form_id == -2) {
+                logger.log(std::to_string(pokemon_color.r) + ", " +
+                           std::to_string(pokemon_color.g) + ", " +
+                           std::to_string(pokemon_color.b));
+                std::cout<< "Could not identify visual form. Check PokemonHome_SummaryDetector at line 104. " <<
+                    "RGB Values for extracted box are: (" <<
+                    std::to_string(pokemon_color.r) << ", " <<
+                    std::to_string(pokemon_color.g) << ", " <<
+                    std::to_string(pokemon_color.b) << ")" << std::endl;
+                throw std::logic_error(
+                    "Could not identify visual form. Check PokemonHome_SummaryDetector at line 104. "
+                    "RGB Values for extracted box are: (" +
+                    std::to_string(pokemon_color.r) + ", " +
+                    std::to_string(pokemon_color.g) + ", " +
+                    std::to_string(pokemon_color.b) + ")"
+                    );
             }
-
 
             return PokemonData(
                 national_dex_number,
-                form_id,
-                matches[form_id].form.value(),
+                best_match->form_id.value(),
+                best_match->form.value(),
                 gender,
                 type1,
                 type2,
-                matches[form_id].region.value(),
+                best_match->region.value(),
                 ot_id_value,
                 level,
                 shiny_stddev_value > 30,
@@ -389,6 +418,7 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
                 );
 
         }
+
 
 
 

@@ -16,6 +16,7 @@
 #include "SerialPABotBase/SerialPABotBase_SelectorWidget.h"
 #include "NintendoSwitch/Controllers/SysbotBase/SysbotBase_SelectorWidget.h"
 
+#include <QGuiApplication>
 //#include <iostream>
 //using std::cout;
 //using std::endl;

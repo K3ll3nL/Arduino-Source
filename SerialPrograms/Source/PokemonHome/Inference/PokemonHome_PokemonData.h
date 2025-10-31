@@ -32,16 +32,16 @@ enum class Region{
 
 
 inline Region string_to_region(const std::string& region_str){
-    if (region_str == "kanto")  return Region::KANTO;
-    if (region_str == "johto")  return Region::JOHTO;
-    if (region_str == "hoenn")  return Region::HOENN;
-    if (region_str == "sinnoh") return Region::SINNOH;
-    if (region_str == "unova")  return Region::UNOVA;
-    if (region_str == "kalos")  return Region::KALOS;
-    if (region_str == "alola")  return Region::ALOLA;
-    if (region_str == "galar")  return Region::GALAR;
-    if (region_str == "hisui")  return Region::HISUI;
-    if (region_str == "paldea") return Region::PALDEA;
+    if (region_str == "Kanto")  return Region::KANTO;
+    if (region_str == "Johto")  return Region::JOHTO;
+    if (region_str == "Hoenn")  return Region::HOENN;
+    if (region_str == "Sinnoh") return Region::SINNOH;
+    if (region_str == "Unova")  return Region::UNOVA;
+    if (region_str == "Kalos")  return Region::KALOS;
+    if (region_str == "Alola")  return Region::ALOLA;
+    if (region_str == "Galar")  return Region::GALAR;
+    if (region_str == "Hisui")  return Region::HISUI;
+    if (region_str == "Paldea") return Region::PALDEA;
     return Region::UNKNOWN; // fallback
 }
 
@@ -69,9 +69,8 @@ public:
     PokemonInformation& Ability(std::vector<std::string> ability) { this->ability = std::move(ability); return *this; }
 
     std::vector<PokemonInformation> match(const std::vector<std::vector<PokemonInformation>>& candidates) const;
-
-private:
     bool ability_match(const std::vector<std::string>& other) const;
+
 };
 
 
@@ -163,10 +162,10 @@ class HomeSlot {
 public:
     // Constructors
     HomeSlot();
-    HomeSlot(int row, int col, FloatPixel quick_color);
-    HomeSlot(int row, int col, FloatPixel quick_color, std::optional<PokemonData> pokemon);
-    HomeSlot(int row, int col, const PokemonData& pokemon);
-    HomeSlot(const JsonObject& obj);
+    explicit HomeSlot(int row, int col, FloatPixel quick_color);
+    explicit HomeSlot(int row, int col, FloatPixel quick_color, std::optional<PokemonData> pokemon);
+    explicit HomeSlot(int row, int col, const PokemonData& pokemon);
+    explicit HomeSlot(const JsonObject& obj);
 
     // Accessors
     int row() const { return m_row; }
@@ -247,6 +246,8 @@ public:
     HomeBox& at(int box_index);
     const HomeBox& at(int box_index) const;
     std::optional<std::tuple<int, int, int>> find_pokemon(const PokemonData& target) const;
+    std::optional<int> find_box(const HomeSlot &target) const;
+    bool has_match(const PokemonInformation) const;
     // Swap Pokémon between any two slots, possibly across boxes
     void extracted(int &box1, int &box2);
     void swapSlots(int box1, int row1, int col1, int box2, int row2, int col2);

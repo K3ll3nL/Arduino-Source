@@ -1290,18 +1290,44 @@ file(GLOB LIBRARY_SOURCES
     Source/PokemonBDSP/Programs/Trading/PokemonBDSP_TradeRoutines.h
     Source/PokemonBDSP/Resources/PokemonBDSP_NameDatabase.cpp
     Source/PokemonBDSP/Resources/PokemonBDSP_NameDatabase.h
+    Source/PokemonHome/Inference/PokemonHome_AbilityReader.cpp
+    Source/PokemonHome/Inference/PokemonHome_AbilityReader.h
     Source/PokemonHome/Inference/PokemonHome_BallReader.cpp
     Source/PokemonHome/Inference/PokemonHome_BallReader.h
     Source/PokemonHome/Inference/PokemonHome_BoxGenderDetector.cpp
     Source/PokemonHome/Inference/PokemonHome_BoxGenderDetector.h
+    Source/PokemonHome/Inference/PokemonHome_BallReader.cpp
+    Source/PokemonHome/Inference/PokemonHome_BallReader.h
+    Source/PokemonHome/Inference/PokemonHome_BoxGenderDetector.cpp
+    Source/PokemonHome/Inference/PokemonHome_BoxGenderDetector.h
+    Source/PokemonHome/Inference/PokemonHome_HomeApplicationDetector.cpp
+    Source/PokemonHome/Inference/PokemonHome_HomeApplicationDetector.h
+    Source/PokemonHome/Inference/PokemonHome_FilterMenuReader.cpp
+    Source/PokemonHome/Inference/PokemonHome_FilterMenuReader.h
+    Source/PokemonHome/Inference/PokemonHome_FilterMenuConfirmReader.cpp
+    Source/PokemonHome/Inference/PokemonHome_FilterMenuConfirmReader.h
+    Source/PokemonHome/Inference/PokemonHome_PokemonData.cpp
+    Source/PokemonHome/Inference/PokemonHome_PokemonData.h
+    Source/PokemonHome/Inference/PokemonHome_SummaryDetector.cpp
+    Source/PokemonHome/Inference/PokemonHome_SummaryDetector.h
+    Source/PokemonHome/Inference/PokemonHome_SVItemReader.cpp
+    Source/PokemonHome/Inference/PokemonHome_SVItemReader.h
     Source/PokemonHome/Options/PokemonHome_BoxSortingTable.cpp
     Source/PokemonHome/Options/PokemonHome_BoxSortingTable.h
     Source/PokemonHome/PokemonHome_Panels.cpp
     Source/PokemonHome/PokemonHome_Panels.h
     Source/PokemonHome/PokemonHome_Settings.cpp
     Source/PokemonHome/PokemonHome_Settings.h
+    Source/PokemonHome/Programs/HomeEnvironment/PokemonHome_HomeEnvironment.cpp
+    Source/PokemonHome/Programs/HomeEnvironment/PokemonHome_HomeEnvironment.h
+    Source/PokemonHome/Programs/Enrichment_Tools.cpp
+    Source/PokemonHome/Programs/Enrichment_Tools.h
     Source/PokemonHome/Programs/PokemonHome_BoxSorting.cpp
     Source/PokemonHome/Programs/PokemonHome_BoxSorting.h
+    Source/PokemonHome/Programs/PokemonHome_Enrichment.cpp
+    Source/PokemonHome/Programs/PokemonHome_Enrichment.h
+    Source/PokemonHome/Programs/PokemonHome_Enrichment2.cpp
+    Source/PokemonHome/Programs/PokemonHome_Enrichment2.h
     Source/PokemonHome/Programs/PokemonHome_GenerateNameOCR.cpp
     Source/PokemonHome/Programs/PokemonHome_GenerateNameOCR.h
     Source/PokemonHome/Programs/PokemonHome_PageSwap.cpp

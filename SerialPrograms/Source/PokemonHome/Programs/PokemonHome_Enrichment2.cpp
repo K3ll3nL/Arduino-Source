@@ -80,10 +80,9 @@ Enrichment2_Descriptor::Enrichment2_Descriptor()
         "Game Name", "Enrichment 2",
         "ComputerControl/blob/master/Wiki/Programs/GameName/Enrichment2.md",
         "Secondary Part of Home Enrichment, for second switch.",
+        ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {ControllerFeature::NintendoSwitch_ProController},
-        FasterIfTickPrecise::NOT_FASTER
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 struct Enrichment2_Descriptor::Stats : public StatsTracker{

@@ -42,45 +42,41 @@ inline PokemonType string_to_type(const std::string& s){
 
 
 static std::string region_to_string(Region r){
-    switch(r){
-    case Region::KANTO: return "Kanto";
-    case Region::JOHTO: return "Johto";
-    case Region::HOENN: return "Hoenn";
-    case Region::SINNOH: return "Sinnoh";
-    case Region::UNOVA: return "Unova";
-    case Region::KALOS: return "Kalos";
-    case Region::ALOLA: return "Alola";
-    case Region::GALAR: return "Galar";
-    case Region::UNKNOWN: return "Unknown";
-    case Region::HISUI: return "Hisui";
-    case Region::PALDEA: return "Paldea";
-    }
+    if (r == Region::KANTO) return "Kanto";
+    if (r == Region::JOHTO) return "Johto";
+    if (r == Region::HOENN) return "Hoenn";
+    if (r == Region::SINNOH) return "Sinnoh";
+    if (r == Region::UNOVA) return "Unova";
+    if (r == Region::KALOS) return "Kalos";
+    if (r == Region::ALOLA) return "Alola";
+    if (r == Region::GALAR) return "Galar";
+    if (r == Region::UNKNOWN) return "Unknown";
+    if (r == Region::HISUI) return "Hisui";
+    if (r == Region::PALDEA) return "Paldea";
     return "Unknown";
 }
 
 static std::string type_to_string(PokemonType t){
-    switch(t){
-    case PokemonType::NONE: return "None";
-    case PokemonType::NORMAL: return "Normal";
-    case PokemonType::FIRE: return "Fire";
-    case PokemonType::FIGHTING: return "Fighting";
-    case PokemonType::WATER: return "Water";
-    case PokemonType::FLYING: return "Flying";
-    case PokemonType::GRASS: return "Grass";
-    case PokemonType::POISON: return "Poison";
-    case PokemonType::ELECTRIC: return "Electric";
-    case PokemonType::GROUND: return "Ground";
-    case PokemonType::PSYCHIC: return "Psychic";
-    case PokemonType::ROCK: return "Rock";
-    case PokemonType::ICE: return "Ice";
-    case PokemonType::BUG: return "Bug";
-    case PokemonType::DRAGON: return "Dragon";
-    case PokemonType::GHOST: return "Ghost";
-    case PokemonType::DARK: return "Dark";
-    case PokemonType::STEEL: return "Steel";
-    case PokemonType::FAIRY: return "Fairy";
-    }
-    return "Unknown";
+    if (t == PokemonType::NONE)     return "none";
+    if (t == PokemonType::NORMAL)   return "normal";
+    if (t == PokemonType::FIRE)     return "fire";
+    if (t == PokemonType::FIGHTING) return "fighting";
+    if (t == PokemonType::WATER)    return "water";
+    if (t == PokemonType::FLYING)   return "flying";
+    if (t == PokemonType::GRASS)    return "grass";
+    if (t == PokemonType::POISON)   return "poison";
+    if (t == PokemonType::ELECTRIC) return "electric";
+    if (t == PokemonType::GROUND)   return "ground";
+    if (t == PokemonType::PSYCHIC)  return "psychic";
+    if (t == PokemonType::ROCK)     return "rock";
+    if (t == PokemonType::ICE)      return "ice";
+    if (t == PokemonType::BUG)      return "bug";
+    if (t == PokemonType::DRAGON)   return "dragon";
+    if (t == PokemonType::GHOST)    return "ghost";
+    if (t == PokemonType::DARK)     return "dark";
+    if (t == PokemonType::STEEL)    return "steel";
+    if (t == PokemonType::FAIRY)    return "fairy";
+    return "none"; // fallback
 }
 
 inline bool operator==(StatsHuntGenderFilter lhs, StatsHuntGenderFilter rhs) {
@@ -158,9 +154,9 @@ void PokedexReader::load_pokedex(){
     if (!root) return;
 
     // Resize outer vector so that index matches Pokémon ID (1-based)
-    m_pokemon.resize(1025); // ID 1..1024, index 0 unused
+    m_pokemon.resize(1026); // ID 1..1025, index 0 unused
 
-    for(int i = 1; i <= 1024; i++){
+    for(int i = 1; i <= 1025; i++){
         std::string key = std::format("{:04}", i);
 
         JsonValue* form = root->get_value(key);
@@ -690,6 +686,36 @@ std::optional<std::tuple<int, int, int>> HomeStorage::find_pokemon(const Pokemon
     }
     return std::nullopt;
 }
+
+std::optional<int> HomeStorage::find_box(const HomeSlot& target) const {
+    for (int box_index = 0; box_index < 200; box_index++) {
+        const HomeBox& box = m_boxes[box_index];
+        if(box.at(target.row(),target.col()).getPokemon()==target.getPokemon())return box_index;
+    }
+    return std::nullopt;
+}
+
+bool HomeStorage::has_match(const PokemonInformation matcher) const{
+    for(HomeBox box: m_boxes){
+        if(box.loaded){
+            auto box_flat = box.flatten();
+            for(auto candidate: box_flat){
+                if (matcher.id.has_value() && candidate->id != matcher.id.value()) continue;
+                if (matcher.form_id.has_value() && matcher.form_id.value() != candidate->form_id) continue;
+                if (matcher.form.has_value() && matcher.form.value() != candidate->form) continue;
+                if (matcher.gender.has_value() && matcher.gender.value() != candidate->gender) continue;
+                if (matcher.type1.has_value() && matcher.type1.value() != candidate->type1) continue;
+                if (matcher.type2.has_value() && matcher.type2.value() != candidate->type2) continue;
+                if (matcher.region.has_value() && matcher.region.value() != candidate->region) continue;
+                if (!matcher.ability.empty() && !matcher.ability_match({candidate->ability})) continue;
+
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 
 // Swap Pokémon between two slots (possibly across boxes)
 void HomeStorage::swapSlots(

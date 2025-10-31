@@ -3,6 +3,7 @@
 
 #include "NintendoSwitch/NintendoSwitch_SingleSwitchProgram.h"
 #include "PokemonHome/Inference/PokemonHome_PokemonData.h"
+#include <deque>
 #include <functional>
 #include <unordered_map>
 
@@ -20,6 +21,12 @@ enum class PageID {
     MARKINGS_VIEW,
     LIST_VIEW,
     UNKNOWN
+};
+
+struct PokemonIdentity {
+    uint16_t id;
+    uint16_t form_id;
+    bool operator==(const PokemonIdentity&) const = default;
 };
 
 }
@@ -45,6 +52,11 @@ struct pair_hash {
     }
 };
 
+template<> struct std::hash<PokemonAutomation::NintendoSwitch::PokemonHome::PokemonIdentity> {
+    size_t operator()(const PokemonAutomation::NintendoSwitch::PokemonHome::PokemonIdentity& p) const noexcept {
+        return (p.id << 16) ^ p.form_id;
+    }
+};
 
 namespace PokemonAutomation {
 namespace NintendoSwitch {
@@ -152,7 +164,7 @@ public:
     HomeEnvironment(SingleSwitchProgramEnvironment& env, ProControllerContext& context);
 
     bool navigate_menus_to(SingleSwitchProgramEnvironment&, ProControllerContext&, const PageID, const GameStatus = GameStatus::CURRENT);
-    void navigate_to(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor &);
+    void navigate_to(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&);
     void detect_home(SingleSwitchProgramEnvironment&, ProControllerContext&, bool = false);
     void scroll_filter_menu(SingleSwitchProgramEnvironment&, ProControllerContext&, std::string, int = 0);
     void pick_up_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&);
@@ -168,6 +180,7 @@ public:
     bool sort_box(SingleSwitchProgramEnvironment&, ProControllerContext&, int);
     void sort_all_boxes(SingleSwitchProgramEnvironment&, ProControllerContext&, int, int);
     size_t get_box();
+    std::optional<HomeCursor> locate_pokemon(PokemonData&);
 
     HomeCursor get_cursor();
 
@@ -185,13 +198,17 @@ private:
     std::vector<PageID> find_navigation_path(SingleSwitchProgramEnvironment&, ProControllerContext&, PageID, PageID);
     bool perform_navigation_steps(SingleSwitchProgramEnvironment&, ProControllerContext&, std::vector<PageID>&);
     void identify_game_icon(SingleSwitchProgramEnvironment&, ProControllerContext&);
+    void preserve_placeholders(int start, int end);
     bool reconcile_box(SingleSwitchProgramEnvironment&, ProControllerContext&, int, bool);
     void scan_box(SingleSwitchProgramEnvironment&, ProControllerContext&, int);
+    void set_prime(int target_id, int target_form);
+
     std::optional<HomeCursor> cursor;
     GameStatus game_open;
     PageID current_view;
 
     PokedexReader pokedex_information;
+    std::deque<PokemonData> placeholder_list;
 
     std::unordered_map<PageID, std::vector<std::pair<PageID, NavigationFunction>>> navigation_map;
     std::unordered_map<std::pair<PageID, PageID>, std::vector<PageID>, pair_hash> navigation_cache;

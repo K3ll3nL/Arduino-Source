@@ -778,6 +778,7 @@ std::pair<int, int> HomeCursorLocator::locate_grabbing_hand(const ImageViewRGB32
 
     ImagePixelBox pixel_box = floatbox_to_pixelbox(frame.width(), frame.height(), region);
     match_template_by_waterfill(
+        frame.size(),
         extract_box_reference(frame, region),
         HomeGrabbingCursorMatcher::instance(),
         filters,
@@ -812,6 +813,7 @@ std::pair<int, int> HomeCursorLocator::locate_red_hand(const ImageViewRGB32& fra
 
     ImagePixelBox pixel_box = floatbox_to_pixelbox(frame.width(), frame.height(), region);
     match_template_by_waterfill(
+        frame.size(),
         extract_box_reference(frame, region),
         HomeRedCursorMatcher::instance(),
         filters,
@@ -940,6 +942,7 @@ std::pair<double, double> FilterCursorLocator::detect(const ImageViewRGB32& fram
 
     ImagePixelBox pixel_box = floatbox_to_pixelbox(frame.width(), frame.height(), m_box);
     match_template_by_waterfill(
+        frame.size(),
         extract_box_reference(frame, m_box),
         FilterCursorMatcher::instance(),
         filters,
