@@ -1,13 +1,12 @@
-/*  Auto Fossil
+/*  Mega Shard Farmer
  *
  *  From: https://github.com/PokemonAutomation/
  *
  */
 
-#ifndef PokemonAutomation_PokemonLZA_AutoFossil_H
-#define PokemonAutomation_PokemonLZA_AutoFossil_H
+#ifndef PokemonAutomation_PokemonLZA_MegaShardFarmer_H
+#define PokemonAutomation_PokemonLZA_MegaShardFarmer_H
 
-#include "Common/Cpp/Options/ButtonOption.h"
 #include "NintendoSwitch/NintendoSwitch_SingleSwitchProgram.h"
 
 namespace PokemonAutomation{
@@ -15,21 +14,27 @@ namespace NintendoSwitch{
 namespace PokemonLZA{
 
 
-class AutoFossil_Descriptor : public SingleSwitchProgramDescriptor{
+class MegaShardFarmer_Descriptor : public SingleSwitchProgramDescriptor{
 public:
-    AutoFossil_Descriptor();
+    MegaShardFarmer_Descriptor();
 
     class Stats;
     virtual std::unique_ptr<StatsTracker> make_stats() const override;
 };
 
 
-class AutoFossil : public SingleSwitchProgramInstance{
+class MegaShardFarmer : public SingleSwitchProgramInstance{
 public:
-    AutoFossil();
+    MegaShardFarmer();
 
     virtual void program(SingleSwitchProgramEnvironment& env, ProControllerContext& context) override;
+
+private:
+    void fly_back(SingleSwitchProgramEnvironment& env, ProControllerContext& context);
+
+
 };
+
 
 
 
