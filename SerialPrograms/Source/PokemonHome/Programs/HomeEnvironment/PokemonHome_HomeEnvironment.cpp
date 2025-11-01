@@ -883,35 +883,65 @@ bool HomeEnvironment::sort_into_correct_boxes(
 
     // === MAIN SWAP LOGIC ===
 
-    // Special Case for all can move to the right
-    // if(((left_incorrect.size()==30&&right_incorrect.size()==30)||right_empty.size()==30)&&right_unoccupied.size()==30&&left_unoccupied.size()!=30){
-    //     cursor.value().move_cursor_to(env, context, {0,0,left_num});
+    // Special Case for all can move to the left
+    if(left_incorrect.size()==30||right_incorrect.size()==30){
+        if(right_unoccupied.size()==30&&left_unoccupied.size()!=30){
+            cursor.value().move_cursor_to(env, context, {0,0,left_num});
 
-    //     context.wait_for_all_requests();
-    //     pbf_press_button(context, BUTTON_ZR,10, 50);
-    //     pbf_press_button(context, BUTTON_A,10, 50);
-    //     pbf_press_dpad(context, DPAD_DOWN,10, 30);
-    //     pbf_press_dpad(context, DPAD_DOWN,10, 30);
-    //     pbf_press_dpad(context, DPAD_DOWN,10, 30);
-    //     pbf_press_dpad(context, DPAD_DOWN,10, 30);
-    //     pbf_press_dpad(context, DPAD_RIGHT,10, 30);
-    //     pbf_press_dpad(context, DPAD_RIGHT,10, 30);
-    //     pbf_press_dpad(context, DPAD_RIGHT,10, 30);
-    //     pbf_press_dpad(context, DPAD_RIGHT,10, 30);
-    //     pbf_press_dpad(context, DPAD_RIGHT,10, 30);
-    //     pbf_press_button(context, BUTTON_A,10, 50);
-    //     context.wait_for_all_requests();
+            context.wait_for_all_requests();
+            pbf_press_button(context, BUTTON_ZR,10, 50);
+            pbf_press_button(context, BUTTON_A,10, 50);
+            pbf_press_dpad(context, DPAD_DOWN,10, 30);
+            pbf_press_dpad(context, DPAD_DOWN,10, 30);
+            pbf_press_dpad(context, DPAD_DOWN,10, 30);
+            pbf_press_dpad(context, DPAD_DOWN,10, 30);
+            pbf_press_dpad(context, DPAD_RIGHT,10, 30);
+            pbf_press_dpad(context, DPAD_RIGHT,10, 30);
+            pbf_press_dpad(context, DPAD_RIGHT,10, 30);
+            pbf_press_dpad(context, DPAD_RIGHT,10, 30);
+            pbf_press_dpad(context, DPAD_RIGHT,10, 30);
+            pbf_press_button(context, BUTTON_A,10, 50);
+            context.wait_for_all_requests();
 
-    //     cursor.value().move_cursor_to(env, context, {0,0,right_num});
-    //     pbf_press_button(context, BUTTON_A,10, 50);
-    //     pbf_press_button(context, BUTTON_ZL,10, 50);
+            cursor.value().move_cursor_to(env, context, {0,0,right_num});
+            pbf_press_button(context, BUTTON_A,10, 50);
+            pbf_press_button(context, BUTTON_ZL,10, 50);
 
-    //     std::swap(left, right);
+            std::swap(left, right);
 
-    //     context.wait_for_all_requests();
+            context.wait_for_all_requests();
 
-    //     return true;
-    // }
+            return true;
+        }
+        else if(left_unoccupied.size()==30&&right_unoccupied.size()!=30){
+            cursor.value().move_cursor_to(env, context, {0,0,right_num});
+
+            context.wait_for_all_requests();
+            pbf_press_button(context, BUTTON_ZR,10, 50);
+            pbf_press_button(context, BUTTON_A,10, 50);
+            pbf_press_dpad(context, DPAD_DOWN,10, 30);
+            pbf_press_dpad(context, DPAD_DOWN,10, 30);
+            pbf_press_dpad(context, DPAD_DOWN,10, 30);
+            pbf_press_dpad(context, DPAD_DOWN,10, 30);
+            pbf_press_dpad(context, DPAD_RIGHT,10, 30);
+            pbf_press_dpad(context, DPAD_RIGHT,10, 30);
+            pbf_press_dpad(context, DPAD_RIGHT,10, 30);
+            pbf_press_dpad(context, DPAD_RIGHT,10, 30);
+            pbf_press_dpad(context, DPAD_RIGHT,10, 30);
+            pbf_press_button(context, BUTTON_A,10, 50);
+            context.wait_for_all_requests();
+
+            cursor.value().move_cursor_to(env, context, {0,0,left_num});
+            pbf_press_button(context, BUTTON_A,10, 50);
+            pbf_press_button(context, BUTTON_ZL,10, 50);
+
+            std::swap(left, right);
+
+            context.wait_for_all_requests();
+
+            return true;
+        }
+    }
 
     // Fill left box first (prioritize filling blanks)
     while (!left_empty.empty() && !right_incorrect.empty()) {
@@ -1282,6 +1312,52 @@ void HomeEnvironment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProCon
         }
     };
 
+    auto quick_swap_primes = [&](){
+        struct PairCursor {
+            HomeCursor first;
+            HomeCursor second;
+            bool has_first = false;
+            bool has_second = false;
+        };
+
+                // Pre-reserve to avoid rehashing
+        std::unordered_map<uint64_t, PairCursor> form_pairs;
+        form_pairs.reserve((end - start + 1) * HomeBox::MAX_ROWS * HomeBox::MAX_COLS / 2);
+
+        for (int i = start; i <= end; ++i) {
+            HomeBox& box = boxes.at(i);
+            for (int r = 0; r < HomeBox::MAX_ROWS; ++r) {
+                for (int c = 0; c < HomeBox::MAX_COLS; ++c) {
+                    auto& slot = box.at(r, c);
+                    if (slot.isEmpty()) continue;
+
+                    auto maybe_pokemon = slot.getPokemon();
+                    if (!maybe_pokemon.has_value()) continue;
+                    PokemonData& p = maybe_pokemon.value();
+
+                    uint64_t key = (static_cast<uint64_t>(p.id) << 32) | static_cast<uint32_t>(p.form_id);
+                    HomeCursor cursor{i, r, c};
+
+                    auto& entry = form_pairs[key];
+                    if (!entry.has_first) {
+                        entry.first = cursor;
+                        entry.has_first = true;
+                    } else if (p.prime_example && !entry.has_second) {
+                        entry.second = cursor;
+                        entry.has_second = true;
+                    }
+                }
+            }
+        }
+
+        for (auto& [key, entry] : form_pairs) {
+            if (entry.has_first && entry.has_second) {
+                swap_pokemon(env, context, entry.first, entry.second);
+            }
+        }
+    };
+
+
     auto left_comb = [&](int start, int end) -> bool{
         bool swapped = false;
         for(int i = start; i <= end - 1; i++){
@@ -1343,6 +1419,23 @@ void HomeEnvironment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProCon
         return succeeded;
     };
 
+    WallClock start_time = current_time();
+
+
+    auto periodic_save = [&](){
+        if (current_time() - start_time >= std::chrono::minutes(25)) {
+            start_time = current_time();
+            while (!pause_to_save()) {
+                boxes = HomeStorage();
+                for(int i = start; i <= end; i++){
+                    build_box(env, context, i);
+                }
+                pad_with_placeholders();
+            }
+        }
+    };
+
+
 
 
     // auto save_temp_status
@@ -1357,42 +1450,26 @@ void HomeEnvironment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProCon
     navigate_menus_to(env, context, PageID::BOX_VIEW, GameStatus::POKEMON_HOME);
 
 
-    WallClock start_time = WallClock::min();
-
     for(int i = start; i <= end; i++){
         build_box(env, context, i);
     }
 
     pad_with_placeholders();
 
+    quick_swap_primes();
+    periodic_save();
+
     do{
         while(true){
+
             // We are starting at the right side, going left
-
             if(!right_comb(start, end))break;
+            periodic_save();
 
-            // Every 25 minutes or so, save the game to make sure
-            if(WallClock::min()-start_time>=std::chrono::minutes(25)){
-
-                start_time = WallClock::min();
-
-                if(!pause_to_save()){
-                    boxes = HomeStorage();
-                }
-            }
 
             if(!left_comb(start, end))break;
+            periodic_save();
 
-
-                    // Every 25 minutes or so, save the game to make sure
-            if(WallClock::min()-start_time>=std::chrono::minutes(25)){
-
-                start_time = WallClock::min();
-
-                if(!pause_to_save()){
-                    boxes = HomeStorage();
-                }
-            }
 
         }
     }while(!pause_to_save());
@@ -1671,7 +1748,7 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
             context.wait_for_all_requests();
 
             int ret = wait_until(
-                env.console, context, 5000ms, {
+                env.console, context, 30s, {
                     gameSelectWatcher
                 });
 

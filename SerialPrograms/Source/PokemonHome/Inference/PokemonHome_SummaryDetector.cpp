@@ -233,8 +233,8 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
                    {FloatPixel(231.466093, 176.397365, 175.000195), /*Need shiny midnight form Lycanroc*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(243.136992, 230.463440, 212.349592), /*Need shiny dusk form Lycanroc*/ FloatPixel(0, 0, 0)}}}, // Lycanroc (Midday+Shiny, Midnight+Shiny, Dusk+Shiny)
             {774, {{FloatPixel(253.261302, 188.247302, 209.165038), /*Need shiny red form Minior*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny orange form Minior*/ FloatPixel(0, 0, 0), /*Need shiny orange form Minior*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(253.988218, 229.136662, 140.195167), /*Need shiny yellow form Minior*/ FloatPixel(0, 0, 0)},
+                   {FloatPixel(253.937328, 229.135178, 140.157918), /*Need shiny orange form Minior*/ FloatPixel(0, 0, 0)},
+                   {FloatPixel(254.009968, 248.293395, 148.695227), /*Need shiny yellow form Minior*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(214.754512, 240.142043, 168.540472), /*Need shiny green form Minior*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(206.958748, 244.507390, 252.608841), /*Need shiny blue form Minior*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(138.633739, 225.633724, 251.312073), /*Need shiny indigo form Minior*/ FloatPixel(0, 0, 0)},
@@ -467,6 +467,7 @@ bool SummaryWatcher::process_frame(const ImageViewRGB32& screen, WallClock times
 PokemonData SummaryWatcher::get_pokemon(Logger& logger, const ImageViewRGB32& screen, PokedexReader& information){
     return m_detector.identify_pokemon(logger, screen, information);
 }
+
 
 
 }

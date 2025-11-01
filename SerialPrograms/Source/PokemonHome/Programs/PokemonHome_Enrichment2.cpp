@@ -5,6 +5,8 @@
  */
 
 #include "CommonFramework/Exceptions/OperationFailedException.h"
+#include "CommonFramework/ImageTools/FloatPixel.h"
+#include "CommonFramework/ImageTools/ImageStats.h"
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonFramework/ProgramStats/StatsTracking.h"
 #include "CommonFramework/VideoPipeline/VideoFeed.h"
@@ -204,48 +206,52 @@ bool test(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
 void Enrichment2::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     assert_16_9_720p_min(env.logger(), env.console);
 
-    Enrichment2_Descriptor::Stats& stats = env.current_stats<Enrichment2_Descriptor::Stats>();
-
-    FileWatcher tradeWatcher("trading");
-    int mode = run_until<ProControllerContext>(
-        env.console, context,
-        [&](ProControllerContext& scope){
-            test(env, scope);
-        },
-        {tradeWatcher},
-        20s
-    );
-
-    switch(mode){
-    case 0:
-        close_game_and_open(env, context, tradeWatcher.m_game);
-        PokemonSV::enter_menu_from_overworld(env.program_info(), env.console, context, 3);
-
-        PokemonSV::PokePortalWatcher pokePortal(COLOR_RED);
-        int ret = wait_until(env.console, context, 20s,{pokePortal});
-
-        if(ret==-1)throw;
-
-        pbf_press_button(context, BUTTON_DOWN, 10, 40);
-        pbf_press_button(context, BUTTON_DOWN, 10, 40);
-        pbf_press_button(context, BUTTON_A, 10, 40);
-        pbf_press_button(context, BUTTON_A, 10, 70);
-        pbf_press_button(context, BUTTON_A, 10, 70);
-    }
+    FloatPixel pokemon_color = image_stats(extract_box_reference(env.console.video().snapshot(), ImageFloatBox(0.76, 0.295, 0.14, 0.23))).average;
+    env.console.log(std::to_string(pokemon_color.r)+", "+std::to_string(pokemon_color.g)+", "+std::to_string(pokemon_color.b));
 
 
+    // Enrichment2_Descriptor::Stats& stats = env.current_stats<Enrichment2_Descriptor::Stats>();
 
-    try{
+    // FileWatcher tradeWatcher("trading");
+    // int mode = run_until<ProControllerContext>(
+    //     env.console, context,
+    //     [&](ProControllerContext& scope){
+    //         test(env, scope);
+    //     },
+    //     {tradeWatcher},
+    //     20s
+    // );
 
-    } catch(OperationFailedException&){
-        stats.m_errors++;
-        env.update_stats();
-        throw;
-    }
+    // switch(mode){
+    // case 0:
+    //     close_game_and_open(env, context, tradeWatcher.m_game);
+    //     PokemonSV::enter_menu_from_overworld(env.program_info(), env.console, context, 3);
 
-    env.update_stats();
-    GO_HOME_WHEN_DONE.run_end_of_program(context);
-    send_program_finished_notification(env, NOTIFICATION_PROGRAM_FINISH);
+    //     PokemonSV::PokePortalWatcher pokePortal(COLOR_RED);
+    //     int ret = wait_until(env.console, context, 20s,{pokePortal});
+
+    //     if(ret==-1)throw;
+
+    //     pbf_press_button(context, BUTTON_DOWN, 10, 40);
+    //     pbf_press_button(context, BUTTON_DOWN, 10, 40);
+    //     pbf_press_button(context, BUTTON_A, 10, 40);
+    //     pbf_press_button(context, BUTTON_A, 10, 70);
+    //     pbf_press_button(context, BUTTON_A, 10, 70);
+    // }
+
+
+
+    // try{
+
+    // } catch(OperationFailedException&){
+    //     stats.m_errors++;
+    //     env.update_stats();
+    //     throw;
+    // }
+
+    // env.update_stats();
+    // GO_HOME_WHEN_DONE.run_end_of_program(context);
+    // send_program_finished_notification(env, NOTIFICATION_PROGRAM_FINISH);
 }
 
 
