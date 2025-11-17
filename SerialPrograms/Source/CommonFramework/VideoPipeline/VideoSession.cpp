@@ -4,6 +4,7 @@
  *
  */
 
+#include "Common/Cpp/EarlyShutdown.h"
 #include "CommonFramework/GlobalSettingsPanel.h"
 #include "CommonFramework/GlobalServices.h"
 #include "CommonFramework/VideoPipeline/VideoPipelineOptions.h"
@@ -25,6 +26,14 @@ void VideoSession::add_state_listener(StateListener& listener){
 void VideoSession::remove_state_listener(StateListener& listener){
     m_state_listeners.remove(listener);
 }
+
+bool VideoSession::try_add_state_listener(StateListener& listener){
+    return m_state_listeners.try_add(listener);
+}
+bool VideoSession::try_remove_state_listener(StateListener& listener){
+    return m_state_listeners.try_remove(listener);
+}
+
 void VideoSession::add_frame_listener(VideoFrameListener& listener){
     m_frame_listeners.add(listener);
 }
@@ -35,12 +44,19 @@ void VideoSession::remove_frame_listener(VideoFrameListener& listener){
 
 
 
-VideoSession::~VideoSession(){
+bool VideoSession::try_shutdown(){
     if (m_video_source){
         m_video_source->remove_source_frame_listener(*this);
         m_video_source->remove_rendered_frame_listener(*this);
     }
-    global_watchdog().remove(*this);
+    return global_watchdog().try_remove(*this);
+}
+VideoSession::~VideoSession(){
+    blocking_shutdown(
+        m_logger,
+        "VideoSession",
+        [this]{ return try_shutdown(); }
+    );
 }
 VideoSession::VideoSession(Logger& logger, VideoSourceOption& option)
     : m_logger(logger)
@@ -253,17 +269,16 @@ void VideoSession::internal_set_resolution(Resolution resolution){
 }
 
 void VideoSession::run_commands(){
-    std::lock_guard<std::recursive_mutex> lg0(m_reset_lock);
-    if (m_recursion_depth != 0){
+    if (!m_reset_lock.try_acquire_write()){
         m_logger.log("Suppressing re-entrant command...", COLOR_RED);
         return;
     }
-    m_recursion_depth++;
+
     try{
         while (true){
             Command command;
             {
-                WriteSpinLock lg(m_queue_lock);
+                WriteSpinLock lg1(m_queue_lock);
 //                cout << "VideoSession::run_commands(): " << m_queued_commands.size() << endl;
                 if (m_queued_commands.empty()){
                     break;
@@ -286,9 +301,9 @@ void VideoSession::run_commands(){
                 break;
             }
         }
-        m_recursion_depth--;
+        m_reset_lock.unlock_write();
     }catch (...){
-        m_recursion_depth--;
+        m_reset_lock.unlock_write();
         throw;
     }
 }

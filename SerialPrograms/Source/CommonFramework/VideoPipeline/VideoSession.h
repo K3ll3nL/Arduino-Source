@@ -58,6 +58,9 @@ public:
     //  Remove the state listener.
     void remove_state_listener(StateListener& listener);
 
+    bool try_add_state_listener(StateListener& listener);
+    bool try_remove_state_listener(StateListener& listener);
+
     //  Implements VideoFeed::add_frame_listener().
     //  Add a VideoFrameListener for it to react to incoming frames in the video source.
     //  Whenever the video source sends a frame, VideoSession will call the callback functions
@@ -69,6 +72,7 @@ public:
 
 
 public:
+    bool try_shutdown();
     ~VideoSession();
     //  Built from a VideoSourceOption.
     //  VideoSourceOption manages the current VideoSourceDescriptor, which are the descriptors
@@ -198,7 +202,7 @@ private:
 
 
 private:
-    mutable std::recursive_mutex m_reset_lock;
+    mutable SpinLock m_reset_lock;
     mutable SpinLock m_state_lock;
 //    bool m_shutting_down = false;
 
@@ -215,7 +219,6 @@ private:
     //  We need to queue up all reset commands and run them on the main thread.
     //  This is needed to prevent re-entrant calls from event processing.
     SpinLock m_queue_lock;
-    size_t m_recursion_depth = 0;
     std::deque<Command> m_queued_commands;
 
     ListenerSet<StateListener> m_state_listeners;

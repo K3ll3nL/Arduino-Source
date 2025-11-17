@@ -26,7 +26,7 @@ namespace PokemonAutomation{
 const bool IS_BETA_VERSION = true;
 const int PROGRAM_VERSION_MAJOR = 0;
 const int PROGRAM_VERSION_MINOR = 59;
-const int PROGRAM_VERSION_PATCH = 6;
+const int PROGRAM_VERSION_PATCH = 11;
 
 const std::string PROGRAM_VERSION_BASE =
     "v" + std::to_string(PROGRAM_VERSION_MAJOR) +
@@ -137,6 +137,12 @@ std::string get_training_path(){
 std::string get_runtime_base_path(){
     //  On MacOS, find the writable application support directory
     if (QSysInfo::productType() == "macos" || QSysInfo::productType() == "osx"){
+        // QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) returns
+        // "/Users/$USERNAME/Library/Application Support/SerialPrograms/UserSettings", the parent folder
+        // to hold application-specific persistent data.
+        // QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) returns
+        // "/Users/$USERNAME/Library/Application Support/SerialPrograms/UserSettings/SerialPrograms",
+        // the folder where we store persistent data.
         QString appSupportPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
         QDir dir(appSupportPath);
         if (!dir.exists()) {
@@ -212,6 +218,27 @@ const std::string& ML_MODEL_CACHE_PATH(){
     static const std::string path = RUNTIME_BASE_PATH() + "ModelCache/";
     return path;
 }
+
+#if 0
+// Program executable path information
+namespace {
+    std::string g_program_absolute_path;
+    std::string g_program_filename;
+    std::string g_program_basename;
+}
+
+void set_program_path(const char* argv0){
+    if (argv0 != nullptr) {
+        std::filesystem::path program_path(argv0);
+        g_program_absolute_path = std::filesystem::absolute(program_path).string();
+        g_program_filename = program_path.filename().string();
+        g_program_basename = program_path.stem().string();
+    }
+}
+const std::string& PROGRAM_ABSOLUTE_PATH(){ return g_program_absolute_path }
+const std::string& PROGRAM_FILENAME(){ return g_program_filename; }
+const std::string& PROGRAM_BASENAME(){ return g_program_basename; }
+#endif
 
 }
 

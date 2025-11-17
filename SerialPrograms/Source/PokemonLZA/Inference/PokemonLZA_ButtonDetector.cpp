@@ -27,49 +27,59 @@ public:
     // - min_height: candidate image min height if video stream is 4k
     ButtonMatcher(ButtonType type, size_t min_width, size_t min_height, double max_rmsd);
     static const ButtonMatcher& A(){
-        static ButtonMatcher matcher(ButtonType::ButtonA, 60, 60, 70);
+        static ButtonMatcher matcher(ButtonType::ButtonA, 50, 50, 70);
         return matcher;
     }
     static const ButtonMatcher& B(){
-        static ButtonMatcher matcher(ButtonType::ButtonB, 60, 60, 70);
+        static ButtonMatcher matcher(ButtonType::ButtonB, 50, 50, 70);
         return matcher;
     }
     static const ButtonMatcher& X(){
-        static ButtonMatcher matcher(ButtonType::ButtonX, 60, 60, 70);
+        static ButtonMatcher matcher(ButtonType::ButtonX, 50, 50, 70);
         return matcher;
     }
     static const ButtonMatcher& Y(){
-        static ButtonMatcher matcher(ButtonType::ButtonY, 60, 60, 70);
+        static ButtonMatcher matcher(ButtonType::ButtonY, 50, 50, 70);
         return matcher;
     }
     static const ButtonMatcher& L(){
-        static ButtonMatcher matcher(ButtonType::ButtonL, 60, 60, 70);
+        static ButtonMatcher matcher(ButtonType::ButtonL, 50, 50, 70);
         return matcher;
     }
     static const ButtonMatcher& R(){
-        static ButtonMatcher matcher(ButtonType::ButtonR, 60, 60, 70);
+        static ButtonMatcher matcher(ButtonType::ButtonR, 50, 50, 70);
         return matcher;
     }
     static const ButtonMatcher& Plus(){
-        static ButtonMatcher matcher(ButtonType::ButtonPlus, 60, 60, 70);
+        static ButtonMatcher matcher(ButtonType::ButtonPlus, 30, 30, 80);
         return matcher;
     }
     static const ButtonMatcher& Minus(){
-        static ButtonMatcher matcher(ButtonType::ButtonMinus, 60, 60, 70);
+        static ButtonMatcher matcher(ButtonType::ButtonMinus, 30, 30, 80);
         return matcher;
     }
     static const ButtonMatcher& Right(){
-        static ButtonMatcher matcher(ButtonType::ButtonRight, 60, 60, 70);
+        static ButtonMatcher matcher(ButtonType::ButtonRight, 50, 50, 70);
         return matcher;
     }
     static const ButtonMatcher& RightStickUpDown(){
         static ButtonMatcher matcher(ButtonType::RightStickUpDown, 20, 20, 150);
         return matcher;
     }
+    static const ButtonMatcher& DpadUp(){
+        static ButtonMatcher matcher(ButtonType::ButtonDpadUp, 30, 30, 80);
+        return matcher;
+    }
+    static const ButtonMatcher& DpadDown(){
+        static ButtonMatcher matcher(ButtonType::ButtonDpadDown, 30, 30, 80);
+        return matcher;
+    }
 
     virtual bool check_image(Resolution input_resolution, const ImageViewRGB32& image) const override{
         size_t min_width = m_min_width * input_resolution.width / 3840;
         size_t min_height = m_min_height * input_resolution.height / 2160;
+//        cout << "???? check_image() ???? min size " << min_width << " x " << min_height
+//             << " got " << image.width() << " x " << image.height() << endl;
         return image.width() >= min_width && image.height() >= min_height;
     };
 
@@ -106,6 +116,10 @@ const char* template_path(ButtonType type){
         return "PokemonLZA/Buttons/ButtonRight.png";
     case ButtonType::RightStickUpDown:
         return "PokemonLZA/Buttons/RightStickUpDown.png";
+    case ButtonType::ButtonDpadUp:
+        return "PokemonLZA/Buttons/ButtonDpadUp.png";
+    case ButtonType::ButtonDpadDown:
+        return "PokemonLZA/Buttons/ButtonDpadDown.png";
     default:
         return "";
     }
@@ -133,6 +147,10 @@ const char* button_name(ButtonType type){
         return "ButtonR";
     case ButtonType::RightStickUpDown:
         return "RightStickUpDown";
+    case ButtonType::ButtonDpadUp:
+        return "ButtonDpadUp";
+    case ButtonType::ButtonDpadDown:
+        return "ButtonDpadDown";
     default:
         return "";
     }
@@ -160,6 +178,10 @@ const ButtonMatcher& get_button_matcher(ButtonType type){
         return ButtonMatcher::Right();
     case ButtonType::RightStickUpDown:
         return ButtonMatcher::RightStickUpDown();
+    case ButtonType::ButtonDpadUp:
+        return ButtonMatcher::DpadUp();
+    case ButtonType::ButtonDpadDown:
+        return ButtonMatcher::DpadDown();
     default:
         throw std::runtime_error("No corresponding ButtonMatcher for ButtonType");
     }

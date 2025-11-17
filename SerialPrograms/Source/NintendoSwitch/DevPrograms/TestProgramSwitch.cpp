@@ -124,6 +124,7 @@
 #include "NintendoSwitch/Programs/DateSpam/NintendoSwitch_HomeToDateTime.h"
 #include "NintendoSwitch/Inference/NintendoSwitch_ConsoleTypeDetector.h"
 #include "NintendoSwitch/Inference/NintendoSwitch_HomeMenuDetector.h"
+#include "NintendoSwitch/Inference/NintendoSwitch_CloseGameDetector.h"
 #include "NintendoSwitch/Inference/NintendoSwitch_StartGameUserSelectDetector.h"
 #include "NintendoSwitch/Inference/NintendoSwitch_UpdatePopupDetector.h"
 #include "NintendoSwitch/Programs/DateSpam/NintendoSwitch_RollDateForward1.h"
@@ -150,8 +151,10 @@
 #include "PokemonLZA/Inference/PokemonLZA_ButtonDetector.h"
 #include "PokemonSV/Inference/PokemonSV_PokemonMovesReader.h"
 #include "PokemonSV/Programs/AutoStory/PokemonSV_MenuOption.h"
-#include "PokemonLZA/Inference/PokemonLZA_MoveEffectivenessSymbol.h"
-#include "PokemonLZA/Inference/PokemonLZA_MapIconDetector.h"
+#include "PokemonLZA/Inference/Battles/PokemonLZA_MoveEffectivenessSymbol.h"
+#include "PokemonLZA/Inference/Battles/PokemonLZA_RunFromBattleDetector.h"
+#include "PokemonLZA/Inference/Map/PokemonLZA_MapIconDetector.h"
+#include "PokemonLZA/Inference/Map/PokemonLZA_MapDetector.h"
 
 
 
@@ -288,12 +291,66 @@ void TestProgram::program(MultiSwitchProgramEnvironment& env, CancellableScope& 
     [[maybe_unused]] VideoFeed& feed = env.consoles[0];
     [[maybe_unused]] VideoOverlay& overlay = env.consoles[0];
     ProControllerContext context(scope, console.controller<ProController>());
+    // JoyconContext context(scope, console.controller<JoyconController>());
     VideoOverlaySet overlays(overlay);
+
+
+
+    auto snapshot = feed.snapshot();
+    cout << snapshot->width() << " x " << snapshot->height() << endl;
+
+    RunFromBattleDetector detector(COLOR_RED, &overlay);
+    cout << detector.detect(snapshot) << endl;
+
+
+#if 0
+close_game_from_home(console, context);
+// ssf_issue_scroll(context, DPAD_DOWN, 24ms);
+#endif  
+
+#if 0
+    // auto snapshot = feed.snapshot();
+    // CloseGameDetector detector(console);
+    // cout << detector.detect(snapshot) << endl;
+    CloseGameWatcher watcher(console);
+
+    int ret = wait_until(console, context, Seconds(10), {watcher});
+
+    if (ret == 0){
+        console.log("CloseGameWatcher detected.");
+    }
+    
+#endif    
+
+#if 0
+    ImageRGB32 image1("itemprinter.png");
+    PokemonSV::ItemPrinterMaterialDetector detector(COLOR_RED, Language::ChineseTraditional);
+    // detector.detect_material_name(console, image1, context, 0);
+    
+    // detector.detect_material_name(console, image1, context, 2);
+    detector.detect_material_name(console, image1, context, 1);
+
+
+
+#endif
+
+#if 0
+    save_game_to_menu(console, context);
+#endif
+
 
 
 //    MoveEffectivenessSymbolMatcher::NoEffect();
 
-#if 1
+#if 0
+    auto snapshot = feed.snapshot();
+    ImageViewRGB32 cropped = extract_box_reference(snapshot, ImageFloatBox(0.309013, 0.719466, 0.418455, 0.015267));
+    ImageStats stats = image_stats(cropped);
+    cout << stats.average << stats.stddev << endl;
+#endif
+
+
+#if 0
     MapIconDetector detector0(COLOR_RED, MapIconType::PokemonCenter, {0, 0, 1, 1}, &overlay);
     MapIconDetector detector1(COLOR_RED, MapIconType::Building, {0, 0, 1, 1}, &overlay);
     MapIconDetector detector2(COLOR_RED, MapIconType::BuildingFlyable, {0, 0, 1, 1}, &overlay);
@@ -319,7 +376,7 @@ void TestProgram::program(MultiSwitchProgramEnvironment& env, CancellableScope& 
 
     auto snapshot = feed.snapshot();
 
-    MoveEffectivenessSymbolDetector detector(COLOR_RED, &overlay);
+    ItemReceiveDetector detector(COLOR_RED, &overlay);
     cout << detector.detect(snapshot) << endl;
 #endif
 

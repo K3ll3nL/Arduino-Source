@@ -46,6 +46,15 @@ extern const size_t LOG_HISTORY_LINES;
 // Path to the parent folder that holds all other folders, e.g. settings folder, screenshot folder, etc. 
 const std::string& RUNTIME_BASE_PATH();
 
+#if 0
+// Program executable information (retrieved from argv[0])
+// These must be initialized by calling set_program_path() from main() before use.
+void set_program_path(const char* argv0);
+const std::string& PROGRAM_ABSOLUTE_PATH();  // Full absolute path to executable
+const std::string& PROGRAM_FILENAME();       // Filename with extension
+const std::string& PROGRAM_BASENAME();       // Filename without extension
+#endif
+
 // Folder path (end with "/") to hold program setting files.
 const std::string& SETTINGS_PATH();
 // The setting JSON file path. This path is a child of the folder SETTINGS_PATH().
@@ -73,7 +82,7 @@ const std::string& TRAINING_PATH();
 // Folder path (end with "/") to hold data annotation for ML labeling programs
 const std::string& ML_ANNOTATION_PATH();
 // Folder path (end with "/") to hold model cache for model inferences. This is only used on macOS
-// for the Apple CoreML model acceleration framework can create model cache for faster model inference
+// for the Apple CoreML model acceleration framework to create model cache for faster model inference
 // sessions.
 const std::string& ML_MODEL_CACHE_PATH();
 

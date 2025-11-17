@@ -4,21 +4,24 @@
  *
  */
 
-#include "CommonFramework/Logging/Logger.h"
+//#include "CommonFramework/Logging/Logger.h"
 #include "CommonFramework/Exceptions/OperationFailedException.h"
 #include "CommonFramework/ProgramStats/StatsTracking.h"
 #include "CommonFramework/Tools/ErrorDumper.h"
 //#include "CommonFramework/VideoPipeline/VideoFeed.h"
-#include "CommonTools/Async/InterruptableCommands.h"
+//#include "CommonTools/Async/InterruptableCommands.h"
 #include "CommonTools/Async/InferenceRoutines.h"
 //#include "CommonTools/VisualDetectors/BlackScreenDetector.h"
+#include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonLZA/Inference/PokemonLZA_SelectionArrowDetector.h"
 #include "PokemonLZA/Inference/PokemonLZA_DialogDetector.h"
 #include "PokemonLZA/Inference/PokemonLZA_ButtonDetector.h"
-#include "PokemonLZA/Inference/PokemonLZA_MoveEffectivenessSymbol.h"
+#include "PokemonLZA/Inference/Battles/PokemonLZA_RunFromBattleDetector.h"
+#include "PokemonLZA/Programs/PokemonLZA_BasicNavigation.h"
+#include "PokemonLZA/Programs/PokemonLZA_TrainerBattle.h"
 #include "PokemonLZA_RestaurantFarmer.h"
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 
@@ -45,15 +48,21 @@ class RestaurantFarmer_Descriptor::Stats : public StatsTracker{
 public:
     Stats()
         : rounds(m_stats["Rounds"])
+        , wins(m_stats["Wins"])
+        , losses(m_stats["Losses"])
         , errors(m_stats["Errors"])
     {
         m_display_order.emplace_back("Rounds");
+        m_display_order.emplace_back("Wins");
+        m_display_order.emplace_back("Losses");
         m_display_order.emplace_back("Errors", HIDDEN_IF_ZERO);
 
         m_aliases["Battles"] = "Rounds";
     }
 
     std::atomic<uint64_t>& rounds;
+    std::atomic<uint64_t>& wins;
+    std::atomic<uint64_t>& losses;
     std::atomic<uint64_t>& errors;
 };
 std::unique_ptr<StatsTracker> RestaurantFarmer_Descriptor::make_stats() const{
@@ -61,24 +70,26 @@ std::unique_ptr<StatsTracker> RestaurantFarmer_Descriptor::make_stats() const{
 }
 
 
-RestaurantFarmer::~RestaurantFarmer(){
-    STOP_AFTER_CURRENT.remove_listener(*this);
-}
-
 RestaurantFarmer::RestaurantFarmer()
-    : m_stop_after_current(false)
+    : STOP_AFTER_CURRENT("Round")
     , NUM_ROUNDS(
         "<b>Number of Rounds to Run:</b><br>"
-        "Zero will run until 'Stop after Current Round' is pressed or the program is manually stopped.</b>",
-        LockMode::UNLOCK_WHILE_RUNNING, 
-        100, 
+        "Zero will run until 'Stop after Current Round' is pressed or the program is manually stopped.",
+        LockMode::UNLOCK_WHILE_RUNNING,
+        500,
         0
     )
     , GO_HOME_WHEN_DONE(false)
+    , PERIODIC_SAVE(
+        "<b>Periodically Save:</b><br>"
+        "Save the game every this many rounds. This reduces the loss to game crashes. Set to zero to disable.",
+        LockMode::UNLOCK_WHILE_RUNNING,
+        10,
+        0
+    )
     , MOVE_AI(
         "<b>Move Selection AI:</b><br>"
-        "If enabled, it will be smarter with move selection.<br>"
-        "However, this adds a split-second delay which may cause opponent attacks to land first.",
+        "If enabled, it will be smarter with move selection.",
         LockMode::UNLOCK_WHILE_RUNNING,
         true
     )
@@ -102,34 +113,10 @@ RestaurantFarmer::RestaurantFarmer()
 
     PA_ADD_OPTION(NUM_ROUNDS);
     PA_ADD_OPTION(GO_HOME_WHEN_DONE);
+    PA_ADD_OPTION(PERIODIC_SAVE);
+
     PA_ADD_OPTION(NOTIFICATIONS);
-
-    STOP_AFTER_CURRENT.set_idle();
-    STOP_AFTER_CURRENT.add_listener(*this);
 }
-
-
-
-RestaurantFarmer::StopButton::StopButton()
-    : ButtonOption(
-      "<b>Stop after current round:",
-      "Stop after current round",
-      0, 16
-    )
-{}
-void RestaurantFarmer::StopButton::set_idle(){
-    this->set_enabled(false);
-    this->set_text("Stop after Current Round");
-}
-void RestaurantFarmer::StopButton::set_ready(){
-    this->set_enabled(true);
-    this->set_text("Stop after Current Round");
-}
-void RestaurantFarmer::StopButton::set_pressed(){
-    this->set_enabled(false);
-    this->set_text("Program will stop after current round...");
-}
-
 
 
 bool RestaurantFarmer::run_lobby(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
@@ -141,7 +128,7 @@ bool RestaurantFarmer::run_lobby(SingleSwitchProgramEnvironment& env, ProControl
         ButtonWatcher buttonA(
             COLOR_RED,
             ButtonType::ButtonA,
-            {0.1, 0.1, 0.8, 0.8},
+            {0.4, 0.3, 0.2, 0.7},
             &env.console.overlay()
         );
         SelectionArrowWatcher arrow(
@@ -152,6 +139,7 @@ bool RestaurantFarmer::run_lobby(SingleSwitchProgramEnvironment& env, ProControl
         FlatWhiteDialogWatcher dialog0(COLOR_RED, &env.console.overlay());
         BlueDialogWatcher dialog1(COLOR_RED, &env.console.overlay());
         ItemReceiveWatcher item_receive(COLOR_RED, &env.console.overlay());
+        RunFromBattleWatcher battle_menu(COLOR_GREEN, &env.console.overlay(), 250ms);
 
         int ret = wait_until(
             env.console, context,
@@ -162,6 +150,7 @@ bool RestaurantFarmer::run_lobby(SingleSwitchProgramEnvironment& env, ProControl
                 dialog0,
                 dialog1,
                 item_receive,
+                battle_menu,
             }
         );
         context.wait_for(100ms);
@@ -169,7 +158,7 @@ bool RestaurantFarmer::run_lobby(SingleSwitchProgramEnvironment& env, ProControl
         switch (ret){
         case 0:
             env.log("Detected A button.");
-            if (m_stop_after_current.load(std::memory_order_relaxed)){
+            if (STOP_AFTER_CURRENT.should_stop()){
                 return true;
             }
             pbf_press_button(context, BUTTON_A, 160ms, 80ms);
@@ -179,6 +168,7 @@ bool RestaurantFarmer::run_lobby(SingleSwitchProgramEnvironment& env, ProControl
             env.log("Detected selection arrow.");
             // This is when the restaurant receptionist is asking whether you want
             // to start the round
+            // Mash A for 5 sec to clear rest of the dialog and enter battle
             pbf_mash_button(context, BUTTON_A, 5000ms);
             return false;
 
@@ -197,12 +187,17 @@ bool RestaurantFarmer::run_lobby(SingleSwitchProgramEnvironment& env, ProControl
             pbf_press_button(context, BUTTON_A, 160ms, 80ms);
             continue;
 
+        case 5:
+            env.log("Detected battle menu. (unexpected)", COLOR_RED);
+            stats.errors++;
+            return false;
+
         default:
             stats.errors++;
             env.update_stats();
             OperationFailedException::fire(
                 ErrorReport::SEND_ERROR_REPORT,
-                "run_lobby(): No recognized state after 60 seconds.",
+                "run_lobby(): No recognized state after 10 seconds.",
                 env.console
             );
         }
@@ -211,62 +206,108 @@ bool RestaurantFarmer::run_lobby(SingleSwitchProgramEnvironment& env, ProControl
 void RestaurantFarmer::run_round(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     RestaurantFarmer_Descriptor::Stats& stats = env.current_stats<RestaurantFarmer_Descriptor::Stats>();
 
-    WallClock start = current_time();
+//    WallClock start = current_time();
+
+    bool won = false;
+    Milliseconds rotate_duration = 100ms;
 
     while (true){
-        context.wait_for_all_requests();
-
+        ButtonWatcher buttonA(
+            COLOR_RED,
+            ButtonType::ButtonA,
+            {0.4, 0.3, 0.2, 0.7},
+            &env.console.overlay(),
+            1000ms
+        );
         SelectionArrowWatcher arrow(
             COLOR_YELLOW, &env.console.overlay(),
             SelectionArrowType::RIGHT,
-            {0.654308, 0.481553, 0.295529, 0.312621}
+            {0.654308, 0.481553, 0.295529, 0.312621},
+            1000ms
         );
         ItemReceiveWatcher item_receive(COLOR_RED, &env.console.overlay(), 1000ms);
-        FlatWhiteDialogWatcher dialog0(COLOR_RED, &env.console.overlay());
-        BlueDialogWatcher dialog1(COLOR_RED, &env.console.overlay());
+        FlatWhiteDialogWatcher dialog0(COLOR_RED, &env.console.overlay(), 1000ms);
+        BlueDialogWatcher dialog1(COLOR_RED, &env.console.overlay(), 1000ms);
+        RunFromBattleWatcher battle_menu(COLOR_GREEN, &env.console.overlay(), 10ms);
 
+        context.wait_for_all_requests();
 
         int ret = run_until<ProControllerContext>(
             env.console, context,
-            [&](ProControllerContext& context){
-                while (current_time() - start < 30min){
-                    attempt_attack(env, context);
-                }
+            [](ProControllerContext& context){
+                pbf_mash_button(context, BUTTON_B, 120s);
             },
             {
+                buttonA,
                 arrow,
                 item_receive,
                 dialog0,
                 dialog1,
+                battle_menu,
             }
         );
 
         switch (ret){
         case 0:
+            env.log("Detected Lobby.");
+            stats.rounds++;
+            if (won){
+                stats.wins++;
+            }else{
+                stats.losses++;
+            }
+            env.update_stats();
+            return;
+
+        case 1:
             env.log("Detected selection arrow. (unexpected)", COLOR_RED);
             dump_image(env.console.logger(), env.program_info(), env.console.video(), "UnexpectedSelectionArrow");
             stats.errors++;
             env.update_stats();
-           continue;
+            continue;
 
         case 2:
+            env.log("Detected item receive.");
+            won = true;
+            pbf_press_button(context, BUTTON_A, 160ms, 80ms);
+            continue;
+
+        case 3:
             env.log("Detected white dialog.");
             pbf_press_button(context, BUTTON_B, 160ms, 80ms);
             continue;
 
-        case 1:
-        case 3:
-            env.log("Detected blue dialog. End of round!");
-            stats.rounds++;
-            env.update_stats();
-            return;
+        case 4:
+            env.log("Detected blue dialog.");
+            pbf_press_button(context, BUTTON_B, 160ms, 80ms);
+            continue;
+
+        case 5:
+            env.log("Detected battle menu.");
+            if (attempt_one_attack(env, context, MOVE_AI, USE_PLUS_MOVES)){
+                rotate_duration = 100ms;
+            }else{
+                env.log("Failed to select move. Rotating camera...", COLOR_ORANGE);
+                ssf_press_button(context, BUTTON_ZL, 200ms, 400ms, 200ms);
+                if (rotate_duration > Milliseconds(0)){
+                    pbf_move_right_joystick(context, 0, 128, rotate_duration, 0ms);
+                }else{
+                    pbf_move_right_joystick(context, 255, 128, -rotate_duration, 0ms);
+                }
+                rotate_duration *= -2;
+
+                if (rotate_duration < -2000ms || rotate_duration > 2000ms){
+                    rotate_duration = 100ms;
+                }
+            }
+            continue;
 
         default:
             stats.errors++;
             env.update_stats();
             OperationFailedException::fire(
                 ErrorReport::SEND_ERROR_REPORT,
-                "Round took longer than 30 minutes.",
+                "run_round(): No state detected for 2 minutes.",
                 env.console
             );
         }
@@ -275,118 +316,29 @@ void RestaurantFarmer::run_round(SingleSwitchProgramEnvironment& env, ProControl
 }
 
 
-bool RestaurantFarmer::attempt_attack(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
-    if (!MOVE_AI){
-        ssf_press_button(context, BUTTON_ZL, 160ms, 800ms, 200ms);
-        if (USE_PLUS_MOVES){
-            ssf_press_button(context, BUTTON_PLUS, 320ms, 840ms);
-//          pbf_wait(context, 104ms);
-        }
-        pbf_press_button(context, BUTTON_X, 80ms, 24ms);
-        pbf_press_button(context, BUTTON_Y, 80ms, 24ms);
-        pbf_press_button(context, BUTTON_B, 80ms, 24ms);
-        return true;
-    }
-
-    AsyncCommandSession<ProController> command(
-        context,
-        env.logger(),
-        env.realtime_dispatcher(),
-        context
-    );
-
-    MoveEffectivenessSymbolWatcher move_watcher(COLOR_RED, &env.console.overlay(), 100ms);
-    command.dispatch([](ProControllerContext& context){
-        pbf_press_button(context, BUTTON_ZL, 10000ms, 0ms);
-    });
-
-    int ret = wait_until(
-        env.console, context, 1000ms,
-        {move_watcher}
-    );
-    if (ret < 0){
-        command.stop_session_and_rethrow();
-        context.wait_for(250ms);
-        pbf_press_button(context, BUTTON_B, 160ms, 80ms);
-        return false;
-    }
-
-    MoveEffectivenessSymbol best_type = move_watcher[0];
-    Button best_move = BUTTON_X;
-    const char* best_string = "Picking Move: Top";
-    if (best_type < move_watcher[1]){
-        best_type = move_watcher[1];
-        best_move = BUTTON_Y;
-        best_string = "Picking Move: Left";
-    }
-    if (best_type < move_watcher[2]){
-        best_type = move_watcher[2];
-        best_move = BUTTON_A;
-        best_string = "Picking Move: Right";
-    }
-    if (best_type < move_watcher[3]){
-//        best_type = move_watcher[3];
-        best_move = BUTTON_B;
-        best_string = "Picking Move: Bottom";
-    }
-
-    env.log(best_string, COLOR_BLUE);
-
-    command.dispatch([&](ProControllerContext& context){
-        ssf_press_button(context, BUTTON_ZL, 0ms, 800ms, 200ms);
-        if (USE_PLUS_MOVES){
-            ssf_press_button(context, BUTTON_PLUS, 320ms, 840ms);
-//            pbf_wait(context, 104ms);
-        }
-        pbf_press_button(context, best_move, 160ms, 320ms);
-    });
-
-    command.wait();
-
-    command.stop_session_and_rethrow();
-    return true;
-}
-
-
-
-
-
-
-
-class RestaurantFarmer::ResetOnExit{
-public:
-    ResetOnExit(StopButton& button)
-        : m_button(button)
-    {}
-    ~ResetOnExit(){
-        m_button.set_idle();
-    }
-
-private:
-    StopButton& m_button;
-};
-
-void RestaurantFarmer::on_press(){
-    global_logger_tagged().log("Stop after current requested...");
-    m_stop_after_current.store(true, std::memory_order_relaxed);
-    STOP_AFTER_CURRENT.set_pressed();
-}
-
 void RestaurantFarmer::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+    assert_16_9_720p_min(env.logger(), env.console);
+
     RestaurantFarmer_Descriptor::Stats& stats = env.current_stats<RestaurantFarmer_Descriptor::Stats>();
-    m_stop_after_current.store(false, std::memory_order_relaxed);
-    STOP_AFTER_CURRENT.set_ready();
-    ResetOnExit reset_button_on_exit(STOP_AFTER_CURRENT);
+
+    DeferredStopButtonOption::ResetOnExit reset_on_exit(STOP_AFTER_CURRENT);
     pbf_mash_button(context, BUTTON_B, 1000ms);
 
 //    auto lobby = env.console.video().snapshot();
 
-    while (true){
+    for (uint32_t rounds_since_last_save = 0;; rounds_since_last_save++){
         send_program_status_notification(env, NOTIFICATION_STATUS_UPDATE);
         if (NUM_ROUNDS != 0 && stats.rounds >= NUM_ROUNDS) {
-            m_stop_after_current.store(true, std::memory_order_relaxed);
-            STOP_AFTER_CURRENT.set_pressed();
+            break;
         }
+
+        uint32_t periodic_save = PERIODIC_SAVE;
+        if (periodic_save != 0 && rounds_since_last_save >= periodic_save){
+            save_game_to_menu(env.console, context);
+            pbf_mash_button(context, BUTTON_B, 2000ms);
+            rounds_since_last_save = 0;
+        }
+
         if (run_lobby(env, context)){
             break;
         }

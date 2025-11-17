@@ -5,10 +5,11 @@
  */
 
 #include "CommonFramework/ProgramStats/StatsTracking.h"
-#include "CommonTools/Async/InferenceRoutines.h"
 #include "CommonFramework/Exceptions/OperationFailedException.h"
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonFramework/VideoPipeline/VideoFeed.h"
+#include "CommonTools/Async/InferenceRoutines.h"
+#include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "Pokemon/Pokemon_Notification.h"
@@ -40,9 +41,6 @@ using namespace Pokemon;
 // Blue dialog of "You received <fossil pokemon>". This dialog can be cleared by button B as well.
 // Flat white dialog box (?) with name Reg x 2
 // Back to overworld, A button shown
-
-// TODOs:
-// - change program to set num fossils not num boxes. Too expensive otherwise
 
 AutoFossil_Descriptor::AutoFossil_Descriptor()
     : SingleSwitchProgramDescriptor(
@@ -83,22 +81,33 @@ std::unique_ptr<StatsTracker> AutoFossil_Descriptor::make_stats() const{
 
 
 AutoFossil::AutoFossil()
-    : NUM_FOSSILS("<b>How many fossils to revive before checking them in box:</b>",
+    : STOP_AFTER_CURRENT("Batch")
+    , NUM_FOSSILS("<b>How Many Fossils to Revive Before Checking Them in Box:</b>",
         LockMode::LOCK_WHILE_RUNNING,
         30, 1, 32*30
     )
+    , WHICH_FOSSIL(
+        "<b>Which Fossil to Choose in the Dialog Menu:</b>",
+        {
+            {0, "1st-fossil", "1st Fossil"},
+            {1, "2nd-fossil", "2nd Fossil"},
+            {2, "3rd-fossil", "3rd Fossil"},
+        },
+        LockMode::LOCK_WHILE_RUNNING,
+        0
+    )
+    , TAKE_VIDEO(
+        "Take a video When Found:",
+        LockMode::UNLOCK_WHILE_RUNNING,
+        true
+    )
+    , GO_HOME_WHEN_DONE(true)
     , FOUND_SHINY_OR_ALPHA(
         "Found Shiny or Alpha",
         true, true,
         ImageAttachmentMode::JPG,
         {"Notifs", "Showcase"}
     )
-    , TAKE_VIDEO(
-        "Take a video on Switch when found",
-        LockMode::UNLOCK_WHILE_RUNNING,
-        true
-    )
-    , GO_HOME_WHEN_DONE(true)
     , NOTIFICATION_STATUS("Status Update", true, false, std::chrono::seconds(3600))
     , NOTIFICATIONS({
         &NOTIFICATION_STATUS,
@@ -108,8 +117,10 @@ AutoFossil::AutoFossil()
         &NOTIFICATION_ERROR_FATAL,
     })
 {
-    PA_ADD_OPTION(STOP_ON);
+    PA_ADD_OPTION(STOP_AFTER_CURRENT);
     PA_ADD_OPTION(NUM_FOSSILS);
+    PA_ADD_OPTION(WHICH_FOSSIL);
+    PA_ADD_OPTION(STOP_ON);
     PA_ADD_OPTION(TAKE_VIDEO);
     PA_ADD_OPTION(GO_HOME_WHEN_DONE);
     PA_ADD_OPTION(NOTIFICATIONS);
@@ -117,9 +128,16 @@ AutoFossil::AutoFossil()
 
 
 void AutoFossil::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+    assert_16_9_720p_min(env.logger(), env.console);
+
+    DeferredStopButtonOption::ResetOnExit reset_on_exit(STOP_AFTER_CURRENT);
+
     const size_t num_fossils_to_revive = NUM_FOSSILS; // at least 1
     const size_t num_boxes = (num_fossils_to_revive+29) / 30;  // at least 1
     while(true){
+        if (STOP_AFTER_CURRENT.should_stop()){
+            break;
+        }
         for(size_t i = 0; i < num_fossils_to_revive; i++){
             revive_one_fossil(env, context);
             std::ostringstream os;
@@ -130,10 +148,9 @@ void AutoFossil::program(SingleSwitchProgramEnvironment& env, ProControllerConte
         }
 
         overworld_to_box_system(env.console, context);
-        size_t checked_fossils = 0;
-        for(uint8_t i = 0; i < num_boxes; i++, checked_fossils++){
+        for(uint8_t i = 0; i < num_boxes; i++){
             size_t num_fossils_in_box = (i == num_boxes - 1 ? num_fossils_to_revive - i*30 : 30);
-            bool found_match = check_fossils_in_one_box(env, context, num_fossils_in_box);
+            bool found_match = check_fossils_in_one_box(env, context, i*30, num_fossils_in_box);
             if (found_match){
                 send_program_finished_notification(env, NOTIFICATION_STATUS);
                 return;
@@ -174,7 +191,7 @@ void AutoFossil::revive_one_fossil(SingleSwitchProgramEnvironment& env, ProContr
         
         int ret = wait_until(
             env.console, context,
-            10000ms,
+            10s,
             {
                 buttonA_watcher,
                 selection_arrow_watcher,
@@ -199,6 +216,9 @@ void AutoFossil::revive_one_fossil(SingleSwitchProgramEnvironment& env, ProContr
         case 1:
             env.log("Detected selection arrow.");
             // This is when the Reg asks you which fossil to revive
+            for(size_t i = 0; i < WHICH_FOSSIL.current_value(); i++){
+                pbf_press_dpad(context, DPAD_DOWN, 40ms, 40ms);
+            }
             pbf_press_button(context, BUTTON_A, 80ms, 40ms);
             seen_selection_arrow = true;
             continue;
@@ -223,7 +243,7 @@ void AutoFossil::revive_one_fossil(SingleSwitchProgramEnvironment& env, ProContr
             env.update_stats();
             OperationFailedException::fire(
                 ErrorReport::SEND_ERROR_REPORT,
-                "revive_one_fossil(): No recognized state after 60 seconds.",
+                "revive_one_fossil(): No recognized state after 10 seconds.",
                 env.console
             );
         }
@@ -232,7 +252,8 @@ void AutoFossil::revive_one_fossil(SingleSwitchProgramEnvironment& env, ProContr
 
 // start at box system, check fossils one by one
 bool AutoFossil::check_fossils_in_one_box(
-    SingleSwitchProgramEnvironment& env, ProControllerContext& context, size_t num_fossils_in_box)
+    SingleSwitchProgramEnvironment& env, ProControllerContext& context,
+    size_t num_checked_fossils_in_previous_boxes, size_t num_fossils_in_box)
 {
     AutoFossil_Descriptor::Stats& stats = env.current_stats<AutoFossil_Descriptor::Stats>();
 
@@ -245,10 +266,18 @@ bool AutoFossil::check_fossils_in_one_box(
         box_detector.move_cursor(env.program_info(), env.console, context, box_row, box_col);
 
         info_watcher.reset_state();
-        wait_until(env.console, context, WallClock::max(), {info_watcher});
+        const int ret = wait_until(env.console, context, std::chrono::seconds(10), {info_watcher});
+        if (ret < 0) {
+            OperationFailedException::fire(
+                ErrorReport::SEND_ERROR_REPORT,
+                "Failed to detect box info at cell idx " + std::to_string(i) + " after 30 seconds",
+                env.console
+            );
+        }
+
         
         std::ostringstream os;
-        os << i + 1 << "/" << NUM_FOSSILS << ": " << info_watcher.info_str();
+        os << num_checked_fossils_in_previous_boxes + i + 1 << "/" << NUM_FOSSILS << ": " << info_watcher.info_str();
         std::string log_str = os.str();
         env.log(log_str);
         env.console.overlay().add_log(log_str);

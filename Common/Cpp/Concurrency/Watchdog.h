@@ -16,10 +16,10 @@
 
 #include <map>
 #include <mutex>
-#include <thread>
 #include <condition_variable>
 #include "Common/Cpp/Time.h"
 #include "Common/Cpp/Concurrency/SpinLock.h"
+#include "Common/Cpp/Concurrency/Thread.h"
 
 namespace PokemonAutomation{
 
@@ -40,6 +40,7 @@ public:
     //  call will be set to (now + period).
     void add(WatchdogCallback& callback, std::chrono::milliseconds period);
     void remove(WatchdogCallback& callback);
+    bool try_remove(WatchdogCallback& callback);
 
     //  Delay the specified callback. If the callback is current running, this
     //  function does nothing.
@@ -92,7 +93,7 @@ private:
     std::mutex m_sleep_lock;
 
     std::condition_variable m_cv;
-    std::thread m_thread;
+    Thread m_thread;
 };
 
 

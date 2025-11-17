@@ -15,14 +15,6 @@
 namespace PokemonAutomation{
 
 
-GlobalMediaServices::~GlobalMediaServices(){
-    {
-        std::lock_guard<std::mutex> lg(m_sleep_lock);
-        m_stopping = true;
-        m_cv.notify_all();
-    }
-    m_thread.join();
-}
 GlobalMediaServices::GlobalMediaServices()
     : m_refresh_cameras(true)
 {
@@ -37,7 +29,23 @@ GlobalMediaServices::GlobalMediaServices()
         }
     );
 
-    m_thread = std::thread(&GlobalMediaServices::thread_body, this);
+    m_thread = Thread([this]{
+        thread_body();
+    });
+}
+GlobalMediaServices::~GlobalMediaServices(){
+    stop();
+}
+void GlobalMediaServices::stop(){
+    if (!m_thread.joinable()){
+        return;
+    }
+    {
+        std::lock_guard<std::mutex> lg(m_sleep_lock);
+        m_stopping = true;
+        m_cv.notify_all();
+    }
+    m_thread.join();
 }
 
 
