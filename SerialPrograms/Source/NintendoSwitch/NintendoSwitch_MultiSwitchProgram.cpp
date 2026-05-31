@@ -6,9 +6,9 @@
 
 #include "Common/Cpp/Json/JsonValue.h"
 #include "Common/Cpp/Containers/FixedLimitVector.tpp"
-#include "Common/Cpp/Concurrency/AsyncDispatcher.h"
 #include "CommonFramework/VideoPipeline/VideoOverlay.h"
 #include "CommonFramework/VideoPipeline/Stats/ThreadUtilizationStats.h"
+#include "CommonFramework/Tools/GlobalThreadPools.h"
 #include "CommonTools/StartupChecks/StartProgramChecks.h"
 #include "Controllers/ControllerSession.h"
 #include "NintendoSwitch_MultiSwitchProgram.h"
@@ -31,7 +31,7 @@ MultiSwitchProgramEnvironment::MultiSwitchProgramEnvironment(
     , consoles(std::move(p_switches))
 {
     for (ConsoleHandle& console : consoles){
-        console.initialize_inference_threads(scope, realtime_inference_dispatcher());
+        console.initialize_inference_threads(scope);
     }
 }
 
@@ -51,8 +51,7 @@ void MultiSwitchProgramEnvironment::run_in_parallel(
     CancellableScope& scope, size_t s, size_t e,
     const std::function<void(CancellableScope& scope, ConsoleHandle& console)>& func
 ){
-    realtime_dispatcher().run_in_parallel(
-        s, e,
+    GlobalThreadPools::unlimited_realtime().run_in_parallel(
         [&](size_t index){
             ConsoleHandle& console = consoles[index];
             ThreadUtilizationStat stat(current_thread_handle(), "Program Thread " + std::to_string(index) + ":");
@@ -65,15 +64,15 @@ void MultiSwitchProgramEnvironment::run_in_parallel(
                 console.overlay().remove_stat(stat);
                 throw;
             }
-        }
+        },
+        s, e
     );
 }
 void MultiSwitchProgramEnvironment::run_in_parallel(
     CancellableScope& scope, size_t s, size_t e,
     const std::function<void(ConsoleHandle& console, ProControllerContext& context)>& func
 ){
-    realtime_dispatcher().run_in_parallel(
-        s, e,
+    GlobalThreadPools::unlimited_realtime().run_in_parallel(
         [&](size_t index){
             ConsoleHandle& console = consoles[index];
             ThreadUtilizationStat stat(current_thread_handle(), "Program Thread " + std::to_string(index) + ":");
@@ -87,7 +86,8 @@ void MultiSwitchProgramEnvironment::run_in_parallel(
                 console.overlay().remove_stat(stat);
                 throw;
             }
-        }
+        },
+        s, e
     );
 }
 
@@ -115,14 +115,16 @@ MultiSwitchProgramDescriptor::MultiSwitchProgramDescriptor(
     size_t min_switches,
     size_t max_switches,
     size_t default_switches,
-    bool deprecated
+    bool deprecated,
+    std::vector<std::string> required_resources
 )
     : ProgramDescriptor(
         pick_color(color_class),
         std::move(identifier),
         std::move(category), std::move(display_name),
         std::move(doc_link),
-        std::move(description)
+        std::move(description),
+        std::move(required_resources)
     )
     , m_color_class(color_class)
     , m_feedback(feedback)

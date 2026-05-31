@@ -108,7 +108,7 @@ bool start_adventure(
         stream, context,
         [](ProControllerContext& context){
             for (size_t c = 0; c < 180; c++){
-                pbf_press_button(context, BUTTON_A, 10, 115);
+                pbf_press_button(context, BUTTON_A, 80ms, 920ms);
                 context.wait_for_all_requests();
             }
         },
@@ -148,8 +148,8 @@ bool start_raid_self_solo(
     state.boss = read_boss_sprite(stream);
 
     //  Start raid.
-    pbf_press_dpad(context, DPAD_DOWN, 10, 50);
-    pbf_press_button(context, BUTTON_A, 10, TICKS_PER_SECOND);
+    pbf_press_dpad(context, DPAD_DOWN, 80ms, 400ms);
+    pbf_press_button(context, BUTTON_A, 80ms, 1000ms);
     context.wait_for_all_requests();
 
     return true;
@@ -188,10 +188,10 @@ bool start_raid_host_solo(
     //  Enter code.
     std::string code = settings.RAID_CODE.get_code();
     if (!code.empty()){
-        pbf_press_button(context, BUTTON_PLUS, 10, TICKS_PER_SECOND);
-        FastCodeEntry::numberpad_enter_code(console, context, code, true);
-        pbf_wait(context, 2 * TICKS_PER_SECOND);
-        pbf_press_button(context, BUTTON_A, 10, TICKS_PER_SECOND);
+        pbf_press_button(context, BUTTON_PLUS, 80ms, 1000ms);
+        FastCodeEntry::numberpad_enter_code(console, context, false, code, true);
+        pbf_wait(context, 2000ms);
+        pbf_press_button(context, BUTTON_A, 80ms, 1000ms);
         context.wait_for_all_requests();
     }
 
@@ -205,13 +205,13 @@ bool start_raid_host_solo(
     );
 
     //  Open lobby.
-    pbf_press_button(context, BUTTON_A, 10, TICKS_PER_SECOND);
+    pbf_press_button(context, BUTTON_A, 80ms, 1000ms);
     context.wait_for_all_requests();
 
     auto time_limit = current_time() + settings.LOBBY_WAIT_DELAY0.get();
 
     if (!wait_for_a_player(console, context, *entrance, time_limit)){
-        pbf_mash_button(context, BUTTON_B, 10 * TICKS_PER_SECOND);
+        pbf_mash_button(context, BUTTON_B, 10000ms);
         return start_raid_self_solo(
             env.program_info(), console, context,
             state_tracker,
@@ -223,19 +223,19 @@ bool start_raid_host_solo(
 
     //  Ready up.
     context.wait_for(std::chrono::seconds(1));
-    pbf_press_button(context, BUTTON_A, 10, TICKS_PER_SECOND);
+    pbf_press_button(context, BUTTON_A, 80ms, 1000ms);
     context.wait_for_all_requests();
 
     //  Wait
     if (!wait_for_lobby_ready(console, context, *entrance, 1, 4, time_limit)){
-        pbf_mash_button(context, BUTTON_B, 10 * TICKS_PER_SECOND);
+        pbf_mash_button(context, BUTTON_B, 10000ms);
         return false;
     }
 
     //  Start
     context.wait_for_all_requests();
     if (!start_adventure(console, context, 1)){
-        pbf_mash_button(context, BUTTON_B, 10 * TICKS_PER_SECOND);
+        pbf_mash_button(context, BUTTON_B, 10000ms);
         return false;
     }
 

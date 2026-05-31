@@ -27,12 +27,13 @@
 #include <string.h>
 #include <map>
 #include <atomic>
-#include <condition_variable>
-#include "Common/Cpp/AbstractLogger.h"
+#include "Common/Cpp/Logging/AbstractLogger.h"
 #include "Common/Cpp/Concurrency/SpinLock.h"
-#include "Common/Cpp/Concurrency/Thread.h"
+#include "Common/Cpp/Concurrency/Mutex.h"
+#include "Common/Cpp/Concurrency/ConditionVariable.h"
+#include "Common/Cpp/Concurrency/AsyncTask.h"
+#include "Common/Cpp/Concurrency/ThreadPool.h"
 #include "Common/SerialPABotBase/SerialPABotBase_Protocol.h"
-#include "Controllers/SerialPABotBase/Connection/MessageLogger.h"
 #include "Controllers/SerialPABotBase/Connection/PABotBaseConnection.h"
 #include "BotBase.h"
 #include "BotBaseMessage.h"
@@ -41,22 +42,20 @@
 namespace PokemonAutomation{
 
 
-class PABotBase : public BotBaseController, private PABotBaseConnection{
+class PABotBase final : public BotBaseController, public PABotBaseConnection{
     static const seqnum_t MAX_SEQNUM_GAP = (seqnum_t)-1 >> 2;
 
 public:
     PABotBase(
         Logger& logger,
-        std::unique_ptr<StreamConnection> connection,
-        MessageLogger* message_logger = nullptr,
+        ThreadPool& thread_pool,
+        std::unique_ptr<UnreliableStreamConnectionPushing> connection,
         std::chrono::milliseconds retransmit_delay = std::chrono::milliseconds(100)
     );
     virtual ~PABotBase();
 
-    using PABotBaseConnection::set_sniffer;
-
     void connect();
-    virtual void stop(std::string error_message = "") override;
+    virtual void stop(std::string error_message = "") noexcept override;
 
     std::chrono::time_point<std::chrono::system_clock> last_ack() const{
         return m_last_ack.load(std::memory_order_acquire);
@@ -68,7 +67,10 @@ public:
     virtual State state() const override{
         return m_state.load(std::memory_order_acquire);
     }
-    virtual void notify_all() override;
+    virtual void on_cancellable_cancel(
+        Cancellable& cancellable,
+        std::exception_ptr reason
+    ) override;
 
     virtual size_t queue_limit() const override{
         return m_max_pending_requests.load(std::memory_order_relaxed);
@@ -78,7 +80,7 @@ public:
 public:
     //  Basic Requests
 
-    virtual void wait_for_all_requests(const Cancellable* cancelled = nullptr) override;
+    virtual void wait_for_all_requests(Cancellable* cancelled = nullptr) override;
     virtual void stop_all_commands() override;
     virtual void next_command_interrupt() override;
 
@@ -136,24 +138,24 @@ private:
 
     //  Returns the seqnum of the request. If failed, returns zero.
     uint64_t try_issue_request(
-        const Cancellable* cancelled,
+        Cancellable* cancelled,
         const BotBaseRequest& request,
         bool silent_remove, bool do_not_block
     );
     uint64_t try_issue_command(
-        const Cancellable* cancelled,
+        Cancellable* cancelled,
         const BotBaseRequest& request,
         bool silent_remove
     );
 
     //  Returns the seqnum of the request.
     uint64_t issue_request(
-        const Cancellable* cancelled,
+        Cancellable* cancelled,
         const BotBaseRequest& request,
         bool silent_remove, bool do_not_block
     );
     uint64_t issue_command(
-        const Cancellable* cancelled,
+        Cancellable* cancelled,
         const BotBaseRequest& request,
         bool silent_remove
     );
@@ -161,19 +163,22 @@ private:
 public:
     virtual bool try_issue_request(
         const BotBaseRequest& request,
-        const Cancellable* cancelled
+        Cancellable* cancelled
     ) override;
     virtual void issue_request(
         const BotBaseRequest& request,
-        const Cancellable* cancelled
+        Cancellable* cancelled
     ) override;
     virtual BotBaseMessage issue_request_and_wait(
         const BotBaseRequest& request,
-        const Cancellable* cancelled
+        Cancellable* cancelled
     ) override;
 
 private:
-    BotBaseMessage wait_for_request(uint64_t seqnum, const Cancellable* cancelled = nullptr);
+    BotBaseMessage wait_for_request(uint64_t seqnum, Cancellable* cancelled = nullptr);
+
+    //  Make we get notified of a cancellable cancels so we can wake up.
+    void cv_wait(Cancellable* cancellable, std::unique_lock<Mutex>& lg);
 
 private:
     Logger& m_logger;
@@ -189,13 +194,13 @@ private:
 
     //  If you need both locks, always acquire m_sleep_lock first!
     SpinLock m_state_lock;
-    std::mutex m_sleep_lock;
+    Mutex m_sleep_lock;
 
-    std::condition_variable m_cv;
+    ConditionVariable m_cv;
     std::atomic<State> m_state;
     std::atomic<bool> m_error;
     std::string m_error_message;
-    Thread m_retransmit_thread;
+    AsyncTask m_retransmit_thread;
 
     LifetimeSanitizer m_sanitizer;
 };

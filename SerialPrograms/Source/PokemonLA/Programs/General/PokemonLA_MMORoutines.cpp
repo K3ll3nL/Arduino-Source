@@ -62,47 +62,47 @@ std::set<std::string> enter_region_and_read_MMO(
     // on map. But when you land in a region, the initial location is a camp, the map cursor
     // will show a text box "xxx Camp - Take a rest or do some crafting". This may occlude some
     // MMO question marks. So we have to move the map cursor away after we land in the region.
-    uint8_t map_cursor_move_x = 0;
-    uint8_t map_cursor_move_y = 0;
-    const int map_cursor_move_duration = 50;
+    double map_cursor_move_x = 0;
+    double map_cursor_move_y = 0;
+    const Milliseconds map_cursor_move_duration = 400ms;
 
-    for(size_t i = 0; i < 5; i++){
+    for (size_t i = 0; i < 5; i++){
         if (mmo_name == MMO_NAMES()[i]){
             switch (i){
             case 0:
                 region = MapRegion::FIELDLANDS;
                 location = TravelLocations::instance().Fieldlands_Fieldlands;
                 camp = Camp::FIELDLANDS_FIELDLANDS;
-                map_cursor_move_x = 128;
-                map_cursor_move_y = 0;
+                map_cursor_move_x = 0;
+                map_cursor_move_y = +1;
                 break;
             case 1:
                 region = MapRegion::MIRELANDS;
                 location = TravelLocations::instance().Mirelands_Mirelands;
                 camp = Camp::MIRELANDS_MIRELANDS;
-                map_cursor_move_x = 0;
-                map_cursor_move_y = 128;
+                map_cursor_move_x = -1;
+                map_cursor_move_y = 0;
                 break;
             case 2:
                 region = MapRegion::COASTLANDS;
                 location = TravelLocations::instance().Coastlands_Beachside;
                 camp = Camp::COASTLANDS_BEACHSIDE;
-                map_cursor_move_x = 0;
-                map_cursor_move_y = 128;
+                map_cursor_move_x = -1;
+                map_cursor_move_y = 0;
                 break;
             case 3:
                 region = MapRegion::HIGHLANDS;
                 location = TravelLocations::instance().Highlands_Highlands;
                 camp = Camp::HIGHLANDS_HIGHLANDS;
-                map_cursor_move_x = 128;
-                map_cursor_move_y = 255;
+                map_cursor_move_x = 0;
+                map_cursor_move_y = -1;
                 break;
             case 4:
                 region = MapRegion::ICELANDS;
                 location = TravelLocations::instance().Icelands_Snowfields;
                 camp = Camp::ICELANDS_SNOWFIELDS;
-                map_cursor_move_x = 128;
-                map_cursor_move_y = 255;
+                map_cursor_move_x = 0;
+                map_cursor_move_y = -1;
                 break;
             }
         }
@@ -115,7 +115,7 @@ std::set<std::string> enter_region_and_read_MMO(
     goto_camp_from_jubilife(env, env.console, context, location, fresh_from_reset);
 
     // Open map
-    pbf_press_button(context, BUTTON_MINUS, 50, 100);
+    pbf_press_button(context, BUTTON_MINUS, 400ms, 800ms);
     context.wait_for_all_requests();
 
     // Take a photo of the map before 
@@ -131,22 +131,22 @@ std::set<std::string> enter_region_and_read_MMO(
         );
     }
     if (zoom_level == 0){
-        pbf_press_button(context, BUTTON_ZR, 50, 50);
+        pbf_press_button(context, BUTTON_ZR, 400ms, 400ms);
         context.wait_for_all_requests();
         question_mark_image = env.console.video().snapshot();
     }else if (zoom_level == 2){
-        pbf_press_button(context, BUTTON_ZL, 50, 50);
+        pbf_press_button(context, BUTTON_ZL, 400ms, 400ms);
         context.wait_for_all_requests();
         question_mark_image = env.console.video().snapshot();
     }
 
     // Move cursor away so that it does not show a text box that occludes MMO sprites.
-    pbf_move_left_joystick(context, map_cursor_move_x, map_cursor_move_y, map_cursor_move_duration, 30);
+    pbf_move_left_joystick(context, {map_cursor_move_x, map_cursor_move_y}, map_cursor_move_duration, 240ms);
     context.wait_for_all_requests();
 
     // Fix Missions & Requests tab:
     if (is_map_mission_tab_raised(question_mark_image)){
-        pbf_press_button(context, BUTTON_R, 50, 100);
+        pbf_press_button(context, BUTTON_R, 400ms, 800ms);
         context.wait_for_all_requests();
         question_mark_image = env.console.video().snapshot();
     }
@@ -156,7 +156,7 @@ std::set<std::string> enter_region_and_read_MMO(
 
     const auto quest_results = question_mark_detector.detect_MMOs_on_region_map(question_mark_image);
     env.log("Detected MMO question marks:");
-    for(const auto& box : quest_results){
+    for (const auto& box : quest_results){
         std::ostringstream os;
         os << "- " << box.center_x() << ", " << box.center_y() << " " << box.width() << " x " << box.height();
         env.log(os.str());
@@ -175,12 +175,12 @@ std::set<std::string> enter_region_and_read_MMO(
     }
 
     // Leave map view, back to overworld
-    pbf_press_button(context, BUTTON_B, 20, 50);
+    pbf_press_button(context, BUTTON_B, 160ms, 400ms);
 
     // Now go to Mai to see the reviewed map
     goto_Mai_from_camp(env.logger(), context, camp);
 
-    pbf_mash_button(context, BUTTON_A, 350);
+    pbf_mash_button(context, BUTTON_A, 2800ms);
     context.wait_for_all_requests();
 
     // Wait for the last dialog box before the MMO pokemon sprites are revealed.
@@ -195,7 +195,7 @@ std::set<std::string> enter_region_and_read_MMO(
             );
         }
     }
-    pbf_press_button(context, BUTTON_B, 50, 50);
+    pbf_press_button(context, BUTTON_B, 400ms, 400ms);
 
     while (true){
         EventDialogDetector event_dialog_detector(env.logger(), env.console.overlay(), true);
@@ -208,7 +208,7 @@ std::set<std::string> enter_region_and_read_MMO(
         switch (ret){
         case 0:
             env.console.log("Detected dialog.");
-            pbf_press_button(context, BUTTON_B, 20, 105);
+            pbf_press_button(context, BUTTON_B, 160ms, 840ms);
             continue;
         case 1:
             env.console.log("Found revealed map thanks to Munchlax!");
@@ -242,7 +242,7 @@ std::set<std::string> enter_region_and_read_MMO(
     }
 
     // Move cursor away so that it does not show a text box that occludes MMO sprites.
-    pbf_move_left_joystick(context, map_cursor_move_x, map_cursor_move_y, map_cursor_move_duration, 30);
+    pbf_move_left_joystick(context, {map_cursor_move_x, map_cursor_move_y}, map_cursor_move_duration, 240ms);
     context.wait_for_all_requests();
 
     std::set<std::string> found;

@@ -9,8 +9,8 @@
 
 //#include "CommonFramework/ImageTools/ImageBoxes.h"
 //#include "CommonFramework/Tools/VideoStream.h"
-#include "NintendoSwitch/Controllers/NintendoSwitch_ProController.h"
-#include "NintendoSwitch/Controllers/NintendoSwitch_Joycon.h"
+#include "NintendoSwitch/Controllers/Procon/NintendoSwitch_ProController.h"
+#include "NintendoSwitch/Controllers/Joycon/NintendoSwitch_Joycon.h"
 #include "NintendoSwitch/NintendoSwitch_ConsoleHandle.h"
 
 namespace PokemonAutomation{
@@ -40,7 +40,7 @@ void home_to_date_time(
 void home_to_date_time_Switch1_wired_blind(
     Logger& logger, ProControllerContext& context, bool to_date_change
 );
-void home_to_date_time_Switch1_wireless_esp32_blind(
+void home_to_date_time_Switch1_wireless_blind(
     Logger& logger, ProControllerContext& context, bool to_date_change
 );
 void home_to_date_time_Switch1_sbb_blind(
@@ -49,7 +49,7 @@ void home_to_date_time_Switch1_sbb_blind(
 void home_to_date_time_Switch1_wired_feedback(
     VideoStream& stream, ProControllerContext& context, bool to_date_change
 );
-void home_to_date_time_Switch1_wireless_esp32_feedback(
+void home_to_date_time_Switch1_wireless_feedback(
     VideoStream& stream, ProControllerContext& context, bool to_date_change
 );
 

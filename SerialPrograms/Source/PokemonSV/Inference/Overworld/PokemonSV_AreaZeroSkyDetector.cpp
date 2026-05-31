@@ -10,7 +10,7 @@
 #include "CommonTools/Images/BinaryImage_FilterRgb32.h"
 #include "CommonTools/Async/InterruptableCommands.h"
 #include "CommonTools/Async/InferenceSession.h"
-#include "NintendoSwitch/Controllers/NintendoSwitch_ProController.h"
+#include "NintendoSwitch/Controllers/Procon/NintendoSwitch_ProController.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "PokemonSV_AreaZeroSkyDetector.h"
 
@@ -57,7 +57,7 @@ AreaZeroSkyTracker::AreaZeroSkyTracker(VideoOverlay& overlay)
 {}
 
 bool AreaZeroSkyTracker::sky_location(double& x, double& y) const{
-    ReadSpinLock lg(m_lock);
+    ReadSpinLock lg(m_lock, PA_CURRENT_FUNCTION);
     if (!m_box){
         return false;
     }
@@ -72,7 +72,7 @@ bool AreaZeroSkyTracker::process_frame(const ImageViewRGB32& frame, WallClock ti
 
     WaterfillObject object;
     bool detected = this->detect(object, frame);
-    WriteSpinLock lg(m_lock);
+    WriteSpinLock lg(m_lock, PA_CURRENT_FUNCTION);
     if (detected){
         m_box.reset(new OverlayBoxScope(
             m_overlay,
@@ -112,7 +112,6 @@ void find_and_center_on_sky(
 
     AsyncCommandSession<ProController> session(
         context, stream.logger(),
-        env.realtime_dispatcher(),
         context.controller()
     );
     OverworldState state = OverworldState::None;
@@ -139,8 +138,8 @@ void find_and_center_on_sky(
             if (state != OverworldState::FindingSky){
                 stream.log("Sky not detected. Attempting to find the sky...", COLOR_ORANGE);
                 session.dispatch([](ProControllerContext& context){
-                    pbf_move_right_joystick(context, 128, 0, 250, 0);
-                    pbf_move_right_joystick(context, 0, 0, 10 * TICKS_PER_SECOND, 0);
+                    pbf_move_right_joystick(context, {0, +1}, 2000ms, 0ms);
+                    pbf_move_right_joystick(context, {-1, +1}, 10 * 1000ms, 0ms);
                 });
                 state = OverworldState::FindingSky;
             }
@@ -152,10 +151,10 @@ void find_and_center_on_sky(
         if (sky_x < 0.45){
             if (state != OverworldState::TurningLeft){
                 stream.log("Centering the sky... Moving left.");
-                uint8_t magnitude = (uint8_t)((0.5 - sky_x) * 96 + 31);
-                uint16_t duration = (uint16_t)((0.5 - sky_x) * 125 + 20);
+                double x_float = (sky_x - 0.5) * 0.75 - 0.25;
+                Milliseconds duration((int64_t)((0.5 - sky_x) * 1000 + 160));
                 session.dispatch([=](ProControllerContext& context){
-                    pbf_move_right_joystick(context, 128 - magnitude, 128, duration, 0);
+                    pbf_move_right_joystick(context, {x_float, 0}, duration, 0ms);
                 });
                 state = OverworldState::TurningLeft;
             }
@@ -164,10 +163,10 @@ void find_and_center_on_sky(
         if (sky_x > 0.55){
             if (state != OverworldState::TurningRight){
                 stream.log("Centering the sky... Moving Right.");
-                uint8_t magnitude = (uint8_t)((sky_x - 0.5) * 96 + 31);
-                uint16_t duration = (uint16_t)((sky_x - 0.5) * 125 + 20);
+                double x_float = (sky_x - 0.5) * 0.75 + 0.25;
+                Milliseconds duration((int64_t)((sky_x - 0.5) * 1000 + 160));
                 session.dispatch([=](ProControllerContext& context){
-                    pbf_move_right_joystick(context, 128 + magnitude, 128, duration, 0);
+                    pbf_move_right_joystick(context, {x_float, 0}, duration, 0ms);
                 });
                 state = OverworldState::TurningRight;
             }

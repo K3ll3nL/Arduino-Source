@@ -8,7 +8,7 @@
 #define PokemonAutomation_PokemonSwSh_StartGame_H
 
 #include "CommonFramework/Tools/VideoStream.h"
-#include "NintendoSwitch/Controllers/NintendoSwitch_ProController.h"
+#include "NintendoSwitch/Controllers/Procon/NintendoSwitch_ProController.h"
 #include "NintendoSwitch/NintendoSwitch_ConsoleHandle.h"
 
 namespace PokemonAutomation{
@@ -22,7 +22,8 @@ void resume_game_no_interact(
 );
 void resume_game_back_out(
     ConsoleHandle& console, ProControllerContext& context,
-    bool tolerate_update_menu, uint16_t mash_B_time
+    bool tolerate_update_menu,
+    Milliseconds mash_B_time
 );
 
 
@@ -36,23 +37,22 @@ void start_game_from_home_with_inference(
     uint8_t game_slot = 0,
     uint8_t user_slot = 0,
     bool backup_save = false,
-    uint16_t post_wait_time = 1 * TICKS_PER_SECOND
+    Milliseconds post_wait_time = Milliseconds(1000)
 );
-
-void reset_game_from_home_with_inference(
-    ConsoleHandle& console, ProControllerContext& context,
-    bool tolerate_update_menu,
-    bool backup_save = false,
-    uint16_t post_wait_time = 1 * TICKS_PER_SECOND
-);
-
 void start_game_from_home(
     ConsoleHandle& console, ProControllerContext& context,
     bool tolerate_update_menu,
     uint8_t game_slot = 0,
     uint8_t user_slot = 0,
     bool backup_save = false,
-    uint16_t post_wait_time = 1 * TICKS_PER_SECOND
+    Milliseconds post_wait_time = Milliseconds(1000)
+);
+
+void reset_game_from_home_with_inference(
+    ConsoleHandle& console, ProControllerContext& context,
+    bool tolerate_update_menu,
+    bool backup_save = false,
+    Milliseconds post_wait_time = Milliseconds(1000)
 );
 
 

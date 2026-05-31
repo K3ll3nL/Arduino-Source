@@ -79,8 +79,6 @@ ImageMatchResult CroppedImageDictionaryMatcher::match(
         }
     }
 
-
-
     for (const auto& item : m_database){
         for (const ImageViewRGB32& crop : crops){
             double alpha = item.second.diff(crop);
@@ -88,8 +86,6 @@ ImageMatchResult CroppedImageDictionaryMatcher::match(
             results.clear_beyond_spread(alpha_spread);
         }
     }
-
-
 
 #if 0
     Color background;
@@ -119,7 +115,7 @@ ImageMatchResult CroppedImageDictionaryMatcher::match(
     if (PreloadSettings::debug().IMAGE_DICTIONARY_MATCHING){
         std::cout << "CroppedImageDictionaryMatcher: results: " << std::endl;
         size_t count = 0;
-        for(const auto& result : results.results){
+        for (const auto& result : results.results){
             std::cout << "alpha=" << result.first << ", " << result.second << std::endl;
             const auto& image_template = m_database.find(result.second)->second.image_template();
             dump_debug_image(global_logger_command_line(), "CommonFramework/CroppedImageDictionaryMatcher", "match_result_" + std::to_string(count) + "_" + result.second, image_template);

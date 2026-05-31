@@ -9,9 +9,8 @@
 #include "PokemonHome_Panels.h"
 
 #include "Programs/PokemonHome_PageSwap.h"
-#include "Programs/PokemonHome_BoxSorting.h"
-#include "Programs/PokemonHome_Enrichment.h"
-#include "Programs/PokemonHome_Enrichment2.h"
+#include "Programs/PokemonHome_BoxSorter.h"
+#include "Programs/PokemonHome_BoxSorterLivingDex.h"
 
 #include "Programs/PokemonHome_GenerateNameOCR.h"
 
@@ -22,7 +21,7 @@ namespace PokemonHome{
 
 
 PanelListFactory::PanelListFactory()
-    : PanelListDescriptor(STRING_POKEMON + " Home")
+    : PanelListDescriptor(Pokemon::STRING_POKEMON + " Home")
 {}
 
 std::vector<PanelEntry> PanelListFactory::make_panels() const{
@@ -32,10 +31,10 @@ std::vector<PanelEntry> PanelListFactory::make_panels() const{
 //    ret.emplace_back(make_settings<GameSettings_Descriptor, GameSettingsPanel>());
     ret.emplace_back("---- General ----");
     ret.emplace_back(make_single_switch_program<PokemonHome::PageSwap_Descriptor, PokemonHome::PageSwap>());
-    ret.emplace_back(make_single_switch_program<PokemonHome::BoxSorting_Descriptor, PokemonHome::BoxSorting>());
-    ret.emplace_back(make_single_switch_program<PokemonHome::Enrichment_Descriptor, PokemonHome::Enrichment>());
-    ret.emplace_back(make_single_switch_program<PokemonHome::Enrichment2_Descriptor, PokemonHome::Enrichment2>());
-
+    ret.emplace_back(make_single_switch_program<PokemonHome::BoxSorter_Descriptor, PokemonHome::BoxSorter>());
+    if (IS_BETA_VERSION || PreloadSettings::instance().DEVELOPER_MODE){
+        ret.emplace_back(make_single_switch_program<PokemonHome::BoxSorterLivingDex_Descriptor, PokemonHome::BoxSorterLivingDex>());
+    }
 //    ret.emplace_back("---- Trading ----");
 
 //    ret.emplace_back("---- Farming ----");

@@ -10,6 +10,7 @@
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSV/Inference/Dialogs/PokemonSV_DialogDetector.h"
 #include "PokemonSV/Inference/Overworld/PokemonSV_OverworldDetector.h"
@@ -117,7 +118,7 @@ void SizeChecker::enter_check_mode(SingleSwitchProgramEnvironment& env, ProContr
         case 0: // dialog
         case 1: // overworld
         case 2: // prompt
-            pbf_press_button(context, BUTTON_A, 20, 5);
+            pbf_press_button(context, BUTTON_A, 160ms, 40ms);
             continue;
         case 3: // box
             return;
@@ -175,7 +176,7 @@ void SizeChecker::exit_check_mode(SingleSwitchProgramEnvironment& env, ProContro
                 screen
             );
         case 1: // dialog
-            pbf_press_button(context, BUTTON_A, 20, 5);
+            pbf_press_button(context, BUTTON_A, 160ms, 40ms);
             continue;
         case 2: // overworld
             return;
@@ -200,7 +201,7 @@ void SizeChecker::program(SingleSwitchProgramEnvironment& env, ProControllerCont
     SizeChecker_Descriptor::Stats& stats = env.current_stats<SizeChecker_Descriptor::Stats>();
 
     //  Connect the controller.
-    pbf_press_button(context, BUTTON_L, 10, 0);
+    require_player(env.console, context, BUTTON_L);
 
     // Loop through boxes.
     for (uint8_t box = 0; box < BOXES_TO_CHECK; box++){
@@ -249,7 +250,7 @@ void SizeChecker::program(SingleSwitchProgramEnvironment& env, ProControllerCont
                     env.console, context,
                     [](ProControllerContext& context){
                         for (size_t c = 0; c < 10; c++){
-                            pbf_press_button(context, BUTTON_A, 20, 105);
+                            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
                         }
                     },
                     {dialog}

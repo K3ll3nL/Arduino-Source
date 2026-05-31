@@ -8,6 +8,7 @@
 #include "CommonFramework/ProgramStats/StatsTracking.h"
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 //#include "Pokemon/Inference/Pokemon_NameReader.h"
 #include "PokemonLZA_TradeRoutines.h"
@@ -96,6 +97,9 @@ void SelfBoxTrade::program(MultiSwitchProgramEnvironment& env, CancellableScope&
         scope,
         [](ConsoleHandle& console, ProControllerContext& context){
             assert_16_9_720p_min(console, console);
+
+            //  Connect the controller.
+            require_player(console, context, BUTTON_LCLICK);
         }
     );
 
@@ -108,7 +112,7 @@ void SelfBoxTrade::program(MultiSwitchProgramEnvironment& env, CancellableScope&
     for (uint8_t box = 0; box < BOXES_TO_TRADE; box++){
         if (box != 0){
             env.run_in_parallel(scope, [](ConsoleHandle& console, ProControllerContext& context){
-                pbf_press_button(context, BUTTON_R, 60, 100);
+                pbf_press_button(context, BUTTON_R, 480ms, 800ms);
             });
         }
         trade_current_box(env, scope, NOTIFICATION_STATUS_UPDATE, stats, start_row, start_col);

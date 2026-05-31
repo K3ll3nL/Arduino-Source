@@ -28,11 +28,14 @@ public:
         size_t label_idx;
     };
 
-    YOLOv5Session(const std::string& model_path, std::vector<std::string> label_names);
+    YOLOv5Session(const std::string& model_path, bool use_gpu);
 
     void run(const cv::Mat& input_image, std::vector<DetectionBox>& detections);
 
     const std::string& label_name(size_t idx) const { return m_label_names[idx]; }
+    const std::vector<std::string>& get_label_names() const { return m_label_names; }
+    // Return SIZE_MAX if no such label name exists.
+    size_t label_index(const std::string& label_name) const;
     
 private:
     const int YOLO5_INPUT_IMAGE_SIZE = 640;
@@ -53,6 +56,9 @@ private:
     std::vector<float> m_model_input;
     std::vector<float> m_model_output;
 };
+
+// Find the first detection matching the given label ID from a YOLOv5Session detection output.
+const YOLOv5Session::DetectionBox* find_detection(const std::vector<YOLOv5Session::DetectionBox>& detection, size_t label_idx);
 
 
 }

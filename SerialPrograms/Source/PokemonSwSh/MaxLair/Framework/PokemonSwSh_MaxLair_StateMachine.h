@@ -8,10 +8,11 @@
 #define PokemonAutomation_PokemonSwSh_MaxLair_StateMachine_H
 
 #include "Common/Cpp/Concurrency/SpinLock.h"
+#include "Common/Cpp/Concurrency/Mutex.h"
 #include "CommonFramework/Tools/VideoStream.h"
 #include "CommonFramework/Tools/ProgramEnvironment.h"
 #include "CommonTools/FailureWatchdog.h"
-#include "NintendoSwitch/Controllers/NintendoSwitch_ProController.h"
+#include "NintendoSwitch/Controllers/Procon/NintendoSwitch_ProController.h"
 #include "NintendoSwitch/NintendoSwitch_ConsoleHandle.h"
 #include "PokemonSwSh/Inference/PokemonSwSh_QuantityReader.h"
 #include "PokemonSwSh/MaxLair/Options/PokemonSwSh_MaxLair_Options.h"
@@ -88,7 +89,7 @@ struct AdventureRuntime{
 
     //  A lock to allow timed-serialization of Switches.
     //  For example: Don't let multiple Switches simultaneously choose to swap with Pokemon.
-    std::mutex m_delay_lock;
+    Mutex m_delay_lock;
 };
 
 

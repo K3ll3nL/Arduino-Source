@@ -41,7 +41,7 @@ using namespace NintendoSwitch::PokemonSwSh;
 int test_pokemonSwSh_YCommMenuDetector(const ImageViewRGB32& image, bool target){
     YCommMenuDetector detector(true);
 
-    bool result = detector.process_frame(image, current_time());
+    bool result = detector.detect(image);
     TEST_RESULT_EQUAL(result, target);
     return 0;
 }
@@ -55,12 +55,7 @@ int test_pokemonSwSh_MaxLair_BattleMenuDetector(const ImageViewRGB32& image, boo
 }
 
 int test_pokemonSwSh_DialogTriangleDetector(const ImageViewRGB32& image, bool target){
-    auto& logger = global_logger_command_line();
-    auto overlay = DummyVideoOverlay();
-    const bool stop_on_detected = true;
-
-    DialogTriangleDetector detector(logger, overlay, stop_on_detected);
-
+    DialogTriangleWatcher detector;
     bool result = detector.process_frame(image, current_time());
     TEST_RESULT_EQUAL(result, target);
     return 0;    
@@ -94,9 +89,8 @@ int test_pokemonSwSh_CheckNurseryArrowFinder(const ImageViewRGB32& image, bool t
 }
 
 int test_pokemonSwSh_YCommIconDetector(const ImageViewRGB32& image, bool target){
-    const bool is_on = true;
-    YCommIconDetector detector(is_on);
-    bool result = detector.process_frame(image, current_time());
+    YCommIconDetector detector(COLOR_RED, true);
+    bool result = detector.detect(image);
     TEST_RESULT_EQUAL(result, target);
     return 0;
 }
@@ -104,7 +98,7 @@ int test_pokemonSwSh_YCommIconDetector(const ImageViewRGB32& image, bool target)
 int test_pokemonSwSh_RotomPhoneMenuArrowFinder(const ImageViewRGB32& image, int target){
     auto overlay = DummyVideoOverlay();
     RotomPhoneMenuArrowFinder finder(overlay);
-    int result = finder.detect(image);
+    int result = finder.detect_index(image);
 
     TEST_RESULT_EQUAL(result, target);
     return 0;
@@ -133,7 +127,7 @@ int test_pokemonSwSh_BoxGenderDetector(const ImageViewRGB32& image, int target){
 
 int test_pokemonSwSh_SelectionArrowFinder(const ImageViewRGB32& image, int target){
     std::vector<ImagePixelBox> boxes = find_selection_arrows(image, 10);
-    for(const auto& box : boxes){
+    for (const auto& box : boxes){
         std::cout << "Found box: " << box.min_x << " " << box.max_x << " " << box.min_y << " " << box.max_y << std::endl;
     }
     TEST_RESULT_EQUAL(boxes.size(), (size_t)target);

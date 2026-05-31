@@ -4,12 +4,18 @@
  *
  */
 
+#include "CommonFramework/ImageTools/ImageBoxes.h"
+#include "CommonFramework/ImageTypes/ImageRGB32.h"
 #include "CommonFramework/ImageTools/ImageStats.h"
 #include "CommonFramework/VideoPipeline/VideoOverlay.h"
 #include "CommonFramework/VideoPipeline/VideoOverlayScopes.h"
+#include "CommonFramework/Tools/GlobalThreadPools.h"
+#include "CommonTools/Images/ImageFilter.h"
+#include "CommonTools/OCR/OCR_NumberReader.h"
 #include "Kernels/Waterfill/Kernels_Waterfill_Types.h"
 #include "CommonTools/ImageMatch/WaterfillTemplateMatcher.h"
 #include "CommonTools/Images/WaterfillUtilities.h"
+#include "PokemonLZA/Resources/PokemonLZA_AvailablePokemon.h"
 #include "PokemonLZA_BoxInfoDetector.h"
 
 namespace PokemonAutomation{
@@ -190,7 +196,64 @@ std::string BoxPageInfoWatcher::info_str() const{
     return "Regular";
 }
 
+BoxDexNumberDetector::BoxDexNumberDetector(Logger& logger) : m_logger(logger), m_dex_number_box{0.510, 0.203, 0.039, 0.031}, m_dex_type_box{0.472, 0.204, 0.018, 0.030}{}
 
+void BoxDexNumberDetector::make_overlays(VideoOverlaySet& items) const{
+    items.add(COLOR_GRAY, m_dex_number_box);
+    items.add(COLOR_GRAY, m_dex_type_box);
+}
+
+bool BoxDexNumberDetector::detect(const ImageViewRGB32& screen){
+    const size_t max_dex_number = std::max(LUMIOSE_DEX_SLUGS().size(), HYPERSPACE_DEX_SLUGS().size());
+
+    const int dex_number = [&](){
+        const ImageViewRGB32 dex_image_crop = extract_box_reference(screen, m_dex_number_box);
+#if 0
+        return OCR::read_number(m_logger, dex_image_crop);
+#else
+        const bool text_inside_range = true;
+        const bool prioritize_numeric_only_results = true;
+        const size_t width_max = SIZE_MAX;
+        // To accomodate the dex number "No. xxx" for all language, we have to make the dex number crop to cover the "dot" character
+        // for some languages. We have to use `min_digit_area` to filter out the dot when doing OCR.
+        // The min digit area computation is that any dot with size smaller than image_crop.height()/5 is filtered out when OCR.
+        const size_t min_digit_area = dex_image_crop.height()*dex_image_crop.height() / 25;
+        return OCR::read_number_waterfill_multifilter(
+            m_logger,
+            GlobalThreadPools::computation_normal(),
+            dex_image_crop,
+            {
+                {0x0, 0xff808080},
+                {0x0, 0xff909090},
+                {0x0, 0xffA0A0A0},
+            },
+            text_inside_range, prioritize_numeric_only_results, width_max, min_digit_area
+        );
+#endif
+    }();
+    if (dex_number <= 0 || dex_number > static_cast<int>(max_dex_number)){
+        m_dex_number = 0;
+        m_dex_number_when_error = dex_number;
+        return false;
+    }
+    m_dex_number = static_cast<uint16_t>(dex_number);
+    m_dex_number_when_error = 0;
+
+    // Replacing white background with zero-alpha color so that they won't be counted in
+    // the following image_stats()
+    // The white background is defined as the color between 0xffa0a0a0 and 0xffffffff.
+    const bool replace_color_within_range = true;
+    ImageRGB32 region = filter_rgb32_range(
+        extract_box_reference(screen, m_dex_type_box),
+        0xffa0a0a0, 0xffffffff, Color(0), replace_color_within_range
+    );
+
+    ImageStats stats = image_stats(region);
+    m_dex_type_color_ratio = stats.count / ((double)region.width() * region.height());
+    m_dex_type = (m_dex_type_color_ratio > 0.2) ? DexType::LUMIOSE : DexType::HYPERSPACE;
+
+    return true;
+}
 
 }
 }

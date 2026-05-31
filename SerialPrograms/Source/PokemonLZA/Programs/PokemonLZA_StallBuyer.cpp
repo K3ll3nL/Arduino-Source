@@ -12,11 +12,13 @@
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "CommonTools/VisualDetectors/BlackScreenDetector.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonLZA/Inference/PokemonLZA_ButtonDetector.h"
 #include "PokemonLZA/Inference/PokemonLZA_SelectionArrowDetector.h"
 #include "PokemonLZA/Inference/PokemonLZA_DialogDetector.h"
 #include "PokemonLZA_StallBuyer.h"
+#include <array>
 
 namespace PokemonAutomation{
 namespace NintendoSwitch{
@@ -121,7 +123,8 @@ int detect_stall_amount_item(SingleSwitchProgramEnvironment& env, StallBuyer_Des
     bool is_five_item_stall = five_item_stall_detector.detect(snapshot);
     bool is_two_item_stall = two_item_stall_detector.detect(snapshot);
 
-    int count = is_seven_item_stall + is_six_item_stall + is_five_item_stall + is_two_item_stall;
+    std::array<bool, 4> array = {is_seven_item_stall, is_six_item_stall, is_five_item_stall, is_two_item_stall};
+    auto count = std::count(array.begin(), array.end(), true);
     if (count == 1){
         // Exactly one kind of stall detected
         if (is_seven_item_stall){
@@ -260,6 +263,9 @@ void StallBuyer::make_purchase(
 void StallBuyer::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
 //    StallBuyer_Descriptor::Stats& stats = env.current_stats<StallBuyer_Descriptor::Stats>();
     assert_16_9_720p_min(env.logger(), env.console);
+
+    //  Connect the controller.
+    require_player(env.console, context, BUTTON_L);
 
 //    std::optional<int> stall_amount_item;
 

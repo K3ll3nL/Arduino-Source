@@ -10,6 +10,7 @@
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSV/Programs/PokemonSV_WorldNavigation.h"
 #include "PokemonSV_MaterialFarmer.h"
@@ -69,12 +70,12 @@ void MaterialFarmer::program(SingleSwitchProgramEnvironment& env, ProControllerC
     assert_16_9_720p_min(env.logger(), env.console);
 
     //  Connect the controller.
-    pbf_press_button(context, BUTTON_L, 10, 50);
+    require_player(env.console, context, BUTTON_L);
 
     // Throw user setup errors early in program
     // - Ensure language is set
     const Language language = MATERIAL_FARMER_OPTIONS.LANGUAGE;
-    if (language == Language::None) {
+    if (language == Language::None){
         throw UserSetupError(env.console.logger(), "Must set game language option to read ingredient lists.");
     }
 

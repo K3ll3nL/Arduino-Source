@@ -6,6 +6,7 @@
 
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonTools/StartupChecks/StartProgramChecks.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 //#include "PokemonSwSh/Commands/PokemonSwSh_Commands_GameEntry.h"
 #include "PokemonSwSh/Programs/PokemonSwSh_GameEntry.h"
@@ -108,9 +109,15 @@ void EggSuperCombined2::program(SingleSwitchProgramEnvironment& env, ProControll
 
     if (START_LOCATION.start_in_grip_menu()){
         grip_menu_connect_go_home(context);
-        resume_game_back_out(env.console, context, ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST, 400);
+        resume_game_back_out(
+            env.console,
+            context,
+            ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST,
+            3200ms
+        );
     }else{
-        pbf_press_button(context, BUTTON_B, 5, 5);
+        //  Connect the controller.
+        require_player(env.console, context, BUTTON_B);
     }
 
     //  Mass Release
@@ -123,7 +130,7 @@ void EggSuperCombined2::program(SingleSwitchProgramEnvironment& env, ProControll
     for (uint8_t c = 0; c <= BOXES_TO_SKIP; c++){
         ssf_press_button(context, BUTTON_R, 480ms);
     }
-    pbf_mash_button(context, BUTTON_B, 600);
+    pbf_mash_button(context, BUTTON_B, 4800ms);
 
     session.eggcombined2_body(env.console, context);
 

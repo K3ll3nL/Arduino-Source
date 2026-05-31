@@ -10,6 +10,7 @@
 #include "CommonFramework/ProgramStats/StatsTracking.h"
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonLA/Inference/Battles/PokemonLA_BattleMenuDetector.h"
 #include "PokemonLA/Inference/Battles/PokemonLA_BattlePokemonSwitchDetector.h"
@@ -101,13 +102,13 @@ bool TenacityCandyFarmer::run_iteration(SingleSwitchProgramEnvironment& env, Pro
 
     // Talk to Ingo to start conversation and select Path of Tenacity:
     // Press A to start talking
-    pbf_press_button(context, BUTTON_A, 20, 100);
+    pbf_press_button(context, BUTTON_A, 160ms, 800ms);
     // Press A to show battle type selection menu box
-    pbf_press_button(context, BUTTON_A, 20, 50);
+    pbf_press_button(context, BUTTON_A, 160ms, 400ms);
     // Move down the menu box to select Path of Tenacity
-    pbf_press_dpad(context, DPAD_DOWN, 10, 50);
+    pbf_press_dpad(context, DPAD_DOWN, 80ms, 400ms);
     // Press A to select Path of Tenacity
-    pbf_press_button(context, BUTTON_A, 20, 200);
+    pbf_press_button(context, BUTTON_A, 160ms, 1600ms);
 
     // Press A repeatedly to show the opponenet team selection menu box.
     // Note: in different languages, there are different number of dialogue boxes to clear to show the team selection menu.
@@ -119,7 +120,7 @@ bool TenacityCandyFarmer::run_iteration(SingleSwitchProgramEnvironment& env, Pro
             env.console, context,
             [&](ProControllerContext& context){
                 for (size_t c = 0; c < 10; c++){
-                    pbf_press_button(context, BUTTON_A, 20, 150);
+                    pbf_press_button(context, BUTTON_A, 160ms, 1200ms);
                 }
             },
             {
@@ -135,10 +136,10 @@ bool TenacityCandyFarmer::run_iteration(SingleSwitchProgramEnvironment& env, Pro
         }
     }
     // Move down the menu box to select Pearl Clan
-    pbf_press_dpad(context, DPAD_DOWN, 10, 50);
-    pbf_press_dpad(context, DPAD_DOWN, 10, 50);
+    pbf_press_dpad(context, DPAD_DOWN, 80ms, 400ms);
+    pbf_press_dpad(context, DPAD_DOWN, 80ms, 400ms);
     // Select Pearl Plan to start Path of Tenacity
-    pbf_mash_button(context, BUTTON_A, 200);
+    pbf_mash_button(context, BUTTON_A, 1600ms);
     context.wait_for_all_requests();
 
     // First opponent, Lian:
@@ -191,7 +192,7 @@ bool TenacityCandyFarmer::run_iteration(SingleSwitchProgramEnvironment& env, Pro
             num_turns = 0;
         }
         clearing_dialogues = true;
-        pbf_press_button(context, BUTTON_B, 20, 100);
+        pbf_press_button(context, BUTTON_B, 160ms, 800ms);
         context.wait_for_all_requests();
 
         if (cur_battle >= 3){
@@ -201,7 +202,7 @@ bool TenacityCandyFarmer::run_iteration(SingleSwitchProgramEnvironment& env, Pro
             ArcPhoneDetector arc_phone_detector(env.console, env.console, std::chrono::milliseconds(200), stop_on_detected);
             int ret = run_until<ProControllerContext>(
                 env.console, context, [](ProControllerContext& context){
-                    pbf_mash_button(context, BUTTON_B, 20 * TICKS_PER_SECOND);
+                    pbf_mash_button(context, BUTTON_B, 20000ms);
                 },
                 {{arc_phone_detector}}
             );
@@ -255,11 +256,11 @@ bool TenacityCandyFarmer::run_iteration(SingleSwitchProgramEnvironment& env, Pro
                 // Change opponent to Froslass as Froslass is fast and Avalugg is slow.
                 // So better to finish Forslass first so that we may move immediately to finish Avalugg
                 // without taking damage.
-                pbf_press_button(context, BUTTON_ZL, 10, 100);
+                pbf_press_button(context, BUTTON_ZL, 80ms, 800ms);
             }
 
             // Press A to select moves
-            pbf_press_button(context, BUTTON_A, 10, 125);
+            pbf_press_button(context, BUTTON_A, 80ms, 1000ms);
             context.wait_for_all_requests();
 
             // Choose move to use!
@@ -283,13 +284,13 @@ bool TenacityCandyFarmer::run_iteration(SingleSwitchProgramEnvironment& env, Pro
 
                 if (cur_move < target_move){
                     // Move move selection down
-                    for(size_t i = 0; i < target_move - cur_move; i++){
-                        pbf_press_dpad(context, DPAD_DOWN, 20, 100);
+                    for (size_t i = 0; i < target_move - cur_move; i++){
+                        pbf_press_dpad(context, DPAD_DOWN, 160ms, 800ms);
                     }
                 }else if (cur_move > target_move){
                     // Move move selection up
-                    for(size_t i = 0; i < cur_move - target_move; i++){
-                        pbf_press_dpad(context, DPAD_UP, 20, 100);
+                    for (size_t i = 0; i < cur_move - target_move; i++){
+                        pbf_press_dpad(context, DPAD_UP, 160ms, 800ms);
                     }
                 }
                 cur_move = target_move;
@@ -300,7 +301,7 @@ bool TenacityCandyFarmer::run_iteration(SingleSwitchProgramEnvironment& env, Pro
             while (use_move(env.console, context, cur_pokemon, cur_move, no_style, check_move_success) == false){
                 // We are still on the move selection screen. No PP.
                 // Go to the next move.
-                pbf_press_dpad(context, DPAD_DOWN, 20, 100);
+                pbf_press_dpad(context, DPAD_DOWN, 160ms, 800ms);
                 // env.console.context().wait_for_all_requests();
                 cur_move = (cur_move + 1) % 4;
                 env.console.log("No PP. Use next move, " + std::to_string(cur_move), COLOR_RED);
@@ -346,7 +347,7 @@ void TenacityCandyFarmer::program(SingleSwitchProgramEnvironment& env, ProContro
     TenacityCandyFarmer_Descriptor::Stats& stats = env.current_stats<TenacityCandyFarmer_Descriptor::Stats>();
 
     //  Connect the controller.
-    pbf_press_button(context, BUTTON_LCLICK, 5, 5);
+    require_player(env.console, context, BUTTON_LCLICK);
 
     // {
     //     // ImageRGB32 image("./scripts/LA_switch_pokemon_Kuro.png");

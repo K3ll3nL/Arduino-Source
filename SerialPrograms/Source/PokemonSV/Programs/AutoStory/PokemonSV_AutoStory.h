@@ -101,6 +101,10 @@ private:
     EnumDropdownOption<StarterChoice> STARTERCHOICE;
 
     BooleanCheckBoxOption ENABLE_ADVANCED_MODE;
+    BooleanCheckBoxOption CHANGE_SETTINGS;    
+    BooleanCheckBoxOption ENSURE_TIME_UNSYNCED;
+    BooleanCheckBoxOption ENSURE_CORRECT_MOVES;
+    BooleanCheckBoxOption ENSURE_MINIMAP_UNLOCKED;
 
     GoHomeWhenDoneOption GO_HOME_WHEN_DONE;
 
@@ -109,7 +113,6 @@ private:
     
     SectionDividerOption m_advanced_options;
     SectionDividerOption m_advanced_options_end;
-    BooleanCheckBoxOption CHANGE_SETTINGS;    
 
     BooleanCheckBoxOption ENABLE_TEST_CHECKPOINTS;    
     SimpleIntegerOption<uint16_t> START_CHECKPOINT;
@@ -118,26 +121,21 @@ private:
     SimpleIntegerOption<uint16_t> START_LOOP;
     SimpleIntegerOption<uint16_t> END_LOOP;
 
-    BooleanCheckBoxOption ENABLE_TEST_REALIGN;    
-    EnumDropdownOption<PlayerRealignMode> REALIGN_MODE;
-    SimpleIntegerOption<uint8_t> X_REALIGN;
-    SimpleIntegerOption<uint8_t> Y_REALIGN;
-    SimpleIntegerOption<uint16_t> REALIGN_DURATION;
 
     BooleanCheckBoxOption ENABLE_MISC_TEST;    
     SimpleIntegerOption<uint16_t> FORWARD_TICKS;
 
     BooleanCheckBoxOption TEST_PBF_LEFT_JOYSTICK;
-    SimpleIntegerOption<uint8_t> X_MOVE;
-    SimpleIntegerOption<uint8_t> Y_MOVE;
-    SimpleIntegerOption<uint16_t> HOLD_TICKS;
-    SimpleIntegerOption<uint16_t> RELEASE_TICKS;
+    FloatingPointOption X_MOVE;
+    FloatingPointOption Y_MOVE;
+    SimpleIntegerOption<uint64_t> HOLD;
+    SimpleIntegerOption<uint64_t> RELEASE;
 
-    BooleanCheckBoxOption TEST_PBF_LEFT_JOYSTICK2;
-    SimpleIntegerOption<uint8_t> X_MOVE2;
-    SimpleIntegerOption<uint8_t> Y_MOVE2;
-    SimpleIntegerOption<uint16_t> HOLD_TICKS2;
-    SimpleIntegerOption<uint16_t> RELEASE_TICKS2;    
+    BooleanCheckBoxOption TEST_PBF_JOYSTICK2;
+    FloatingPointOption X_MOVE2;
+    FloatingPointOption Y_MOVE2;
+    SimpleIntegerOption<uint64_t> HOLD2;
+    SimpleIntegerOption<uint64_t> RELEASE2;    
 
     BooleanCheckBoxOption TEST_CURRENT_DIRECTION;
     BooleanCheckBoxOption TEST_CHANGE_DIRECTION;

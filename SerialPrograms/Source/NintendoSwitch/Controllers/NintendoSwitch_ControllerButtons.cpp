@@ -6,7 +6,11 @@
 
 #include "NintendoSwitch_ControllerButtons.h"
 #include "Common/Cpp/EnumStringMap.h"
-#include "Common/Cpp/StringTools.h"
+#include "Common/Cpp/Strings/StringTools.h"
+
+//#include <iostream>
+//using std::cout;
+//using std::endl;
 
 namespace PokemonAutomation{
 namespace NintendoSwitch{
@@ -91,6 +95,9 @@ Button string_to_button(std::string multi_button_string){
     std::vector<std::string> string_vector = StringTools::split(multi_button_string, " ");
     Button button_result = BUTTON_NONE;
     for (const std::string& button_string : string_vector){
+        if (button_string.empty()){
+            continue;
+        }
         Button one_button = BUTTON_STRINGS.get_enum(button_string);
         button_result |= one_button;
     }
@@ -142,20 +149,41 @@ const EnumStringMap<DpadPosition> DPAD_CODE_STRINGS{
 
 
 std::string dpad_to_string(DpadPosition dpad){
-    try {
+    try{
         return DPAD_STRINGS.get_string(dpad);
     }catch (ParseException&){
         return "unknown";
     }
 }
 
-std::string dpad_to_code_string(DpadPosition dpad){
+const std::string& dpad_to_code_string(DpadPosition dpad){
     return DPAD_CODE_STRINGS.get_string(dpad);
 }
 
 DpadPosition string_to_dpad(std::string dpad_string){
     return DPAD_STRINGS.get_enum(dpad_string);
 }
+
+
+const std::string& player_number_to_string(ControllerPlayerNumber number){
+    static const std::string STRINGS[] = {
+        "Unknown",
+        "Disconnected",
+        "Player 1",
+        "Player 2",
+        "Player 3",
+        "Player 4",
+        "Player 5",
+        "Player 6",
+        "Player 7",
+        "Player 8",
+    };
+    return STRINGS[(size_t)number];
+}
+
+
+
+
 
 
 

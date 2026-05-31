@@ -10,6 +10,7 @@
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSwSh/Options/PokemonSwSh_BallSelectOption.h"
 #include "PokemonSwSh/Programs/PokemonSwSh_GameEntry.h"
@@ -111,7 +112,7 @@ MaxLairStrongBoss::MaxLairStrongBoss()
     , MIN_WIN_RATE(
         "<b>Minimum Win Rate:</b><br>"
         "Keep the path if the win rate stays above this ratio. This is done by resetting the host.",
-        LockMode::LOCK_WHILE_RUNNING,
+        LockMode::UNLOCK_WHILE_RUNNING,
         0.75, 0, 1.0
     )
     , CONSOLES(MaxLairStrongBoss_ConsoleFactory())
@@ -168,7 +169,7 @@ public:
     EndBattleDecider_StrongBoss(
         Logger& logger,
         const Consoles& consoles, size_t host_index,
-        double min_win_ratio
+        const FloatingPointOption& min_win_ratio
     )
         : m_logger(logger)
         , m_consoles(consoles)
@@ -224,7 +225,7 @@ private:
     Logger& m_logger;
     const Consoles& m_consoles;
     size_t m_host_index;
-    double m_min_win_ratio;
+    const FloatingPointOption& m_min_win_ratio;
 };
 
 
@@ -241,7 +242,8 @@ void MaxLairStrongBoss::program(MultiSwitchProgramEnvironment& env, CancellableS
             grip_menu_connect_go_home(context);
             resume_game_no_interact(console, context, ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST);
         }else{
-            pbf_press_button(context, BUTTON_B, 5, 5);
+            //  Connect the controller.
+            require_player(console, context, BUTTON_B);
         }
     });
 

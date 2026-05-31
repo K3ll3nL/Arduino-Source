@@ -119,7 +119,7 @@ bool gamemenu_to_ingame(VideoStream& stream, ProControllerContext& context){
 bool reset_game_from_home(
     const ProgramInfo& info,
     ConsoleHandle& console, ProControllerContext& context,
-    uint16_t post_wait_time
+    Milliseconds post_wait_time
 ){
     console.log("Resetting game from home...");
     console.overlay().add_log("Reset game", COLOR_WHITE);
@@ -137,17 +137,17 @@ bool reset_game_from_home(
 bool reset_game_from_home_zoom_out(
     const ProgramInfo& info,
     ConsoleHandle& console, ProControllerContext& context,
-    uint16_t post_wait_time
+    Milliseconds post_wait_time
 ){
     bool ret = reset_game_from_home(info, console, context, post_wait_time);
 
     //  5 zooms will guarantee that are fully zoomed out regardless of whether
     //  we are on the DLC update.
-    pbf_press_button(context, BUTTON_RCLICK, 20, 105);
-    pbf_press_button(context, BUTTON_RCLICK, 20, 105);
-    pbf_press_button(context, BUTTON_RCLICK, 20, 105);
-    pbf_press_button(context, BUTTON_RCLICK, 20, 105);
-    pbf_press_button(context, BUTTON_RCLICK, 20, 105);
+    pbf_press_button(context, BUTTON_RCLICK, 160ms, 840ms);
+    pbf_press_button(context, BUTTON_RCLICK, 160ms, 840ms);
+    pbf_press_button(context, BUTTON_RCLICK, 160ms, 840ms);
+    pbf_press_button(context, BUTTON_RCLICK, 160ms, 840ms);
+    pbf_press_button(context, BUTTON_RCLICK, 160ms, 840ms);
 
     return ret;
 }
@@ -159,7 +159,7 @@ void reset_game(
     try{
         pbf_press_button(context, BUTTON_HOME, 160ms, GameSettings::instance().GAME_TO_HOME_DELAY1);
         context.wait_for_all_requests();
-        if (!reset_game_from_home(info, console, context, 5 * TICKS_PER_SECOND)){
+        if (!reset_game_from_home(info, console, context, 5000ms)){
             OperationFailedException::fire(
                 ErrorReport::SEND_ERROR_REPORT,
                 "Failed to start game.",

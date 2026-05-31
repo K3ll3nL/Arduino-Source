@@ -6,6 +6,7 @@
 
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "NintendoSwitch/NintendoSwitch_Settings.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 //#include "PokemonSwSh/Commands/PokemonSwSh_Commands_GameEntry.h"
 #include "PokemonSwSh/Commands/PokemonSwSh_Commands_EggRoutines.h"
@@ -121,9 +122,15 @@ void EggHatcher::program(SingleSwitchProgramEnvironment& env, ProControllerConte
 
     if (START_LOCATION.start_in_grip_menu()){
         grip_menu_connect_go_home(context);
-        resume_game_back_out(env.console, context, ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST, 400);
+        resume_game_back_out(
+            env.console,
+            context,
+            ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST,
+            3200ms
+        );
     }else{
-        pbf_press_button(context, BUTTON_B, 5, 5);
+        //  Connect the controller.
+        require_player(env.console, context, BUTTON_B);
     }
 
     bool party_is_empty = true;
@@ -143,7 +150,7 @@ void EggHatcher::program(SingleSwitchProgramEnvironment& env, ProControllerConte
             fly_home(context, false);
 
             //  Travel to spin location.
-            pbf_move_left_joystick(context, STICK_MAX, STICK_CENTER, TRAVEL_RIGHT_DURATION, 0ms);
+            pbf_move_left_joystick(context, {+1, 0}, TRAVEL_RIGHT_DURATION, 0ms);
 
             //  Spin
 #if 0

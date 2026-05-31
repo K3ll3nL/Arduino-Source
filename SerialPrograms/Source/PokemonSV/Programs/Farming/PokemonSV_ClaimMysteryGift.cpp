@@ -49,8 +49,7 @@ ClaimMysteryGift_Descriptor::ClaimMysteryGift_Descriptor()
         "Claim the Mystery Gift in SV.",
         ProgramControllerClass::StandardController_RequiresPrecision,
         FeedbackType::VIDEO_AUDIO,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {}
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 
@@ -163,6 +162,7 @@ void ClaimMysteryGift::enter_mystery_gift_code(SingleSwitchProgramEnvironment& e
     const FastCodeEntrySettings& settings = SETTINGS;
     enter_code(
         env.console, context,
+        false,
         settings.keyboard_layout[env.console.index()],
         normalized_code, force_keyboard_mode,
         !settings.skip_plus,
@@ -178,13 +178,13 @@ void ClaimMysteryGift::enter_mystery_gift_via_internet_window(SingleSwitchProgra
     size_t max_attempts = 5;
     for (size_t i = 0; i < max_attempts; i++){
         enter_menu_from_overworld(env.program_info(), env.console, context, menu_index);
-        pbf_press_button(context, BUTTON_A, 20, 4 * TICKS_PER_SECOND);
-        pbf_press_dpad(context, DPAD_UP, 20, 105);
-        pbf_press_button(context, BUTTON_A, 20, 4 * TICKS_PER_SECOND);
-        pbf_press_button(context, BUTTON_A, 20, 4 * TICKS_PER_SECOND);
-        try {
+        pbf_press_button(context, BUTTON_A, 160ms, 4000ms);
+        pbf_press_dpad(context, DPAD_UP, 160ms, 840ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 4000ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 4000ms);
+        try{
             clear_dialog(env.console, context, ClearDialogMode::STOP_TIMEOUT, 10, {CallbackEnum::PROMPT_DIALOG});
-        }catch(OperationFailedException&){
+        }catch (OperationFailedException&){
             env.console.log("enter_mystery_gift_via_internet_window: Failed to detect the dialog that leads to the Mystery Gift code window. Reset game and re-try.", COLOR_YELLOW);
             reset_game(env.program_info(), env.console, context);
             continue;
@@ -298,15 +298,15 @@ void ClaimMysteryGift::enter_mystery_gift_code_window(SingleSwitchProgramEnviron
     size_t max_attempts = 5;
     for (size_t i = 0; i < max_attempts; i++){
         enter_menu_from_overworld(env.program_info(), env.console, context, menu_index);
-        pbf_press_button(context, BUTTON_A, 20, 4 * TICKS_PER_SECOND);
-        pbf_press_dpad(context, DPAD_UP, 20, 105);
-        pbf_press_button(context, BUTTON_A, 20, 4 * TICKS_PER_SECOND);
-        pbf_press_dpad(context, DPAD_DOWN, 20, 105);
-        pbf_press_button(context, BUTTON_A, 20, 4 * TICKS_PER_SECOND);
-        pbf_press_button(context, BUTTON_A, 20, 10 * TICKS_PER_SECOND);
-        try {
+        pbf_press_button(context, BUTTON_A, 160ms, 4000ms);
+        pbf_press_dpad(context, DPAD_UP, 160ms, 840ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 4000ms);
+        pbf_press_dpad(context, DPAD_DOWN, 160ms, 840ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 4000ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 10000ms);
+        try{
             clear_dialog(env.console, context, ClearDialogMode::STOP_TIMEOUT, 10, {CallbackEnum::PROMPT_DIALOG});
-        }catch(OperationFailedException&){
+        }catch (OperationFailedException&){
             env.console.log("enter_mystery_gift_code_window: Failed to detect the dialog that leads to the Mystery Gift code window. Reset game and re-try.", COLOR_YELLOW);
             reset_game(env.program_info(), env.console, context);
             continue;
@@ -389,7 +389,7 @@ void ClaimMysteryGift::program(SingleSwitchProgramEnvironment& env, ProControlle
 
 
     // Connect controller
-    pbf_press_button(context, BUTTON_L, 20, 20);
+    pbf_press_button(context, BUTTON_L, 160ms, 160ms);
 
 
     if (STARTING_POINT == StartingPoint::NEW_GAME){

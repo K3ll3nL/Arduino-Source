@@ -4,7 +4,7 @@
  *
  */
 
-//#include "CommonFramework/Exceptions/OperationFailedException.h"
+#include "CommonFramework/Exceptions/OperationFailedException.h"
 #include "CommonFramework/GlobalSettingsPanel.h"
 #include "CommonFramework/ProgramStats/StatsTracking.h"
 #include "CommonTools/Async/InferenceRoutines.h"
@@ -12,6 +12,7 @@
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonLZA/Programs/PokemonLZA_BasicNavigation.h"
 #include "PokemonLZA_MegaShardFarmer.h"
@@ -31,8 +32,7 @@ MegaShardFarmer_Descriptor::MegaShardFarmer_Descriptor()
         "Farm the mega shards behind Restaurant Le Yeah.",
         ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {}
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 class MegaShardFarmer_Descriptor::Stats : public StatsTracker{
@@ -72,6 +72,9 @@ MegaShardFarmer::MegaShardFarmer()
 void MegaShardFarmer::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     assert_16_9_720p_min(env.logger(), env.console);
 
+    //  Connect the controller.
+    require_player(env.console, context, BUTTON_L);
+
     MegaShardFarmer_Descriptor::Stats& stats = env.current_stats<MegaShardFarmer_Descriptor::Stats>();
 
 
@@ -92,29 +95,29 @@ void MegaShardFarmer::program(SingleSwitchProgramEnvironment& env, ProController
             env.console, context,
             [&](ProControllerContext& context){
                 //  Travel to alley with logs of mega shards.
-                pbf_move_left_joystick(context, 0, 96, 400ms, 400ms);
+                pbf_move_left_joystick(context, {-1, +0.25}, 400ms, 400ms);
                 pbf_press_button(context, BUTTON_L, 160ms, 440ms);
-                pbf_move_left_joystick(context, 128, 0, 3000ms, 400ms);
-                pbf_move_left_joystick(context, 255, 128, 400ms, 400ms);
+                pbf_move_left_joystick(context, {0, +1}, 3000ms, 400ms);
+                pbf_move_left_joystick(context, {+1, 0}, 400ms, 400ms);
                 pbf_press_button(context, BUTTON_L, 160ms, 440ms);
-                pbf_move_left_joystick(context, 128, 0, 2500ms, 400ms);
-                pbf_move_left_joystick(context, 255, 64, 400ms, 400ms);
+                pbf_move_left_joystick(context, {0, +1}, 2500ms, 400ms);
+                pbf_move_left_joystick(context, {+1, +0.5}, 400ms, 400ms);
                 pbf_press_button(context, BUTTON_L, 160ms, 440ms);
-                pbf_move_left_joystick(context, 128, 0, 2000ms, 0ms);
-                pbf_move_left_joystick(context, 160, 0, 1000ms, 0ms);
-                pbf_move_left_joystick(context, 128, 0, 2000ms, 0ms);
-                pbf_move_left_joystick(context, 160, 0, 1500ms, 1000ms);
+                pbf_move_left_joystick(context, {0, +1}, 2000ms, 0ms);
+                pbf_move_left_joystick(context, {+0.252, +1}, 1000ms, 0ms);
+                pbf_move_left_joystick(context, {0, +1}, 2000ms, 0ms);
+                pbf_move_left_joystick(context, {+0.252, +1}, 1500ms, 1000ms);
 
                 //  Move camera up.
-                pbf_move_right_joystick(context, 128, 0, 800ms, 0ms);
+                pbf_move_right_joystick(context, {0, +1}, 800ms, 0ms);
 
                 //  Bring out a Pokemon.
                 pbf_press_dpad(context, DPAD_UP, 1000ms, 0ms);
 
                 if (!SKIP_SHARDS){
                     //  Break all the shards.
-                    uint8_t x = stats.rounds % 2 == 0 ? 128 - 32 : 128 + 32;
-                    ssf_press_right_joystick(context, x, 128, 0ms, 40000ms, 0ms);
+                    double x = stats.rounds % 2 == 0 ? -0.25 : 0.25;
+                    ssf_press_right_joystick(context, {x, 0}, 0ms, 40000ms, 0ms);
                     for (int c = 0; c < 40; c++){
                         ssf_press_button(context, BUTTON_ZL, 240ms, 400ms, 80ms);
                         pbf_press_button(context, BUTTON_B, 160ms, 520ms);
@@ -135,27 +138,38 @@ void MegaShardFarmer::program(SingleSwitchProgramEnvironment& env, ProController
 
 }
 void MegaShardFarmer::fly_back(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
-    while (true){
+    for (int failed = 0; failed < 3; failed++){
         const bool zoom_to_max = false;
-        open_map(env.console, context, zoom_to_max);
+        open_map(env.console, context, zoom_to_max, false);
 
         //  Middle Zoom
-        pbf_move_right_joystick(context, 128, 0, 80ms, 80ms);
-        pbf_move_right_joystick(context, 128, 0, 80ms, 80ms);
-        pbf_move_right_joystick(context, 128, 255, 80ms, 80ms);
+        pbf_move_right_joystick(context, {0, +1}, 80ms, 80ms);
+        pbf_move_right_joystick(context, {0, +1}, 80ms, 80ms);
+        pbf_move_right_joystick(context, {0, -1}, 80ms, 80ms);
 
         //  Tap the stick to lock on to Le Yeah if you're already on top of it.
-        pbf_move_left_joystick(context, 128, 192, 40ms, 120ms);
-        pbf_move_left_joystick(context, 128, 64, 40ms, 500ms);
+        if (failed == 0){
+            pbf_move_left_joystick(context, {0, -0.5}, 40ms, 120ms);
+            pbf_move_left_joystick(context, {0, +0.5}, 40ms, 500ms);
+        }else{
+            pbf_move_left_joystick(context, {-0.5, -0.5}, 80ms, 500ms);
+        }
 
         if (fly_from_map(env.console, context) == FastTravelState::SUCCESS){
             return;
         }else{
-            MegaShardFarmer_Descriptor::Stats& stats = env.current_stats<MegaShardFarmer_Descriptor::Stats>();
-            stats.errors++;
             pbf_mash_button(context, BUTTON_B, 5000ms);
         }
     }
+
+    MegaShardFarmer_Descriptor::Stats& stats = env.current_stats<MegaShardFarmer_Descriptor::Stats>();
+    stats.errors++;
+    env.update_stats();
+    OperationFailedException::fire(
+        ErrorReport::SEND_ERROR_REPORT,
+        "Failed to fly 3 times in the row.",
+        env.console
+    );
 }
 
 

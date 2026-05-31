@@ -4,14 +4,20 @@
 #include <QFileInfo>
 //#include <QTextStream>
 #include <QMessageBox>
+#include "Common/Cpp/Concurrency/Qt6.9ThreadBugWorkaround.h"
 #include "Common/Cpp/Concurrency/AsyncTask.h"
 #include "Common/Cpp/Concurrency/FireForgetDispatcher.h"
+#include "Common/Cpp/Concurrency/Watchdog.h"
+#include "Common/Cpp/Concurrency/PeriodicRunner.h"
 #include "Common/Cpp/Exceptions.h"
 #include "Common/Cpp/ImageResolution.h"
+#include "Common/Qt/GlobalThreadPoolsQt.h"
+#include "StaticRegistration.h"
 #include "CommonFramework/Tools/GlobalThreadPools.h"
 #include "VideoPipeline/Backends/MediaServicesQt6.h"
 #include "Globals.h"
 #include "GlobalSettingsPanel.h"
+#include "GlobalServices.h"
 #include "PersistentSettings.h"
 #include "Tests/CommandLineTests.h"
 #include "ErrorReports/ProgramDumper.h"
@@ -22,12 +28,16 @@
 #include "Integrations/DppIntegration/DppClient.h"
 #include "Logging/Logger.h"
 #include "Logging/OutputRedirector.h"
+#include "Logging/FileWindowLogger.h"
 //#include "Tools/StatsDatabase.h"
 //#include "Windows/DpiScaler.h"
 #include "Startup/SetupSettings.h"
 #include "Startup/NewVersionCheck.h"
 #include "CommonFramework/VideoPipeline/Backends/CameraImplementations.h"
 #include "CommonTools/OCR/OCR_RawOCR.h"
+#include "ControllerInput/ControllerInput.h"
+#include "Controllers/SerialPortPollerQt.h"
+#include "Integrations/DiscordWebhook.h"
 #include "Windows/MainWindow.h"
 
 #include <iostream>
@@ -50,11 +60,34 @@ void set_working_directory(){
 }
 
 
-int run_program(int argc, char *argv[]){
-    QApplication application(argc, argv);
+class ScopeExit{
+    ScopeExit(const ScopeExit&) = delete;
+    void operator=(const ScopeExit&) = delete;
 
-    OutputRedirector redirect_stdout(std::cout, "stdout", Color());
-    OutputRedirector redirect_stderr(std::cerr, "stderr", COLOR_RED);
+public:
+    template <typename Lambda>
+    ScopeExit(Lambda&& lambda)
+        : m_lambda(std::move(lambda))
+    {}
+    ~ScopeExit(){
+        m_lambda();
+    }
+
+private:
+    std::function<void()> m_lambda;
+};
+
+
+int run_program(int argc, char *argv[]){
+#if defined(__APPLE__)
+    PokemonAutomation::set_startup_profile(argc, argv);
+    QApplication application(argc, argv);
+#else
+    QApplication application(argc, argv);
+#endif
+
+    GlobalOutputRedirector redirect_stdout(std::cout, "stdout", Color());
+    GlobalOutputRedirector redirect_stderr(std::cerr, "stderr", COLOR_RED);
 
     Logger& logger = global_logger_tagged();
 
@@ -80,8 +113,20 @@ int run_program(int argc, char *argv[]){
     QDir().mkpath(QString::fromStdString(SETTINGS_PATH()));
     QDir().mkpath(QString::fromStdString(SCREENSHOTS_PATH()));
 
-    //  Preload all the cameras now so we don't hang the UI later on.
+
+
+    ScopeExit cleanup([]{
+        SerialPortPoller::instance().stop();
+        GlobalMediaServices::instance().stop();
+    });
+
+    //  Preload a bunch of stuff now so they are ready later.
+    SerialPortPoller::instance().ports();
     get_all_cameras();
+
+    //  Force all the Qt thread pools to be constructed now on the main thread.
+    GlobalThreadPools::qt_worker_threadpool();
+    GlobalThreadPools::qt_event_threadpool();
 
     //  Several novice developers struggled to build and run the program due to missing Resources folder.
     //  Add this check to pop a message box when Resources folder is missing.
@@ -106,6 +151,18 @@ int run_program(int argc, char *argv[]){
         logger.log(error.message(), COLOR_RED);
     }
 
+    for (size_t i = 0; i < argc; i++){
+        constexpr const char* force_run_tests = "--command-line-test-mode";
+        constexpr const char* command_line_test_folder = "--command-line-test-folder";
+
+        if (strcmp(argv[i], force_run_tests) == 0){
+            GlobalSettings::instance().COMMAND_LINE_TEST_MODE = true;
+        }
+        if (strcmp(argv[i], command_line_test_folder) == 0 && (i + 1 < argc)){
+            GlobalSettings::instance().COMMAND_LINE_TEST_FOLDER = argv[i + 1];
+        }
+    }
+
     if (GlobalSettings::instance().COMMAND_LINE_TEST_MODE){
         return run_command_line_tests();
     }
@@ -120,7 +177,7 @@ int run_program(int argc, char *argv[]){
     set_working_directory();
 
     //  Run this asynchronously to we don't block startup.
-    std::unique_ptr<AsyncTask> task = send_all_unsent_reports(logger, true);
+    AsyncTask task = send_all_unsent_reports(logger, true);
 
 
 
@@ -144,11 +201,7 @@ int run_program(int argc, char *argv[]){
     w.raise(); // bring the window to front on macOS
     set_permissions(w);
 
-    int ret = application.exec();
-
-    GlobalMediaServices::instance().stop();
-
-    return ret;
+    return application.exec();
 }
 
 
@@ -158,13 +211,23 @@ int main(int argc, char *argv[]){
     set_program_path(argv[0]);
 #endif
 
-    setup_crash_handler();
+#if defined(__linux__)
+    // Qt multimedia, default to gstreamer to prevent flickering
+    // Easier than the alternative which is compiling qt6multimedia with QT_DEFAULT_MEDIA_BACKEND
+    // See: https://doc.qt.io/qt-6.5/qtmultimedia-index.html
+    if (qEnvironmentVariableIsEmpty("QT_MEDIA_BACKEND"))
+        qputenv("QT_MEDIA_BACKEND", "gstreamer");
+#endif
 
+    //  So far, this is only needed on Mac where static initialization is fucked up.
+    PokemonAutomation::register_all_statics();
+
+    setup_crash_handler();
 
     int ret = run_program(argc, argv);
 
 
-    // Write program settings back to the json file.
+    //  Write program settings back to the json file.
     PERSISTENT_SETTINGS().write();
 
 
@@ -173,18 +236,47 @@ int main(int argc, char *argv[]){
 #endif
 
 #ifdef PA_DPP
-    Integration::DppClient::Client::instance().disconnect();
+    Integration::DppClient::Client::instance().stop();
 #endif
-
-    // Force stop the thread pool
-    PokemonAutomation::GlobalThreadPools::realtime_inference().stop();
-    PokemonAutomation::GlobalThreadPools::normal_inference().stop();
-
-    PokemonAutomation::global_dispatcher.stop();
 
     //  We must clear the OCR cache or it will crash on Linux when the library
     //  unloads before the cache is destructed from static memory.
     OCR::clear_cache();
+
+    //  Stop the controllers.
+    global_input_stop();
+
+    //  Stop misc. services.
+    Integration::DiscordWebhook::DiscordWebhookSender::instance().stop();
+    SystemSleepController::instance().stop();
+    global_periodic_runner().stop();
+    global_watchdog().stop();
+    static_cast<FileWindowLogger&>(global_logger_raw()).stop();
+
+//
+//  Workaround Qt 6.9 thread-adoption bug on Windows.
+//      https://github.com/PokemonAutomation/Arduino-Source/issues/570
+//      https://bugreports.qt.io/browse/QTBUG-131892
+//
+//  Joining threads on Qt 6.9+ Windows will hang!
+//
+#ifdef PA_ENABLE_QT_ADOPTION_WORKAROUND
+    cout << "Qt6.9 bug workaround: std::quick_exit() to avoid thread join hangs." << endl;
+    std::quick_exit(ret);
+#endif
+
+    //  Force stop the thread pools.
+    //  This is where all the threads in the program are joined.
+    PokemonAutomation::GlobalThreadPools::computation_realtime().stop();
+    PokemonAutomation::GlobalThreadPools::computation_normal().stop();
+    PokemonAutomation::GlobalThreadPools::unlimited_realtime().stop();
+    PokemonAutomation::GlobalThreadPools::unlimited_normal().stop();
+    PokemonAutomation::global_dispatcher.stop();
+
+    GlobalThreadPools::qt_worker_threadpool().stop();
+    GlobalThreadPools::qt_event_threadpool().stop();
+
+    cout << "Exiting main()..." << endl;
 
     return ret;
 }

@@ -38,7 +38,7 @@ void set_time_to_12am_from_home(const ProgramInfo& info, ConsoleHandle& console,
 
 //    pbf_press_button(context, BUTTON_HOME, 10, GameSettings::instance().GAME_TO_HOME_DELAY);
     home_to_date_time(console, context, true);
-    pbf_press_button(context, BUTTON_A, 20, 50);
+    pbf_press_button(context, BUTTON_A, 160ms, 400ms);
 
     context.wait_for_all_requests();
 
@@ -47,7 +47,7 @@ void set_time_to_12am_from_home(const ProgramInfo& info, ConsoleHandle& console,
     reader.set_date(info, console, context, time);
 //    reader.set_hours(info, console, context, 0);
 
-    pbf_press_button(context, BUTTON_A, 20, 30);
+    pbf_press_button(context, BUTTON_A, 160ms, 240ms);
     pbf_press_button(context, BUTTON_HOME, 160ms, ConsoleSettings::instance().SETTINGS_TO_HOME_DELAY0);
 //    resume_game_from_home(console, context);
 }
@@ -99,14 +99,14 @@ void neutral_day_skip_switch2(ConsoleHandle& console, ProControllerContext& cont
         context->logger().log("PokemonSV::neutral_day_skip_switch2()");
     }
 
-    ssf_press_button(context, BUTTON_A, 216ms, 80ms);
+    ssf_press_button(context, BUTTON_A, ConsoleSettings::instance().DATE_MENU_OPEN_SWITCH2_0, 80ms);
     ssf_issue_scroll_ptv(context, SSF_SCROLL_RIGHT);
     ssf_issue_scroll_ptv(context, SSF_SCROLL_RIGHT);
     ssf_issue_scroll_ptv(context, SSF_SCROLL_RIGHT);
     ssf_issue_scroll_ptv(context, SSF_SCROLL_RIGHT);
     ssf_issue_scroll_ptv(context, SSF_SCROLL_RIGHT);
     ssf_issue_scroll_ptv(context, SSF_SCROLL_RIGHT);
-    ssf_press_button(context, BUTTON_A, 264ms, 80ms);
+    ssf_press_button(context, BUTTON_A, ConsoleSettings::instance().DATE_MENU_CLOSE_SWITCH2_0, 80ms);
 }
 
 void day_skip_from_overworld(ConsoleHandle& console, ProControllerContext& context){
@@ -143,9 +143,9 @@ void press_Bs_to_back_to_overworld(const ProgramInfo& info, VideoStream& stream,
     int ret = run_until<ProControllerContext>(
         stream, context,
         [seconds_between_b_presses](ProControllerContext& context){
-            pbf_wait(context, seconds_between_b_presses * TICKS_PER_SECOND); // avoiding pressing B if already in overworld
+            pbf_wait(context, Seconds(seconds_between_b_presses)); // avoiding pressing B if already in overworld
             for (size_t c = 0; c < 10; c++){
-                pbf_press_button(context, BUTTON_B, 20, seconds_between_b_presses * TICKS_PER_SECOND);
+                pbf_press_button(context, BUTTON_B, 20*8ms, Seconds(seconds_between_b_presses));
             }
         },
         {overworld, battle}
@@ -184,7 +184,7 @@ void open_map_from_overworld(
 
         if (ret == 0){
             stream.log("Detected overworld.");
-            pbf_press_button(context, BUTTON_Y, 20, 105); // open map
+            pbf_press_button(context, BUTTON_Y, 160ms, 840ms); // open map
         }else if (ret == 1){
             throw_and_log<UnexpectedBattleException>(
                 stream.logger(), ErrorReport::NO_ERROR_REPORT,
@@ -227,15 +227,15 @@ void open_map_from_overworld(
         switch (ret){
         case 0:
             stream.log("Detected overworld.");
-            pbf_press_button(context, BUTTON_Y, 20, 105); // open map
+            pbf_press_button(context, BUTTON_Y, 160ms, 840ms); // open map
             continue;
         case 1:
             stream.log("Detected dialog. Did you fall down?", COLOR_RED);
-            pbf_press_button(context, BUTTON_B, 20, 105);
+            pbf_press_button(context, BUTTON_B, 160ms, 840ms);
             continue;
         case 2:
             stream.log("Detected dialog. Did you fall down?", COLOR_RED);
-            pbf_press_button(context, BUTTON_A, 20, 105);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             continue;
         case 3:
             stream.log("Detected map.");
@@ -244,11 +244,11 @@ void open_map_from_overworld(
                 return;
             }else{ // click R joystick to change to fixed view
                 if (clear_tutorial){
-                    pbf_press_button(context, BUTTON_A, 20, 105);
+                    pbf_press_button(context, BUTTON_A, 160ms, 840ms);
                 }
                 stream.log("Map in rotate view, fix it");
                 stream.overlay().add_log("Change map to fixed view", COLOR_WHITE);
-                pbf_press_button(context, BUTTON_RCLICK, 20, 105);
+                pbf_press_button(context, BUTTON_RCLICK, 160ms, 840ms);
                 continue;
             }
         case 4:
@@ -300,7 +300,7 @@ void enter_box_system_from_overworld(
         switch (ret){
         case 0:
             stream.log("Detected overworld.");
-            pbf_press_button(context, BUTTON_X, 20, 105); // open menu
+            pbf_press_button(context, BUTTON_X, 160ms, 840ms); // open menu
             continue;
         case 1:
             stream.log("Detected main menu.");
@@ -313,7 +313,7 @@ void enter_box_system_from_overworld(
                     stream
                 );
             }
-            pbf_press_button(context, BUTTON_A, 20, 50);
+            pbf_press_button(context, BUTTON_A, 160ms, 400ms);
             continue;
         case 2:
             stream.log("Detected box.");
@@ -362,7 +362,7 @@ void open_pokedex_from_overworld(const ProgramInfo& info, VideoStream& stream, P
         switch (ret){
         case 0:
             // Try opening the Pokédex if overworld is detected
-            pbf_press_button(context, BUTTON_MINUS, 20, 100);
+            pbf_press_button(context, BUTTON_MINUS, 160ms, 800ms);
             continue;
         case 1:
             stream.log("Detected Pokédex.");
@@ -387,15 +387,15 @@ void open_recently_battled_from_pokedex(const ProgramInfo& info, VideoStream& st
         stream, context,
         [](ProControllerContext& context){
             for (size_t i = 0; i < 10; i++){
-                pbf_press_dpad(context, DPAD_DOWN, 20, 105);
+                pbf_press_dpad(context, DPAD_DOWN, 160ms, 840ms);
             }
         },
         {menu}
     );
     if (ret == 0){
         stream.log("Detected Recently Battled menu icon.");
-        pbf_mash_button(context, BUTTON_A, 150);
-        pbf_wait(context, 200);
+        pbf_mash_button(context, BUTTON_A, 1200ms);
+        pbf_wait(context, 1600ms);
     }else{
         OperationFailedException::fire(
             ErrorReport::SEND_ERROR_REPORT,
@@ -417,7 +417,7 @@ void leave_phone_to_overworld(const ProgramInfo& info, VideoStream& stream, ProC
         stream, context,
         [](ProControllerContext& context){
             for (size_t i = 0; i < 10; i++){
-                pbf_press_button(context, BUTTON_Y, 20, 1000);
+                pbf_press_button(context, BUTTON_Y, 160ms, 8000ms);
             }
         },
         {overworld, battle, arrow}
@@ -433,7 +433,7 @@ void leave_phone_to_overworld(const ProgramInfo& info, VideoStream& stream, ProC
         );  
     case 2:
         stream.log("Stuck in battle status screen.");
-        pbf_mash_button(context, BUTTON_B, 200);
+        pbf_mash_button(context, BUTTON_B, 1600ms);
         throw_and_log<UnexpectedBattleException>(
             stream.logger(), ErrorReport::SEND_ERROR_REPORT,
             "leave_phone_to_overworld(): Unexpectedly detected battle.",
@@ -460,8 +460,8 @@ void mash_button_till_overworld(
     int ret = run_until<ProControllerContext>(
         stream, context,
         [button, seconds_run](ProControllerContext& context){
-            ssf_mash1_button(context, button, seconds_run * TICKS_PER_SECOND);
-            pbf_wait(context, seconds_run * TICKS_PER_SECOND);
+            ssf_mash1_button(context, button, Seconds(seconds_run));
+            // pbf_wait(context, Seconds(seconds_run));
         },
         {overworld}
     );
@@ -481,7 +481,7 @@ void enter_menu_from_overworld(const ProgramInfo& info, VideoStream& stream, Pro
     bool has_minimap
 ){
     if (!has_minimap){
-        pbf_press_button(context, BUTTON_X, 20, 105);
+        pbf_press_button(context, BUTTON_X, 160ms, 840ms);
     }
 
     WallClock start = current_time();
@@ -505,10 +505,10 @@ void enter_menu_from_overworld(const ProgramInfo& info, VideoStream& stream, Pro
             stream, context,
             [has_minimap](ProControllerContext& context){
                 for (int i = 0; i < 10; i++){
-                    pbf_wait(context, 3 * TICKS_PER_SECOND);
+                    pbf_wait(context, 3000ms);
                     if (!has_minimap){ 
                         // if no minimap, can't detect overworld, so repeatedly press X to cover for button drops
-                        pbf_press_button(context, BUTTON_X, 20, 100);
+                        pbf_press_button(context, BUTTON_X, 160ms, 800ms);
                     }
                 }
             },
@@ -520,7 +520,7 @@ void enter_menu_from_overworld(const ProgramInfo& info, VideoStream& stream, Pro
         switch (ret){
         case 0:
             stream.log("Detected overworld.");
-            pbf_press_button(context, BUTTON_X, 20, 105);
+            pbf_press_button(context, BUTTON_X, 160ms, 840ms);
             continue;
         case 1:
             stream.log("Detected main menu.");
@@ -535,7 +535,7 @@ void enter_menu_from_overworld(const ProgramInfo& info, VideoStream& stream, Pro
                     stream
                 );
             }
-            pbf_press_button(context, BUTTON_A, 20, 105);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             return;
         case 2:
             throw_and_log<UnexpectedBattleException>(
@@ -598,7 +598,7 @@ void enter_menu_from_box_system(const ProgramInfo& info, VideoStream& stream, Pr
                     stream
                 );
             }
-            pbf_press_button(context, BUTTON_A, 20, 105);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             return;     
         default:
             OperationFailedException::fire(
@@ -657,11 +657,11 @@ void enter_menu_from_bag(const ProgramInfo& info, VideoStream& stream, ProContro
                     stream
                 );
             }
-            pbf_press_button(context, BUTTON_A, 20, 105);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             return;
         case 1:
             stream.log("still on bag.");
-            pbf_press_button(context, BUTTON_B, 20, 105);
+            pbf_press_button(context, BUTTON_B, 160ms, 840ms);
             continue;
         default:
             OperationFailedException::fire(
@@ -710,7 +710,7 @@ void enter_bag_from_menu(const ProgramInfo& info, VideoStream& stream, ProContro
                     stream
                 );
             }
-            pbf_press_button(context, BUTTON_A, 20, 105);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             continue;
         case 1:
             stream.overlay().add_log("Enter bag");
@@ -738,9 +738,9 @@ void press_button_until_gradient_arrow(
     int ret = run_until<ProControllerContext>(
         stream, context,
         [button](ProControllerContext& context){
-            pbf_wait(context, 3 * TICKS_PER_SECOND); // avoid pressing button if arrow already detected
+            pbf_wait(context, 3000ms); // avoid pressing button if arrow already detected
             for (size_t c = 0; c < 10; c++){
-                pbf_press_button(context, button, 20, 3 * TICKS_PER_SECOND);
+                pbf_press_button(context, button, 160ms, 3000ms);
             }
         },
         {arrow}
@@ -777,7 +777,7 @@ void navigate_school_layout_menu(
     }
 
     for (uint16_t i = 0; i < num_button_presses; i++){
-        pbf_press_dpad(context, dpad_button, 20, 105);
+        pbf_press_dpad(context, dpad_button, 160ms, 840ms);
     }
 
     GradientArrowWatcher arrow_end(COLOR_RED, GradientArrowType::RIGHT, arrow_box_end);
@@ -786,7 +786,7 @@ void navigate_school_layout_menu(
         context,
         [dpad_button](ProControllerContext& context){
             for (int i = 0; i < 3; i++){
-                pbf_press_dpad(context, dpad_button, 20, 500);
+                pbf_press_dpad(context, dpad_button, 160ms, 4000ms);
             }
         },
         { arrow_end }        

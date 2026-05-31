@@ -20,6 +20,10 @@ namespace PokemonAutomation{
 namespace NintendoSwitch{
 
 
+void SingleSwitchProgramEnvironment::add_overlay_log(std::string msg, Color color){
+    console.overlay().add_log(std::move(msg), color);
+}
+
 
 SingleSwitchProgramDescriptor::SingleSwitchProgramDescriptor(
     std::string identifier,
@@ -29,14 +33,16 @@ SingleSwitchProgramDescriptor::SingleSwitchProgramDescriptor(
     ProgramControllerClass color_class,
     FeedbackType feedback,
     AllowCommandsWhenRunning allow_commands_while_running,
-    bool deprecated
+    bool deprecated,
+    std::vector<std::string> required_resources
 )
     : ProgramDescriptor(
         pick_color(color_class),
         std::move(identifier),
         std::move(category), std::move(display_name),
         std::move(doc_link),
-        std::move(description)
+        std::move(description),
+        std::move(required_resources)
     )
     , m_color_class(color_class)
     , m_feedback(feedback)
@@ -84,17 +90,17 @@ void SingleSwitchProgramInstance::program(SingleSwitchProgramEnvironment& env, C
             context.controller().cancel_all_commands();
             env.log("Saving debug video on Switch...");
             env.console.overlay().add_log("Save Debug Video on Switch");
-            pbf_press_button(context, BUTTON_CAPTURE, 2 * TICKS_PER_SECOND, 0);
+            pbf_press_button(context, BUTTON_CAPTURE, 2000ms, 0ms);
             context.wait_for_all_requests();
         }
     };
 
     try{
         program(env, context);
-    } catch(FatalProgramException&){
+    }catch (FatalProgramException&){
         record_debug_video();
         throw;
-    } catch(OperationFailedException&){
+    }catch (OperationFailedException&){
         record_debug_video();
         throw;
     }

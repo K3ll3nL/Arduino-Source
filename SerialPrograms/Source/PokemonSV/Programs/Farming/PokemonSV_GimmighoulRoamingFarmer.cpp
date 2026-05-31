@@ -63,13 +63,16 @@ GimmighoulRoamingFarmer::GimmighoulRoamingFarmer()
 void GimmighoulRoamingFarmer::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     assert_16_9_720p_min(env.logger(), env.console);
 
+    //  Connect the controller.
+    require_player(env.console, context, BUTTON_LCLICK);
+
     //  Start in game facing a roaming Gimmighoul somewhere safe. (ex. Pokemon Center since wild Pokemon can't fight you there.)
     uint8_t year = MAX_YEAR;
     for (uint32_t c = 0; c < SKIPS; c++){
         //  Grab coin assuming there is one
         env.log("Fetch Attempts: " + tostr_u_commas(c));
-        pbf_mash_button(context, BUTTON_A, 90);
-        pbf_wait(context, 2 * TICKS_PER_SECOND);
+        pbf_mash_button(context, BUTTON_A, 720ms);
+        pbf_wait(context, 2000ms);
 
         //  Save the game
         save_game_from_overworld(env.program_info(), env.console, context);
@@ -88,14 +91,14 @@ void GimmighoulRoamingFarmer::program(SingleSwitchProgramEnvironment& env, ProCo
         pbf_press_button(context, BUTTON_HOME, 160ms, ConsoleSettings::instance().SETTINGS_TO_HOME_DELAY0);
 
         //  Reset game
-        reset_game_from_home(env.program_info(), env.console, context, 5 * TICKS_PER_SECOND);
+        reset_game_from_home(env.program_info(), env.console, context, 5000ms);
     }
 
     if (FIX_TIME_WHEN_DONE){
         go_home(env.console, context);
         home_to_date_time(env.console, context, false);
-        pbf_press_button(context, BUTTON_A, 20, 105);
-        pbf_press_button(context, BUTTON_A, 20, 105);
+        pbf_press_button(context, BUTTON_A, 160ms, 840ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 840ms);
         pbf_press_button(context, BUTTON_HOME, 160ms, ConsoleSettings::instance().SETTINGS_TO_HOME_DELAY0);
         resume_game_from_home(env.console, context);
     }

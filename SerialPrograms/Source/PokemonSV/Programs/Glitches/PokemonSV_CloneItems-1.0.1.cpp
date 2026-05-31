@@ -15,6 +15,7 @@
 #include "CommonTools/StartupChecks/StartProgramChecks.h"
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSV/Inference/Dialogs/PokemonSV_GradientArrowDetector.h"
 #include "PokemonSV/Inference/Dialogs/PokemonSV_DialogDetector.h"
@@ -167,20 +168,20 @@ bool CloneItems101::clone_item(ProgramEnvironment& env, VideoStream& stream, Pro
         case 0:
             stream.log("Detected overworld. (unexpected)", COLOR_RED);
             stats.m_errors++;
-            pbf_press_button(context, BUTTON_X, 20, 105);
+            pbf_press_button(context, BUTTON_X, 160ms, 840ms);
             continue;
         case 1:
             stream.log("Detected main menu.");
             try{
                 if (item_held){
                     main_menu.move_cursor(env.program_info(), stream, context, MenuSide::RIGHT, 1, true);
-                    pbf_press_button(context, BUTTON_A, 20, 20);
+                    pbf_press_button(context, BUTTON_A, 160ms, 160ms);
                 }else{
                     main_menu.move_cursor(env.program_info(), stream, context, MenuSide::LEFT, 1, true);
-                    pbf_press_button(context, BUTTON_A, 20, 50);
-                    pbf_press_dpad(context, DPAD_UP, 10, 10);
-                    pbf_press_dpad(context, DPAD_UP, 20, 10);
-                    pbf_press_button(context, BUTTON_A, 20, 20);
+                    pbf_press_button(context, BUTTON_A, 160ms, 400ms);
+                    pbf_press_dpad(context, DPAD_UP, 80ms, 80ms);
+                    pbf_press_dpad(context, DPAD_UP, 160ms, 80ms);
+                    pbf_press_button(context, BUTTON_A, 160ms, 160ms);
                 }
             }catch (OperationFailedException& e){
                 e.send_notification(env, NOTIFICATION_ERROR_RECOVERABLE);
@@ -189,18 +190,18 @@ bool CloneItems101::clone_item(ProgramEnvironment& env, VideoStream& stream, Pro
         case 2:
             stream.log("Detected 6th slot select top. (unexpected)", COLOR_RED);
             stats.m_errors++;
-            pbf_press_dpad(context, DPAD_UP, 10, 10);
-            pbf_press_dpad(context, DPAD_UP, 10, 10);
+            pbf_press_dpad(context, DPAD_UP, 80ms, 80ms);
+            pbf_press_dpad(context, DPAD_UP, 80ms, 80ms);
             continue;
         case 3:
             stream.log("Detected 6th slot select return. (unexpected)", COLOR_RED);
             stats.m_errors++;
-            pbf_press_button(context, BUTTON_A, 20, 20);
+            pbf_press_button(context, BUTTON_A, 160ms, 160ms);
             continue;
         case 4:
             stream.log("Detected 6th slot select back. (unexpected)", COLOR_RED);
             stats.m_errors++;
-            pbf_press_dpad(context, DPAD_UP, 20, 30);
+            pbf_press_dpad(context, DPAD_UP, 160ms, 240ms);
             continue;
         case 5:{
             stream.log("Detected dialog.");
@@ -210,20 +211,20 @@ bool CloneItems101::clone_item(ProgramEnvironment& env, VideoStream& stream, Pro
 
             //  Confirmation prompt for returning your ride back to ride form.
             if (return_to_ride_prompt.detect(snapshot)){
-                pbf_press_button(context, BUTTON_A, 20, 20);
+                pbf_press_button(context, BUTTON_A, 160ms, 160ms);
                 item_held = true;
                 continue;
             }
 
             //  No other recognized ambiguities.
-            pbf_press_button(context, BUTTON_B, 20, 20);
+            pbf_press_button(context, BUTTON_B, 160ms, 160ms);
             continue;
         }
         case 6:{
             stream.log("Detected box slot 1.");
 
             if (!item_held){
-                pbf_press_button(context, BUTTON_B, 20, 105);
+                pbf_press_button(context, BUTTON_B, 160ms, 840ms);
 //                continue;
                 return true;
             }
@@ -232,17 +233,17 @@ bool CloneItems101::clone_item(ProgramEnvironment& env, VideoStream& stream, Pro
 
             //  Not on the battle teams.
             if (!battle_team.detect(snapshot)){
-                pbf_press_button(context, BUTTON_X, 20, 10);
-                pbf_press_button(context, BUTTON_X, 20, 10);
+                pbf_press_button(context, BUTTON_X, 160ms, 80ms);
+                pbf_press_button(context, BUTTON_X, 160ms, 80ms);
                 continue;
             }
 
-            pbf_press_button(context, BUTTON_L, 20, 40);
-            pbf_press_button(context, BUTTON_A, 20, 50);
-            pbf_press_dpad(context, DPAD_DOWN, 10, 10);
-            pbf_press_dpad(context, DPAD_DOWN, 10, 10);
-            pbf_press_dpad(context, DPAD_DOWN, 10, 10);
-            pbf_press_button(context, BUTTON_A, 20, 50);
+            pbf_press_button(context, BUTTON_L, 160ms, 320ms);
+            pbf_press_button(context, BUTTON_A, 160ms, 400ms);
+            pbf_press_dpad(context, DPAD_DOWN, 80ms, 80ms);
+            pbf_press_dpad(context, DPAD_DOWN, 80ms, 80ms);
+            pbf_press_dpad(context, DPAD_DOWN, 80ms, 80ms);
+            pbf_press_button(context, BUTTON_A, 160ms, 400ms);
             item_held = false;
 
             continue;
@@ -263,6 +264,9 @@ bool CloneItems101::clone_item(ProgramEnvironment& env, VideoStream& stream, Pro
 void CloneItems101::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     StartProgramChecks::check_performance_class_wired_or_wireless(context);
     assert_16_9_720p_min(env.logger(), env.console);
+
+    //  Connect the controller.
+    require_player(env.console, context, BUTTON_LCLICK);
 
     CloneItems101_Descriptor::Stats& stats = env.current_stats<CloneItems101_Descriptor::Stats>();
 
@@ -295,7 +299,7 @@ void CloneItems101::program(SingleSwitchProgramEnvironment& env, ProControllerCo
             env.console, context,
             [](ProControllerContext& context){
                 for (size_t c = 0; c < 10; c++){
-                    pbf_press_button(context, BUTTON_B, 20, 230);
+                    pbf_press_button(context, BUTTON_B, 160ms, 1840ms);
                 }
             },
             {overworld, main_menu}

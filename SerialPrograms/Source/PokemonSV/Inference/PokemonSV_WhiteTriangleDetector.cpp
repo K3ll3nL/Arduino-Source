@@ -29,7 +29,7 @@ public:
     ){
         m_aspect_ratio_lower = 0.8;
         m_aspect_ratio_upper = 1.2;
-        m_area_ratio_lower = 0.9;
+        m_area_ratio_lower = 0.8;
         m_area_ratio_upper = 1.4;
 
     }
@@ -53,7 +53,7 @@ void WhiteTriangleDetector::make_overlays(VideoOverlaySet& items) const{
 }
 
 
-bool WhiteTriangleDetector::detect(const ImageViewRGB32& screen) {
+bool WhiteTriangleDetector::detect(const ImageViewRGB32& screen){
     const std::vector<std::pair<uint32_t, uint32_t>> filters = {
         {combine_rgb(240, 240, 240), combine_rgb(255, 255, 255)},
         {combine_rgb(220, 220, 220), combine_rgb(240, 240, 240)},

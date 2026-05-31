@@ -11,6 +11,7 @@
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSV/Inference/Dialogs/PokemonSV_DialogDetector.h"
 #include "PokemonSV/Inference/Overworld/PokemonSV_OverworldDetector.h"
@@ -153,6 +154,9 @@ void TournamentFarmer2::program(SingleSwitchProgramEnvironment& env, ProControll
     assert_16_9_720p_min(env.logger(), env.console);
     TournamentFarmer2_Descriptor::Stats& stats = env.current_stats<TournamentFarmer2_Descriptor::Stats>();
 
+    //  Connect the controller.
+    require_player(env.console, context, BUTTON_LCLICK);
+
     m_stop_after_current.store(false, std::memory_order_relaxed);
     STOP_AFTER_CURRENT.set_ready();
     ResetOnExit reset_button_on_exit(STOP_AFTER_CURRENT);
@@ -169,15 +173,15 @@ void TournamentFarmer2::program(SingleSwitchProgramEnvironment& env, ProControll
         //  Initiate dialog then mash until first battle starts
         {
             AdvanceDialogWatcher advance_detector(COLOR_YELLOW);
-            pbf_press_button(context, BUTTON_A, 10, 50);
-            pbf_press_button(context, BUTTON_A, 10, 50);
+            pbf_press_button(context, BUTTON_A, 80ms, 400ms);
+            pbf_press_button(context, BUTTON_A, 80ms, 400ms);
             int ret = wait_until(env.console, context, Milliseconds(7000), { advance_detector });
             if (ret == 0){
                 env.log("Dialog detected.");
             }else{
                 env.log("Dialog not detected.");
             }
-            pbf_mash_button(context, BUTTON_A, 400);
+            pbf_mash_button(context, BUTTON_A, 3200ms);
             context.wait_for_all_requests();
         }
         {
@@ -185,7 +189,7 @@ void TournamentFarmer2::program(SingleSwitchProgramEnvironment& env, ProControll
             int ret = run_until<ProControllerContext>(
                 env.console, context,
                 [](ProControllerContext& context){
-                    pbf_mash_button(context, BUTTON_B, 10000); //it takes a while to load and start
+                    pbf_mash_button(context, BUTTON_B, 80000ms); //it takes a while to load and start
                 },
                 {battle_menu}
             );
@@ -211,7 +215,7 @@ void TournamentFarmer2::program(SingleSwitchProgramEnvironment& env, ProControll
             int ret = run_until<ProControllerContext>(
                 env.console, context,
                 [](ProControllerContext& context){
-                    pbf_mash_button(context, BUTTON_B, 120 * TICKS_PER_SECOND);
+                    pbf_mash_button(context, BUTTON_B, 120000ms);
                 },
                 {battle_menu, overworld}
             );
@@ -256,7 +260,7 @@ void TournamentFarmer2::program(SingleSwitchProgramEnvironment& env, ProControll
                 ret = run_until<ProControllerContext>(
                     env.console, context,
                     [](ProControllerContext& context){
-                        pbf_mash_button(context, BUTTON_B, 120 * TICKS_PER_SECOND);
+                        pbf_mash_button(context, BUTTON_B, 120000ms);
                     },
                     {overworld} 
                 );
@@ -273,7 +277,7 @@ void TournamentFarmer2::program(SingleSwitchProgramEnvironment& env, ProControll
                 ret = run_until<ProControllerContext>(
                     env.console, context,
                     [](ProControllerContext& context){
-                        pbf_mash_button(context, BUTTON_B, 5 * TICKS_PER_SECOND);
+                        pbf_mash_button(context, BUTTON_B, 5000ms);
                     },
                     {fast_travel}
                 );

@@ -32,10 +32,76 @@ print(f"Size: {width} x {height}")
 
 raw_image = image.copy()
 
+# ==================================================================
+# LZA Donut flavor power icon
+for i in range(3):
+    # Empty space after a subtype-free power icon
+    add_infer_box_to_image(raw_image, 0.1125, 0.7745 + 0.046*i,0.005,0.013, image)
+    # Number of a subtype-free power icon
+    # add_infer_box_to_image(raw_image, 0.102, 0.77 + 0.046*i,0.011,0.02, image)
+    # Nummber of a subtype power icon
+    # add_infer_box_to_image(raw_image, 0.108, 0.77 + 0.046*i,0.011,0.02, image)
+    # add_infer_box_to_image(raw_image, 0.081, 0.764 + 0.045*i, 0.043, 0.034, image)
+
+# ==================================================================
+# LZA Donut flavor power text
+# for i in range(3):
+#     add_infer_box_to_image(raw_image, 0.131, 0.759 + 0.045*i, 0.260, 0.043, image)
+
+# ==================================================================
+# LZA Donut Berry Selection
+#add_infer_box_to_image(raw_image, 0.001, 0.245, 0.006, 0.070, image)
+#add_infer_box_to_image(raw_image, 0.001, 0.332, 0.006, 0.070, image)
+#add_infer_box_to_image(raw_image, 0.001, 0.419, 0.006, 0.070, image)
+#add_infer_box_to_image(raw_image, 0.001, 0.506, 0.006, 0.070, image)
+#add_infer_box_to_image(raw_image, 0.001, 0.593, 0.006, 0.070, image)
+#add_infer_box_to_image(raw_image, 0.001, 0.68, 0.006, 0.070, image)
+#add_infer_box_to_image(raw_image, 0.001, 0.767, 0.006, 0.070, image)
+#add_infer_box_to_image(raw_image, 0.001, 0.854, 0.006, 0.070, image)
+
+# ==================================================================
+# LZA Donut Berry Text
+#add_infer_box_to_image(raw_image, 0.065, 0.250, 0.173, 0.037, image)
+#add_infer_box_to_image(raw_image, 0.065, 0.336, 0.173, 0.037, image)
+#add_infer_box_to_image(raw_image, 0.065, 0.422, 0.173, 0.037, image)
+#add_infer_box_to_image(raw_image, 0.065, 0.508, 0.173, 0.037, image)
+#add_infer_box_to_image(raw_image, 0.065, 0.594, 0.173, 0.037, image)
+#add_infer_box_to_image(raw_image, 0.065, 0.680, 0.173, 0.037, image)
+#add_infer_box_to_image(raw_image, 0.065, 0.766, 0.173, 0.037, image)
+#add_infer_box_to_image(raw_image, 0.065, 0.852, 0.173, 0.037, image)
+
+# ==================================================================
+# LZA Donut Berry Image
+#add_infer_box_to_image(raw_image, 0.029, 0.254, 0.030, 0.047, image)
+#add_infer_box_to_image(raw_image, 0.029, 0.341, 0.030, 0.047, image)
+#add_infer_box_to_image(raw_image, 0.029, 0.428, 0.030, 0.047, image)
+
+
+# ==================================================================
+# Home summary screen finish loading detector
+# add_infer_box_to_image(raw_image, 0.388, 0.238, 0.109, 0.062, image)
+
+# ==================================================================
+# LZA Hyperspace Timer detection
+# add_infer_box_to_image(raw_image, 0.044, 0.111, 0.060, 0.067, image)
+
+
+# ==================================================================
+# LZA Map detector
+# add_infer_box_to_image(raw_image, 0.760730, 0.937023, 0.241416, 0.064885, image)
+# add_infer_box_to_image(raw_image, 0.005000, 0.150000, 0.025000, 0.110000, image)
+# add_infer_box_to_image(raw_image, 0.005000, 0.210000, 0.025000, 0.110000, image)
+
+
+# ==================================================================
+# LZA alert eye detector
+# add_infer_box_to_image(raw_image, 0.485, 0.088, 0.029, 0.034, image)
+# add_infer_box_to_image(raw_image, 0.464, 0.142, 0.071, 0.074, image)
+
 
 # ==================================================================
 # LZA bench sit button A when running back
-add_infer_box_to_image(raw_image, 0.486, 0.477, 0.115, 0.5, image)
+# add_infer_box_to_image(raw_image, 0.486, 0.477, 0.115, 0.5, image)
 
 
 # ==================================================================
@@ -74,14 +140,29 @@ add_infer_box_to_image(raw_image, 0.486, 0.477, 0.115, 0.5, image)
 
 
 # ==================================================================
-# LZA box system cursor detection
+# New LZA box system cursor detection
 # triangle_upper_edge_width = 0.008
-# traingle_full_height = 0.026
+# traingle_full_height = 0.035
 # for row in range(6):
-# 	y = 0.122 if row == 0 else 0.333 + (0.797 - 0.331)/ 4.0 * (row-1)
+# 	y = (0.122 if row == 0 else 0.333 + (0.797 - 0.331)/ 4.0 * (row-1)) - 0.003
+# 	for col in range(6):
+# 		x = 0.0545 + col*(0.386 - 0.059)/5.0
+# 		add_infer_box_to_image(raw_image, x, y, 0.025, traingle_full_height, image)
+
+
+# ==================================================================
+# LZA box system cursor detection
+# for row in range(6):
+# 	y = 0.122 if row == 0 else (0.333 + (0.797 - 0.331)/ 4.0 * (row-1))
 # 	for col in range(6):
 # 		x = 0.058 + col*(0.386 - 0.059)/5.0
-# 		add_infer_box_to_image(raw_image, x, y, 0.018, traingle_full_height, image)
+# 		# non-held positions
+# 		# add_infer_box_to_image(raw_image, x, y, 0.018, 0.026, image)
+# 		# held positions
+# 		# add_infer_box_to_image(raw_image, x+0.011, y-0.010, 0.023, 0.032, image)
+# 		# narrow gap to detect holding
+# 		add_infer_box_to_image(raw_image, x+0.011, y+0.010, 0.023, 0.004, image)
+
 # Pixel (x,y) = (775, 136), (0.404, 0.126), rgb=[255,188,245,71] hsv=[ 80 181 245]
 # Pixel (x,y) = (759, 135), (0.395, 0.125), rgb=[255,182,233,70] hsv=[ 81 178 233]
 # Pixel (x,y) = (796, 135), (0.415, 0.125), rgb=[255,181,239,63] hsv=[ 80 188 239]

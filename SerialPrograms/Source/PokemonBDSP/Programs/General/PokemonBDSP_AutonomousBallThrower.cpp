@@ -8,6 +8,7 @@
 #include "CommonFramework/ProgramStats/StatsTracking.h"
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonBDSP/Inference/Battles/PokemonBDSP_BattleMenuDetector.h"
 #include "PokemonBDSP/Programs/PokemonBDSP_BasicCatcher.h"
@@ -107,7 +108,7 @@ void AutonomousBallThrower::program(SingleSwitchProgramEnvironment& env, ProCont
     env.update_stats();
 
     //  Connect the controller.
-    pbf_press_button(context, BUTTON_LCLICK, 5, 5);
+    require_player(env.console, context, BUTTON_LCLICK);
 
     bool pokemon_caught = false;
     while (!pokemon_caught){
@@ -120,16 +121,16 @@ void AutonomousBallThrower::program(SingleSwitchProgramEnvironment& env, ProCont
                 [](ProControllerContext& context){
                     while (true){
                         //TODO edit here for what to do
-                        //pbf_wait(context, 1 * TICKS_PER_SECOND);
-                        pbf_press_button(context, BUTTON_A, 5, TICKS_PER_SECOND);
-                        pbf_press_dpad(context, DPAD_UP, 5, TICKS_PER_SECOND);
+                        //pbf_wait(context, 1000ms);
+                        pbf_press_button(context, BUTTON_A, 80ms, 1000ms);
+                        pbf_press_dpad(context, DPAD_UP, 80ms, 1000ms);
                     }
                 },
                 {{fight_detector}}
             );
             if (ret == 0){
                 env.log("New fight detected.", COLOR_PURPLE);
-                pbf_mash_button(context, BUTTON_B, 1 * TICKS_PER_SECOND);
+                pbf_mash_button(context, BUTTON_B, 1000ms);
             }
         }
 

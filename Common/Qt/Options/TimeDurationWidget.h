@@ -11,12 +11,17 @@
 #include "Common/Cpp/Options/TimeDurationOption.h"
 #include "ConfigWidget.h"
 
+class QLabel;
+
 namespace PokemonAutomation{
 
 
 
 template <typename Type>
 class TimeDurationCellWidget : public QLineEdit, public ConfigWidget{
+public:
+    using ParentOption = TimeDurationCell<Type>;
+
 public:
     ~TimeDurationCellWidget();
     TimeDurationCellWidget(QWidget& parent, TimeDurationCell<Type>& value);
@@ -33,6 +38,9 @@ private:
 template <typename Type>
 class TimeDurationOptionWidget : public QWidget, public ConfigWidget{
 public:
+    using ParentOption = TimeDurationOption<Type>;
+
+public:
     ~TimeDurationOptionWidget();
     TimeDurationOptionWidget(QWidget& parent, TimeDurationOption<Type>& value);
 
@@ -42,6 +50,7 @@ public:
 private:
     TimeDurationOption<Type>& m_value;
     QLineEdit* m_box;
+    QLabel* m_description;
 };
 
 

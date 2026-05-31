@@ -40,7 +40,7 @@ void trade_current_pokemon(
     VideoSnapshot box_image = stream.video().snapshot();
     ImageMatchWatcher box_detector(std::move(box_image.frame), {0.02, 0.10, 0.15, 0.80}, 50);
 
-//    pbf_press_button(context, BUTTON_ZL, 20, 0);
+//    pbf_press_button(context, BUTTON_ZL, 160ms, 0ms);
 
 #if 0
     while (true){
@@ -50,7 +50,7 @@ void trade_current_pokemon(
         int ret = run_until<ProControllerContext>(
             stream, context,
             [](ProControllerContext& context){
-                pbf_mash_button(context, BUTTON_ZL, 20 * TICKS_PER_SECOND);
+                pbf_mash_button(context, BUTTON_ZL, 20000ms);
             },
             {detector0, detector1}
         );
@@ -59,13 +59,13 @@ void trade_current_pokemon(
             stream.log("Detected trade prompt.");
             context.wait_for(std::chrono::milliseconds(100));
             tracker.check_unrecoverable_error(stream);
-            pbf_press_button(context, BUTTON_ZL, 20, 0);
+            pbf_press_button(context, BUTTON_ZL, 160ms, 0ms);
             continue;
         case 1:
             stream.log("Detected trade confirm prompt.");
             context.wait_for(std::chrono::milliseconds(100));
             tracker.check_unrecoverable_error(stream);
-            pbf_press_button(context, BUTTON_ZL, 20, 0);
+            pbf_press_button(context, BUTTON_ZL, 160ms, 0ms);
             break;
         default:
             stats.m_errors++;
@@ -76,7 +76,7 @@ void trade_current_pokemon(
 #endif
 
     //  Start trade.
-//    pbf_press_button(context, BUTTON_ZL, 20, 0);
+//    pbf_press_button(context, BUTTON_ZL, 160ms, 0ms);
 
     //  Wait for black screen.
     {
@@ -84,7 +84,7 @@ void trade_current_pokemon(
         int ret = run_until<ProControllerContext>(
             stream, context,
             [](ProControllerContext& context){
-                pbf_mash_button(context, BUTTON_ZL, 120 * TICKS_PER_SECOND);
+                pbf_mash_button(context, BUTTON_ZL, 120000ms);
             },
             {{black_screen}}
         );
@@ -103,7 +103,7 @@ void trade_current_pokemon(
         int ret = run_until<ProControllerContext>(
             stream, context,
             [](ProControllerContext& context){
-                pbf_mash_button(context, BUTTON_B, 120 * TICKS_PER_SECOND);
+                pbf_mash_button(context, BUTTON_B, 120000ms);
             },
             {{black_screen}}
         );
@@ -146,10 +146,10 @@ void trade_current_box(
             env.run_in_parallel(scope, [&](ConsoleHandle& console, ProControllerContext& context){
                 Milliseconds box_scroll_delay = GameSettings::instance().BOX_SCROLL_DELAY0;
                 for (size_t r = 0; r < row; r++){
-                    pbf_move_right_joystick(context, 128, 255, 160ms, box_scroll_delay);
+                    pbf_move_right_joystick(context, {0, -1}, 160ms, box_scroll_delay);
                 }
                 for (size_t c = 0; c < col; c++){
-                    pbf_move_right_joystick(context, 255, 128, 160ms, box_scroll_delay);
+                    pbf_move_right_joystick(context, {+1, 0}, 160ms, box_scroll_delay);
                 }
                 trade_current_pokemon(console, context, error_state, stats);
             });

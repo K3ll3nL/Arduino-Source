@@ -15,8 +15,8 @@
 #ifndef PokemonAutomation_NintendoSwitch_Commands_Superscalar_H
 #define PokemonAutomation_NintendoSwitch_Commands_Superscalar_H
 
-#include "NintendoSwitch/Controllers/NintendoSwitch_ProController.h"
-#include "NintendoSwitch/Controllers/NintendoSwitch_Joycon.h"
+#include "NintendoSwitch/Controllers/Procon/NintendoSwitch_ProController.h"
+#include "NintendoSwitch/Controllers/Joycon/NintendoSwitch_Joycon.h"
 
 namespace PokemonAutomation{
 namespace NintendoSwitch{
@@ -25,7 +25,6 @@ using namespace std::chrono_literals;
 
 
 void ssf_flush_pipeline (ProControllerContext& context);
-void ssf_do_nothing     (ProControllerContext& context, uint16_t ticks);
 void ssf_do_nothing     (ProControllerContext& context, Milliseconds duration);
 
 
@@ -43,33 +42,18 @@ void ssf_press_dpad(
 
 void ssf_press_left_joystick(
     ProControllerContext& context,
-    uint8_t x, uint8_t y,
-    uint16_t delay, uint16_t hold, uint8_t cool = 0
-);
-void ssf_press_left_joystick(
-    ProControllerContext& context,
-    uint8_t x, uint8_t y,
+    const JoystickPosition& position,
     Milliseconds delay, Milliseconds hold, Milliseconds cool = 0ms
 );
 void ssf_press_right_joystick(
     ProControllerContext& context,
-    uint8_t x, uint8_t y,
-    uint16_t delay, uint16_t hold, uint8_t cool = 0
-);
-void ssf_press_right_joystick(
-    ProControllerContext& context,
-    uint8_t x, uint8_t y,
+    const JoystickPosition& position,
     Milliseconds delay, Milliseconds hold, Milliseconds cool = 0ms
 );
 
 
-void ssf_mash1_button   (ProControllerContext& context, Button button, uint16_t ticks);
 void ssf_mash1_button   (ProControllerContext& context, Button button, Milliseconds duration);
-
-void ssf_mash2_button   (ProControllerContext& context, Button button0, Button button1, uint16_t ticks);
 void ssf_mash2_button   (ProControllerContext& context, Button button0, Button button1, Milliseconds duration);
-
-void ssf_mash_AZs       (ProControllerContext& context, uint16_t ticks);
 void ssf_mash_AZs       (ProControllerContext& context, Milliseconds duration);
 
 
@@ -181,7 +165,7 @@ void ssf_press_button(
 );
 void ssf_press_joystick(
     JoyconContext& context,
-    uint8_t x, uint8_t y,
+    const JoystickPosition& position,
     Milliseconds delay, Milliseconds hold, Milliseconds cool = 0ms
 );
 void ssf_mash1_button   (JoyconContext& context, Button button, Milliseconds duration);

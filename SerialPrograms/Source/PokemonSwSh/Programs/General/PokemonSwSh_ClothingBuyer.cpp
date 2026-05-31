@@ -6,6 +6,7 @@
 
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/NintendoSwitch_Settings.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSwSh/Programs/PokemonSwSh_GameEntry.h"
 #include "PokemonSwSh_ClothingBuyer.h"
@@ -46,17 +47,18 @@ void ClothingBuyer::program(SingleSwitchProgramEnvironment& env, ProControllerCo
         grip_menu_connect_go_home(context);
         resume_game_no_interact(env.console, context, ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST);
     }else{
-        pbf_press_button(context, BUTTON_LCLICK, 5, 5);
+        //  Connect the controller.
+        require_player(env.console, context, BUTTON_LCLICK);
     }
 
     while (true){
-        pbf_press_button(context, BUTTON_A, 10, 90);
+        pbf_press_button(context, BUTTON_A, 80ms, 720ms);
         if (CATEGORY_ROTATION){
-            pbf_press_dpad(context, DPAD_RIGHT, 10, 40);
+            pbf_press_dpad(context, DPAD_RIGHT, 80ms, 320ms);
         }
-        pbf_press_button(context, BUTTON_A, 10, 90);
-        pbf_press_button(context, BUTTON_A, 10, 90);
-        pbf_press_dpad(context, DPAD_DOWN, 10, 40);
+        pbf_press_button(context, BUTTON_A, 80ms, 720ms);
+        pbf_press_button(context, BUTTON_A, 80ms, 720ms);
+        pbf_press_dpad(context, DPAD_DOWN, 80ms, 320ms);
     }
 }
 

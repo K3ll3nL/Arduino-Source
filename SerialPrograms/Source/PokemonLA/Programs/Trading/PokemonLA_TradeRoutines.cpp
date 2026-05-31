@@ -47,7 +47,7 @@ void trade_current_pokemon(
     ImageMatchWatcher box_detector(std::move(box_image.frame), {0.02, 0.15, 0.15, 0.80}, 50);
 
     {
-        pbf_press_button(context, BUTTON_A, 20, 0);
+        pbf_press_button(context, BUTTON_A, 160ms, 0ms);
         context.wait_for_all_requests();
         ButtonDetector detector(
             stream.logger(), stream.overlay(),
@@ -67,7 +67,7 @@ void trade_current_pokemon(
         tracker.check_unrecoverable_error(stream.logger());
     }
     {
-        pbf_press_button(context, BUTTON_A, 20, 105);
+        pbf_press_button(context, BUTTON_A, 160ms, 840ms);
         context.wait_for_all_requests();
         ButtonDetector detector(
             stream.logger(), stream.overlay(),
@@ -88,7 +88,7 @@ void trade_current_pokemon(
     }
 
     //  Start trade.
-    pbf_press_button(context, BUTTON_A, 20, 0);
+    pbf_press_button(context, BUTTON_A, 160ms, 0ms);
 
     //  Wait for black screen.
     {
@@ -112,7 +112,7 @@ void trade_current_pokemon(
         int ret = run_until<ProControllerContext>(
             stream, context,
             [](ProControllerContext& context){
-                pbf_mash_button(context, BUTTON_B, 120 * TICKS_PER_SECOND);
+                pbf_mash_button(context, BUTTON_B, 120000ms);
             },
             {{black_screen}}
         );

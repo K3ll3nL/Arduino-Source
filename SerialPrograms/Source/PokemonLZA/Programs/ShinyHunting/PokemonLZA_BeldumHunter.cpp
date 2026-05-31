@@ -13,6 +13,7 @@
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 //#include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 //#include "PokemonLZA/PokemonLZA_Settings.h"
 //#include "PokemonLZA/Inference/PokemonLZA_SelectionArrowDetector.h"
@@ -99,15 +100,15 @@ bool BeldumHunter::run_iteration(SingleSwitchProgramEnvironment& env, ProControl
         context.wait_for_all_requests();
         int ret = run_until<ProControllerContext>(
             env.console, context,
-            [&](ProControllerContext& context) {
-                pbf_controller_state(context, BUTTON_B, DPAD_NONE, 128, 0, 128, 128, 100);
+            [&](ProControllerContext& context){
+                pbf_controller_state(context, BUTTON_B, DPAD_NONE, {0, +1}, {0, 0}, 800ms);
                 pbf_wait(context, 5000ms);
             },
             { {entered} }
             );
-        if (ret == 0) {
+        if (ret == 0){
             env.log("Entered the lab.");
-        } else {
+        }else{
             env.log("Failed to enter the lab.");
             OperationFailedException::fire(
                 ErrorReport::SEND_ERROR_REPORT,
@@ -120,23 +121,23 @@ bool BeldumHunter::run_iteration(SingleSwitchProgramEnvironment& env, ProControl
 
         int res = run_until<ProControllerContext>(
             env.console, context,
-            [&](ProControllerContext& context) {
+            [&](ProControllerContext& context){
 
                 env.log("Go straight toward the elevator.");
-                pbf_controller_state(context, BUTTON_B, DPAD_NONE, 128, 0, 128, 128, 460);
+                pbf_controller_state(context, BUTTON_B, DPAD_NONE, {0, +1}, {0, 0}, 3680ms);
 
                 env.log("Go left to where the Noivern spawns, then forward and then left.");
-                pbf_controller_state(context, BUTTON_B, DPAD_NONE, 0, 128, 128, 128, 300);
-                pbf_controller_state(context, BUTTON_B, DPAD_NONE, 128, 0, 128, 128, 80);
-                pbf_controller_state(context, BUTTON_B, DPAD_NONE, 0, 128, 128, 128, 180);
+                pbf_controller_state(context, BUTTON_B, DPAD_NONE, {-1, 0}, {0, 0}, 2400ms);
+                pbf_controller_state(context, BUTTON_B, DPAD_NONE, {0, +1}, {0, 0}, 640ms);
+                pbf_controller_state(context, BUTTON_B, DPAD_NONE, {-1, 0}, {0, 0}, 1440ms);
 
                 env.log("Through the Houndoom room and down the hallway.");
-                pbf_controller_state(context, BUTTON_B, DPAD_NONE, 128, 255, 128, 128, 140);
-                pbf_controller_state(context, BUTTON_B, DPAD_NONE, 0, 128, 128, 128, 200);
-                pbf_controller_state(context, BUTTON_B, DPAD_NONE, 128, 0, 128, 128, 340);
+                pbf_controller_state(context, BUTTON_B, DPAD_NONE, {0, -1}, {0, 0}, 1120ms);
+                pbf_controller_state(context, BUTTON_B, DPAD_NONE, {-1, 0}, {0, 0}, 1600ms);
+                pbf_controller_state(context, BUTTON_B, DPAD_NONE, {0, +1}, {0, 0}, 2720ms);
 
                 env.log("Final hallway to Beldum room.");
-                pbf_controller_state(context, BUTTON_B, DPAD_NONE, 0, 128, 128, 128, 400);
+                pbf_controller_state(context, BUTTON_B, DPAD_NONE, {-1, 0}, {0, 0}, 3200ms);
                 pbf_press_button(context, BUTTON_L, 40ms, 40ms);
                 context.wait_for_all_requests();
             },
@@ -144,10 +145,10 @@ bool BeldumHunter::run_iteration(SingleSwitchProgramEnvironment& env, ProControl
             );
         shiny_detector.throw_if_no_sound();
 
-        if (res == 0) {
+        if (res == 0){
             env.log("Shiny detected!");
-            if (TAKE_VIDEO) {
-                pbf_press_button(context, BUTTON_CAPTURE, 2 * TICKS_PER_SECOND, 0);
+            if (TAKE_VIDEO){
+                pbf_press_button(context, BUTTON_CAPTURE, 2000ms, 0ms);
             }
 
             return true;
@@ -164,6 +165,9 @@ bool BeldumHunter::run_iteration(SingleSwitchProgramEnvironment& env, ProControl
 
 void BeldumHunter::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     assert_16_9_720p_min(env.logger(), env.console);
+
+    //  Connect the controller.
+    require_player(env.console, context, BUTTON_L);
 
     BeldumHunter_Descriptor::Stats& stats = env.current_stats<BeldumHunter_Descriptor::Stats>();
 
@@ -182,7 +186,7 @@ void BeldumHunter::program(SingleSwitchProgramEnvironment& env, ProControllerCon
         send_program_status_notification(env, NOTIFICATION_STATUS);
         try{
             bool shiny_found = run_iteration(env, context);
-            if (shiny_found) {
+            if (shiny_found){
                 stats.shinies++;
                 env.update_stats();
 

@@ -7,6 +7,7 @@
 #include "Common/Cpp/PrettyPrint.h"
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "NintendoSwitch/NintendoSwitch_Settings.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSwSh/Commands/PokemonSwSh_Commands_EggRoutines.h"
 #include "PokemonSwSh/Programs/PokemonSwSh_GameEntry.h"
@@ -55,10 +56,10 @@ GodEggDuplication::GodEggDuplication()
 
 
 void GodEggDuplication::collect_godegg(ProControllerContext& context, uint8_t party_slot) const{
-    pbf_wait(context, 50);
+    pbf_wait(context, 400ms);
     ssf_press_button_ptv(context, BUTTON_B, 800ms);
     ssf_press_button_ptv(context, BUTTON_B, 800ms);
-    pbf_wait(context, 225);
+    pbf_wait(context, 1800ms);
 
     //  "You received an Egg from the Nursery worker!"
     ssf_press_button_ptv(context, BUTTON_B, 2400ms);
@@ -77,7 +78,7 @@ void GodEggDuplication::collect_godegg(ProControllerContext& context, uint8_t pa
         ssf_press_dpad_ptv(context, DPAD_DOWN, 80ms);
     }
     ssf_press_button_ptv(context, BUTTON_A, 2400ms);
-    pbf_mash_button(context, BUTTON_B, 500);
+    pbf_mash_button(context, BUTTON_B, 4000ms);
 }
 void GodEggDuplication::run_program(Logger& logger, ProControllerContext& context, uint16_t attempts) const{
     if (attempts == 0){
@@ -119,9 +120,15 @@ void GodEggDuplication::run_program(Logger& logger, ProControllerContext& contex
 void GodEggDuplication::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     if (START_LOCATION.start_in_grip_menu()){
         grip_menu_connect_go_home(context);
-        resume_game_back_out(env.console, context, ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST, 400);
+        resume_game_back_out(
+            env.console,
+            context,
+            ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST,
+            3200ms
+        );
     }else{
-        pbf_press_button(context, BUTTON_B, 5, 5);
+        //  Connect the controller.
+        require_player(env.console, context, BUTTON_B);
     }
 
     run_program(env.console, context, MAX_FETCH_ATTEMPTS);

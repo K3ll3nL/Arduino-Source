@@ -7,6 +7,7 @@
 #include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSwSh/PokemonSwSh_Settings.h"
 #include "PokemonSwSh/Programs/PokemonSwSh_GameEntry.h"
@@ -45,45 +46,46 @@ EventBeamFinder::EventBeamFinder()
 
 
 void EventBeamFinder::goto_near_den(ProControllerContext& context) const{
-    ssf_press_left_joystick(context, STICK_CENTER, STICK_MIN, 375, 375);
-    pbf_wait(context, 50);
+    ssf_press_left_joystick(context, {0, +1}, 3000ms, 3000ms);
+    pbf_wait(context, 400ms);
     ssf_press_button(context, BUTTON_PLUS, 800ms);
-    ssf_press_left_joystick(context, STICK_MAX, STICK_CENTER, 100, 5);
+    ssf_press_left_joystick(context, {+1, 0}, 800ms, 40ms);
     ssf_press_button(context, BUTTON_L, 800ms);
     ssf_press_button(context, BUTTON_PLUS, 800ms);
-    ssf_press_left_joystick(context, STICK_CENTER, STICK_MIN, 370, 370);
+    ssf_press_left_joystick(context, {0, +1}, 2960ms, 2960ms);
 }
 void EventBeamFinder::goto_far_den(ProControllerContext& context) const{
-    ssf_press_left_joystick(context, STICK_CENTER, STICK_MIN, 992, 992);
-    pbf_wait(context, 50);
+    ssf_press_left_joystick(context, {0, +1}, 7936ms, 7936ms);
+    pbf_wait(context, 400ms);
     ssf_press_button(context, BUTTON_PLUS, 800ms);
-    ssf_press_left_joystick(context, STICK_MIN, STICK_CENTER, 100, 5);
+    ssf_press_left_joystick(context, {-1, 0}, 800ms, 40ms);
     ssf_press_button(context, BUTTON_L, 800ms);
     ssf_press_button(context, BUTTON_PLUS, 800ms);
-    ssf_press_left_joystick(context, STICK_CENTER, STICK_MIN, 300, 300);
+    ssf_press_left_joystick(context, {0, +1}, 2400ms, 2400ms);
 }
 void EventBeamFinder::drop_wishing_piece(ProControllerContext& context) const{
     ssf_press_button(context, BUTTON_A, 1600ms, 80ms);
     ssf_press_button(context, BUTTON_A, 1200ms, 80ms);
     ssf_press_button(context, BUTTON_A, 40ms);
-    pbf_mash_button(context, BUTTON_B, 500);
+    pbf_mash_button(context, BUTTON_B, 4000ms);
     ssf_press_button(context, BUTTON_A, WAIT_TIME_IN_DEN0, 80ms);
-    pbf_mash_button(context, BUTTON_B, 600);
+    pbf_mash_button(context, BUTTON_B, 4800ms);
 }
 void EventBeamFinder::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     if (START_LOCATION.start_in_grip_menu()){
         grip_menu_connect_go_home(context);
         resume_game_no_interact(env.console, context, ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST);
-        pbf_mash_button(context, BUTTON_B, 700);
+        pbf_mash_button(context, BUTTON_B, 5600ms);
     }else{
-        pbf_press_button(context, BUTTON_B, 5, 5);
+        //  Connect the controller.
+        require_player(env.console, context, BUTTON_B);
     }
 
     bool parity = false;
     while (true){
         //  Fly back to daycare.
         ssf_press_button(context, BUTTON_X, GameSettings::instance().OVERWORLD_TO_MENU_DELAY0, 160ms);
-        pbf_mash_button(context, BUTTON_A, 700);
+        pbf_mash_button(context, BUTTON_A, 5600ms);
 
         //  Goto den.
         if (parity){

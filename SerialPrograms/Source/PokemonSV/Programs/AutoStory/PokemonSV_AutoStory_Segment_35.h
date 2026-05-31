@@ -55,28 +55,12 @@ public:
 void checkpoint_93(SingleSwitchProgramEnvironment& env, ProControllerContext& context, EventNotificationOption& notif_status_update, AutoStoryStats& stats);
 
 // start: Entered Area Zero Gate. Flew down to Area Zero from the platform.
-// end: Outside Area Zero Station 1. Defeated Glimmora.
+// end: Inside Area Zero Station 1. Deactivated the locks.
 void checkpoint_94(SingleSwitchProgramEnvironment& env, ProControllerContext& context, EventNotificationOption& notif_status_update, AutoStoryStats& stats);
 
-// start: Outside Area Zero Station 1. Defeated Glimmora.
-// end: At Area Zero Station 1. Deactivated the locks.
+// start: Inside Area Zero Station 1. Deactivated the locks.
+// end: Inside Area Zero Station 1. Deactivated the locks.
 void checkpoint_95(SingleSwitchProgramEnvironment& env, ProControllerContext& context, EventNotificationOption& notif_status_update, AutoStoryStats& stats);
-
-// start: 
-// end: 
-void checkpoint_96(SingleSwitchProgramEnvironment& env, ProControllerContext& context, EventNotificationOption& notif_status_update, AutoStoryStats& stats);
-
-// start: 
-// end: 
-void checkpoint_97(SingleSwitchProgramEnvironment& env, ProControllerContext& context, EventNotificationOption& notif_status_update, AutoStoryStats& stats);
-
-// start: 
-// end: 
-void checkpoint_98(SingleSwitchProgramEnvironment& env, ProControllerContext& context, EventNotificationOption& notif_status_update, AutoStoryStats& stats);
-
-// start: 
-// end: 
-void checkpoint_99(SingleSwitchProgramEnvironment& env, ProControllerContext& context, EventNotificationOption& notif_status_update, AutoStoryStats& stats);
 
 
 }

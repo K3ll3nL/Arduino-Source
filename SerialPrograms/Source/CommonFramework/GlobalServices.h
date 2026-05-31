@@ -9,15 +9,12 @@
 
 namespace PokemonAutomation{
 
-class AsyncDispatcher;
-class ScheduledTaskRunner;
 class Watchdog;
+class PeriodicRunner;
 
 
-AsyncDispatcher& global_async_dispatcher();
-//ScheduledTaskRunner& global_scheduled_task_runner();
 Watchdog& global_watchdog();
-
+PeriodicRunner& global_periodic_runner();
 
 
 }

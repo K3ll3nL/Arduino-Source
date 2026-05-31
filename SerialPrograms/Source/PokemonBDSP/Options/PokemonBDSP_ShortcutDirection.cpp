@@ -44,17 +44,17 @@ ShortcutDirectionOption::ShortcutDirectionOption(std::string label)
     )
 {}
 
-void ShortcutDirectionOption::run(ProControllerContext& context, uint16_t delay){
-    uint8_t shortcut_x = 128;
-    uint8_t shortcut_y = 128;
+void ShortcutDirectionOption::run(ProControllerContext& context, Milliseconds delay){
+    double shortcut_x = 0;
+    double shortcut_y = 0;
     switch (this->get()){
     case ShortcutDirection::NONE:
-        pbf_press_button(context, BUTTON_PLUS, 20, 105);
+        pbf_press_button(context, BUTTON_PLUS, 160ms, 840ms);
         return;
-    case ShortcutDirection::UP:     shortcut_y = 0; break;
-    case ShortcutDirection::RIGHT:  shortcut_x = 255; break;
-    case ShortcutDirection::DOWN:   shortcut_y = 255; break;
-    case ShortcutDirection::LEFT:   shortcut_x = 0; break;
+    case ShortcutDirection::UP:     shortcut_y = +1; break;
+    case ShortcutDirection::RIGHT:  shortcut_x = +1; break;
+    case ShortcutDirection::DOWN:   shortcut_y = -1; break;
+    case ShortcutDirection::LEFT:   shortcut_x = -1; break;
     default:
         throw InternalProgramError(
             nullptr, PA_CURRENT_FUNCTION,
@@ -62,8 +62,8 @@ void ShortcutDirectionOption::run(ProControllerContext& context, uint16_t delay)
         );
     }
 
-    pbf_mash_button(context, BUTTON_PLUS, 125);
-    pbf_move_right_joystick(context, shortcut_x, shortcut_y, 20, delay);
+    pbf_mash_button(context, BUTTON_PLUS, 1000ms);
+    pbf_move_right_joystick(context, {shortcut_x, shortcut_y}, 160ms, delay);
 }
 
 

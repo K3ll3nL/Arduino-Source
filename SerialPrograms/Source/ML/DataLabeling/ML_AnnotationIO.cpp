@@ -5,25 +5,28 @@
  *  Functions for IO of annotation related files
  */
 
-#include <fstream>
-#include <iostream>
-#include <map>
-#include <sstream>
-#include <QDirIterator>
-#include <QDir>
-#include <QMessageBox>
 
+#include "Common/Cpp/Filesystem.h"
 #include "Common/Cpp/Json/JsonTools.h"
 #include "Common/Cpp/Json/JsonArray.h"
 #include "Common/Cpp/Json/JsonObject.h"
 #include "Common/Cpp/Json/JsonValue.h"
-#include "Common/Cpp/StringTools.h"
+#include "Common/Cpp/Strings/StringTools.h"
 #include "Common/Cpp/PrettyPrint.h"
 #include "ML_AnnotationIO.h"
 #include "ML_SegmentAnythingModelConstants.h"
 #include "ML_ObjectAnnotation.h"
 
-namespace fs = std::filesystem;
+#include <fstream>
+#include <iostream>
+#include <map>
+#include <sstream>
+#include <algorithm>
+#include <QDirIterator>
+#include <QDir>
+#include <QMessageBox>
+
+
 using std::cout, std::endl;
 
 namespace PokemonAutomation{
@@ -87,12 +90,12 @@ std::vector<std::string> find_images_in_folder(const std::string& folder_path, b
     }
     std::cout << "Found " << all_image_paths.size() << " images " << (recursive ? "recursively " : "") << 
         "in folder " << folder_path << std::endl;
+    std::sort(all_image_paths.begin(), all_image_paths.end());
     return all_image_paths;
 }
 
 void export_image_annotations_to_yolo_dataset(
     const std::string& image_folder_path,
-    const std::string& annotation_folder_path,
     const std::string& yolo_dataset_path
 ){
     const bool recursive = true;
@@ -166,7 +169,7 @@ void export_image_annotations_to_yolo_dataset(
     std::map<std::string, size_t> label_counts; // label name -> how many such label in the dataseet
     std::map<std::string, size_t> label_indices; // label name -> label ID
     cout << "Load dataset labels: " << endl;
-    for(size_t i = 0; i < label_names.size(); i++){
+    for (size_t i = 0; i < label_names.size(); i++){
         cout << "- " << label_names[i] << endl;
         label_indices[label_names[i]] = i;
         label_counts[label_names[i]] = 0;
@@ -176,10 +179,10 @@ void export_image_annotations_to_yolo_dataset(
     // convert images and annotations into new subfolders in the folder of the dataset config
     auto converted_folder_name = "exported-" + now_to_filestring();
 
-    const auto yolo_dataset_config_file = fs::path(yolo_dataset_path);
-    const fs::path yolo_dataset_folder = yolo_dataset_config_file.parent_path();
+    const auto yolo_dataset_config_file = Filesystem::Path(yolo_dataset_path);
+    const Filesystem::Path yolo_dataset_folder = yolo_dataset_config_file.parent_path();
     const auto target_folder = yolo_dataset_folder / converted_folder_name;
-    if (fs::exists(target_folder)){
+    if (Filesystem::exists(target_folder)){
         QMessageBox box;
         box.critical(nullptr, "Export Destination Folder Already Exists",
             QString::fromStdString("Folder " + target_folder.string() + " already exists."));
@@ -190,18 +193,17 @@ void export_image_annotations_to_yolo_dataset(
     cout << "Export to image folder: " << target_image_folder << endl;
     cout << "Export to label folder: " << target_label_folder << endl;
 
-    fs::create_directories(target_image_folder);
-    fs::create_directories(target_label_folder);
+    Filesystem::create_directories(target_image_folder);
+    Filesystem::create_directories(target_label_folder);
 
-    fs::path anno_folder(annotation_folder_path);
     std::set<std::string> missing_labels;
-    for(size_t i = 0; i < image_paths.size(); i++){
+    bool copy_error = false;
+    for (size_t i = 0; i < image_paths.size(); i++){
         const auto& image_path = image_paths[i];
-        const auto image_file = fs::path(image_path);
+        const Filesystem::Path image_file(image_path);
 
-        const std::string anno_filename = image_file.filename().replace_extension(".json").string();
-        fs::path anno_file = anno_folder / anno_filename;
-        if (!fs::exists(anno_file)){
+        Filesystem::Path anno_file = Filesystem::Path(image_file).replace_extension(".json");
+        if (!Filesystem::exists(anno_file)){
             QMessageBox box;
             box.critical(nullptr, "Cannot Find Annotation File",
                 QString::fromStdString("No annotation for " + image_path + "."));
@@ -210,15 +212,15 @@ void export_image_annotations_to_yolo_dataset(
 
         const auto target_image_file = target_image_folder / image_file.filename();
         try{
-            fs::copy_file(image_file, target_image_file);
-        }catch (fs::filesystem_error&){
-            QMessageBox box;
-            box.critical(nullptr, "Cannot Copy File",
-                QString::fromStdString(
-                    "Cannot copy from " + image_file.string() + " to " + target_image_file.string() + 
-                    ". Probably permission issue, source image is broken or target image path already exists due to image folder having same image filenames"
-                ));
-            return;
+            Filesystem::copy_file(image_file, target_image_file);
+        }catch (std::filesystem::filesystem_error&){
+            std::string message = "Cannot copy from " + image_file.string() + " to " + target_image_file.string() + 
+                    ". Probably permission issue, source image is broken or target image path already exists due to image folder having same image filenames";
+            std::cerr << message << std::endl;
+            copy_error = true;
+            // QMessageBox box;
+            // box.critical(nullptr, "Cannot Copy File", QString::fromStdString(message));
+            // return;
         }
 
         std::string json_content;
@@ -245,7 +247,7 @@ void export_image_annotations_to_yolo_dataset(
             const int64_t image_width = json_obj->get_integer_throw("IMAGE_WIDTH");
             const int64_t image_height = json_obj->get_integer_throw("IMAGE_HEIGHT");
             const JsonArray& json_array = json_obj->get_array_throw("ANNOTATION");
-            for(size_t j = 0; j < json_array.size(); j++){
+            for (size_t j = 0; j < json_array.size(); j++){
                 const ObjectAnnotation anno_obj = ObjectAnnotation::from_json((json_array)[j]);
                 const std::string& label = anno_obj.label;
 
@@ -278,7 +280,7 @@ void export_image_annotations_to_yolo_dataset(
                 os << label_id << " " << center_x << " " << center_y << " " << width << " " << height;
                 label_file_lines.push_back(os.str());
             }
-        } catch(JsonParseException& ){
+        }catch (JsonParseException& ){
             QMessageBox box;
             box.warning(nullptr, "Wrong JSON content",
                 QString::fromStdString("Wong JSON content in annotation file " + anno_file.string() + "."));
@@ -287,18 +289,24 @@ void export_image_annotations_to_yolo_dataset(
 
         const auto target_label_file = target_label_folder / image_file.filename().replace_extension(".txt");
         std::ofstream fout(target_label_file.string());
-        for(const auto& file_line : label_file_lines){
+        for (const auto& file_line : label_file_lines){
             fout << file_line << "\n";
         }
     }
 
+    if (copy_error){
+        QMessageBox box;
+        box.critical(nullptr, "Cannot Copy File", "There was an issue with copying at least one file. See the logs for more details.");
+        return;
+    }
+
     cout << "Found labels -> count: " << endl;
-    for(const auto& p : label_counts){
+    for (const auto& p : label_counts){
         cout << "- " << p.first << ": " << p.second << endl;
     }
     if (missing_labels.size() > 0){
         cout << "Labels not exported: " << endl;
-        for(const auto& label : missing_labels){
+        for (const auto& label : missing_labels){
             cout << "- " << label << endl;
         }
     }

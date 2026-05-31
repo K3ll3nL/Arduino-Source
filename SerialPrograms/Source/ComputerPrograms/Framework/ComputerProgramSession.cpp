@@ -34,7 +34,7 @@ ComputerProgramSession::~ComputerProgramSession(){
 
 
 void ComputerProgramSession::restore_defaults(){
-    std::lock_guard<std::mutex> lg(program_lock());
+    std::lock_guard<Mutex> lg(program_lock());
     if (current_state() != ProgramState::STOPPED){
         logger().log("Cannot change settings while program is running.", COLOR_RED);
         return;
@@ -52,7 +52,7 @@ std::string ComputerProgramSession::check_validity() const{
 
 void ComputerProgramSession::run_program_instance(ProgramEnvironment& env, CancellableScope& scope){
     {
-        std::lock_guard<std::mutex> lg(program_lock());
+        std::lock_guard<Mutex> lg(program_lock());
         std::string error = check_validity();
         if (!error.empty()){
             throw UserSetupError(logger(), std::move(error));
@@ -60,22 +60,22 @@ void ComputerProgramSession::run_program_instance(ProgramEnvironment& env, Cance
     }
 
     {
-        WriteSpinLock lg(m_lock);
+        WriteSpinLock lg(m_lock, PA_CURRENT_FUNCTION);
         m_scope = &scope;
     }
 
     try{
         m_option.instance().program(env, scope);
     }catch (...){
-        WriteSpinLock lg(m_lock);
+        WriteSpinLock lg(m_lock, PA_CURRENT_FUNCTION);
         m_scope = nullptr;
         throw;
     }
-    WriteSpinLock lg(m_lock);
+    WriteSpinLock lg(m_lock, PA_CURRENT_FUNCTION);
     m_scope = nullptr;
 }
 void ComputerProgramSession::internal_stop_program(){
-    WriteSpinLock lg(m_lock);
+    WriteSpinLock lg(m_lock, PA_CURRENT_FUNCTION);
     if (m_scope != nullptr){
         m_scope->cancel(std::make_exception_ptr(ProgramCancelledException()));
     }

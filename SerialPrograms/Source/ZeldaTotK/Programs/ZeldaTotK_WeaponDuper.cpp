@@ -23,8 +23,7 @@ WeaponDuper_Descriptor::WeaponDuper_Descriptor()
         "Use a glitch to duplicate your weapons (Bows, Shields and Swords)",
         ProgramControllerClass::StandardController_RequiresPrecision,
         FeedbackType::NONE,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {}
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 
@@ -88,108 +87,108 @@ void WeaponDuper::program(SingleSwitchProgramEnvironment& env, ProControllerCont
         env.log("Current Attempts: " + tostr_u_commas(c));
 
         env.log("Open menu");
-        pbf_press_button(context, BUTTON_PLUS, 10, 30);
+        pbf_press_button(context, BUTTON_PLUS, 80ms, 240ms);
 
         context.wait_for_all_requests();
         env.log("Go to options menu");
         for (uint32_t i = 0; i < WEAPON_MENU_BUTTON_COUNT; ++i)
         {
-            pbf_press_button(context, BUTTON_R, 10, 30);
+            pbf_press_button(context, BUTTON_R, 80ms, 240ms);
         }
 
         context.wait_for_all_requests();
         env.log("Save game");
-        pbf_press_button(context, BUTTON_A, 10, 100);
-        pbf_press_dpad(context, DPAD_UP, 10, 30);
-        pbf_press_button(context, BUTTON_A, 10, 100);
-        pbf_wait(context, 5 * TICKS_PER_SECOND);
+        pbf_press_button(context, BUTTON_A, 80ms, 800ms);
+        pbf_press_dpad(context, DPAD_UP, 80ms, 240ms);
+        pbf_press_button(context, BUTTON_A, 80ms, 800ms);
+        pbf_wait(context, 5000ms);
 
         context.wait_for_all_requests();
         env.log("Go to weapon menu");
         for (uint32_t i = 0; i < WEAPON_MENU_BUTTON_COUNT; ++i)
         {
-            pbf_press_button(context, BUTTON_L, 10, 30);
+            pbf_press_button(context, BUTTON_L, 80ms, 240ms);
         }
 
         context.wait_for_all_requests();
         env.log("Come back to first slot");
         for (uint32_t i = 0; i < 5; ++i)
         {
-            pbf_press_dpad(context, DPAD_UP, 10, 30);
-            pbf_press_dpad(context, DPAD_LEFT, 10, 30);
+            pbf_press_dpad(context, DPAD_UP, 80ms, 240ms);
+            pbf_press_dpad(context, DPAD_LEFT, 80ms, 240ms);
         }
 
         context.wait_for_all_requests();
         env.log("Go to desired slot");
         for (uint32_t i = 0; i < DPAD_RIGHT_BUTTON_COUNT; ++i)
         {
-            pbf_press_dpad(context, DPAD_RIGHT, 10, 30);
+            pbf_press_dpad(context, DPAD_RIGHT, 80ms, 240ms);
         }
         for (uint32_t i = 0; i < DPAD_DOWN_BUTTON_COUNT; ++i)
         {
-            pbf_press_dpad(context, DPAD_DOWN, 10, 30);
+            pbf_press_dpad(context, DPAD_DOWN, 80ms, 240ms);
         }
 
         context.wait_for_all_requests();
         env.log("Drop weapon");
-        pbf_press_button(context, BUTTON_A, 10, 30);
-        pbf_press_dpad(context, DPAD_DOWN, 10, 30);
-        pbf_press_button(context, BUTTON_A, 10, 50);
+        pbf_press_button(context, BUTTON_A, 80ms, 240ms);
+        pbf_press_dpad(context, DPAD_DOWN, 80ms, 240ms);
+        pbf_press_button(context, BUTTON_A, 80ms, 400ms);
 
         context.wait_for_all_requests();
         env.log("Equip weapon on the right");
-        pbf_press_dpad(context, DPAD_RIGHT, 10, 30);
-        pbf_press_button(context, BUTTON_A, 10, 30);
-        pbf_press_button(context, BUTTON_A, 10, 30);
+        pbf_press_dpad(context, DPAD_RIGHT, 80ms, 240ms);
+        pbf_press_button(context, BUTTON_A, 80ms, 240ms);
+        pbf_press_button(context, BUTTON_A, 80ms, 240ms);
 
         context.wait_for_all_requests();
         env.log("Open and close the menu fast");
-        pbf_press_button(context, BUTTON_PLUS, 10, 10);
-        pbf_press_button(context, BUTTON_PLUS, 10, 100);
+        pbf_press_button(context, BUTTON_PLUS, 80ms, 80ms);
+        pbf_press_button(context, BUTTON_PLUS, 80ms, 800ms);
 
         context.wait_for_all_requests();
         env.log("Drop weapon");
-        pbf_press_dpad(context, DPAD_LEFT, 10, 30);
-        pbf_press_button(context, BUTTON_A, 10, 30);
-        pbf_press_dpad(context, DPAD_DOWN, 10, 30);
-        pbf_press_button(context, BUTTON_A, 10, 50);
+        pbf_press_dpad(context, DPAD_LEFT, 80ms, 240ms);
+        pbf_press_button(context, BUTTON_A, 80ms, 240ms);
+        pbf_press_dpad(context, DPAD_DOWN, 80ms, 240ms);
+        pbf_press_button(context, BUTTON_A, 80ms, 400ms);
 
         context.wait_for_all_requests();
         env.log("Go back to options menu");
         for (uint32_t i = 0; i < WEAPON_MENU_BUTTON_COUNT; ++i)
         {
-            pbf_press_button(context, BUTTON_R, 10, 30);
+            pbf_press_button(context, BUTTON_R, 80ms, 240ms);
         }
 
         context.wait_for_all_requests();
         env.log("Load the save");
-        pbf_press_dpad(context, DPAD_DOWN, 10, 30);
-        pbf_press_button(context, BUTTON_A, 10, 100);
-        pbf_press_button(context, BUTTON_A, 10, 100);
-        pbf_press_dpad(context, DPAD_UP, 10, 30);
-        pbf_press_button(context, BUTTON_A, 10, 100);
-        pbf_wait(context, 25 * TICKS_PER_SECOND);
+        pbf_press_dpad(context, DPAD_DOWN, 80ms, 240ms);
+        pbf_press_button(context, BUTTON_A, 80ms, 800ms);
+        pbf_press_button(context, BUTTON_A, 80ms, 800ms);
+        pbf_press_dpad(context, DPAD_UP, 80ms, 240ms);
+        pbf_press_button(context, BUTTON_A, 80ms, 800ms);
+        pbf_wait(context, 25000ms);
 
         context.wait_for_all_requests();
         env.log("Pick up duped weapon - extra presses just in case");
-        pbf_press_button(context, BUTTON_A, 10, 10);
-        pbf_press_button(context, BUTTON_A, 10, 10);
-        pbf_press_button(context, BUTTON_A, 10, 10);
-        pbf_press_button(context, BUTTON_A, 10, 10);
-        pbf_press_button(context, BUTTON_A, 10, 10);
-        pbf_press_button(context, BUTTON_A, 10, 10);
-        pbf_press_button(context, BUTTON_A, 10, 10);
+        pbf_press_button(context, BUTTON_A, 80ms, 80ms);
+        pbf_press_button(context, BUTTON_A, 80ms, 80ms);
+        pbf_press_button(context, BUTTON_A, 80ms, 80ms);
+        pbf_press_button(context, BUTTON_A, 80ms, 80ms);
+        pbf_press_button(context, BUTTON_A, 80ms, 80ms);
+        pbf_press_button(context, BUTTON_A, 80ms, 80ms);
+        pbf_press_button(context, BUTTON_A, 80ms, 80ms);
 
         context.wait_for_all_requests();
         env.log("Turn around and try to pick up items as well");
-        pbf_move_left_joystick(context, 128, 255, 10, 5);
-        pbf_press_button(context, BUTTON_A, 10, 10);
-        pbf_press_button(context, BUTTON_A, 10, 10);
-        pbf_press_button(context, BUTTON_A, 10, 10);
-        pbf_press_button(context, BUTTON_A, 10, 10);
-        pbf_press_button(context, BUTTON_A, 10, 10);
-        pbf_press_button(context, BUTTON_A, 10, 10);
-        pbf_move_left_joystick(context, 128, 0, 10, 5);
+        pbf_move_left_joystick(context, {0, -1}, 80ms, 40ms);
+        pbf_press_button(context, BUTTON_A, 80ms, 80ms);
+        pbf_press_button(context, BUTTON_A, 80ms, 80ms);
+        pbf_press_button(context, BUTTON_A, 80ms, 80ms);
+        pbf_press_button(context, BUTTON_A, 80ms, 80ms);
+        pbf_press_button(context, BUTTON_A, 80ms, 80ms);
+        pbf_press_button(context, BUTTON_A, 80ms, 80ms);
+        pbf_move_left_joystick(context, {0, +1}, 80ms, 40ms);
 
         // increment counter, increment stats
         c++;

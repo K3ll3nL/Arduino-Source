@@ -19,6 +19,8 @@
 namespace PokemonAutomation{
 
 
+
+
 struct FloatingPointCell::Data{
     const double m_min_value;
     const double m_max_value;
@@ -40,7 +42,7 @@ struct FloatingPointCell::Data{
 
 FloatingPointCell::~FloatingPointCell() = default;
 FloatingPointCell::FloatingPointCell(const FloatingPointCell& x)
-    : ConfigOption(x)
+    : ConfigOptionImpl<FloatingPointCell>(x)
     , m_data(CONSTRUCT_TOKEN, x.min_value(), x.max_value(), x.default_value(), x)
 {}
 FloatingPointCell::FloatingPointCell(
@@ -48,7 +50,7 @@ FloatingPointCell::FloatingPointCell(
     double min_value, double max_value,
     double default_value, double current_value
 )
-    : ConfigOption(lock_while_running)
+    : ConfigOptionImpl<FloatingPointCell>(lock_while_running)
     , m_data(CONSTRUCT_TOKEN, min_value, max_value, default_value, current_value)
 {}
 
@@ -59,7 +61,7 @@ FloatingPointCell::FloatingPointCell(
     double min_value,
     double max_value
 )
-    : ConfigOption(lock_while_running)
+    : ConfigOptionImpl<FloatingPointCell>(lock_while_running)
     , m_data(CONSTRUCT_TOKEN, min_value, max_value, default_value, default_value)
 {}
 
@@ -88,6 +90,17 @@ std::string FloatingPointCell::set(double x){
         report_value_changed(this);
     }
     return err;
+}
+void FloatingPointCell::set_and_sanitize(double x){
+    if (std::isnan(x)){
+        x = 0;
+    }
+    const Data& data = *m_data;
+    x = std::max(x, data.m_min_value);
+    x = std::min(x, data.m_max_value);
+    if (x != m_data->m_current.exchange(x, std::memory_order_relaxed)){
+        report_value_changed(this);
+    }
 }
 
 void FloatingPointCell::load_json(const JsonValue& json){
@@ -140,7 +153,12 @@ FloatingPointOption::FloatingPointOption(
     double min_value,
     double max_value
 )
-    : FloatingPointCell(lock_while_running, default_value, min_value, max_value)
+    : ConfigOptionImpl<FloatingPointOption, FloatingPointCell>(
+        lock_while_running,
+        default_value,
+        min_value,
+        max_value
+    )
     , m_label(std::move(label))
 {}
 

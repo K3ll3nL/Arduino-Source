@@ -7,10 +7,11 @@
 #ifndef PokemonAutomation_PokemonRSE_LegendaryHuntEmerald_H
 #define PokemonAutomation_PokemonRSE_LegendaryHuntEmerald_H
 
-#include "Common/Cpp/Options/SimpleIntegerOption.h"
-#include "Common/Cpp/Options/TimeExpressionOption.h"
 #include "CommonFramework/Notifications/EventNotificationsTable.h"
 #include "NintendoSwitch/NintendoSwitch_SingleSwitchProgram.h"
+#include "Common/Cpp/Options/BooleanCheckBoxOption.h"
+#include "NintendoSwitch/Options/NintendoSwitch_GoHomeWhenDoneOption.h"
+#include "PokemonLA/Options/PokemonLA_ShinyDetectedAction.h"
 
 namespace PokemonAutomation{
 namespace NintendoSwitch{
@@ -34,6 +35,8 @@ public:
     ) override{}
 
 private:
+    PokemonLA::ShinyRequiresAudioText SHINY_REQUIRES_AUDIO;
+
     enum class Target{
         regis,
         groudon,
@@ -42,6 +45,9 @@ private:
         lugia,
     };
     EnumDropdownOption<Target> TARGET;
+
+    BooleanCheckBoxOption TAKE_VIDEO;
+    GoHomeWhenDoneOption GO_HOME_WHEN_DONE;
 
     EventNotificationOption NOTIFICATION_SHINY;
     EventNotificationOption NOTIFICATION_STATUS_UPDATE;

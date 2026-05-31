@@ -11,10 +11,8 @@
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "CommonTools/VisualDetectors/BlackScreenDetector.h"
 //#include "Controllers/ControllerTypes.h"
-#include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
-//#include "NintendoSwitch/Inference/NintendoSwitch_DetectHome.h"
 #include "PokemonLGPE/PokemonLGPE_Settings.h"
 #include "PokemonLGPE_GameEntry.h"
 
@@ -34,8 +32,7 @@ bool reset_game_to_gamemenu(
     start_game_from_home(
         console,
         context,
-        0, 0,
-        ConsoleSettings::instance().START_GAME_MASH
+        0, 0
     );
 
     // Now the game has opened:

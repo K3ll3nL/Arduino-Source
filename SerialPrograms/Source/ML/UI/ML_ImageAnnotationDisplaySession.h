@@ -15,6 +15,7 @@
 #ifndef POKEMON_AUTOMATION_ML_ImageAnnotationDisplaySession_H
 #define POKEMON_AUTOMATION_ML_ImageAnnotationDisplaySession_H
 
+#include "Common/Cpp/Logging/TaggedLogger.h"
 #include "CommonFramework/Logging/Logger.h"
 #include "CommonFramework/AudioPipeline/AudioSession.h"
 #include "CommonFramework/VideoPipeline/VideoSession.h"
@@ -41,7 +42,7 @@ public:
 
 public:
     Logger& logger(){ return m_logger; }
-    virtual VideoFeed& video() { return m_video_session; }
+    virtual VideoFeed& video(){ return m_video_session; }
     VideoOverlay& overlay(){ return m_overlay; }
 
     void set_image_source(const std::string& path);

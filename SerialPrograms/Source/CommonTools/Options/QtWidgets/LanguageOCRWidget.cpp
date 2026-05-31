@@ -18,16 +18,11 @@
 //using std::endl;
 
 namespace PokemonAutomation{
+
+template class RegisterConfigWidget<OCR::LanguageOCRCellWidget>;
+template class RegisterConfigWidget<OCR::LanguageOCROptionWidget>;
+
 namespace OCR{
-
-
-
-ConfigWidget* LanguageOCRCell::make_QtWidget(QWidget& parent){
-    return new LanguageOCRCellWidget(parent, *this);
-}
-ConfigWidget* LanguageOCROption::make_QtWidget(QWidget& parent){
-    return new LanguageOCROptionWidget(parent, *this);
-}
 
 
 
@@ -39,7 +34,7 @@ LanguageOCRCellWidget::LanguageOCRCellWidget(QWidget& parent, LanguageOCRCell& v
 {
     QVBoxLayout* vbox = new QVBoxLayout(this);
     vbox->setContentsMargins(0, 0, 0, 0);
-    m_box = new NoWheelComboBox(&parent);
+    m_box = new NoWheelCompactComboBox(&parent);
 
     for (const auto& item : m_value.m_case_list){
 //        m_enum_to_index[item.first] = (int)m_index_to_enum.size();

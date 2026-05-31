@@ -46,7 +46,7 @@ OrbeetleAttackAnimationDetector::Detection OrbeetleAttackAnimationDetector::run(
 
 
     //  Play the attack animation.
-    pbf_press_button(m_context, BUTTON_RCLICK, 10, 155);
+    pbf_press_button(m_context, BUTTON_RCLICK, 80ms, 1240ms);
     m_context.wait_for_all_requests();
 
 
@@ -89,7 +89,7 @@ OrbeetleAttackAnimationDetector::Detection OrbeetleAttackAnimationDetector::run(
         return Detection::SPECIAL;
     }
     if (save_screenshot){
-        animation_image->save("orbeetle-attack-physical-" + now_to_filestring() + ".png");
+        //animation_image->save("orbeetle-attack-physical-" + now_to_filestring() + ".png");
         dump_debug_image(m_stream.logger(), "rng", "orbeetle-physical", animation_image);
     }
     m_stream.log("Orbeetle Attack Animation: Physical animation detected.");

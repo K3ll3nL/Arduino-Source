@@ -6,7 +6,9 @@
 
 #include "CommonFramework/ImageTypes/ImageRGB32.h"
 #include "CommonFramework/Tools/GlobalThreadPools.h"
+#include "CommonFramework/GlobalSettingsPanel.h"
 #include "CommonTools/Images/ImageFilter.h"
+#include "OCR_RawPaddleOCR.h"
 #include "OCR_RawOCR.h"
 #include "OCR_DictionaryMatcher.h"
 #include "OCR_Routines.h"
@@ -14,6 +16,8 @@
 // #include <iostream>
 // using std::cout;
 // using std::endl;
+
+
 
 namespace PokemonAutomation{
 namespace OCR{
@@ -23,7 +27,8 @@ StringMatchResult multifiltered_OCR(
     Language language, const DictionaryMatcher& dictionary, const ImageViewRGB32& image,
     const std::vector<TextColorRange>& text_color_ranges,
     double log10p_spread,
-    double min_text_ratio, double max_text_ratio
+    double min_text_ratio, double max_text_ratio,
+    OCR::PageSegMode psm
 ){
     if (image.width() == 0 || image.height() == 0){
         return StringMatchResult();
@@ -39,16 +44,24 @@ StringMatchResult multifiltered_OCR(
 
     double pixels_inv = 1. / (image.width() * image.height());
 
+    bool use_paddle_ocr = GlobalSettings::instance().USE_PADDLE_OCR;
+
     //  Run all the filters.
     SpinLock lock;
     StringMatchResult ret;
-    GlobalThreadPools::normal_inference().run_in_parallel(
+    GlobalThreadPools::computation_normal().run_in_parallel(
         [&](size_t index){
             const std::pair<ImageRGB32, size_t>& filtered = filtered_images[index];
 
-            std::string text = ocr_read(language, filtered.first);
-        //    cout << text << endl;
-        //    filtered.first.save("test" + std::to_string(index) + ".png");
+            std::string text;
+            if (use_paddle_ocr){
+                text = paddle_ocr_read(language, filtered.first);
+            }else{
+                text = ocr_read(language, filtered.first, psm);
+            }
+            
+            // cout << "multifiltered_OCR: " << index << " -> " << text << endl;
+            // filtered.first.save("test_" + std::to_string(index) + ".png");
 
             //  Compute ratio of image that matches text color. Skip if it's out of range.
             double ratio = filtered.second * pixels_inv;
@@ -85,6 +98,29 @@ StringMatchResult multifiltered_OCR(
 
     ret.clear_beyond_spread(log10p_spread);
     return ret;
+}
+
+
+StringMatchResult dictionary_OCR(
+    Language language, const DictionaryMatcher& dictionary, const ImageViewRGB32& image,
+    double log10p_spread, OCR::PageSegMode psm
+){
+    if (image.width() == 0 || image.height() == 0){
+        return StringMatchResult();
+    }
+
+    //  Run all the filters.
+    std::string text;
+    if (GlobalSettings::instance().USE_PADDLE_OCR){
+        text = paddle_ocr_read(language, image);
+    }else{
+        text = ocr_read(language, image, psm);
+    }
+
+    // cout << "dictionary_OCR: " << text << endl;
+    // image.save("test_dictionary_OCR.png");
+
+    return dictionary.match_substring(language, text, log10p_spread);
 }
 
 

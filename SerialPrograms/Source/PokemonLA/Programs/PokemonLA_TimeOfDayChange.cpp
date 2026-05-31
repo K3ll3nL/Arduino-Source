@@ -30,52 +30,52 @@ void change_time_of_day_at_tent(
     switch (camp)
     {
     case Camp::FIELDLANDS_FIELDLANDS:
-        pbf_move_left_joystick(context, 105, 0, 220, 20);
+        pbf_move_left_joystick(context, {-0.18, +1}, 1760ms, 160ms);
         break;
     
     case Camp::FIELDLANDS_HEIGHTS:
-        pbf_move_left_joystick(context, 95, 0, 250, 20);
+        pbf_move_left_joystick(context, {-0.258, +1}, 2000ms, 160ms);
         break;
     
     case Camp::MIRELANDS_MIRELANDS:
-        pbf_move_left_joystick(context, 70, 0, 180, 20);
+        pbf_move_left_joystick(context, {-0.453, +1}, 1440ms, 160ms);
         break;
     
     case Camp::MIRELANDS_BOGBOUND:
-        pbf_move_left_joystick(context, 70, 0, 170, 20);
+        pbf_move_left_joystick(context, {-0.453, +1}, 1360ms, 160ms);
         break;
     
     case Camp::COASTLANDS_BEACHSIDE:
-        pbf_move_left_joystick(context, 100, 0, 130, 20);
+        pbf_move_left_joystick(context, {-0.219, +1}, 1040ms, 160ms);
         break;
     
     case Camp::COASTLANDS_COASTLANDS:
-        pbf_move_left_joystick(context, 75, 0, 160, 20);
+        pbf_move_left_joystick(context, {-0.414, +1}, 1280ms, 160ms);
         break;
     
     case Camp::HIGHLANDS_HIGHLANDS:
-        pbf_move_left_joystick(context, 95, 0, 190, 20);
+        pbf_move_left_joystick(context, {-0.258, +1}, 1520ms, 160ms);
         break;
     
     case Camp::HIGHLANDS_MOUNTAIN:
-        pbf_move_left_joystick(context, 60, 0, 190, 20);
+        pbf_move_left_joystick(context, {-0.531, +1}, 1520ms, 160ms);
         break;
     
     case Camp::HIGHLANDS_SUMMIT:
-        pbf_move_left_joystick(context, 100, 0, 220, 20);
+        pbf_move_left_joystick(context, {-0.219, +1}, 1760ms, 160ms);
         break;
     
     case Camp::ICELANDS_SNOWFIELDS:
-        pbf_move_left_joystick(context, 80, 0, 150, 20);
+        pbf_move_left_joystick(context, {-0.375, +1}, 1200ms, 160ms);
         break;
 
     case Camp::ICELANDS_ICEPEAK:
-        pbf_move_left_joystick(context, 110, 0, 220, 20);
+        pbf_move_left_joystick(context, {-0.141, +1}, 1760ms, 160ms);
         break;
     }
 
     // Press A to interact with tent
-    pbf_press_button(context, BUTTON_A, 30, 30);
+    pbf_press_button(context, BUTTON_A, 240ms, 240ms);
     context.wait_for_all_requests();
 
     const bool stop_on_detected = true;
@@ -96,7 +96,7 @@ void change_time_of_day_at_tent(
 
     // Press A to clear the dialog box, and show the time menu
     // pbf_wait(context, 40);
-    pbf_press_button(context, BUTTON_A, 30, 80);
+    pbf_press_button(context, BUTTON_A, 240ms, 640ms);
     stream.log("Change time of day to " + std::string(TIME_OF_DAY_NAMES[int(target_time)]));
 
     // Move down the menu to find the target time
@@ -107,12 +107,12 @@ void change_time_of_day_at_tent(
         num_movements = 2;
         dpad_dir = DPAD_UP;
     }
-    for(int i = 0; i < num_movements; i++){
-        pbf_press_dpad(context, dpad_dir, 30, 70);
+    for (int i = 0; i < num_movements; i++){
+        pbf_press_dpad(context, dpad_dir, 240ms, 560ms);
     }
 
     // Press A to start resting
-    pbf_press_button(context, BUTTON_A, 30, 100);
+    pbf_press_button(context, BUTTON_A, 240ms, 800ms);
     context.wait_for_all_requests();
 
     // Wait for the dialog box to show up
@@ -128,7 +128,7 @@ void change_time_of_day_at_tent(
     }
 
     // Press A again to clear the dialog box
-    pbf_press_button(context, BUTTON_A, 30, 100);
+    pbf_press_button(context, BUTTON_A, 240ms, 800ms);
 
     context.wait_for_all_requests();
 }

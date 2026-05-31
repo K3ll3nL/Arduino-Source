@@ -4,6 +4,7 @@
  *
  */
 
+#include "Common/Cpp/PrettyPrint.h" 
 #include "CommonFramework/Exceptions/OperationFailedException.h"
 #include "CommonFramework/Exceptions/UnexpectedBattleException.h"
 #include "CommonFramework/Notifications/ProgramNotifications.h"
@@ -60,7 +61,7 @@ void clear_tutorial(VideoStream& stream, ProControllerContext& context, uint16_t
         case 0:
             stream.log("clear_tutorial: Detected tutorial screen.");
             seen_tutorial = true;
-            pbf_press_button(context, BUTTON_A, 20, 105);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             break;
         default:
             stream.log("clear_tutorial: Timed out.");
@@ -78,7 +79,8 @@ void clear_tutorial(VideoStream& stream, ProControllerContext& context, uint16_t
 
 void clear_dialog(VideoStream& stream, ProControllerContext& context,
     ClearDialogMode mode, uint16_t seconds_timeout,
-    std::vector<CallbackEnum> enum_optional_callbacks
+    std::vector<CallbackEnum> enum_optional_callbacks,
+    bool press_A
 ){
     bool seen_dialog = false;
     WallClock start = current_time();
@@ -147,12 +149,12 @@ void clear_dialog(VideoStream& stream, ProControllerContext& context,
             stream, context,
             [&](ProControllerContext& context){
 
-                if (mode == ClearDialogMode::STOP_TIMEOUT){
+                if (mode == ClearDialogMode::STOP_TIMEOUT || !press_A){
                     context.wait_for(Seconds(seconds_timeout));
-                }else{ // press A every 8 seconds, until we time out.
-                    auto button_press_period = Seconds(8);
+                }else{ // press A every 25 seconds, until we time out.
+                    auto button_press_period = Seconds(25);
                     while (true){
-                        if (current_time() - start_inference + button_press_period > Seconds(seconds_timeout)){
+                        if (current_time() - start_inference > Seconds(seconds_timeout)){
                             break;
                         }
                         context.wait_for(button_press_period);
@@ -180,7 +182,7 @@ void clear_dialog(VideoStream& stream, ProControllerContext& context,
         case CallbackEnum::ADVANCE_DIALOG:
             stream.log("clear_dialog: Detected advance dialog.");
             seen_dialog = true;
-            pbf_press_button(context, BUTTON_A, 20, 105);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             break;            
         case CallbackEnum::OVERWORLD:
             stream.log("clear_dialog: Detected overworld.");
@@ -194,7 +196,7 @@ void clear_dialog(VideoStream& stream, ProControllerContext& context,
             if (mode == ClearDialogMode::STOP_PROMPT){
                 return;
             }
-            pbf_press_button(context, BUTTON_A, 20, 105);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             break;
         case CallbackEnum::WHITE_A_BUTTON:
             stream.log("clear_dialog: Detected white A button.");
@@ -202,12 +204,15 @@ void clear_dialog(VideoStream& stream, ProControllerContext& context,
             if (mode == ClearDialogMode::STOP_WHITEBUTTON){
                 return;
             }
-            pbf_press_button(context, BUTTON_A, 20, 105);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             break;
         case CallbackEnum::DIALOG_ARROW:
             stream.log("clear_dialog: Detected dialog arrow.");
             seen_dialog = true;
-            pbf_press_button(context, BUTTON_A, 20, 105);
+            if (mode == ClearDialogMode::STOP_BATTLE_DIALOG_ARROW){
+                return;
+            }
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             break;
         case CallbackEnum::BATTLE:
             stream.log("clear_dialog: Detected battle.");
@@ -217,12 +222,15 @@ void clear_dialog(VideoStream& stream, ProControllerContext& context,
             break;
         case CallbackEnum::TUTORIAL:    
             stream.log("clear_dialog: Detected tutorial.");
-            pbf_press_button(context, BUTTON_A, 20, 105);
+            if (mode == ClearDialogMode::STOP_TUTORIAL){
+                return;
+            }
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             break;
         case CallbackEnum::BLACK_DIALOG_BOX:    
             stream.log("clear_dialog: Detected black dialog box.");
             seen_dialog = true;
-            pbf_press_button(context, BUTTON_A, 20, 105);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             break;            
         default:
             throw InternalProgramError(nullptr, PA_CURRENT_FUNCTION, "clear_dialog: Unknown callback triggered.");
@@ -266,7 +274,7 @@ bool confirm_marker_present(
 
 void realign_player(const ProgramInfo& info, VideoStream& stream, ProControllerContext& context,
     PlayerRealignMode realign_mode,
-    uint8_t move_x, uint8_t move_y, uint16_t move_duration
+    double move_x, double move_y, Milliseconds move_duration
 ){
     stream.log("Realigning player direction...");
     switch (realign_mode){
@@ -278,10 +286,10 @@ void realign_player(const ProgramInfo& info, VideoStream& stream, ProControllerC
             open_map_from_overworld(info, stream, context);
         });
 
-        pbf_press_button(context, BUTTON_ZR, 20, 105);
-        pbf_move_left_joystick(context, move_x, move_y, move_duration, 1 * TICKS_PER_SECOND);
-        pbf_press_button(context, BUTTON_A, 20, 105);
-        pbf_press_button(context, BUTTON_A, 20, 105);
+        pbf_press_button(context, BUTTON_ZR, 160ms, 840ms);
+        pbf_move_left_joystick(context, {move_x, move_y}, move_duration, 1000ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 840ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 840ms);
 
         handle_unexpected_battles(info, stream, context,
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){        
@@ -299,11 +307,11 @@ void realign_player(const ProgramInfo& info, VideoStream& stream, ProControllerC
             leave_phone_to_overworld(info, stream, context);
         });
 
-        pbf_press_button(context, BUTTON_L, 20, 105);
+        pbf_press_button(context, BUTTON_L, 160ms, 840ms);
         return;
     case PlayerRealignMode::REALIGN_NO_MARKER:
-        pbf_move_left_joystick(context, move_x, move_y, move_duration, 1 * TICKS_PER_SECOND);
-        pbf_press_button(context, BUTTON_L, 20, 105);
+        pbf_move_left_joystick(context, {move_x, move_y}, move_duration, 1000ms);
+        pbf_press_button(context, BUTTON_L, 160ms, 840ms);
         return;
     }  
 
@@ -316,7 +324,7 @@ void overworld_navigation(
     ProControllerContext& context,
     NavigationStopCondition stop_condition,
     NavigationMovementMode movement_mode,
-    uint8_t x, uint8_t y,
+    double x, double y,
     uint16_t seconds_timeout, uint16_t seconds_realign, 
     bool auto_heal,
     bool detect_wipeout
@@ -326,7 +334,7 @@ void overworld_navigation(
         seconds_realign = seconds_timeout;
         should_realign = false;
     }
-    uint16_t forward_ticks = seconds_realign * TICKS_PER_SECOND;
+    Milliseconds forward_duration = seconds_realign * 1000ms;
     // WallClock start = current_time();
 
     if (stop_condition == NavigationStopCondition::STOP_MARKER){
@@ -335,41 +343,53 @@ void overworld_navigation(
 
 
     while (true){
+        NoMinimapWatcher no_minimap(stream.logger(), COLOR_RED, Milliseconds(250));
         NormalBattleMenuWatcher battle(COLOR_BLUE);
-        DialogBoxWatcher        dialog(COLOR_RED, true);
+        AdvanceDialogWatcher        dialog(COLOR_RED);
         DestinationMarkerWatcher marker(COLOR_CYAN, {0.717, 0.165, 0.03, 0.061});
         context.wait_for_all_requests();
         std::vector<PeriodicInferenceCallback> callbacks = {battle, dialog}; 
         if (stop_condition == NavigationStopCondition::STOP_MARKER){
             callbacks.emplace_back(marker);
         }
-        // uint16_t ticks_passed = std::chrono::duration_cast<std::chrono::milliseconds>(current_time() - start).count() * TICKS_PER_SECOND / 1000;
-        // forward_ticks = seconds_realign * TICKS_PER_SECOND - ticks_passed;
 
         int ret = run_until<ProControllerContext>(
             stream, context,
             [&](ProControllerContext& context){
 
                 for (int i = 0; i < seconds_timeout / seconds_realign; i++){
-                    if (movement_mode == NavigationMovementMode::CLEAR_WITH_LETS_GO){
-                        walk_forward_while_clear_front_path(info, stream, context, forward_ticks, y);
-                    }else{
-                        ssf_press_left_joystick(context, x, y, 0, seconds_realign * TICKS_PER_SECOND);
-                        if (movement_mode == NavigationMovementMode::DIRECTIONAL_ONLY){
-                            pbf_wait(context, seconds_realign * TICKS_PER_SECOND);
-                        } else if (movement_mode == NavigationMovementMode::DIRECTIONAL_SPAM_A){
-                            for (size_t j = 0; j < 5 * seconds_realign; j++){
-                                pbf_press_button(context, BUTTON_A, 20, 5);
+                    // if detect no minimap, then stop moving or spamming A.
+                    int ret2 = run_until<ProControllerContext>(
+                        stream, context,
+                        [&](ProControllerContext& context){
+                            if (movement_mode == NavigationMovementMode::CLEAR_WITH_LETS_GO){
+                                walk_forward_while_clear_front_path(info, stream, context, forward_duration, y);
+                            }else{
+                                ssf_press_left_joystick(context, {x, y}, 0ms, Seconds(seconds_realign));
+                                if (movement_mode == NavigationMovementMode::DIRECTIONAL_ONLY){
+                                    pbf_wait(context, Seconds(seconds_realign));
+                                } else if (movement_mode == NavigationMovementMode::DIRECTIONAL_SPAM_A){
+                                    for (size_t j = 0; j < 5 * seconds_realign; j++){
+                                        pbf_press_button(context, BUTTON_A, 160ms, 40ms);
+                                    }
+                                }
                             }
-                        }
+                        },
+                        { no_minimap }
+                    );
+
+                    if (ret2 == 0){
+                        stream.log("overworld_navigation: No minimap detected. Wait for Battle or Dialog.");
+                        context.wait_for(Seconds(60));
                     }
+
                     context.wait_for_all_requests();
                     if (should_realign){
-                        try {
+                        try{
                             realign_player(info, stream, context, PlayerRealignMode::REALIGN_OLD_MARKER);
                    
                         }catch (UnexpectedBattleException&){
-                            pbf_wait(context, 30 * TICKS_PER_SECOND);  // catch exception to allow the battle callback to take over.
+                            pbf_wait(context, 30000ms);  // catch exception to allow the battle callback to take over.
                         }
                         
                     }
@@ -391,7 +411,7 @@ void overworld_navigation(
                 auto_heal_from_menu_or_overworld(info, stream, context, 0, true);
             }
             context.wait_for_all_requests();
-            try {
+            try{
                 realign_player(info, stream, context, PlayerRealignMode::REALIGN_OLD_MARKER);
                 if (stop_condition == NavigationStopCondition::STOP_MARKER && !confirm_marker_present(info, stream, context)){
                     // if marker not present when using marker based navigation, don't keep walking forward.
@@ -413,8 +433,8 @@ void overworld_navigation(
                     "overworld_navigation(): Unexpectedly detected dialog.",
                     stream
                 );
-            }          
-            pbf_press_button(context, BUTTON_A, 20, 20);
+            }
+            pbf_press_button(context, BUTTON_A, 160ms, 160ms);
             break;
         case 2: // marker
             stream.log("overworld_navigation: Detected marker.");
@@ -438,9 +458,9 @@ void overworld_navigation(
 
 void config_option(ProControllerContext& context, int change_option_value){
     for (int i = 0; i < change_option_value; i++){
-        pbf_press_dpad(context, DPAD_RIGHT, 13, 20);
+        pbf_press_dpad(context, DPAD_RIGHT, 104ms, 160ms);
     }
-    pbf_press_dpad(context, DPAD_DOWN,  13, 20);
+    pbf_press_dpad(context, DPAD_DOWN, 104ms, 160ms);
 }
 
 void swap_starter_moves(SingleSwitchProgramEnvironment& env, ProControllerContext& context, Language language){
@@ -454,20 +474,20 @@ void swap_starter_moves(SingleSwitchProgramEnvironment& env, ProControllerContex
     enter_menu_from_overworld(info, stream, context, 0, MenuSide::LEFT);
 
     // enter Pokemon summary screen
-    pbf_press_button(context, BUTTON_A, 20, 5 * TICKS_PER_SECOND);
-    pbf_press_dpad(context, DPAD_RIGHT, 15, 1 * TICKS_PER_SECOND);
-    pbf_press_button(context, BUTTON_Y, 20, 40);
+    pbf_press_button(context, BUTTON_A, 160ms, 5000ms);
+    pbf_press_dpad(context, DPAD_RIGHT, 120ms, 1000ms);
+    pbf_press_button(context, BUTTON_Y, 160ms, 320ms);
 
     // select move 1
-    pbf_press_button(context, BUTTON_A, 20, 40);  
-    pbf_press_dpad(context, DPAD_DOWN,  15, 40);
-    pbf_press_dpad(context, DPAD_DOWN,  15, 40);
+    pbf_press_button(context, BUTTON_A, 160ms, 320ms);  
+    pbf_press_dpad(context, DPAD_DOWN, 120ms, 320ms);
+    pbf_press_dpad(context, DPAD_DOWN, 120ms, 320ms);
     // extra button presses to avoid drops
-    pbf_press_dpad(context, DPAD_DOWN,  15, 40); 
-    pbf_press_dpad(context, DPAD_DOWN,  15, 40);
+    pbf_press_dpad(context, DPAD_DOWN, 120ms, 320ms);
+    pbf_press_dpad(context, DPAD_DOWN, 120ms, 320ms);
 
     // select move 3. swap move 1 and move 3.
-    pbf_press_button(context, BUTTON_A, 20, 40);    
+    pbf_press_button(context, BUTTON_A, 160ms, 320ms);    
 
     // confirm that Ember/Leafage/Water Gun is in slot 1
     context.wait_for_all_requests();
@@ -484,6 +504,66 @@ void swap_starter_moves(SingleSwitchProgramEnvironment& env, ProControllerContex
         );
         exception.send_recoverable_notification(env);
     }   
+
+}
+
+
+void confirm_lead_pokemon_moves(SingleSwitchProgramEnvironment& env, ProControllerContext& context, Language language){
+    const ProgramInfo& info = env.program_info();
+    VideoStream& stream = env.console;
+
+    // start in the overworld
+    press_Bs_to_back_to_overworld(info, stream, context);
+
+    // open menu, select your lead pokemon
+    enter_menu_from_overworld(info, stream, context, 0, MenuSide::LEFT);
+
+    // enter Pokemon summary screen
+    pbf_press_button(context, BUTTON_A, 160ms, 5000ms);
+    pbf_press_dpad(context, DPAD_RIGHT, 120ms, 1000ms);
+    pbf_press_button(context, BUTTON_Y, 160ms, 320ms);
+
+    // confirm that moves are: Moonblast, Mystical Fire, Psychic, Misty Terrain
+    context.wait_for_all_requests();
+    VideoSnapshot screen = stream.video().snapshot();
+    PokemonMovesReader reader(language);
+    std::string move_0 = reader.read_move(stream.logger(), screen, 0);
+    std::string move_1 = reader.read_move(stream.logger(), screen, 1);
+    std::string move_2 = reader.read_move(stream.logger(), screen, 2);
+    std::string move_3 = reader.read_move(stream.logger(), screen, 3);
+    stream.log("Current first move: " + move_0);
+    stream.log("Current second move: " + move_1);
+    stream.log("Current third move: " + move_2);
+    stream.log("Current fourth move: " + move_3);
+
+    if (move_0 != "moonblast" || move_1 != "mystical-fire" || move_2 != "psychic" || move_3 != "misty-terrain"){
+        stream.log("Lead Pokemon's moves are wrong. They are supposed to be: Moonblast, Mystical Fire, Psychic, Misty Terrain.");
+        OperationFailedException::fire(
+            ErrorReport::SEND_ERROR_REPORT,
+            "We expect your lead Pokemon to be a Gardevoir with moves in this order: Moonblast, Mystical Fire, Psychic, Misty Terrain. "
+            "But we see something else instead. If you confirm that your lead Gardevoir does indeed have these moves in this order, "
+            "and are still getting this error, you can uncheck 'Pre-check: Ensure correct moves', under Advanced mode.\n" + language_warning(language),
+            stream
+        );
+    }   
+
+    press_Bs_to_back_to_overworld(info, stream, context);
+
+}
+
+void confirm_minimap_unlocked(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+    DirectionDetector direction;
+    try{
+        direction.change_direction(env.program_info(), env.console, context, 3.02);
+        pbf_press_button(context, BUTTON_L, 200ms, 200ms);
+    }catch (OperationFailedException&){
+        OperationFailedException::fire(
+            ErrorReport::SEND_ERROR_REPORT,
+            "confirm_minimap_unlocked(): Unable to confirm that the minimap is unlocked. Likely because the direction cannot be detected. "
+            "If you manually confirm that the minimap is unlocked, you can disable this precheck in the program setting \"Pre-check: Ensure the minimap is unlocked\".",
+            env.console
+        );
+    }
 
 }
 
@@ -645,7 +725,7 @@ void change_settings_prior_to_autostory(
     enter_menu_from_overworld(env.program_info(), env.console, context, options_index, MenuSide::RIGHT, has_minimap);
     change_settings(env, context, language);
     if(!has_minimap){
-        pbf_mash_button(context, BUTTON_B, 2 * TICKS_PER_SECOND);
+        pbf_mash_button(context, BUTTON_B, 2000ms);
     }else{
         press_Bs_to_back_to_overworld(env.program_info(), env.console, context);    
     }
@@ -695,9 +775,10 @@ void change_settings(SingleSwitchProgramEnvironment& env, ProControllerContext& 
         config_option(context, 1); // Helping Functions: Off
     }
 
-    pbf_mash_button(context, BUTTON_A, 1 * TICKS_PER_SECOND);
+    pbf_mash_button(context, BUTTON_A, 500ms);
+    env.console.log("Confirm that we want to save the settings.");
     clear_dialog(env.console, context, ClearDialogMode::STOP_TIMEOUT, 5, {CallbackEnum::PROMPT_DIALOG});
-    
+    env.console.log("Settings saved.");
 }
 
 void do_action_and_monitor_for_battles(
@@ -749,9 +830,11 @@ void do_action_and_monitor_for_battles_early(
         {no_minimap}
     );
     if (ret == 0){  // if see no minimap. stop and see if we detect a battle. if so, throw Battl exception
+        stream.log("do_action_and_monitor_for_battles_early: Detected no mini-map. Possibly caught in a battle.");
         do_action_and_monitor_for_battles(info, stream, context,
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-            pbf_wait(context, Seconds(15));
+            // wait 30 seconds to see if we detect a battle. If so, this throws an UnexpectedBattleException.
+            pbf_wait(context, Seconds(30));
         });
 
         // if no battle seen, then throw Exception.
@@ -814,7 +897,7 @@ void handle_unexpected_battles(
     >&& action
 ){
     while (true){
-        try {
+        try{
             context.wait_for_all_requests();
             action(info, stream, context);
             return;
@@ -936,7 +1019,7 @@ void handle_failed_action(
 ){
     size_t num_failures = 0;
     while (true){
-        try {
+        try{
             context.wait_for_all_requests();
             action(info, stream, context);
             return;
@@ -1011,9 +1094,9 @@ void press_A_until_dialog(
     int ret = run_until<ProControllerContext>(
         stream, context,
         [seconds_between_button_presses](ProControllerContext& context){
-            pbf_wait(context, seconds_between_button_presses * TICKS_PER_SECOND); // avoiding pressing A if dialog already present
+            pbf_wait(context, Seconds(seconds_between_button_presses)); // avoiding pressing A if dialog already present
             for (size_t c = 0; c < 10; c++){
-                pbf_press_button(context, BUTTON_A, 20, seconds_between_button_presses * TICKS_PER_SECOND);
+                pbf_press_button(context, BUTTON_A, 20*8ms, Seconds(seconds_between_button_presses));
             }
         },
         {advance_dialog}
@@ -1031,7 +1114,7 @@ void press_A_until_dialog(
 
 bool is_ride_active(const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
     while (true){
-        try {
+        try{
             // open main menu
             enter_menu_from_overworld(info, stream, context, -1, MenuSide::NONE, true);
             context.wait_for_all_requests();
@@ -1043,7 +1126,7 @@ bool is_ride_active(const ProgramInfo& info, VideoStream& stream, ProControllerC
             );
 
             bool is_ride_active = !is_black(ride_indicator); // ride is active if the ride indicator isn't black.
-            pbf_press_button(context, BUTTON_B, 30, 100);
+            pbf_press_button(context, BUTTON_B, 240ms, 800ms);
             press_Bs_to_back_to_overworld(info, stream, context, 7);
             if (is_ride_active){
                 stream.log("Ride is active.");
@@ -1052,7 +1135,7 @@ bool is_ride_active(const ProgramInfo& info, VideoStream& stream, ProControllerC
             }
             return is_ride_active;        
 
-        }catch(UnexpectedBattleException&){
+        }catch (UnexpectedBattleException&){
             run_wild_battle_press_A(stream, context, BattleStopCondition::STOP_OVERWORLD);
         }
     }
@@ -1068,7 +1151,7 @@ void get_off_ride(const ProgramInfo& info, VideoStream& stream, ProControllerCon
 }
 
 void get_on_or_off_ride(const ProgramInfo& info, VideoStream& stream, ProControllerContext& context, bool get_on){
-    pbf_press_button(context, BUTTON_PLUS, 20, 20);
+    pbf_press_button(context, BUTTON_PLUS, 160ms, 160ms);
 
     WallClock start = current_time();
     while (get_on != is_ride_active(info, stream, context)){
@@ -1079,7 +1162,7 @@ void get_on_or_off_ride(const ProgramInfo& info, VideoStream& stream, ProControl
                 stream
             );
         }        
-        pbf_press_button(context, BUTTON_PLUS, 30, 100);
+        pbf_press_button(context, BUTTON_PLUS, 240ms, 800ms);
     }
 }
 
@@ -1117,32 +1200,32 @@ void realign_player_from_landmark(
             );
         }
 
-        try {
+        try{
             open_map_from_overworld(info, stream, context, false);
 
             // move cursor near landmark (pokecenter)
             switch(move_cursor_near_landmark.zoom_change){
             case ZoomChange::ZOOM_IN:
-                pbf_press_button(context, BUTTON_ZR, 20, 105);
+                pbf_press_button(context, BUTTON_ZR, 160ms, 840ms);
                 break;
             case ZoomChange::ZOOM_IN_TWICE:
-                pbf_press_button(context, BUTTON_ZR, 20, 105);
-                pbf_press_button(context, BUTTON_ZR, 20, 105);
+                pbf_press_button(context, BUTTON_ZR, 160ms, 840ms);
+                pbf_press_button(context, BUTTON_ZR, 160ms, 840ms);
                 break;                
             case ZoomChange::ZOOM_OUT:
-                pbf_press_button(context, BUTTON_ZL, 20, 105);
+                pbf_press_button(context, BUTTON_ZL, 160ms, 840ms);
                 break;    
             case ZoomChange::ZOOM_OUT_TWICE:
-                pbf_press_button(context, BUTTON_ZL, 20, 105);
-                pbf_press_button(context, BUTTON_ZL, 20, 105);
+                pbf_press_button(context, BUTTON_ZL, 160ms, 840ms);
+                pbf_press_button(context, BUTTON_ZL, 160ms, 840ms);
                 break;                  
             case ZoomChange::KEEP_ZOOM:
                 break;
             }
-            uint8_t move_x1 = move_cursor_near_landmark.move_x;
-            uint8_t move_y1 = move_cursor_near_landmark.move_y;
-            uint16_t move_duration1 = move_cursor_near_landmark.move_duration;
-            pbf_move_left_joystick(context, move_x1, move_y1, move_duration1, 1 * TICKS_PER_SECOND);
+            double move_x1 = move_cursor_near_landmark.move_x;
+            double move_y1 = move_cursor_near_landmark.move_y;
+            Milliseconds move_duration1 = move_cursor_near_landmark.move_duration;
+            pbf_move_left_joystick(context, {move_x1, move_y1}, move_duration1, 1000ms);
 
             // move cursor to pokecenter
             double push_scale = 0.29 * adjustment_table[try_count];
@@ -1159,30 +1242,30 @@ void realign_player_from_landmark(
             // move cursor from landmark to target
             switch(move_cursor_to_target.zoom_change){
             case ZoomChange::ZOOM_IN:
-                pbf_press_button(context, BUTTON_ZR, 20, 105);
+                pbf_press_button(context, BUTTON_ZR, 160ms, 840ms);
                 break;
             case ZoomChange::ZOOM_IN_TWICE:
-                pbf_press_button(context, BUTTON_ZR, 20, 105);
-                pbf_press_button(context, BUTTON_ZR, 20, 105);
+                pbf_press_button(context, BUTTON_ZR, 160ms, 840ms);
+                pbf_press_button(context, BUTTON_ZR, 160ms, 840ms);
                 break;                
             case ZoomChange::ZOOM_OUT:
-                pbf_press_button(context, BUTTON_ZL, 20, 105);
+                pbf_press_button(context, BUTTON_ZL, 160ms, 840ms);
                 break;    
             case ZoomChange::ZOOM_OUT_TWICE:
-                pbf_press_button(context, BUTTON_ZL, 20, 105);
-                pbf_press_button(context, BUTTON_ZL, 20, 105);
+                pbf_press_button(context, BUTTON_ZL, 160ms, 840ms);
+                pbf_press_button(context, BUTTON_ZL, 160ms, 840ms);
                 break;                  
             case ZoomChange::KEEP_ZOOM:
                 break;
             }
-            uint8_t move_x2 = move_cursor_to_target.move_x;
-            uint8_t move_y2 = move_cursor_to_target.move_y;
-            uint16_t move_duration2 = move_cursor_to_target.move_duration;
-            pbf_move_left_joystick(context, move_x2, move_y2, move_duration2, 1 * TICKS_PER_SECOND);
+            double move_x2 = move_cursor_to_target.move_x;
+            double move_y2 = move_cursor_to_target.move_y;
+            Milliseconds move_duration2 = move_cursor_to_target.move_duration;
+            pbf_move_left_joystick(context, {move_x2, move_y2}, move_duration2, 1000ms);
 
             // place down marker
-            pbf_press_button(context, BUTTON_A, 20, 105);
-            pbf_press_button(context, BUTTON_A, 20, 105);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             leave_phone_to_overworld(info, stream, context);
 
             return;      
@@ -1247,32 +1330,32 @@ void move_cursor_towards_flypoint_and_go_there(
             );
         }
 
-        try {
+        try{
             open_map_from_overworld(info, stream, context, false);
 
             // move cursor near landmark (pokecenter)
             switch(move_cursor_near_flypoint.zoom_change){
             case ZoomChange::ZOOM_IN:
-                pbf_press_button(context, BUTTON_ZR, 20, 105);
+                pbf_press_button(context, BUTTON_ZR, 160ms, 840ms);
                 break;
             case ZoomChange::ZOOM_IN_TWICE:
-                pbf_press_button(context, BUTTON_ZR, 20, 105);
-                pbf_press_button(context, BUTTON_ZR, 20, 105);
+                pbf_press_button(context, BUTTON_ZR, 160ms, 840ms);
+                pbf_press_button(context, BUTTON_ZR, 160ms, 840ms);
                 break;                
             case ZoomChange::ZOOM_OUT:
-                pbf_press_button(context, BUTTON_ZL, 20, 105);
+                pbf_press_button(context, BUTTON_ZL, 160ms, 840ms);
                 break;    
             case ZoomChange::ZOOM_OUT_TWICE:
-                pbf_press_button(context, BUTTON_ZL, 20, 105);
-                pbf_press_button(context, BUTTON_ZL, 20, 105);
+                pbf_press_button(context, BUTTON_ZL, 160ms, 840ms);
+                pbf_press_button(context, BUTTON_ZL, 160ms, 840ms);
                 break;                  
             case ZoomChange::KEEP_ZOOM:
                 break;
             }
-            uint8_t move_x1 = move_cursor_near_flypoint.move_x;
-            uint8_t move_y1 = move_cursor_near_flypoint.move_y;
-            uint16_t move_duration1 = move_cursor_near_flypoint.move_duration;
-            pbf_move_left_joystick(context, move_x1, move_y1, move_duration1, 1 * TICKS_PER_SECOND);
+            double move_x1 = move_cursor_near_flypoint.move_x;
+            double move_y1 = move_cursor_near_flypoint.move_y;
+            Milliseconds move_duration1 = move_cursor_near_flypoint.move_duration;
+            pbf_move_left_joystick(context, {move_x1, move_y1}, move_duration1, 1000ms);
 
             double push_scale = 0.29 * adjustment_table[try_count];
             if (!fly_to_visible_closest_flypoint_cur_zoom_level(info, stream, context, fly_point, push_scale)){
@@ -1311,15 +1394,19 @@ void check_num_sunflora_found(SingleSwitchProgramEnvironment& env, ProController
     VideoSnapshot screen = env.console.video().snapshot();
     ImageFloatBox num_sunflora_box = {0.27, 0.02, 0.04, 0.055};
     int number = OCR::read_number_waterfill(env.console, extract_box_reference(screen, num_sunflora_box), 0xff000000, 0xff808080);
+    std::string number_string = std::to_string(number);
+    std::string expected_number_string = std::to_string(expected_number);
 
-    if (number != expected_number){
+    // checks that expected_number is a prefix of number
+    // this is to handle the Asian languages that have extra characters after the number
+    if (number_string.compare(0, expected_number_string.size(), expected_number_string) == 0){
+        env.console.log("Number of sunflora found: " + expected_number_string);
+    }else{
         OperationFailedException::fire(
             ErrorReport::SEND_ERROR_REPORT,
             "The number of sunflora found is different than expected.",
             env.console
         );
-    }else{
-        env.console.log("Number of sunflora found: " + std::to_string(number));
     }
 
 
@@ -1330,7 +1417,8 @@ void checkpoint_reattempt_loop(
     ProControllerContext& context, 
     EventNotificationOption& notif_status_update,
     AutoStoryStats& stats,
-    std::function<void(size_t attempt_number)>&& action
+    std::function<void(size_t attempt_number)>&& action,
+    bool day_skip
 ){
     size_t max_attempts = 100;
     for (size_t i = 0;;i++){
@@ -1339,13 +1427,18 @@ void checkpoint_reattempt_loop(
             checkpoint_save(env, context, notif_status_update, stats);
         }
 
+        if (day_skip && (i > 0 || ENABLE_TEST)){
+            day_skip_from_overworld(env.console, context);
+            save_game_from_overworld(env.program_info(), env.console, context);
+        }
+
         context.wait_for_all_requests();
         action(i);
 
         enter_menu_from_overworld(env.program_info(), env.console, context, -1);
        
         break;
-    }catch(OperationFailedException& e){
+    }catch (OperationFailedException& e){
         if (i > max_attempts){
             OperationFailedException::fire(
                 ErrorReport::SEND_ERROR_REPORT,
@@ -1386,7 +1479,7 @@ void checkpoint_reattempt_loop_tutorial(
         action(i);
 
         break;  
-    }catch(OperationFailedException& e){
+    }catch (OperationFailedException& e){
         if (i > max_attempts){
             OperationFailedException::fire(
                 ErrorReport::SEND_ERROR_REPORT,
@@ -1411,10 +1504,11 @@ void move_player_forward(
     uint8_t num_rounds, 
     std::function<void()>&& recovery_action,
     bool use_lets_go,
-    uint16_t forward_ticks, 
-    uint8_t y, 
-    uint16_t delay_after_forward_move, 
-    uint16_t delay_after_lets_go
+    bool mash_A,
+    Milliseconds forward_duration, 
+    double y, 
+    Milliseconds delay_after_forward_move, 
+    Milliseconds delay_after_lets_go
 ){
 
     context.wait_for_all_requests();
@@ -1423,10 +1517,15 @@ void move_player_forward(
             do_action_and_monitor_for_battles_early(env.program_info(), env.console, context,
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
                 if (!use_lets_go){
-                    pbf_move_left_joystick(context, 128, y, forward_ticks, 0);
+                    // pbf_move_left_joystick(context, 128, y, forward_duration, 0);
+                    ssf_press_left_joystick(context, {0, +1}, 0ms, 800ms, 0ms);
+
+                    if (mash_A){ // mashing A and Let's go aren't compatible. you end up talking to your Let's go pokemon if you mash A.
+                        pbf_mash_button(context, BUTTON_A, forward_duration);
+                    }
                 }else{
-                    pbf_press_button(context, BUTTON_R, 20, delay_after_lets_go);
-                    pbf_move_left_joystick(context, 128, y, forward_ticks, delay_after_forward_move);    
+                    pbf_press_button(context, BUTTON_R, 160ms, delay_after_lets_go);
+                    pbf_move_left_joystick(context, {0, y}, forward_duration, delay_after_forward_move);
                 }
             });
         }catch (UnexpectedBattleException&){
@@ -1437,38 +1536,6 @@ void move_player_forward(
 
 }
 
-ImageFloatBox get_yolo_box(
-    SingleSwitchProgramEnvironment& env, 
-    ProControllerContext& context, 
-    VideoOverlaySet& overlays,
-    YOLOv5Detector& yolo_detector, 
-    const std::string& target_label
-){
-    context.wait_for_all_requests();
-    overlays.clear();
-    const std::vector<YOLOv5Session::DetectionBox>& detected_boxes = yolo_detector.detected_boxes();
-    auto snapshot = env.console.video().snapshot();
-    yolo_detector.detect(snapshot);
-
-    ImageFloatBox target_box{-1, -1, -1, -1};
-    for (YOLOv5Session::DetectionBox detected_box : detected_boxes){
-        ImageFloatBox box = detected_box.box;
-        std::string label = yolo_detector.session()->label_name(detected_box.label_idx);
-        if (target_label == label){
-            target_box = box;
-            overlays.add(COLOR_RED, box, label);
-        }else{
-            overlays.add(COLOR_BLUE, box, label);
-        }
-        
-    }
-
-    env.console.log(std::string(target_label) + ": {" + std::to_string(target_box.x) + ", " + std::to_string(target_box.y) + ", " + std::to_string(target_box.width) + ", " + std::to_string(target_box.height) + "}");
-    env.console.log("center-y: " + std::to_string(target_box.y + target_box.height/2) + "   center-x: " + std::to_string(target_box.x + target_box.width/2));
-
-    return target_box;
-}
-
 void move_forward_until_yolo_object_above_min_size(
     SingleSwitchProgramEnvironment& env, 
     ProControllerContext& context, 
@@ -1476,13 +1543,13 @@ void move_forward_until_yolo_object_above_min_size(
     const std::string& target_label,
     double min_width, double min_height,
     std::function<void()>&& recovery_action, 
-    uint16_t forward_ticks, 
-    uint8_t y, 
-    uint16_t delay_after_forward_move, 
-    uint16_t delay_after_lets_go
+    Milliseconds forward_duration, 
+    double y, 
+    Milliseconds delay_after_forward_move, 
+    Milliseconds delay_after_lets_go
 ){
     context.wait_for_all_requests();
-    pbf_move_left_joystick(context, 128, 0, 10, 50); // move forward to align with camera
+    pbf_move_left_joystick(context, {0, +1}, 80ms, 400ms); // move forward to align with camera
 
     VideoOverlaySet overlays(env.console.overlay());
     bool seen_object = false;
@@ -1497,7 +1564,7 @@ void move_forward_until_yolo_object_above_min_size(
             do_action_and_monitor_for_battles_early(env.program_info(), env.console, context,
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
                 context.wait_for_all_requests();
-                ImageFloatBox target_box = get_yolo_box(env, context, overlays, yolo_detector, target_label);
+                ImageFloatBox target_box = get_highest_confident_yolo_box(env, context, overlays, yolo_detector, target_label);
 
                 bool not_found_target = target_box.x == -1;
                 if (not_found_target){
@@ -1518,7 +1585,7 @@ void move_forward_until_yolo_object_above_min_size(
                     return; // stop when the target is above a certain size. i.e. we are close enough to the target.
                 }
             
-                pbf_move_left_joystick(context, 128, y, forward_ticks, 0);
+                pbf_move_left_joystick(context, {0, y}, forward_duration, 0ms);
                 // pbf_press_button(context, BUTTON_R, 20, delay_after_lets_go);
                 // pbf_move_left_joystick(context, 128, y, forward_ticks, delay_after_forward_move);
             });
@@ -1549,20 +1616,21 @@ void move_forward_until_yolo_object_above_min_size(
 
 
 
-void move_forward_until_yolo_object_detected(
+void move_player_until_yolo_object_detected(
     SingleSwitchProgramEnvironment& env, 
     ProControllerContext& context, 
     YOLOv5Detector& yolo_detector, 
     const std::string& target_label,   
     std::function<void()>&& recovery_action, 
     uint16_t max_rounds, 
-    uint16_t forward_ticks, 
-    uint8_t y, 
-    uint16_t delay_after_forward_move, 
-    uint16_t delay_after_lets_go
+    Milliseconds forward_duration, 
+    double x, 
+    double y, 
+    Milliseconds delay_after_forward_move, 
+    Milliseconds delay_after_lets_go
 ){
     context.wait_for_all_requests();
-    pbf_move_left_joystick(context, 128, 0, 10, 50); // move forward to align with camera
+    pbf_move_left_joystick(context, {0, +1}, 80ms, 400ms); // move forward to align with camera
 
     VideoOverlaySet overlays(env.console.overlay());
     bool found_target = false;
@@ -1572,7 +1640,7 @@ void move_forward_until_yolo_object_detected(
             do_action_and_monitor_for_battles_early(env.program_info(), env.console, context,
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
                 context.wait_for_all_requests();
-                ImageFloatBox target_box = get_yolo_box(env, context, overlays, yolo_detector, target_label);
+                ImageFloatBox target_box = get_highest_confident_yolo_box(env, context, overlays, yolo_detector, target_label);
                 found_target = target_box.x != -1;
                 if (found_target){
                     return;
@@ -1580,7 +1648,7 @@ void move_forward_until_yolo_object_detected(
 
                 
 
-                pbf_move_left_joystick(context, 128, y, forward_ticks, 0);
+                pbf_move_left_joystick(context, {x, y}, forward_duration, 0ms);
                 // pbf_press_button(context, BUTTON_R, 20, delay_after_lets_go);
                 // pbf_move_left_joystick(context, 128, y, forward_ticks, delay_after_forward_move);
             });
@@ -1597,7 +1665,7 @@ void move_forward_until_yolo_object_detected(
         if (round_num > max_rounds){
             OperationFailedException::fire(
                 ErrorReport::SEND_ERROR_REPORT,
-                "move_forward_until_yolo_object_detected(): Unable to detect target object.",
+                "move_player_until_yolo_object_detected(): Unable to detect target object.",
                 env.console
             );  
         }
@@ -1611,10 +1679,10 @@ void move_forward_until_yolo_object_not_detected(
     const std::string& target_label,   
     size_t times_not_seen_threshold,
     std::function<void()>&& recovery_action, 
-    uint16_t forward_ticks, 
-    uint8_t y, 
-    uint16_t delay_after_forward_move, 
-    uint16_t delay_after_lets_go
+    Milliseconds forward_duration, 
+    double y, 
+    Milliseconds delay_after_forward_move, 
+    Milliseconds delay_after_lets_go
 ){
     VideoOverlaySet overlays(env.console.overlay());
     bool target_visible = true;
@@ -1626,7 +1694,7 @@ void move_forward_until_yolo_object_not_detected(
         do_action_and_monitor_for_battles_early(env.program_info(), env.console, context,
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
             context.wait_for_all_requests();
-            ImageFloatBox target_box = get_yolo_box(env, context, overlays, yolo_detector, target_label);
+            ImageFloatBox target_box = get_highest_confident_yolo_box(env, context, overlays, yolo_detector, target_label);
             target_visible = target_box.x != -1;
             if (!target_visible){  // stop when target not visible
                 times_not_seen++;
@@ -1635,7 +1703,7 @@ void move_forward_until_yolo_object_not_detected(
                 }
             }
             
-            pbf_move_left_joystick(context, 128, y, forward_ticks, 0);
+            pbf_move_left_joystick(context, {0, y}, forward_duration, 0ms);
             // pbf_press_button(context, BUTTON_R, 20, delay_after_lets_go);
             // pbf_move_left_joystick(context, 128, y, forward_ticks, delay_after_forward_move);
         });
@@ -1659,131 +1727,6 @@ void move_forward_until_yolo_object_not_detected(
 }
 
 
-void move_camera_yolo(
-    SingleSwitchProgramEnvironment& env, 
-    ProControllerContext& context, 
-    CameraAxis axis,
-    YOLOv5Detector& yolo_detector, 
-    const std::string& target_label,
-    double target_line,
-    std::function<void()>&& recovery_action
-){
-    VideoOverlaySet overlays(env.console.overlay());
-    bool seen_object = false;
-    size_t max_attempts = 20;
-    size_t not_detected_count = 0;
-    size_t max_not_detected = 5;
-    bool reached_target_line = false;
-    bool exceed_max_not_detected = false;
-    for (size_t i = 0; i < max_attempts; i++){
-    try{
-        do_action_and_monitor_for_battles_early(env.program_info(), env.console, context,
-        [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-            context.wait_for_all_requests();
-            ImageFloatBox target_box = get_yolo_box(env, context, overlays, yolo_detector, target_label);
-
-            bool not_found_target = target_box.x == -1;
-            if (not_found_target){
-                not_detected_count++;
-                if (not_detected_count > max_not_detected){
-                    exceed_max_not_detected = true;
-                    return;      // when too many failed attempts, just assume we're too close to the target to detect it.
-                }
-                context.wait_for(1000ms); // if we can't see the object, it might just be temporarily obscured. wait one second and reattempt.
-                return;
-            }else{
-                not_detected_count = 0;
-                seen_object = true;
-            }
-       
-            
-            double diff;
-            switch(axis){
-            case CameraAxis::X:{
-                double object_x_pos = target_box.x + target_box.width/2;
-                diff =  target_line - object_x_pos;
-                break;
-            }
-            case CameraAxis::Y:{
-                double object_y_pos = target_box.y + target_box.height/2;
-                diff =  target_line - object_y_pos;
-                break;
-            }
-            default:
-                throw InternalProgramError(nullptr, PA_CURRENT_FUNCTION, "move_camera_yolo: Unknown CameraAxis enum.");  
-            }
-            env.console.log("target_line: " + std::to_string(target_line));
-            env.console.log("diff: " + std::to_string(diff));
-            if (std::abs(diff) < 0.01){
-                reached_target_line = true;
-                return;    // close enough to target_line. stop.
-            }
-
-            
-            double duration_scale_factor;
-            double push_magnitude_scale_factor;
-            switch(axis){
-            case CameraAxis::X:
-                duration_scale_factor = 250 / std::sqrt(std::abs(diff));
-                if (std::abs(diff) < 0.05){
-                    duration_scale_factor /= 2;
-                }
-                push_magnitude_scale_factor = 60 / std::sqrt(std::abs(diff));
-                break;
-            case CameraAxis::Y:
-                duration_scale_factor = 100 / std::sqrt(std::abs(diff));
-                if (std::abs(diff) < 0.1){
-                    duration_scale_factor *= 0.5;
-                }
-                push_magnitude_scale_factor = 60 / std::sqrt(std::abs(diff));
-                break;
-            
-            default:
-                throw InternalProgramError(nullptr, PA_CURRENT_FUNCTION, "move_camera_yolo: Unknown CameraAxis enum.");  
-            }
-
-            uint16_t push_duration = std::max(uint16_t(std::abs(diff * duration_scale_factor)), uint16_t(8));
-            int16_t push_direction = (diff > 0) ? -1 : 1;
-            double push_magnitude = std::max(double(std::abs(diff * push_magnitude_scale_factor)), double(15)); 
-            uint8_t axis_push = uint8_t(std::max(std::min(int(128 + (push_direction * push_magnitude)), 255), 0));
-
-            // env.console.log("object_x: {" + std::to_string(target_box.x) + ", " + std::to_string(target_box.y) + ", " + std::to_string(target_box.width) + ", " + std::to_string(target_box.height) + "}");
-            // env.console.log("object_x_pos: " + std::to_string(object_x_pos));
-            env.console.log("axis push: " + std::to_string(axis_push) + ", push duration: " +  std::to_string(push_duration));
-            switch(axis){
-            case CameraAxis::X:{
-                pbf_move_right_joystick(context, axis_push, 128, push_duration, 0);
-                break;
-            }
-            case CameraAxis::Y:{
-                pbf_move_right_joystick(context, 128, axis_push, push_duration, 0);
-                break;
-            }
-            default:
-                throw InternalProgramError(nullptr, PA_CURRENT_FUNCTION, "move_camera_yolo: Unknown CameraAxis enum.");  
-            }
-        });
-
-        if(reached_target_line || exceed_max_not_detected){
-            break;
-        }
-    
-    }catch (UnexpectedBattleException&){
-        overlays.clear();
-        recovery_action();
-        // run_wild_battle_press_A(env.console, context, BattleStopCondition::STOP_OVERWORLD);
-    }
-    }
-
-    if (!seen_object){
-        OperationFailedException::fire(
-            ErrorReport::SEND_ERROR_REPORT,
-            "move_camera_yolo(): Never detected the yolo object.",
-            env.console
-        );
-    }
-}
-
 bool move_player_to_realign_via_yolo(
     SingleSwitchProgramEnvironment& env, 
     ProControllerContext& context, 
@@ -1804,7 +1747,7 @@ bool move_player_to_realign_via_yolo(
         do_action_and_monitor_for_battles_early(env.program_info(), env.console, context,
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
             context.wait_for_all_requests();
-            ImageFloatBox target_box = get_yolo_box(env, context, overlays, yolo_detector, target_label);
+            ImageFloatBox target_box = get_highest_confident_yolo_box(env, context, overlays, yolo_detector, target_label);
 
             bool not_found_target = target_box.x == -1;
             if (not_found_target){
@@ -1834,22 +1777,23 @@ bool move_player_to_realign_via_yolo(
             // if (std::abs(diff) < 0.05){
             //     duration_scale_factor /= 2;
             // }
-            double push_magnitude_scale_factor = 60 / std::sqrt(std::abs(diff));
+            double push_magnitude_scale_factor = 0.46875 / std::sqrt(std::abs(diff));
 
-            uint16_t push_duration = std::max(uint16_t(std::abs(diff * duration_scale_factor)), uint16_t(8));
+            uint16_t push_duration_ticks = std::max(uint16_t(std::abs(diff * duration_scale_factor)), uint16_t(8));
+            Milliseconds push_duration = push_duration_ticks * 8ms;
             int16_t push_direction = (diff > 0) ? -1 : 1;
-            double push_magnitude = std::max(double(std::abs(diff * push_magnitude_scale_factor)), double(15)); 
-            uint8_t x_push = uint8_t(std::max(std::min(int(128 + (push_direction * push_magnitude)), 255), 0));
+            double push_magnitude = std::max(double(std::abs(diff * push_magnitude_scale_factor)), 0.117); 
+            double x_push = std::max(std::min(push_direction * push_magnitude, +1.0), -1.0);
 
             // env.console.log("object_x: {" + std::to_string(target_box.x) + ", " + std::to_string(target_box.y) + ", " + std::to_string(target_box.width) + ", " + std::to_string(target_box.height) + "}");
             // env.console.log("object_x_pos: " + std::to_string(object_x_pos));
-            env.console.log("x push: " + std::to_string(x_push) + ", push duration: " +  std::to_string(push_duration));
+            env.console.log("x push: " + std::to_string(x_push) + ", push duration: " +  std::to_string(push_duration.count()) + "ms");
             if (i == 0){
-                pbf_move_left_joystick(context, x_push, 128, 10, 50);
-                pbf_press_button(context, BUTTON_R, 20, 105);
+                pbf_move_left_joystick(context, {x_push, 0}, 80ms, 400ms);
+                pbf_press_button(context, BUTTON_R, 160ms, 840ms);
             }
             
-            pbf_move_left_joystick(context, x_push, 128, push_duration, 0);
+            pbf_move_left_joystick(context, {x_push, 0}, push_duration, 0ms);
             
         });
 
@@ -1900,24 +1844,24 @@ void move_camera_until_yolo_object_detected(
     ProControllerContext& context, 
     YOLOv5Detector& yolo_detector, 
     const std::string& target_label,
-    uint8_t initial_x_move, 
-    uint16_t initial_hold_ticks,
+    double initial_x_move, 
+    Milliseconds initial_hold,
     uint16_t max_rounds
 ){
     VideoOverlaySet overlays(env.console.overlay());
     bool found_target = false;
     size_t round_num = 0;
-    uint8_t x_move = initial_x_move > 128 ? 255 : 0;
+    double x_move = initial_x_move > 0 ? +1 : -1;
     while(!found_target){
         try{
             do_action_and_monitor_for_battles_early(env.program_info(), env.console, context,
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
 
                 if (round_num == 0){
-                    pbf_move_right_joystick(context, initial_x_move, 128, initial_hold_ticks, 50);
+                    pbf_move_right_joystick(context, {initial_x_move, 0}, initial_hold, 400ms);
                 }
                 context.wait_for_all_requests();
-                ImageFloatBox target_box = get_yolo_box(env, context, overlays, yolo_detector, target_label);
+                ImageFloatBox target_box = get_highest_confident_yolo_box(env, context, overlays, yolo_detector, target_label);
                 found_target = target_box.x != -1;
                 if (found_target){
                     return;
@@ -1925,7 +1869,7 @@ void move_camera_until_yolo_object_detected(
 
                 
 
-                pbf_move_right_joystick(context, x_move, 128, 10, 50);
+                pbf_move_right_joystick(context, {x_move, 0}, 80ms, 400ms);
             });
             
         }catch (UnexpectedBattleException&){
@@ -1941,6 +1885,44 @@ void move_camera_until_yolo_object_detected(
             );  
         }
     }
+}
+
+
+void confirm_titan_battle(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+
+    bool is_green_hp_bar = false;
+    size_t MAX_ATTEMPTS = 10;
+    for (size_t i = 0; i < MAX_ATTEMPTS; i++){
+        context.wait_for_all_requests();
+        VideoSnapshot screen = env.console.video().snapshot();
+        ImageFloatBox hp_bar_box{0.394805, 0.088991, 0.220779, 0.021000};
+
+
+        ImageStats hp_bar_stats = image_stats(extract_box_reference(screen, hp_bar_box));
+        // cout << "hp_bar_stats.average.sum(): " << hp_bar_stats.average.sum() << endl;    
+        // expected color is green: {R 25-32, G 255, B 32-76}  {30, 255, 55}. total = 30+255+55 = 340
+        // 30/340, 255/340, 55/340
+        is_green_hp_bar = is_solid(hp_bar_stats, {0.088235, 0.75, 0.161765}, 0.25, 30);
+        if (is_green_hp_bar){
+            break;
+        }
+
+        env.console.log("Unable to confirm Titan battle. Wait 2 seconds and re-try.");
+        context.wait_for(Seconds(2));
+    }
+
+
+    if (is_green_hp_bar){
+        env.console.log("Confirmed Titan battle.");
+        
+    }else{
+        OperationFailedException::fire(
+            ErrorReport::SEND_ERROR_REPORT,
+            "confirm_titan_battle(): Unable to confirm Titan battle.",
+            env.console
+        );
+    }
+
 }
 
 

@@ -4,6 +4,7 @@
  *
  */
 
+#include "CommonFramework/Exceptions/OperationFailedException.h"
 #include "Kernels/Waterfill/Kernels_Waterfill_Types.h"
 #include "CommonFramework/ImageTypes/ImageViewRGB32.h"
 #include "CommonFramework/Tools/DebugDumper.h"
@@ -151,7 +152,7 @@ bool DirectionDetector::is_minimap_definitely_locked(VideoStream& stream, ProCon
     if (!pointing_north){
         return false;
     }
-    pbf_move_right_joystick(context, 0, 128, 100, 20);
+    pbf_move_right_joystick(context, {-1, 0}, 800ms, 160ms);
     context.wait_for_all_requests();
     double new_direction = get_current_direction(stream, stream.video().snapshot());
 
@@ -162,29 +163,37 @@ void DirectionDetector::change_direction(
     const ProgramInfo& info,
     VideoStream& stream,
     ProControllerContext& context,
-    double direction
+    double direction,
+    bool throw_if_fail
 ) const{
     size_t i = 0;
     size_t MAX_ATTEMPTS = 20;
     bool is_minimap_definitely_unlocked = false;
-    uint8_t scale_factor = 80;    
+    double scale_factor = 640;
     double push_magnitude_scale_factor = 1;
     while (i < MAX_ATTEMPTS){ // 10 attempts to move the direction to the target
         context.wait_for_all_requests();
         VideoSnapshot screen = stream.video().snapshot();
         double current = get_current_direction(stream, screen);
-        if (current < 0){ 
-            stream.log("Unable to detect current direction.");
-            return;
+        if (current < 0){
+            if (throw_if_fail){
+                OperationFailedException::fire(
+                    ErrorReport::SEND_ERROR_REPORT,
+                    "change_direction(): Unable to detect current direction.",
+                    stream
+                );
+            }else{
+                stream.log("change_direction(): Unable to detect current direction.");
+            }
         }
         double target = std::fmod(direction, (2 * PI));
 
         // try to find the shortest path around the circle
         double diff = target - current;
-        if(diff > PI) {
+        if(diff > PI){
             diff -= (2 * PI);
         }
-        if(diff <= -PI) {
+        if(diff <= -PI){
             diff += (2 * PI);
         }
         double abs_diff = std::abs(diff);
@@ -196,9 +205,9 @@ void DirectionDetector::change_direction(
             if (is_minimap_definitely_locked(stream, context, current)){
                 stream.log("Minimap locked. Try to unlock the minimap. Then try again.");
                 open_map_from_overworld(info, stream, context);
-                pbf_press_button(context, BUTTON_RCLICK, 20, 20);
-                pbf_press_button(context, BUTTON_RCLICK, 20, 20);
-                pbf_press_button(context, BUTTON_B, 20, 100);
+                pbf_press_button(context, BUTTON_RCLICK, 160ms, 160ms);
+                pbf_press_button(context, BUTTON_RCLICK, 160ms, 160ms);
+                pbf_press_button(context, BUTTON_B, 160ms, 800ms);
                 press_Bs_to_back_to_overworld(info, stream, context, 7);
             }else{
                 stream.log("Minimap not locked. Try again");
@@ -216,20 +225,26 @@ void DirectionDetector::change_direction(
         }        
 
         
-        if (scale_factor > 40 && abs_diff < 0.05){
-            scale_factor = 40;
+        if (scale_factor > 320 && abs_diff < 0.05){
+            scale_factor = 320;
         }
 
         if (abs_diff < 0.05){
             push_magnitude_scale_factor = 0.5;
         }
 
-        uint16_t push_duration = std::max(uint16_t(std::abs(diff * scale_factor)), uint16_t(8));
+        Milliseconds push_duration = std::max(
+            Milliseconds((int64_t)std::abs(diff * scale_factor)),
+            64ms
+        );
         int16_t push_direction = (diff > 0) ? -1 : 1;
-        double push_magnitude = std::max(double((128 * push_magnitude_scale_factor) / (i + 1)), double(15)); // push less with each iteration/attempt
-        uint8_t push_x = uint8_t(std::max(std::min(int(128 + (push_direction * push_magnitude)), 255), 0));
-        stream.log("push magnitude: " + std::to_string(push_x) + ", push duration: " +  std::to_string(push_duration));
-        pbf_move_right_joystick(context, push_x, 128, push_duration, 100);
+        double push_magnitude = std::max(push_magnitude_scale_factor / (i + 1), 0.117); // push less with each iteration/attempt
+        double push_x_float = std::max(std::min(push_direction * push_magnitude, +1.0), -1.0);
+        stream.log(
+            "push magnitude: " + std::to_string(push_x_float) +
+            ", push duration: " +  std::to_string(push_duration.count()) + "ms"
+        );
+        pbf_move_right_joystick(context, {push_x_float, 0}, push_duration, 800ms);
         i++;
     }
     

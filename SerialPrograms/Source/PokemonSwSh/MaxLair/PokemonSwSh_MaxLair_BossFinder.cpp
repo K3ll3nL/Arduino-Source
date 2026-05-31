@@ -10,6 +10,7 @@
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSwSh/Programs/PokemonSwSh_GameEntry.h"
 #include "Program/PokemonSwSh_MaxLair_Run_Adventure.h"
@@ -151,6 +152,9 @@ public:
         }
         throw InternalProgramError(nullptr, PA_CURRENT_FUNCTION, "Invalid enum.");
     }
+    virtual bool is_in_save_list(const std::string& boss_slug) const override{
+        return get_filter(boss_slug).save_on_the_go;
+    }
 
 
 private:
@@ -190,7 +194,8 @@ void MaxLairBossFinder::program(MultiSwitchProgramEnvironment& env, CancellableS
             grip_menu_connect_go_home(context);
             resume_game_no_interact(console, context, ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST);
         }else{
-            pbf_press_button(context, BUTTON_B, 5, 5);
+            //  Connect the controller.
+            require_player(console, context, BUTTON_B);
         }
     });
 

@@ -14,6 +14,10 @@ namespace NintendoSwitch{
 namespace PokemonLA{
 
 
+//const Milliseconds GET_ON_MOUNT_TIME = Milliseconds(1000);
+const Milliseconds GET_ON_BRAVIARY_TIME = Milliseconds(2240);
+
+
 
 EscapeFromAttack::EscapeFromAttack(
     ProgramEnvironment& env,
@@ -47,73 +51,71 @@ EscapeFromAttack::EscapeFromAttack(
     *this += m_centerA;
     *this += m_leftB;
 
-    const std::chrono::milliseconds GET_ON_BRAVIARY_TIME_MILLIS(GET_ON_BRAVIARY_TIME * 1000 / TICKS_PER_SECOND);
-
     register_state_command(State::UNKNOWN, [this](){
         m_stream.log("Unknown state. Moving forward...");
         m_active_command->dispatch([](ProControllerContext& context){
-            pbf_move_left_joystick(context, 128, 0, 300 * TICKS_PER_SECOND, 0);
+            pbf_move_left_joystick(context, {0, +1}, 300000ms, 0ms);
         });
         return false;
     });
     register_state_command(State::WYRDEER_BASCULEGION_OFF, [this](){
         m_stream.log("Switching from Wyrdeer/Basculegion (off) to Braviary (on)...");
         m_active_command->dispatch([](ProControllerContext& context){
-            pbf_press_dpad(context, DPAD_RIGHT, 20, 50);
-            pbf_press_button(context, BUTTON_PLUS, 20, GET_ON_BRAVIARY_TIME);
+            pbf_press_dpad(context, DPAD_RIGHT, 160ms, 400ms);
+            pbf_press_button(context, BUTTON_PLUS, 160ms, GET_ON_BRAVIARY_TIME);
         });
         return false;
     });
     register_state_command(State::WYRDEER_BASCULEGION_ON, [this](){
         m_stream.log("Switching from Wyrdeer/Basculegion (on) to Braviary (on)...");
         m_active_command->dispatch([](ProControllerContext& context){
-            pbf_press_dpad(context, DPAD_RIGHT, 20, GET_ON_BRAVIARY_TIME);
+            pbf_press_dpad(context, DPAD_RIGHT, 160ms, GET_ON_BRAVIARY_TIME);
         });
         return false;
     });
     register_state_command(State::URSALUNA_OFF, [this](){
         m_stream.log("Switching from Ursaluna (off) to Braviary (on)...");
         m_active_command->dispatch([](ProControllerContext& context){
-            pbf_press_dpad(context, DPAD_RIGHT, 20, 50);
-            pbf_press_dpad(context, DPAD_RIGHT, 20, 50);
-            pbf_press_button(context, BUTTON_PLUS, 20, GET_ON_BRAVIARY_TIME);
+            pbf_press_dpad(context, DPAD_RIGHT, 160ms, 400ms);
+            pbf_press_dpad(context, DPAD_RIGHT, 160ms, 400ms);
+            pbf_press_button(context, BUTTON_PLUS, 160ms, GET_ON_BRAVIARY_TIME);
         });
         return false;
     });
     register_state_command(State::URSALUNA_ON, [this](){
         m_stream.log("Switching from Ursaluna (on) to Braviary (on)...");
         m_active_command->dispatch([](ProControllerContext& context){
-            pbf_press_dpad(context, DPAD_RIGHT, 20, 50);
-            pbf_press_dpad(context, DPAD_RIGHT, 20, GET_ON_BRAVIARY_TIME);
+            pbf_press_dpad(context, DPAD_RIGHT, 160ms, 400ms);
+            pbf_press_dpad(context, DPAD_RIGHT, 160ms, GET_ON_BRAVIARY_TIME);
         });
         return false;
     });
     register_state_command(State::SNEASLER_OFF, [this](){
         m_stream.log("Switching from Sneasler (off) to Braviary (on)...");
         m_active_command->dispatch([](ProControllerContext& context){
-            pbf_press_dpad(context, DPAD_LEFT, 20, 50);
-            pbf_press_button(context, BUTTON_PLUS, 20, GET_ON_BRAVIARY_TIME);
+            pbf_press_dpad(context, DPAD_LEFT, 160ms, 400ms);
+            pbf_press_button(context, BUTTON_PLUS, 160ms, GET_ON_BRAVIARY_TIME);
         });
         return false;
     });
     register_state_command(State::SNEASLER_ON, [this](){
         m_stream.log("Switching from Sneasler (on) to Braviary (on)...");
         m_active_command->dispatch([](ProControllerContext& context){
-            pbf_move_left_joystick(context, 128, 0, 125, 0);
-            pbf_press_dpad(context, DPAD_LEFT, 20, GET_ON_BRAVIARY_TIME);
+            pbf_move_left_joystick(context, {0, +1}, 1000ms, 0ms);
+            pbf_press_dpad(context, DPAD_LEFT, 160ms, GET_ON_BRAVIARY_TIME);
         });
         return false;
     });
     register_state_command(State::BRAVIARY_OFF, [this](){
         m_stream.log("Switching from Braviary (off) to Braviary (on)...");
         m_active_command->dispatch([](ProControllerContext& context){
-            pbf_press_button(context, BUTTON_PLUS, 20, GET_ON_BRAVIARY_TIME);
+            pbf_press_button(context, BUTTON_PLUS, 160ms, GET_ON_BRAVIARY_TIME);
         });
         return false;
     });
-    register_state_command(State::DASH_FORWARD, [this, GET_ON_BRAVIARY_TIME_MILLIS](){
+    register_state_command(State::DASH_FORWARD, [this](){
         bool delay_dash =
-            current_time() < m_get_on_sneasler_time + GET_ON_BRAVIARY_TIME_MILLIS;
+            current_time() < m_get_on_sneasler_time + GET_ON_BRAVIARY_TIME;
         if (delay_dash){
             m_stream.log("Dashing forward... (delayed due to being on Sneasler)");
         }else{
@@ -121,16 +123,16 @@ EscapeFromAttack::EscapeFromAttack(
         }
         m_active_command->dispatch([delay_dash](ProControllerContext& context){
             if (delay_dash){
-                pbf_move_left_joystick(context, 128, 0, 125, 0);
+                pbf_move_left_joystick(context, {0, +1}, 1000ms, 0ms);
             }
-            pbf_mash_button(context, BUTTON_B, 300 * TICKS_PER_SECOND);
+            pbf_mash_button(context, BUTTON_B, 300000ms);
         });
         return false;
     });
     register_state_command(State::GET_ON_SNEASLER, [this](){
         m_stream.log("Getting on Sneasler...");
         m_active_command->dispatch([](ProControllerContext& context){
-            pbf_press_button(context, BUTTON_A, 20, 230);
+            pbf_press_button(context, BUTTON_A, 160ms, 1840ms);
         });
         m_get_on_sneasler_time = current_time();
         return false;
@@ -138,7 +140,7 @@ EscapeFromAttack::EscapeFromAttack(
     register_state_command(State::CLIMBING, [this](){
         m_stream.log("Climbing wall...");
         m_active_command->dispatch([](ProControllerContext& context){
-            pbf_move_left_joystick(context, 128, 0, 300 * TICKS_PER_SECOND, 0);
+            pbf_move_left_joystick(context, {0, +1}, 300000ms, 0ms);
         });
         return false;
     });

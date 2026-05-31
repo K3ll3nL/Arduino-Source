@@ -12,7 +12,6 @@
 #include <QObject>
 #include <QAudioFormat>
 #include <QFile>
-#include <QThread>
 
 class QAudioBuffer;
 class QAudioDecoder;
@@ -44,7 +43,11 @@ class AudioFileLoader: public QObject{
     Q_OBJECT
 
 public:
-    AudioFileLoader(QObject* parent, const std::string& filename, const QAudioFormat& audioFormat);
+    AudioFileLoader(
+        QObject* parent,
+        const std::string& filename,
+        const QAudioFormat& audioFormat
+    );
     virtual ~AudioFileLoader();
 
     // Start loading and decoding audio samples.
@@ -94,7 +97,7 @@ private:
     QAudioFormat m_audioFormat;
 
     AudioDecoderWorker* m_audioDecoderWorker = nullptr;
-    QThread m_audioDecoderThread;
+//    QThread m_audioDecoderThread;
 
     WavFile* m_wavFile = nullptr;
 
@@ -124,17 +127,26 @@ private:
 
 // Used to run QAudioDecoder and collect decoded results
 class AudioDecoderWorker: public QObject{
-Q_OBJECT
+    Q_OBJECT
 
 public:
-    AudioDecoderWorker(QObject* parent, const std::string& filename, const QAudioFormat& audioFormat, std::vector<char>& decodedBuffer);
+    AudioDecoderWorker(
+        QObject* parent,
+        const std::string& filename,
+        const QAudioFormat& audioFormat,
+        std::vector<char>& decodedBuffer
+    );
     virtual ~AudioDecoderWorker();
 
-    void start();
+    void start(){
+        QMetaObject::invokeMethod(this, &AudioDecoderWorker::internal_start);
+    }
 
-    bool startSucceeded() { return m_startSucceeded; }
+    bool startSucceeded(){ return m_startSucceeded; }
 
-    void stop();
+    void stop(){
+        QMetaObject::invokeMethod(this, &AudioDecoderWorker::internal_stop);
+    }
 
 signals:
     void errored();
@@ -142,6 +154,9 @@ signals:
     void finished();
 
 public slots:
+    void internal_start();
+    void internal_stop();
+
     // Read decoded buffer sent from m_audioDecoder and store it into m_decodedBuffer.
     void readAudioDecoderBuffer();
 

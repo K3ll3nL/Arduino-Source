@@ -103,7 +103,7 @@ void checkpoint_01(
         // set settings
         enter_menu_from_overworld(env.program_info(), env.console, context, 0, MenuSide::RIGHT, false);
         change_settings(env, context, language, attempt_number==0);
-        pbf_mash_button(context, BUTTON_B, 2 * TICKS_PER_SECOND);
+        pbf_mash_button(context, BUTTON_B, 2000ms);
         context.wait_for_all_requests();
 
     });
@@ -121,17 +121,17 @@ void checkpoint_02(
         context.wait_for_all_requests();
         env.console.log("Go downstairs, get stopped by Skwovet");
         env.console.overlay().add_log("Go downstairs, get stopped by Skwovet", COLOR_WHITE);
-        pbf_move_left_joystick(context, 128,   0, 3 * TICKS_PER_SECOND, 20);
-        pbf_move_left_joystick(context,   0, 128, 3 * TICKS_PER_SECOND, 20);
-        pbf_move_left_joystick(context, 128, 255, 3 * TICKS_PER_SECOND, 20);
-        pbf_wait(context, 5 * TICKS_PER_SECOND);
+        pbf_move_left_joystick(context, {0, +1}, 3000ms, 160ms);
+        pbf_move_left_joystick(context, {-1, 0}, 3000ms, 160ms);
+        pbf_move_left_joystick(context, {0, -1}, 3000ms, 160ms);
+        pbf_wait(context, 5000ms);
         // clear_dialog(env.console, context, ClearDialogMode::STOP_TIMEOUT, 5, {});
 
         context.wait_for_all_requests();
         env.console.log("Go to the kitchen, talk with mom");
         env.console.overlay().add_log("Go to the kitchen, talk with mom", COLOR_WHITE);
-        pbf_move_left_joystick(context, 128, 255, 2 * TICKS_PER_SECOND, 20);
-        overworld_navigation(env.program_info(), env.console, context, NavigationStopCondition::STOP_DIALOG, NavigationMovementMode::DIRECTIONAL_ONLY, 0, 128);
+        pbf_move_left_joystick(context, {0, -1}, 2000ms, 160ms);
+        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_ONLY, 60000ms, -1, 0);
 
         env.console.log("clear_dialog: Talk with Mom.");
         clear_dialog(env.console, context, ClearDialogMode::STOP_TIMEOUT, 5, {});
@@ -139,8 +139,8 @@ void checkpoint_02(
         context.wait_for_all_requests();
         env.console.log("Go to the front door, talk with Clavell");
         env.console.overlay().add_log("Go to the front door, talk with Clavell", COLOR_WHITE);
-        pbf_move_left_joystick(context, 230, 200, 2 * TICKS_PER_SECOND, 20);
-        overworld_navigation(env.program_info(), env.console, context, NavigationStopCondition::STOP_DIALOG, NavigationMovementMode::DIRECTIONAL_ONLY, 255, 128);
+        pbf_move_left_joystick(context, {+0.803, -0.567}, 2000ms, 160ms);
+        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_ONLY, 60000ms, +1, 0);
         
         env.console.log("clear_dialog: Talk with Clavell at front door.");
         clear_dialog(env.console, context, ClearDialogMode::STOP_TIMEOUT, 5, {});
@@ -148,21 +148,21 @@ void checkpoint_02(
         context.wait_for_all_requests();
         env.console.log("Go upstairs, dress up");
         env.console.overlay().add_log("Go upstairs, dress up", COLOR_WHITE);
-        pbf_move_left_joystick(context, 255, 128, 2 * TICKS_PER_SECOND, 20);
-        pbf_move_left_joystick(context, 185,  10, 1 * TICKS_PER_SECOND, 20);
-        pbf_move_left_joystick(context, 128,   0, 4 * TICKS_PER_SECOND, 20);
-        pbf_move_left_joystick(context, 255, 128, 4 * TICKS_PER_SECOND, 20);
-        pbf_move_left_joystick(context, 110, 200, 3 * TICKS_PER_SECOND, 20);
-        pbf_move_left_joystick(context, 255, 128, 2 * TICKS_PER_SECOND, 20);
-        pbf_mash_button(context, BUTTON_A, 20 * TICKS_PER_SECOND);
+        pbf_move_left_joystick(context, {+1, 0}, 2000ms, 160ms);
+        pbf_move_left_joystick(context, {+0.449, +0.922}, 1000ms, 160ms);
+        pbf_move_left_joystick(context, {0, +1}, 4000ms, 160ms);
+        pbf_move_left_joystick(context, {+1, 0}, 4000ms, 160ms);
+        pbf_move_left_joystick(context, {-0.141, -0.567}, 3000ms, 160ms);
+        pbf_move_left_joystick(context, {+1, 0}, 2000ms, 160ms);
+        pbf_mash_button(context, BUTTON_A, 20000ms);
 
         context.wait_for_all_requests();
         env.console.log("Go to the living room, talk with Clavell");
         env.console.overlay().add_log("Go to the living room, talk with Clavell", COLOR_WHITE);
-        pbf_move_left_joystick(context,   0,   0, 3 * TICKS_PER_SECOND, 20);
-        pbf_move_left_joystick(context,   0, 128, 3 * TICKS_PER_SECOND, 20);
-        pbf_move_left_joystick(context, 128, 255, 4 * TICKS_PER_SECOND, 20);
-        overworld_navigation(env.program_info(), env.console, context, NavigationStopCondition::STOP_DIALOG, NavigationMovementMode::DIRECTIONAL_ONLY, 0, 128);
+        pbf_move_left_joystick(context, {-1, +1}, 3000ms, 160ms);
+        pbf_move_left_joystick(context, {-1, 0}, 3000ms, 160ms);
+        pbf_move_left_joystick(context, {0, -1}, 4000ms, 160ms);
+        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_ONLY, 60000ms, -1, 0);
         
         env.console.log("clear_dialog: Talk with Clavell at living room.");
         clear_dialog(env.console, context, ClearDialogMode::STOP_TIMEOUT, 10, {});
@@ -170,7 +170,7 @@ void checkpoint_02(
         context.wait_for_all_requests();
         env.console.log("Go outside, receive Rotom Phone");
         env.console.overlay().add_log("Go outside, receive Rotom Phone", COLOR_WHITE);
-        overworld_navigation(env.program_info(), env.console, context, NavigationStopCondition::STOP_DIALOG, NavigationMovementMode::DIRECTIONAL_ONLY, 245, 230);
+        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_ONLY, 60000ms, +0.921, -0.803);
 
         env.console.log("clear_dialog: Talk with Clavell outside. Receive Rotom phone. Stop when detect overworld.");
         clear_dialog(env.console, context, ClearDialogMode::STOP_OVERWORLD, 60, {CallbackEnum::OVERWORLD, CallbackEnum::WHITE_A_BUTTON});
@@ -197,11 +197,11 @@ void checkpoint_03(
         context.wait_for_all_requests();
         DirectionDetector direction;
         direction.change_direction(env.program_info(), env.console, context, 4.62);
-        pbf_move_left_joystick(context, 128, 0, 3600, 50);
-        pbf_move_left_joystick(context, 0, 128, 30, 50);
+        pbf_move_left_joystick(context, {0, +1}, 28800ms, 400ms);
+        pbf_move_left_joystick(context, {-1, 0}, 240ms, 400ms);
 
         direction.change_direction(env.program_info(), env.console, context, 4.62);
-        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_ONLY, 20);
+        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_ONLY, 20000ms);
         
         context.wait_for_all_requests();
         env.console.log("Entered Nemona's house");
@@ -211,26 +211,26 @@ void checkpoint_03(
         switch(starter_choice){
         case StarterChoice::SPRIGATITO:
             env.console.log("Picking Sprigatito...");
-            pbf_move_left_joystick(context, 75, 0, 80, 20);
+            pbf_move_left_joystick(context, {-0.414, +1}, 640ms, 160ms);
             break;
         case StarterChoice::FUECOCO:
             env.console.log("Picking Fuecoco...");
-            pbf_move_left_joystick(context, 180, 0, 80, 20);
+            pbf_move_left_joystick(context, {+0.409, +1}, 640ms, 160ms);
             break;
         case StarterChoice::QUAXLY:
             env.console.log("Picking Quaxly...");
-            pbf_move_left_joystick(context, 128, 0, 80, 20);
+            pbf_move_left_joystick(context, {0, +1}, 640ms, 160ms);
             break;
         }
-        pbf_press_button(context, BUTTON_A, 20, 105); // choose the starter
+        pbf_press_button(context, BUTTON_A, 160ms, 840ms); // choose the starter
         env.console.log("clear_dialog: Choose starter. Stop when detect prompt to receive starter.");
         clear_dialog(env.console, context, ClearDialogMode::STOP_PROMPT, 20, {CallbackEnum::PROMPT_DIALOG});
 
-        pbf_press_button(context, BUTTON_A, 20, 105); // accept the pokemon
+        pbf_press_button(context, BUTTON_A, 160ms, 840ms); // accept the pokemon
         env.console.log("clear_dialog: Stop when detect prompt to give nickname to starter.");
         clear_dialog(env.console, context, ClearDialogMode::STOP_PROMPT, 20, {CallbackEnum::PROMPT_DIALOG});
 
-        pbf_mash_button(context, BUTTON_B, 100);  // Don't give a nickname
+        pbf_mash_button(context, BUTTON_B, 800ms);  // Don't give a nickname
         env.console.log("clear_dialog: Talk to Nemona and Clavell. Stop when detect overworld.");
         clear_dialog(env.console, context, ClearDialogMode::STOP_OVERWORLD, 20, {CallbackEnum::OVERWORLD});
         
@@ -242,7 +242,7 @@ void checkpoint_03(
             env.console, context,
             [](ProControllerContext& context){
                 for (int i = 0; i < 10; i++){
-                    pbf_press_button(context, BUTTON_X, 20, 250);
+                    pbf_press_button(context, BUTTON_X, 160ms, 2000ms);
                 }
             },
             {tutorial}
@@ -260,8 +260,7 @@ void checkpoint_03(
         swap_starter_moves(env, context, language);
         press_Bs_to_back_to_overworld(env.program_info(), env.console, context);
 
-    }
-    );
+    }, false);
      
 }
 

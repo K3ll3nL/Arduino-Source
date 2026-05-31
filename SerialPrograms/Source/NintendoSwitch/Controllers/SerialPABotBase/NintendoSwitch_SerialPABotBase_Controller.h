@@ -1,4 +1,4 @@
-/*  SerialPABotBase: Pro Controller
+/*  SerialPABotBase: Controller
  *
  *  From: https://github.com/PokemonAutomation/
  *
@@ -23,30 +23,21 @@ public:
         SerialPABotBase::SerialPABotBase_Connection& connection
     );
 
-    void stop_with_error(std::string error_message){
-        {
-            WriteSpinLock lg(m_error_lock);
-            m_error_string = error_message;
-        }
-        m_serial->stop(std::move(error_message));
+    uint32_t protocol_version() const{
+        return m_handle.protocol_version();
     }
 
-    bool is_ready() const{
-        return m_serial
-            && m_serial->state() == BotBaseController::State::RUNNING
-            && m_handle.is_ready();
-    }
-    std::string error_string() const{
-        ReadSpinLock lg(m_error_lock);
-        return m_error_string;
-    }
+    void stop_with_error(std::string error_message) noexcept;
+
+    bool is_ready() const;
+    std::string error_string() const;
 
 
 public:
     void cancel_all_commands();
     void replace_on_next_command();
 
-    void wait_for_all(const Cancellable* cancellable);
+    void wait_for_all(Cancellable* cancellable);
 
 
 protected:

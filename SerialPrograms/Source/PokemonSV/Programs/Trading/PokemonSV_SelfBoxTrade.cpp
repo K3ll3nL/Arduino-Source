@@ -6,6 +6,7 @@
 
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 //#include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 //#include "PokemonSV/PokemonSV_Settings.h"
 #include "PokemonSV_TradeRoutines.h"
@@ -71,6 +72,11 @@ void SelfBoxTrade::program(MultiSwitchProgramEnvironment& env, CancellableScope&
     TradeStats& stats = env.current_stats<TradeStats>();
     env.update_stats();
 
+    //  Connect the controller.
+    env.run_in_parallel(scope, [](ConsoleHandle& console, ProControllerContext& context){
+        require_player(console, context, BUTTON_LCLICK);
+    });
+
     uint8_t start_row = START_ROW - 1;
     uint8_t start_col = START_COL - 1;
 
@@ -78,10 +84,10 @@ void SelfBoxTrade::program(MultiSwitchProgramEnvironment& env, CancellableScope&
         if (box != 0){
             env.run_in_parallel(scope, [](ConsoleHandle& console, ProControllerContext& context){
                 move_to_right_box(context);
-//                pbf_press_dpad(context, DPAD_RIGHT, 20, 30);
-//                pbf_press_dpad(context, DPAD_DOWN, 20, 30);
-//                pbf_press_dpad(context, DPAD_DOWN, 20, 30);
-//                pbf_press_dpad(context, DPAD_DOWN, 20, 30);
+//                pbf_press_dpad(context, DPAD_RIGHT, 160ms, 240ms);
+//                pbf_press_dpad(context, DPAD_DOWN, 160ms, 240ms);
+//                pbf_press_dpad(context, DPAD_DOWN, 160ms, 240ms);
+//                pbf_press_dpad(context, DPAD_DOWN, 160ms, 240ms);
             });
         }
         trade_current_box(env, scope, NOTIFICATION_STATUS_UPDATE, stats, start_row, start_col);

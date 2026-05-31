@@ -14,6 +14,7 @@
 #include "CommonFramework/VideoPipeline/VideoOverlay.h"
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "NintendoSwitch/NintendoSwitch_Settings.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Notification.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSwSh/Commands/PokemonSwSh_Commands_DateSpam.h"
@@ -200,9 +201,15 @@ void EggAutonomous::program(SingleSwitchProgramEnvironment& env, ProControllerCo
 
     if (START_LOCATION.start_in_grip_menu()){
         grip_menu_connect_go_home(context);
-        resume_game_back_out(env.console, context, ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST, 400);
+        resume_game_back_out(
+            env.console,
+            context,
+            ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST,
+            3200ms
+        );
     }else{
-        pbf_press_button(context, BUTTON_B, 5, 5);
+        //  Connect the controller.
+        require_player(env.console, context, BUTTON_B);
     }
 
     if (DEBUG_PROCESSING_HATCHED){ // only for debugging
@@ -250,7 +257,7 @@ void EggAutonomous::program(SingleSwitchProgramEnvironment& env, ProControllerCo
             
             if (SAVE_DEBUG_VIDEO){
                 // Take a video to give more context for debugging
-                pbf_press_button(context, BUTTON_CAPTURE, 2 * TICKS_PER_SECOND, 2 * TICKS_PER_SECOND);
+                pbf_press_button(context, BUTTON_CAPTURE, 2000ms, 2000ms);
                 context.wait_for_all_requests();
             }
 
@@ -313,7 +320,7 @@ bool EggAutonomous::run_batch(
     while (num_eggs_hatched < 5 || m_num_eggs_retrieved < 5){
         // Detect when Y-Comm icon disappears. This is the time an egg is hatching
         const bool y_comm_visible_when_egg_hatching = false;
-        YCommIconDetector egg_hatching_detector(y_comm_visible_when_egg_hatching);
+        YCommIconWatcher egg_hatching_detector(COLOR_RED, y_comm_visible_when_egg_hatching);
 
         bool restart_bike_loop = false;
         for (size_t i_bike_loop = 0; i_bike_loop < this->LOOPS_PER_FETCH && bike_loop_count < MAX_BIKE_LOOP_COUNT;){
@@ -356,7 +363,7 @@ bool EggAutonomous::run_batch(
                     [](ProControllerContext& context){
                         // Try move a little to hatch more:
                         // We move toward lower-left so that it wont hit the lady or enter the Nursory.
-                        pbf_move_left_joystick(context, 0, 255, 100, 10);
+                        pbf_move_left_joystick(context, {-1, -1}, 800ms, 80ms);
                     },
                     {{egg_hatching_detector}}
                 );
@@ -463,11 +470,13 @@ void EggAutonomous::call_flying_taxi(
     bool fly_from_overworld
 ){
     context.wait_for_all_requests();
-    env.log("Fly to reset position");
     env.console.overlay().add_log("Call Flying Taxi", COLOR_WHITE);
     if (fly_from_overworld){
         // Open menu
+        env.log("Fly from overworld to reset position");
         ssf_press_button(context, BUTTON_X, GameSettings::instance().OVERWORLD_TO_MENU_DELAY0, 160ms);
+    }else{
+        env.log("Fly from menu to reset position");
     }
 
     navigate_to_menu_app(env, env.console, context, TOWN_MAP_APP_INDEX, NOTIFICATION_ERROR_RECOVERABLE);
@@ -484,11 +493,11 @@ void EggAutonomous::wait_for_egg_hatched(
 ){
     env.console.overlay().add_log("Egg hatching " + std::to_string(num_hatched_eggs) + "/5", COLOR_GREEN);
     const bool y_comm_visible_at_end_of_egg_hatching = true;
-    YCommIconDetector end_egg_hatching_detector(y_comm_visible_at_end_of_egg_hatching);
+    YCommIconWatcher end_egg_hatching_detector(COLOR_RED, y_comm_visible_at_end_of_egg_hatching);
     const int ret = run_until<ProControllerContext>(
         env.console, context,
         [](ProControllerContext& context){
-            pbf_mash_button(context, BUTTON_B, 60 * TICKS_PER_SECOND);
+            pbf_mash_button(context, BUTTON_B, 60000ms);
         },
         {{end_egg_hatching_detector}}
     );
@@ -518,9 +527,9 @@ size_t EggAutonomous::talk_to_lady_to_fetch_egg(
         env.console, context,
         [](ProControllerContext& context){
             for (size_t i_hatched = 0; i_hatched < 2; i_hatched++){
-                pbf_press_button(context, BUTTON_A, 20, 150);
+                pbf_press_button(context, BUTTON_A, 160ms, 1200ms);
             }
-            pbf_wait(context, 200);
+            pbf_wait(context, 1600ms);
         },
         {
             egg_arrow_detector,
@@ -529,7 +538,7 @@ size_t EggAutonomous::talk_to_lady_to_fetch_egg(
     );
     
     const bool y_comm_visible_at_end_of_dialog = true;
-    YCommIconDetector dialog_over_detector(y_comm_visible_at_end_of_dialog);
+    YCommIconWatcher dialog_over_detector(COLOR_RED, y_comm_visible_at_end_of_dialog);
     switch (ret){
     case 0:
         ++num_eggs_retrieved;
@@ -628,7 +637,7 @@ bool EggAutonomous::process_hatched_pokemon(
         BoxNatureDetector nature_detector(env.console.overlay());
 
         for (size_t i_hatched = 0; i_hatched < 5; i_hatched++){
-            pbf_wait(context, 50); // wait for a while to make sure the pokemon stats are loaded.
+            pbf_wait(context, 400ms); // wait for a while to make sure the pokemon stats are loaded.
             context.wait_for_all_requests();
             auto screen = env.console.video().snapshot();
 
@@ -734,7 +743,7 @@ bool EggAutonomous::process_hatched_pokemon(
                 // pbf_mash_button(context, BUTTON_A, 180);
 
                 // Press A to open pokemon menu
-                pbf_press_button(context, BUTTON_A, 20, 50);
+                pbf_press_button(context, BUTTON_A, 160ms, 400ms);
                 context.wait_for_all_requests();
                 StoragePokemonMenuArrowFinder pokemon_menu_detector(env.console.overlay());
                 int ret = wait_until(
@@ -755,15 +764,15 @@ bool EggAutonomous::process_hatched_pokemon(
                 dialog_detector.make_overlays(dialog_overlay_set);
 
                 // Move cursor upward two times to point to "Release" menu item
-                pbf_press_dpad(context, DPAD_UP, 20, 20);
-                pbf_press_dpad(context, DPAD_UP, 20, 20);
+                pbf_press_dpad(context, DPAD_UP, 160ms, 160ms);
+                pbf_press_dpad(context, DPAD_UP, 160ms, 160ms);
 
                 // Press A to release
-                pbf_press_button(context, BUTTON_A, 20, 105);
+                pbf_press_button(context, BUTTON_A, 160ms, 840ms);
                 // Move cursor from "Not release" to "release".
-                pbf_press_dpad(context, DPAD_UP, 20, 30);
+                pbf_press_dpad(context, DPAD_UP, 160ms, 240ms);
                 // Press A to confirm release, wait for a while to let the next dialog box pop up.
-                pbf_press_button(context, BUTTON_A, 20, 200);
+                pbf_press_button(context, BUTTON_A, 160ms, 1600ms);
 
                 context.wait_for_all_requests();
                 ret = wait_until(
@@ -777,7 +786,7 @@ bool EggAutonomous::process_hatched_pokemon(
                         env.console
                     );
                 }
-                pbf_press_button(context, BUTTON_A, 20, 100);
+                pbf_press_button(context, BUTTON_A, 160ms, 800ms);
                 
                 size_t dialog_count = 0;
                 const size_t max_dialog_count = 6;
@@ -786,7 +795,7 @@ bool EggAutonomous::process_hatched_pokemon(
                     if (!dialog_detector.process_frame(env.console.video().snapshot(), current_time())){
                         break;
                     }
-                    pbf_press_button(context, BUTTON_A, 20, 100);
+                    pbf_press_button(context, BUTTON_A, 160ms, 800ms);
                 }
                 if (dialog_count == max_dialog_count){
                     OperationFailedException::fire(
@@ -837,7 +846,7 @@ bool EggAutonomous::process_hatched_pokemon(
     }else{
         // Leave menu, go back to overworld
         const bool y_comm_visible = true;
-        YCommIconDetector y_comm_detector(y_comm_visible);
+        YCommIconWatcher y_comm_detector(COLOR_RED, y_comm_visible);
         const int ret = run_until<ProControllerContext>(
             env.console, context,
             [](ProControllerContext& context){
@@ -864,7 +873,7 @@ void EggAutonomous::mash_B_until_y_comm_icon(
 ){
     context.wait_for_all_requests();
     const bool y_comm_visible = true;
-    YCommIconDetector y_comm_detector(y_comm_visible);
+    YCommIconWatcher y_comm_detector(COLOR_RED, y_comm_visible);
     int ret = run_until<ProControllerContext>(
         env.console, context,
         [](ProControllerContext& context){

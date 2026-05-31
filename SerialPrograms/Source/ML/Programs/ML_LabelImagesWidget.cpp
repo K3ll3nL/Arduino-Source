@@ -17,6 +17,7 @@
 #include <QKeyEvent>
 #include <QWidget>
 
+#include "Common/Cpp/Filesystem.h"
 #include "Common/Qt/Options/ConfigWidget.h"
 #include "Common/Qt/CollapsibleGroupBox.h"
 
@@ -95,6 +96,9 @@ LabelImages_Widget::LabelImages_Widget(
     QPushButton* next_anno_button = new QPushButton("Next Annotation", scroll_inner);
     button_row->addWidget(next_anno_button, 1);
 
+    m_hide_annotation_button = new QPushButton("Hide Annotation", scroll_inner);
+    button_row->addWidget(m_hide_annotation_button, 1);
+
     QPushButton* save_anno_button = new QPushButton("Save Annotation", scroll_inner);
     button_row->addWidget(save_anno_button, 1);
 
@@ -112,18 +116,41 @@ LabelImages_Widget::LabelImages_Widget(
     scroll_layout->addLayout(annotation_row);
 
     // add a dropdown menu for user to pick whether to choose from pokemon form label or custom label
-    ConfigWidget* label_type_widget = program.LABEL_TYPE.make_QtWidget(*scroll_inner);
+    ConfigWidget* label_type_widget = ConfigWidget::make_from_option(program.LABEL_TYPE, scroll_inner);
     annotation_row->addWidget(&label_type_widget->widget(), 0);
 
-    ConfigWidget* pokemon_label_widget = program.FORM_LABEL.make_QtWidget(*scroll_inner);
+    ConfigWidget* pokemon_label_widget = ConfigWidget::make_from_option(program.FORM_LABEL, scroll_inner);
     annotation_row->addWidget(&pokemon_label_widget->widget(), 2);
-    ConfigWidget* custom_label_widget = program.CUSTOM_SET_LABEL.make_QtWidget(*scroll_inner);
+    ConfigWidget* custom_label_widget = ConfigWidget::make_from_option(program.CUSTOM_SET_LABEL, scroll_inner);
     annotation_row->addWidget(&custom_label_widget->widget(), 2);
-    ConfigWidget* manual_input_label_widget = program.MANUAL_LABEL.make_QtWidget(*scroll_inner);
+    ConfigWidget* manual_input_label_widget = ConfigWidget::make_from_option(program.MANUAL_LABEL, scroll_inner);
     annotation_row->addWidget(&manual_input_label_widget->widget(), 2);
     QPushButton* load_custom_set_button = new QPushButton("Load Custom Set", scroll_inner);
     annotation_row->addWidget(load_custom_set_button, 2);
     annotation_row->addWidget(new QLabel(scroll_inner), 10); // an empty label to push other UIs to the left
+
+    // add GPU checkbox row
+    QHBoxLayout* use_gpu_row = new QHBoxLayout();
+    scroll_layout->addLayout(use_gpu_row);
+
+    ConfigWidget* gpu_checkbox_widget = ConfigWidget::make_from_option(program.USE_GPU_FOR_EMBEDDER_SESSION, scroll_inner);
+    use_gpu_row->addWidget(&gpu_checkbox_widget->widget(), 2);    
+
+    // add Color selection dropdown
+    QHBoxLayout* selected_color_choice_row = new QHBoxLayout();
+    scroll_layout->addLayout(selected_color_choice_row);
+    ConfigWidget* selected_color_choice_widget = ConfigWidget::make_from_option(program.SELECTED_ANNO_COLOR, scroll_inner);
+    selected_color_choice_row->addWidget(&selected_color_choice_widget->widget(), 2); 
+
+    QHBoxLayout* unselected_color_choice_row = new QHBoxLayout();
+    scroll_layout->addLayout(unselected_color_choice_row);
+    ConfigWidget* unselected_color_choice_widget = ConfigWidget::make_from_option(program.UNSELECTED_ANNO_COLOR, scroll_inner);
+    unselected_color_choice_row->addWidget(&unselected_color_choice_widget->widget(), 2); 
+
+    QHBoxLayout* current_drawn_box_row = new QHBoxLayout();
+    scroll_layout->addLayout(current_drawn_box_row);
+    ConfigWidget* current_drawn_box_widget = ConfigWidget::make_from_option(program.CURRENT_DRAWN_BOX, scroll_inner);
+    current_drawn_box_row->addWidget(&current_drawn_box_widget->widget(), 2); 
 
     // add compute embedding button
 
@@ -147,12 +174,18 @@ LabelImages_Widget::LabelImages_Widget(
     connect(next_anno_button, &QPushButton::clicked, this, [this](bool){
         this->m_program.select_next_annotation();
     });
+    connect(m_hide_annotation_button, &QPushButton::clicked, this, [this](bool){
+        m_program.m_annotations_hidden = !m_program.m_annotations_hidden;
+        if (m_program.m_annotations_hidden){
+            m_hide_annotation_button->setText("Show Annotation");
+        }else{
+            m_hide_annotation_button->setText("Hide Annotation");
+        }
+        m_program.update_rendered_objects();
+    });
     connect(open_anno_folder_button, &QPushButton::clicked, this, [this](bool){
         this->m_program.save_annotation_to_file();
 
-        // ensure the folder exists
-        // std::filesystem::create_directory(ML_ANNOTATION_PATH());
-        // QDesktopServices::openUrl(QUrl(QString::fromStdString("file:///" + ML_ANNOTATION_PATH())));
         QDesktopServices::openUrl(QUrl(QString::fromStdString("file:///" + m_image_display_widget->image_folder_path())));
     });
     connect(save_anno_button, &QPushButton::clicked, this, [this](bool){
@@ -163,7 +196,7 @@ LabelImages_Widget::LabelImages_Widget(
         const std::string& last_loaded_file_path = m_program.m_custom_label_set_file_path;
         std::string starting_dir = ".";
         if (last_loaded_file_path.size() > 0){
-            starting_dir = std::filesystem::path(last_loaded_file_path).parent_path().string();
+            starting_dir = Filesystem::Path(last_loaded_file_path).parent_path().string();
         }
         const std::string path = QFileDialog::getOpenFileName(
             nullptr, "Open JSON File", QString::fromStdString(starting_dir), "*.json"
@@ -196,7 +229,7 @@ LabelImages_Widget::LabelImages_Widget(
         const std::string& last_loaded_file_path = m_program.m_yolo_config_file_path;
         std::string starting_dir = ".";
         if (last_loaded_file_path.size() > 0){
-            starting_dir = std::filesystem::path(last_loaded_file_path).parent_path().string();
+            starting_dir = Filesystem::Path(last_loaded_file_path).parent_path().string();
         }
         const std::string ds_config_path = QFileDialog::getOpenFileName(
             nullptr, "Open YOLOv5 Dataset Config YAML File", QString::fromStdString(starting_dir), "*.yaml"
@@ -230,8 +263,8 @@ void LabelImages_Widget::post_startup(VideoSource* source){
     }
 
     const std::string embedding_path = image_path + ".embedding";
-    const std::string embedding_path_display = "<IMAGE_FOLDER>/" + std::filesystem::path(embedding_path).filename().string();
-    if (!std::filesystem::exists(embedding_path)){
+    const std::string embedding_path_display = "<IMAGE_FOLDER>/" + Filesystem::Path(embedding_path).filename().string();
+    if (!Filesystem::exists(embedding_path)){
         m_embedding_info_label->setText(QString::fromStdString(embedding_path_display + " Dose Not Exist. Cannot Annotate The Image!"));
         m_embedding_info_label->setStyleSheet("color: red");
         return;
@@ -346,7 +379,7 @@ void LabelImages_Widget::on_mouse_release(double x, double y){
         } else if (m_shift_pressed){
             // cout << "Shift pressed while at " << x << " " << y << endl;
             m_program.add_segmentation_exclusion_point(x, y);
-        } else{
+        }else{
             // normal mouse clicking
             // change currently selected annotation
             // also change the option values in the UI

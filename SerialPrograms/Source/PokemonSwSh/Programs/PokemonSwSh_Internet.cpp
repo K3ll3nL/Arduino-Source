@@ -28,7 +28,7 @@ bool connect_to_internet_with_inference(
     bool ok = true;
 //    cout << "Waiting for Y-COMM to open..." << endl;
     for (size_t attempts = 0;;){
-        YCommMenuDetector detector(true);
+        YCommMenuWatcher detector(true);
         if (detector.detect(stream.video().snapshot())){
             stream.log("Y-COMM detected.");
             break;
@@ -61,15 +61,15 @@ bool connect_to_internet_with_inference(
 
     //  Connect to internet.
     context.wait_for(std::chrono::seconds(1));
-    pbf_press_dpad(context, DPAD_UP, 5, 0);
-    pbf_move_right_joystick(context, 128, 0, 5, 0);
-    pbf_mash_button(context, BUTTON_PLUS, TICKS_PER_SECOND);
+    pbf_press_dpad(context, DPAD_UP, 40ms, 0ms);
+    pbf_move_right_joystick(context, {0, +1}, 40ms, 0ms);
+    pbf_mash_button(context, BUTTON_PLUS, 1000ms);
     context.wait_for_all_requests();
 
 //    cout << "Waiting for Y-COMM to close..." << endl;
     //  Mash B until you leave Y-COMM.
     {
-        YCommMenuDetector detector(false);
+        YCommMenuWatcher detector(false);
         int result = run_until<ProControllerContext>(
             stream, context,
             [&](ProControllerContext& context){

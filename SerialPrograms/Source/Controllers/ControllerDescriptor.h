@@ -11,7 +11,7 @@
 #include <string>
 #include <memory>
 #include <map>
-#include "Common/Cpp/AbstractLogger.h"
+#include "Common/Cpp/Logging/AbstractLogger.h"
 //#include "Common/Cpp/Json/JsonObject.h"
 #include "ControllerTypes.h"
 #include "Controller.h"
@@ -119,8 +119,7 @@ public:
     virtual std::unique_ptr<AbstractController> make_controller(
         Logger& logger,
         ControllerConnection& connection,
-        ControllerType controller_type,
-        ControllerResetMode reset_mode
+        ControllerType controller_type
     ) const = 0;
 
     virtual QWidget* make_selector_QtWidget(ControllerSelectorWidget& parent) const = 0;

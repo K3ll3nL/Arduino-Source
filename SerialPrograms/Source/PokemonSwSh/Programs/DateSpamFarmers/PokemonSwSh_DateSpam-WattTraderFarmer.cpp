@@ -10,6 +10,7 @@
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSwSh/PokemonSwSh_Settings.h"
 #include "PokemonSwSh/Commands/PokemonSwSh_Commands_DateSpam.h"
@@ -102,7 +103,7 @@ void WattTraderFarmer::buy_one(SingleSwitchProgramEnvironment& env, ProControlle
 
     bool purchased = false;
     while (true){
-        DialogTriangleDetector dialog(env.logger(), env.console, true);
+        DialogTriangleWatcher dialog;
         BuyCursorDetector item_select(env.console);
         BuyQuantityDetector quantity;
         context.wait_for_all_requests();
@@ -158,6 +159,9 @@ void WattTraderFarmer::buy_one(SingleSwitchProgramEnvironment& env, ProControlle
 void WattTraderFarmer::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     WattTraderFarmer_Descriptor::Stats& stats = env.current_stats<WattTraderFarmer_Descriptor::Stats>();
 
+    //  Connect the controller.
+    require_player(env.console, context, BUTTON_B);
+
     uint8_t year = MAX_YEAR;
     while (true){
         pbf_press_button(context, BUTTON_A, 200ms, 800ms);
@@ -178,7 +182,7 @@ void WattTraderFarmer::program(SingleSwitchProgramEnvironment& env, ProControlle
         pbf_mash_button(context, BUTTON_B, GameSettings::instance().GAME_TO_HOME_DELAY_FAST0.get() - 120ms);
 
         home_roll_date_enter_game_autorollback(env.console, context, year);
-        pbf_mash_button(context, BUTTON_B, 90);
+        pbf_mash_button(context, BUTTON_B, 720ms);
         stats.day_skips++;
             env.update_stats();
     }

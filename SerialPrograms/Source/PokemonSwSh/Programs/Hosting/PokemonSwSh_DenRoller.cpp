@@ -70,7 +70,7 @@ DenRoller::DenRoller()
         "Automatically stop when this " + STRING_POKEMON + " is rolled. Video output is required."
     )
     , VIEW_TIME0(
-        "<b>View Time:</b><br>Wait this long before restting. This wait is skipped if the desired " +
+        "<b>View Time:</b><br>Wait this long before resetting. This wait is skipped if the desired " +
         STRING_POKEMON + " is set since the program will be watching it for you.",
         LockMode::LOCK_WHILE_RUNNING,
         "5 s"
@@ -106,9 +106,9 @@ DenRoller::DenRoller()
 
 void DenRoller::ring_bell(ProControllerContext& context, int count) const{
     for (int c = 0; c < count; c++){
-        pbf_press_button(context, BUTTON_LCLICK, 5, 10);
+        pbf_press_button(context, BUTTON_LCLICK, 40ms, 80ms);
     }
-    pbf_wait(context, 200);
+    pbf_wait(context, 1600ms);
 }
 
 void DenRoller::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
@@ -117,7 +117,8 @@ void DenRoller::program(SingleSwitchProgramEnvironment& env, ProControllerContex
     if (START_LOCATION.start_in_grip_menu()){
         grip_menu_connect_go_home(context);
     }else{
-        pbf_press_button(context, BUTTON_B, 5, 5);
+        //  Connect the controller.
+        require_player(env.console, context, BUTTON_B);
         ssf_press_button(context, BUTTON_HOME, GameSettings::instance().GAME_TO_HOME_DELAY_FAST0, 160ms);
     }
 

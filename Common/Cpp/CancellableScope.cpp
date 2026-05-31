@@ -7,11 +7,12 @@
 #include <exception>
 #include <set>
 #include <atomic>
-#include <mutex>
-#include <condition_variable>
 #include "Exceptions.h"
+#include "ListenerSet.h"
 #include "Containers/Pimpl.tpp"
 #include "Concurrency/SpinLock.h"
+#include "Common/Cpp/Concurrency/Mutex.h"
+#include "Common/Cpp/Concurrency/ConditionVariable.h"
 #include "CancellableScope.h"
 
 //#include <iostream>
@@ -21,15 +22,23 @@
 namespace PokemonAutomation{
 
 
-struct CancellableData{
-    CancellableData()
+struct Cancellable::Data{
+    Data()
         : cancelled(false)
     {}
     std::atomic<bool> cancelled;
     mutable SpinLock lock;
-    std::exception_ptr exception;
+    std::exception_ptr cancel_reason;
+    ListenerSet<Cancellable::CancelListener> m_listeners;
 };
 
+
+void Cancellable::add_cancel_listener(CancelListener& listener){
+    m_impl->m_listeners.add(listener);
+}
+void Cancellable::remove_cancel_listener(CancelListener& listener) noexcept{
+    m_impl->m_listeners.remove(listener);
+}
 
 
 Cancellable::Cancellable()
@@ -49,40 +58,56 @@ bool Cancellable::cancelled() const noexcept{
     auto scope_check = m_sanitizer.check_scope();
     return m_impl->cancelled.load(std::memory_order_acquire);
 }
-bool Cancellable::cancel(std::exception_ptr exception) noexcept{
+std::exception_ptr Cancellable::cancel_reason() const{
     auto scope_check = m_sanitizer.check_scope();
-    CancellableData& data(*m_impl);
+    ReadSpinLock lg(m_impl->lock);
+    return m_impl->cancel_reason;
+}
+bool Cancellable::cancel(std::exception_ptr reason) noexcept{
+    auto scope_check = m_sanitizer.check_scope();
+    Data& data(*m_impl);
     WriteSpinLock lg(data.lock);
-    if (exception && !data.exception){
-        data.exception = std::move(exception);
+    if (reason && !data.cancel_reason){
+        data.cancel_reason = std::move(reason);
     }
-    if (data.cancelled.load(std::memory_order_acquire)){
+    if (data.cancelled.load(std::memory_order_relaxed)){
         return true;
     }
-    return data.cancelled.exchange(true, std::memory_order_relaxed);
+    data.cancelled.store(true, std::memory_order_release);
+//    if (data.cancelled.exchange(true, std::memory_order_relaxed)){
+//        return true;
+//    }
+    if (!m_impl->m_listeners.empty()){
+        m_impl->m_listeners.run_method(
+            &CancelListener::on_cancellable_cancel,
+            *this,
+            data.cancel_reason
+        );
+    }
+    return false;
 }
 void Cancellable::throw_if_cancelled() const{
     auto scope_check = m_sanitizer.check_scope();
-    const CancellableData& data(*m_impl);
+    const Data& data(*m_impl);
     if (!data.cancelled.load(std::memory_order_acquire)){
         return;
     }
     ReadSpinLock lg(data.lock);
-    if (data.exception){
-        std::rethrow_exception(data.exception);
+    if (data.cancel_reason){
+        std::rethrow_exception(data.cancel_reason);
     }else{
         throw OperationCancelledException();
     }
 }
 bool Cancellable::throw_if_cancelled_with_exception() const{
     auto scope_check = m_sanitizer.check_scope();
-    const CancellableData& data(*m_impl);
+    const Data& data(*m_impl);
     if (!data.cancelled.load(std::memory_order_acquire)){
         return false;
     }
     ReadSpinLock lg(data.lock);
-    if (data.exception){
-        std::rethrow_exception(data.exception);
+    if (data.cancel_reason){
+        std::rethrow_exception(data.cancel_reason);
     }
     return true;
 }
@@ -102,11 +127,11 @@ void Cancellable::detach() noexcept{
 
 
 
-struct CancellableScopeData{
+struct CancellableScope::Data{
     std::set<Cancellable*> children;
 
-    std::mutex lock;
-    std::condition_variable cv;
+    Mutex lock;
+    ConditionVariable cv;
 };
 
 
@@ -121,7 +146,7 @@ bool CancellableScope::cancel(std::exception_ptr exception) noexcept{
     if (Cancellable::cancel(exception)){
         return true;
     }
-    CancellableScopeData& data(*m_impl);
+    Data& data(*m_impl);
     std::lock_guard lg(data.lock);
     for (Cancellable* child : data.children){
 //        cout << "Canceling: " << child << endl;
@@ -141,9 +166,9 @@ void CancellableScope::wait_for(std::chrono::milliseconds duration){
 void CancellableScope::wait_until(WallClock stop){
     auto scope_check = m_sanitizer.check_scope();
     throw_if_cancelled();
-    CancellableScopeData& data(*m_impl);
+    Data& data(*m_impl);
     {
-        std::unique_lock<std::mutex> lg(data.lock);
+        std::unique_lock<Mutex> lg(data.lock);
         data.cv.wait_until(
             lg, stop,
             [this, stop]{
@@ -156,9 +181,9 @@ void CancellableScope::wait_until(WallClock stop){
 void CancellableScope::wait_until_cancel(){
     auto scope_check = m_sanitizer.check_scope();
     throw_if_cancelled();
-    CancellableScopeData& data(*m_impl);
+    Data& data(*m_impl);
     {
-        std::unique_lock<std::mutex> lg(data.lock);
+        std::unique_lock<Mutex> lg(data.lock);
         data.cv.wait(
             lg,
             [this]{
@@ -171,16 +196,16 @@ void CancellableScope::wait_until_cancel(){
 void CancellableScope::operator+=(Cancellable& cancellable){
 //    cout << "Attaching: " << &cancellable << endl;
     auto scope_check = m_sanitizer.check_scope();
-    CancellableScopeData& data(*m_impl);
-    std::lock_guard<std::mutex> lg(data.lock);
+    Data& data(*m_impl);
+    std::lock_guard<Mutex> lg(data.lock);
     throw_if_cancelled();
     data.children.insert(&cancellable);
 }
 void CancellableScope::operator-=(Cancellable& cancellable){
 //    cout << "Detaching: " << &cancellable << endl;
     auto scope_check = m_sanitizer.check_scope();
-    CancellableScopeData& data(*m_impl);
-    std::lock_guard<std::mutex> lg(data.lock);
+    Data& data(*m_impl);
+    std::lock_guard<Mutex> lg(data.lock);
     data.children.erase(&cancellable);
 }
 

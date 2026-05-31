@@ -13,6 +13,7 @@
 #include "CommonTools/VisualDetectors/BlackScreenDetector.h"
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSV/Inference/PokemonSV_MoneyReader.h"
 #include "PokemonSV/Inference/Battles/PokemonSV_NormalBattleMenus.h"
@@ -235,7 +236,7 @@ void TournamentFarmer::run_battle(SingleSwitchProgramEnvironment& env, ProContro
         
         //Use happy hour
         env.log("Using Happy Hour.");
-        pbf_mash_button(context, BUTTON_A, 300);
+        pbf_mash_button(context, BUTTON_A, 2400ms);
         context.wait_for_all_requests();
 
         //If not already dead, use memento and die
@@ -249,14 +250,14 @@ void TournamentFarmer::run_battle(SingleSwitchProgramEnvironment& env, ProContro
         );
         if (retZ == 0){
             env.log("Using Memento to faint.");
-            pbf_press_button(context, BUTTON_A, 10, 50);
+            pbf_press_button(context, BUTTON_A, 80ms, 400ms);
             move_select.move_to_slot(env.console, context, 1);
-            pbf_press_button(context, BUTTON_A, 10, 50);
-            pbf_wait(context, 100);
+            pbf_press_button(context, BUTTON_A, 80ms, 400ms);
+            pbf_wait(context, 800ms);
             context.wait_for_all_requests();
 
-            pbf_press_dpad(context, DPAD_DOWN, 10, 50);
-            pbf_press_button(context, BUTTON_A, 10, 50);
+            pbf_press_dpad(context, DPAD_DOWN, 80ms, 400ms);
+            pbf_press_button(context, BUTTON_A, 80ms, 400ms);
             context.wait_for_all_requests();
 
             //Try six times, in case of paralysis (only applies to Pachirisu's Nuzzle) preventing use of Memento.
@@ -272,7 +273,7 @@ void TournamentFarmer::run_battle(SingleSwitchProgramEnvironment& env, ProContro
                         );
                         if (ret_memento == 0){
                             env.log("Attempting to use Memento.");
-                            pbf_mash_button(context, BUTTON_A, 300);
+                            pbf_mash_button(context, BUTTON_A, 2400ms);
                             context.wait_for_all_requests();
                         }
                     }
@@ -310,7 +311,7 @@ void TournamentFarmer::run_battle(SingleSwitchProgramEnvironment& env, ProContro
 
         //Select 2nd pokemon from swap menu and send it out
         fainted.move_to_slot(env.console, context, 1);
-        pbf_mash_button(context, BUTTON_A, 300);
+        pbf_mash_button(context, BUTTON_A, 2400ms);
         context.wait_for_all_requests();
 
         //Check for battle menu to ensure it's sent out
@@ -340,12 +341,12 @@ void TournamentFarmer::run_battle(SingleSwitchProgramEnvironment& env, ProContro
     if (TRY_TO_TERASTILLIZE){
         env.log("Attempting to terastillize.");
         //Open move menu
-        pbf_press_button(context, BUTTON_A, 10, 50);
-        pbf_wait(context, 100);
+        pbf_press_button(context, BUTTON_A, 80ms, 400ms);
+        pbf_wait(context, 800ms);
         context.wait_for_all_requests();
 
-        pbf_press_button(context, BUTTON_R, 20, 50);
-        pbf_press_button(context, BUTTON_A, 10, 50);
+        pbf_press_button(context, BUTTON_R, 160ms, 400ms);
+        pbf_press_button(context, BUTTON_A, 80ms, 400ms);
     }
 
     //Mash A until battle finished
@@ -355,7 +356,7 @@ void TournamentFarmer::run_battle(SingleSwitchProgramEnvironment& env, ProContro
     int ret_black = run_until<ProControllerContext>(
         env.console, context,
         [&](ProControllerContext& context){
-            for(size_t c = 0; c < 30; c++) { //Sylveon build has 16 PP at max, and Chi-Yu build has 24.
+            for (size_t c = 0; c < 30; c++){ //Sylveon build has 16 PP at max, and Chi-Yu build has 24.
                 if (current_time() - start > std::chrono::minutes(5)){
                     env.log("Timed out during battle after 5 minutes.", COLOR_RED);
                     stats.errors++;
@@ -387,21 +388,21 @@ void TournamentFarmer::run_battle(SingleSwitchProgramEnvironment& env, ProContro
                 switch (ret){
                 case 0:
                     env.log("Detected switch " + STRING_POKEMON + " prompt. Pressing B to not switch...");
-                    pbf_mash_button(context, BUTTON_B, 3 * TICKS_PER_SECOND);
+                    pbf_mash_button(context, BUTTON_B, 3000ms);
                     break;
                 case 1:
                     env.log("Detected battle menu. Pressing A to attack...");
-                    pbf_mash_button(context, BUTTON_A, 3 * TICKS_PER_SECOND);
+                    pbf_mash_button(context, BUTTON_A, 3000ms);
                     break;
                 case 2:
                     env.log("Detected move selection. Pressing A to attack...");
-                    pbf_mash_button(context, BUTTON_A, 3 * TICKS_PER_SECOND);
+                    pbf_mash_button(context, BUTTON_A, 3000ms);
                     break;
                 case 3:
                     // Since we can't run from the tournament, loop through all party Pokemon spamming their first move.
                     env.log("Detected fainted " + STRING_POKEMON + ". Switching to next living " + STRING_POKEMON + "...");
                     if (fainted.move_to_slot(env.console, context, switch_party_slot)){
-                        pbf_mash_button(context, BUTTON_A, 3 * TICKS_PER_SECOND);
+                        pbf_mash_button(context, BUTTON_A, 3000ms);
                         switch_party_slot++;
                     }
                     break;
@@ -426,14 +427,14 @@ void TournamentFarmer::run_battle(SingleSwitchProgramEnvironment& env, ProContro
         send_program_status_notification(env, NOTIFICATION_STATUS_UPDATE);
 
         //Close dialog and then check money
-        pbf_press_button(context, BUTTON_B, 10, 50);
-        pbf_wait(context, 100);
+        pbf_press_button(context, BUTTON_B, 80ms, 400ms);
+        pbf_wait(context, 800ms);
         context.wait_for_all_requests();
 
         check_money(env, context);
 
         //Clear any remaining dialog
-        pbf_mash_button(context, BUTTON_B, 300);
+        pbf_mash_button(context, BUTTON_B, 2400ms);
         context.wait_for_all_requests();
     }else{
         env.log("Timed out during battle. Stuck, crashed, or took over 30 turns.", COLOR_RED);
@@ -509,7 +510,7 @@ void TournamentFarmer::handle_end_of_tournament(SingleSwitchProgramEnvironment& 
     int ret_black_won = run_until<ProControllerContext>(
         env.console, context,
         [](ProControllerContext& context){
-            pbf_mash_button(context, BUTTON_B, 10000);
+            pbf_mash_button(context, BUTTON_B, 80000ms);
         },
         { black_screen }
         );
@@ -524,12 +525,12 @@ void TournamentFarmer::handle_end_of_tournament(SingleSwitchProgramEnvironment& 
     if (ret_dialog == 0){
         env.log("Dialog detected.");
     }
-    pbf_wait(context, 300);
+    pbf_wait(context, 2400ms);
     context.wait_for_all_requests();
 
     //Next dialog is prize dialog - wait until all dialog has appeared then check prize
-    pbf_press_button(context, BUTTON_A, 10, 100);
-    pbf_wait(context, 100);
+    pbf_press_button(context, BUTTON_A, 80ms, 800ms);
+    pbf_wait(context, 800ms);
     context.wait_for_all_requests();
 
     check_prize(env, context);
@@ -539,7 +540,7 @@ void TournamentFarmer::handle_end_of_tournament(SingleSwitchProgramEnvironment& 
     int ret_over = run_until<ProControllerContext>(
         env.console, context,
         [](ProControllerContext& context){
-            pbf_mash_button(context, BUTTON_B, 700);
+            pbf_mash_button(context, BUTTON_B, 5600ms);
         },
         { overworld }
         );
@@ -564,24 +565,24 @@ void return_to_academy_after_loss(
     go_to_academy_fly_point(env, stream, context);
 
 
-    pbf_wait(context, 100);
+    pbf_wait(context, 800ms);
     context.wait_for_all_requests();
 
     env.log("At academy fly point. Heading back to doors.");
-    pbf_move_left_joystick(context, 0, 128, 8, 0);
-    pbf_press_button(context, BUTTON_L, 50, 40);
-    pbf_press_button(context, BUTTON_PLUS, 50, 40);
-    pbf_press_button(context, BUTTON_B, 50, 40); //Trying to jump/glide over npc spawns
-    pbf_press_button(context, BUTTON_B, 50, 40);
-    pbf_move_left_joystick(context, 128, 0, 500, 0);
-    pbf_press_button(context, BUTTON_B, 50, 40);
-    pbf_press_button(context, BUTTON_B, 50, 40);
+    pbf_move_left_joystick(context, {-1, 0}, 64ms, 0ms);
+    pbf_press_button(context, BUTTON_L, 400ms, 320ms);
+    pbf_press_button(context, BUTTON_PLUS, 400ms, 320ms);
+    pbf_press_button(context, BUTTON_B, 400ms, 320ms); //Trying to jump/glide over npc spawns
+    pbf_press_button(context, BUTTON_B, 400ms, 320ms);
+    pbf_move_left_joystick(context, {0, +1}, 4000ms, 0ms);
+    pbf_press_button(context, BUTTON_B, 400ms, 320ms);
+    pbf_press_button(context, BUTTON_B, 400ms, 320ms);
 
     BlackScreenOverWatcher black_screen(COLOR_RED, { 0.2, 0.2, 0.6, 0.6 });
     int ret_black_lost = run_until<ProControllerContext>(
         stream, context,
         [](ProControllerContext& context){
-            pbf_move_left_joystick(context, 128, 0, 5000, 0);
+            pbf_move_left_joystick(context, {0, +1}, 40000ms, 0ms);
         },
         { black_screen }
         );
@@ -599,9 +600,9 @@ void return_to_academy_after_loss(
     context.wait_for_all_requests();
 
     //Move to tournament entry
-    pbf_move_left_joystick(context, 128, 0, 500, 0);
-    pbf_move_left_joystick(context, 0, 128, 100, 0);
-    pbf_move_left_joystick(context, 255, 0, 100, 0);
+    pbf_move_left_joystick(context, {0, +1}, 4000ms, 0ms);
+    pbf_move_left_joystick(context, {-1, 0}, 800ms, 0ms);
+    pbf_move_left_joystick(context, {+1, +1}, 800ms, 0ms);
     context.wait_for_all_requests();
 }
 
@@ -613,15 +614,15 @@ void go_to_academy_fly_point(ProgramEnvironment& env, VideoStream& stream, ProCo
 
     while (!isFlySuccessful && numAttempts < maxAttempts ){
         open_map_from_overworld(env.program_info(), stream, context);
-        pbf_press_button(context, BUTTON_ZR, 50, 40);
-        pbf_move_left_joystick(context, 200, 0, 47, 25);  
-        // pbf_move_left_joystick(context, 187, 0, 50, 0);
+        pbf_press_button(context, BUTTON_ZR, 400ms, 320ms);
+        pbf_move_left_joystick(context, {+0.567, +1}, 376ms, 200ms);
+        // pbf_move_left_joystick(context, 187, 0, 400ms, 0ms);
         numAttempts++;
         isFlySuccessful = fly_to_overworld_from_map(env.program_info(), stream, context, true);
         if (!isFlySuccessful){
             env.log("Unsuccessful fly attempt.");
         }
-        pbf_mash_button(context, BUTTON_B, 100);
+        pbf_mash_button(context, BUTTON_B, 800ms);
     }
 
     if(!isFlySuccessful){
@@ -655,6 +656,9 @@ void TournamentFarmer::program(SingleSwitchProgramEnvironment& env, ProControlle
     assert_16_9_720p_min(env.logger(), env.console);
     TournamentFarmer_Descriptor::Stats& stats = env.current_stats<TournamentFarmer_Descriptor::Stats>();
 
+    //  Connect the controller.
+    require_player(env.console, context, BUTTON_LCLICK);
+
     m_stop_after_current.store(false, std::memory_order_relaxed);
     STOP_AFTER_CURRENT.set_ready();
     ResetOnExit reset_button_on_exit(STOP_AFTER_CURRENT);
@@ -682,22 +686,22 @@ void TournamentFarmer::program(SingleSwitchProgramEnvironment& env, ProControlle
 
         //  Initiate dialog then mash until first battle starts
         AdvanceDialogWatcher advance_detector(COLOR_YELLOW);
-        pbf_press_button(context, BUTTON_A, 10, 50);
-        pbf_press_button(context, BUTTON_A, 10, 50);
+        pbf_press_button(context, BUTTON_A, 80ms, 400ms);
+        pbf_press_button(context, BUTTON_A, 80ms, 400ms);
         int ret = wait_until(env.console, context, Milliseconds(7000), { advance_detector });
         if (ret == 0){
             env.log("Dialog detected.");
         }else{
             env.log("Dialog not detected.");
         }
-        pbf_mash_button(context, BUTTON_A, 400);
+        pbf_mash_button(context, BUTTON_A, 3200ms);
         context.wait_for_all_requests();
 
         NormalBattleMenuWatcher battle_menu(COLOR_YELLOW);
         int ret_battle = run_until<ProControllerContext>(
             env.console, context,
             [](ProControllerContext& context){
-                pbf_mash_button(context, BUTTON_B, 10000); //it takes a while to load and start
+                pbf_mash_button(context, BUTTON_B, 80000ms); //it takes a while to load and start
             },
             { battle_menu }
         );
@@ -713,7 +717,7 @@ void TournamentFarmer::program(SingleSwitchProgramEnvironment& env, ProControlle
             int ret_battle2 = run_until<ProControllerContext>(
                 env.console, context,
                 [](ProControllerContext& context){
-                    pbf_mash_button(context, BUTTON_B, 120 * TICKS_PER_SECOND);
+                    pbf_mash_button(context, BUTTON_B, 120000ms);
                 },
                 { battle_menu2, overworld }
             );
@@ -749,7 +753,7 @@ void TournamentFarmer::program(SingleSwitchProgramEnvironment& env, ProControlle
                 env.log("Final battle of the tournament complete, checking for overworld/loss.");
 
                 //Clear dialog, mash B
-                pbf_mash_button(context, BUTTON_B, 400);
+                pbf_mash_button(context, BUTTON_B, 3200ms);
                 context.wait_for_all_requests();
 
                 OverworldWatcher overworld2(env.console, COLOR_RED);

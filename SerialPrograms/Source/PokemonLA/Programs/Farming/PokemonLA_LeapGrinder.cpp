@@ -11,6 +11,7 @@
 #include "CommonFramework/VideoPipeline/VideoFeed.h"
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "Pokemon/Pokemon_Notification.h"
 #include "Pokemon/Inference/Pokemon_NameReader.h"
@@ -170,7 +171,7 @@ bool LeapGrinder::run_iteration(
             );
         }
         env.console.log("Not on Pokemon selection. Attempting to switch to it...", COLOR_ORANGE);
-        pbf_press_button(context, BUTTON_X, 20, 230);
+        pbf_press_button(context, BUTTON_X, 160ms, 1840ms);
     }
 
     float shiny_coefficient = 1.0;
@@ -204,7 +205,7 @@ bool LeapGrinder::run_iteration(
         stats.leaps++;
 
         PokemonDetails pokemon = get_pokemon_details(env.console, context, LANGUAGE);
-        pbf_press_button(context, BUTTON_B, 20, 225);
+        pbf_press_button(context, BUTTON_B, 160ms, 1800ms);
         context.wait_for_all_requests();
 
         env.console.log("Looking for: " + POKEMON.slug());
@@ -300,7 +301,7 @@ void LeapGrinder::program(SingleSwitchProgramEnvironment& env, ProControllerCont
     LeapGrinder_Descriptor::Stats& stats = env.current_stats<LeapGrinder_Descriptor::Stats>();
 
     //  Connect the controller.
-    pbf_press_button(context, BUTTON_LCLICK, 5, 5);
+    require_player(env.console, context, BUTTON_LCLICK);
 
     bool fresh_from_reset = false;
     while (true){
@@ -317,7 +318,7 @@ void LeapGrinder::program(SingleSwitchProgramEnvironment& env, ProControllerCont
             pbf_press_button(context, BUTTON_HOME, 160ms, GameSettings::instance().GAME_TO_HOME_DELAY0);
             fresh_from_reset = reset_game_from_home(env, env.console, context);
             // Switch from items to pokemons
-            pbf_press_button(context, BUTTON_X, 20, 30);
+            pbf_press_button(context, BUTTON_X, 160ms, 240ms);
         }
     }
 

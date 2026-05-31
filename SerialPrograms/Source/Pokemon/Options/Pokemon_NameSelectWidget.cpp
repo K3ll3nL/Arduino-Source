@@ -29,7 +29,7 @@ NameSelectWidget::NameSelectWidget(
     const std::vector<std::string>* extra_name_list,
     const std::map<std::string, std::string>* extra_display_name_to_slug
 )
-    : NoWheelComboBox(&parent)
+    : NoWheelCompactComboBox(&parent)
     , m_display_name_to_slug(display_name_to_slug)
     , m_extra_display_name_to_slug(extra_display_name_to_slug)
 {
@@ -57,7 +57,7 @@ NameSelectWidget::NameSelectWidget(
         }
     }
     if (extra_names && extra_name_list){
-        for(const std::string& slug : *extra_name_list){
+        for (const std::string& slug : *extra_name_list){
             const auto it = extra_names->find(slug);
             if (it == extra_names->end()){
                 throw InternalProgramError(nullptr, PA_CURRENT_FUNCTION, "Extra slug not found: " + slug);

@@ -67,7 +67,7 @@ bool enter_sandwich_recipe_list(
     stream.log("Opening sandwich menu at picnic table.");
 
     // Firt, try pressing button A to bring up the menu to make sandwich
-    pbf_press_button(context, BUTTON_A, 20, 80);
+    pbf_press_button(context, BUTTON_A, 160ms, 640ms);
 
     WallClock start = current_time();
     bool opened_table_menu = false;
@@ -94,14 +94,14 @@ bool enter_sandwich_recipe_list(
         case 0:
             stream.log("Detected picnic. Maybe button A press dropped.");
             // walk forward and press A again
-            pbf_move_left_joystick(context, 128, 0, 100, 40);
-            pbf_press_button(context, BUTTON_A, 20, 80);
+            pbf_move_left_joystick(context, {0, +1}, 800ms, 320ms);
+            pbf_press_button(context, BUTTON_A, 160ms, 640ms);
             continue;
         case 1:
             stream.log("Detected \"make a sandwich\" menu item selection arrrow.");
             stream.overlay().add_log("Open sandwich recipes", COLOR_WHITE);
             opened_table_menu = true;
-            pbf_press_button(context, BUTTON_A, 20, 100);
+            pbf_press_button(context, BUTTON_A, 160ms, 800ms);
             continue;
         case 2:
             stream.log("Detected recipe selection arrow.");
@@ -114,7 +114,7 @@ bool enter_sandwich_recipe_list(
                 stream.overlay().add_log("No ingredient!", COLOR_RED);
                 return false;
             }
-            pbf_press_button(context, BUTTON_A, 20, 80);
+            pbf_press_button(context, BUTTON_A, 160ms, 640ms);
             continue;
         default:
             dump_image_and_throw_recoverable_exception(info, stream, "NotEnterSandwichList",
@@ -143,7 +143,7 @@ bool select_sandwich_recipe(
     bool found_recipe = false;
     int max_move_down_list_attempts = 100; // There are 151 total recipes, so 76 rows.
     for (int move_down_list_attempt = 0; move_down_list_attempt < max_move_down_list_attempts; move_down_list_attempt++){
-        context.wait_for(std::chrono::milliseconds(200));
+        context.wait_for(Milliseconds(200));
         context.wait_for_all_requests();
 
         auto snapshot = stream.video().snapshot();
@@ -152,14 +152,14 @@ bool select_sandwich_recipe(
         {
             std::ostringstream os;
             os << "Recipe IDs detected: ";
-            for(int i = 0; i < 6; i++){
+            for (int i = 0; i < 6; i++){
                 os << recipe_IDs[i] << ", ";
             }
             stream.log(os.str());
         }
 
         size_t min_ID = 300;
-        for(int i = 0; i < 6; i++){
+        for (int i = 0; i < 6; i++){
             if (recipe_IDs[i] > 0 && recipe_IDs[i] < min_ID){
                 min_ID = recipe_IDs[i];
             }
@@ -174,7 +174,7 @@ bool select_sandwich_recipe(
             // target is in this page!
             
             int target_cell = -1;
-            for(int i = 0; i < 6; i++){
+            for (int i = 0; i < 6; i++){
                 if (recipe_IDs[i] == target_sandwich_ID){
                     target_cell = i;
                     break;
@@ -209,7 +209,7 @@ bool select_sandwich_recipe(
                 stream.log("Move to the right column.");
                 // Target is in a different column
                 // Move cursor right.
-                pbf_press_dpad(context, DPAD_RIGHT, 10, 50);
+                pbf_press_dpad(context, DPAD_RIGHT, 80ms, 400ms);
                 continue;
             }
             // else, continue moving down the list
@@ -217,14 +217,14 @@ bool select_sandwich_recipe(
 
         // target sandwich recipe is still below the current displayed recipes.
         // Move down the list.
-        pbf_press_dpad(context, DPAD_DOWN, 10, 50);
+        pbf_press_dpad(context, DPAD_DOWN, 80ms, 400ms);
     } // end for moving down the recipe list
 
     overlay_set.clear();
 
     if (found_recipe){
         // Press A to enter the pick selection 
-        pbf_press_button(context, BUTTON_A, 30, 100);
+        pbf_press_button(context, BUTTON_A, 240ms, 800ms);
 //        context.wait_for_all_requests();
 
         SandwichIngredientArrowWatcher pick_selection(0, COLOR_YELLOW);
@@ -237,11 +237,11 @@ bool select_sandwich_recipe(
 
             if (ret == 0){
                 stream.log("Detected recipe selection. Dropped Button A?");
-                pbf_press_button(context, BUTTON_A, 30, 100);
+                pbf_press_button(context, BUTTON_A, 240ms, 800ms);
                 continue;
             }else if (ret == 1){
                 stream.log("Detected pick selection.");
-                pbf_press_button(context, BUTTON_A, 30, 100);
+                pbf_press_button(context, BUTTON_A, 240ms, 800ms);
                 continue;
             }else{
                 stream.log("Entered sandwich minigame.");
@@ -295,35 +295,34 @@ bool move_then_recover_sandwich_hand_position(
 ){
 
     stream.log("center the cursor: move towards bottom right, then left slightly.");
-    uint16_t num_ticks_to_move_1 = TICKS_PER_SECOND*4;
-    uint16_t num_ticks_to_move_2 = 100;
+    Milliseconds move_1 = 4000ms;
+    Milliseconds move_2 = 800ms;
 
     // center the cursor
     if(SandwichHandType::FREE == hand_type){
         // move to bottom right corner,
-        pbf_move_left_joystick(context, 255, 255, num_ticks_to_move_1, 100);
+        pbf_move_left_joystick(context, {+1, -1}, move_1, 800ms);
         // move to left slightly
-        pbf_move_left_joystick(context, 0, 128, num_ticks_to_move_2, 100);
+        pbf_move_left_joystick(context, {-1, 0}, move_2, 800ms);
         context.wait_for_all_requests();
     }
     else if(SandwichHandType::GRABBING == hand_type){
         // center the cursor while holding the A button, so you don't drop the ingredient.
 
-        uint16_t num_ticks_to_move_total = num_ticks_to_move_1 + num_ticks_to_move_2;
-        uint16_t num_ticks_to_wait = num_ticks_to_move_total + TICKS_PER_SECOND; // add one extra second of waiting
-        uint16_t num_miliseconds_to_wait = (num_ticks_to_wait*1000)/TICKS_PER_SECOND;
-        uint16_t num_ticks_to_hold_A = num_ticks_to_wait + TICKS_PER_SECOND*10; // hold A for extra 10 seconds
+        Milliseconds move_total = move_1 + move_2;
+        Milliseconds wait = move_total + 1000ms; // add one extra second of waiting
+        Milliseconds hold_A = wait + 10000ms; // hold A for extra 10 seconds
         // the A button hold will be overwritten on the next move_session.dispatch, in the main function
         
         move_session.dispatch([&](ProControllerContext& context){
             // move to bottom right corner, while holding A
-            pbf_controller_state(context, BUTTON_A, DPAD_NONE, 255, 255, 128, 128, num_ticks_to_move_1);
+            pbf_controller_state(context, BUTTON_A, DPAD_NONE, {+1, -1}, {0, 0}, move_1);
 
             // move to left slightly, while holding A
-            pbf_controller_state(context, BUTTON_A, DPAD_NONE, 0, 128, 128, 128, num_ticks_to_move_2);
+            pbf_controller_state(context, BUTTON_A, DPAD_NONE, {-1, 0}, {0, 0}, move_2);
 
             // keep holding A. 
-            pbf_press_button(context, BUTTON_A, num_ticks_to_hold_A, 0);
+            pbf_press_button(context, BUTTON_A, hold_A, 0ms);
             // pbf_controller_state(context, BUTTON_A, DPAD_NONE, 128, 128, 128, 128, 3000);
         });
 
@@ -331,7 +330,7 @@ bool move_then_recover_sandwich_hand_position(
         // - wait_for_all_requests doesn't work since we want to still hold the A button.
         // - this is a workaround until there is a way to wait for a subset of a bunch of overlapping buttons to finish
         // - need to make sure the A button hold is long enough to last past this wait.
-        context.wait_for(Milliseconds(num_miliseconds_to_wait));
+        context.wait_for(wait);
     }
     
     const VideoSnapshot& frame = stream.video().snapshot();
@@ -405,8 +404,8 @@ HandMoveData move_sandwich_hand_and_check_if_plates_empty(
     stream.log("Start moving sandwich hand: " + SANDWICH_HAND_TYPE_NAMES(hand_type)
         + " start box " + box_to_string(start_box) + " end box " + box_to_string(end_box));
 
-    uint8_t joystick_x = 128;
-    uint8_t joystick_y = 128;
+    double joystick_x = 0;
+    double joystick_y = 0;
 
     SandwichHandWatcher hand_watcher(hand_type, start_box);
 
@@ -414,13 +413,12 @@ HandMoveData move_sandwich_hand_and_check_if_plates_empty(
     AsyncCommandSession<ProController> move_session(
         context,
         stream.logger(),
-        env.realtime_dispatcher(),
         context.controller()
     );
     
     if (pressing_A){
         move_session.dispatch([](ProControllerContext& context){
-            pbf_controller_state(context, BUTTON_A, DPAD_NONE, 128, 128, 128, 128, 3000);
+            pbf_press_button(context, BUTTON_A, 24000ms, 0ms);
         });
     }
 
@@ -442,7 +440,7 @@ HandMoveData move_sandwich_hand_and_check_if_plates_empty(
                 overlay_set.clear();
                 overlay_set.add(COLOR_RED, hand_bb_debug);
                 overlay_set.add(COLOR_BLUE, expanded_hand_bb_debug);
-                pbf_move_left_joystick(context, 0, 0, TICKS_PER_SECOND*5, 100);  // move hand to screen edge
+                pbf_move_left_joystick(context, {-1, +1}, 5000ms, 800ms);  // move hand to screen edge
                 context.wait_for_all_requests();
             }
         #endif
@@ -451,9 +449,9 @@ HandMoveData move_sandwich_hand_and_check_if_plates_empty(
             // to intentionally trigger failures in hand detection, for testing recovery
             // move hand to edge of screen, while still holding A
             if (SandwichHandType::GRABBING == hand_type){
-                pbf_controller_state(context, BUTTON_A, DPAD_NONE, 0, 0, 128, 128, TICKS_PER_SECOND*5);
-                pbf_press_button(context, BUTTON_A, 200, 0);
-                // pbf_controller_state(context, BUTTON_A, DPAD_NONE, 128, 128, 128, 128, 100);
+                pbf_controller_state(context, BUTTON_A, DPAD_NONE, 0, 0, 128, 128, 5000ms);
+                pbf_press_button(context, BUTTON_A, 1600ms, 0ms);
+                // pbf_controller_state(context, BUTTON_A, DPAD_NONE, 128, 128, 128, 128, 800ms);
             }
         #endif
     }
@@ -506,7 +504,7 @@ HandMoveData move_sandwich_hand_and_check_if_plates_empty(
             move_session.stop_session_and_rethrow(); // Stop the commands
             if (hand_type == SandwichHandType::GRABBING){
                 // wait for some time to let hand release ingredient
-                context.wait_for(std::chrono::milliseconds(100));
+                context.wait_for(Milliseconds(100));
             }
             return {hand_bb, plate_empty};
         }
@@ -521,7 +519,7 @@ HandMoveData move_sandwich_hand_and_check_if_plates_empty(
 
         // We assume for a screen distance of 4 (1/4 of the width), we can use max joystick push, 128.
         // So for distance of value 1.0, we multiply by 32 to get joystick push
-        double target_joystick_push = std::min(distance * 32, 128.0);
+        double target_joystick_push = std::min(distance * 0.25, 1.0);
 
         std::pair<double, double> push(real_dif.first * target_joystick_push / distance, real_dif.second * target_joystick_push / distance);
         // console.log("push force " + std::to_string(push.first) + ", " + std::to_string(push.second));
@@ -542,8 +540,8 @@ HandMoveData move_sandwich_hand_and_check_if_plates_empty(
             push.second += damped_push_offset.second;
         }
 
-        joystick_x = (uint8_t) std::max(std::min(int(push.first + 0.5) + 128, 255), 0);
-        joystick_y = (uint8_t) std::max(std::min(int(push.second + 0.5) + 128, 255), 0);
+        joystick_x = std::max(std::min(push.first, +1.0), -1.0);
+        joystick_y = -std::max(std::min(push.second, +1.0), -1.0);
         // console.log("joystick push " + std::to_string(joystick_x) + ", " + std::to_string(joystick_y));
 
         // Dispatch a new series of commands that overwrites the last ones
@@ -553,14 +551,14 @@ HandMoveData move_sandwich_hand_and_check_if_plates_empty(
 //                pbf_controller_state(context, BUTTON_A, DPAD_NONE, joystick_x, joystick_y, 128, 128, 20);
                 ssf_press_button(context, BUTTON_A, 0ms, 8000ms, 0ms);
             }
-            pbf_move_left_joystick(context, joystick_x, joystick_y, 20, 0);
+            pbf_move_left_joystick(context, {joystick_x, joystick_y}, 160ms, 0ms);
         });
         
         stream.log("Moved joystick");
 
         last_loc = cur_loc;
         last_time = cur_time;
-        context.wait_for(std::chrono::milliseconds(80));
+        context.wait_for(Milliseconds(80));
     }
 }
 
@@ -594,8 +592,8 @@ void finish_sandwich_eating(
     int ret = run_until<ProControllerContext>(
         stream, context,
         [](ProControllerContext& context){
-            for(int i = 0; i < 20; i++){
-                pbf_press_button(context, BUTTON_A, 20, 3*TICKS_PER_SECOND - 20);
+            for (int i = 0; i < 20; i++){
+                pbf_press_button(context, BUTTON_A, 160ms, 3840ms);
             }
         },
         {picnic_watcher}
@@ -619,13 +617,13 @@ void repeat_press_until(
     std::function<void()> button_press,
     const std::vector<PeriodicInferenceCallback>& callbacks,
     const std::string &error_name, const std::string &error_message,
-    std::chrono::milliseconds detection_timeout = std::chrono::seconds(5),
+    Milliseconds detection_timeout = std::chrono::seconds(5),
     size_t max_presses = 10,
-    std::chrono::milliseconds default_video_period = std::chrono::milliseconds(50),
-    std::chrono::milliseconds default_audio_period = std::chrono::milliseconds(20)
+    Milliseconds default_video_period = Milliseconds(50),
+    Milliseconds default_audio_period = Milliseconds(20)
 ){
     button_press();
-    for(size_t i_try = 0; i_try < max_presses; i_try++){
+    for (size_t i_try = 0; i_try < max_presses; i_try++){
         context.wait_for_all_requests();
         const int ret = wait_until(stream, context, detection_timeout, callbacks);
         if (ret >= 0){
@@ -643,19 +641,19 @@ void repeat_press_until(
 void repeat_button_press_until(
     const ProgramInfo& info,
     VideoStream& stream, ProControllerContext& context,
-    Button button, uint16_t hold_ticks, uint16_t release_ticks,
+    Button button, Milliseconds hold, Milliseconds release,
     const std::vector<PeriodicInferenceCallback>& callbacks,
     const std::string &error_name, const std::string &error_message,
-    std::chrono::milliseconds iteration_length = std::chrono::seconds(5),
+    Milliseconds iteration_length = std::chrono::seconds(5),
     size_t max_presses = 10,
-    std::chrono::milliseconds default_video_period = std::chrono::milliseconds(50),
-    std::chrono::milliseconds default_audio_period = std::chrono::milliseconds(20)
+    Milliseconds default_video_period = Milliseconds(50),
+    Milliseconds default_audio_period = Milliseconds(20)
 ){
-    const std::chrono::milliseconds button_time = std::chrono::milliseconds((hold_ticks + release_ticks) * (1000 / TICKS_PER_SECOND));
+    const Milliseconds button_time = hold + release;
     repeat_press_until(
         info, stream, context,
         [&](){
-            pbf_press_button(context, button, hold_ticks, release_ticks);
+            pbf_press_button(context, button, hold, release);
         },
         callbacks, error_name, error_message, iteration_length - button_time, max_presses,
         default_video_period, default_audio_period
@@ -664,18 +662,18 @@ void repeat_button_press_until(
 
 void repeat_dpad_press_until(
     const ProgramInfo& info, VideoStream& stream, ProControllerContext& context,
-    DpadPosition dpad_position, uint16_t hold_ticks, uint16_t release_ticks,
+    DpadPosition dpad_position, Milliseconds hold, Milliseconds release,
     const std::vector<PeriodicInferenceCallback>& callbacks,
     const std::string &error_name, const std::string &error_message,
-    std::chrono::milliseconds iteration_length = std::chrono::seconds(5),
+    Milliseconds iteration_length = std::chrono::seconds(5),
     size_t max_presses = 10,
-    std::chrono::milliseconds default_video_period = std::chrono::milliseconds(50),
-    std::chrono::milliseconds default_audio_period = std::chrono::milliseconds(20)
+    Milliseconds default_video_period = Milliseconds(50),
+    Milliseconds default_audio_period = Milliseconds(20)
 ){
-    const std::chrono::milliseconds button_time = std::chrono::milliseconds((hold_ticks + release_ticks) * (1000 / TICKS_PER_SECOND));
+    const Milliseconds button_time = hold + release;
     repeat_press_until(
         info, stream, context,
-        [&](){ pbf_press_dpad(context, dpad_position, hold_ticks, release_ticks); },
+        [&](){ pbf_press_dpad(context, dpad_position, hold, release); },
         callbacks, error_name, error_message, iteration_length - button_time, max_presses, 
         default_video_period, default_audio_period
     );
@@ -695,7 +693,7 @@ void enter_custom_sandwich_mode(
 
     SandwichIngredientArrowWatcher ingredient_selection_arrow(0, COLOR_YELLOW);
     repeat_button_press_until(
-        info, stream, context, BUTTON_X, 40, 80, {ingredient_selection_arrow},
+        info, stream, context, BUTTON_X, 320ms, 640ms, {ingredient_selection_arrow},
         "IngredientListNotDetected", "enter_custom_sandwich_mode(): cannot detect ingredient list after 50 seconds."
     );
 }
@@ -715,7 +713,7 @@ void finish_two_herbs_sandwich(
     move_sandwich_hand(env, stream, context, SandwichHandType::FREE, false, HAND_INITIAL_BOX, INGREDIENT_BOX);
     // Mash button A to pick and drop ingredients, upper bread and pick.
     // Egg Power 3 is applied with only two sweet herb condiments!
-    pbf_mash_button(context, BUTTON_A, 8 * TICKS_PER_SECOND);
+    pbf_mash_button(context, BUTTON_A, 8000ms);
     context.wait_for_all_requests();
     stream.overlay().add_log("Built sandwich", COLOR_WHITE);
 }
@@ -764,7 +762,7 @@ void make_two_herbs_sandwich(
         // Press button A to add first filling, assumed to be lettuce
         DeterminedSandwichIngredientWatcher filling_watcher(SandwichIngredientType::FILLING, 0);
         repeat_button_press_until(
-            env.program_info(), stream, context, BUTTON_A, 40, 50, {filling_watcher},
+            env.program_info(), stream, context, BUTTON_A, 320ms, 400ms, {filling_watcher},
             "DeterminedIngredientNotDetected", "make_two_herbs_sandwich(): cannot detect determined lettuce after 50 seconds."
         );
     }
@@ -773,7 +771,7 @@ void make_two_herbs_sandwich(
         // Press button + to go to condiments page
         SandwichCondimentsPageWatcher condiments_page_watcher;
         repeat_button_press_until(
-            env.program_info(), stream, context, BUTTON_PLUS, 40, 60, {condiments_page_watcher},
+            env.program_info(), stream, context, BUTTON_PLUS, 320ms, 480ms, {condiments_page_watcher},
             "CondimentsPageNotDetected", "make_two_herbs_sandwich(): cannot detect condiments page after 50 seconds."
         );
     }
@@ -797,7 +795,7 @@ void make_two_herbs_sandwich(
     auto move_one_up_to_row = [&](size_t row){
         stream.log("Move arrow to row " + std::to_string(row));
         SandwichIngredientArrowWatcher arrow(row);
-        repeat_dpad_press_until(env.program_info(), stream, context, DPAD_UP, 10, 30, {arrow}, "IngredientArrowNotDetected",
+        repeat_dpad_press_until(env.program_info(), stream, context, DPAD_UP, 80ms, 240ms, {arrow}, "IngredientArrowNotDetected",
             "make_two_herbs_sandwich(): cannot detect ingredient selection arrow at row " + std::to_string(row) + " after 50 seconds."
         );
     };
@@ -805,18 +803,18 @@ void make_two_herbs_sandwich(
     auto press_a_to_determine_herb = [&](size_t herb_index){
         DeterminedSandwichIngredientWatcher herb_watcher(SandwichIngredientType::CONDIMENT, herb_index);
         repeat_button_press_until(
-            env.program_info(), stream, context, BUTTON_A, 40, 60, {herb_watcher}, "CondimentsPageNotDetected",
+            env.program_info(), stream, context, BUTTON_A, 320ms, 480ms, {herb_watcher}, "CondimentsPageNotDetected",
             "make_two_herbs_sandwich(): cannot detect determined herb at cell " + std::to_string(herb_index) + " after 50 seconds."
         );
     };
 
     // Press DPAD_UP multiple times to move to the first herb row
-    for(size_t i = 0; i < first_herb_index_last+1; i++){
+    for (size_t i = 0; i < first_herb_index_last+1; i++){
         move_one_up_to_row(9 - i);
     }
     press_a_to_determine_herb(0); // Press A to determine one herb
     // Press DPAD_UP against to move to the second herb row
-    for(size_t i = first_herb_index_last+1; i < sweet_herb_index_last+1; i++){
+    for (size_t i = first_herb_index_last+1; i < sweet_herb_index_last+1; i++){
         move_one_up_to_row(9 - i);
     }
     press_a_to_determine_herb(1); // Press A to determine the second herb
@@ -825,13 +823,13 @@ void make_two_herbs_sandwich(
         // Press button + to go to picks page
         SandwichPicksPageWatcher picks_page_watcher;
         repeat_button_press_until(
-            env.program_info(), stream, context, BUTTON_PLUS, 40, 60, {picks_page_watcher},
+            env.program_info(), stream, context, BUTTON_PLUS, 320ms, 480ms, {picks_page_watcher},
             "CondimentsPageNotDetected", "make_two_herbs_sandwich(): cannot detect picks page after 50 seconds."
         );
     }
 
     // Mesh button A to select the first pick
-    pbf_mash_button(context, BUTTON_A, 80);
+    pbf_mash_button(context, BUTTON_A, 640ms);
     context.wait_for_all_requests();
 
     finish_two_herbs_sandwich(env, stream, context);
@@ -890,7 +888,7 @@ void make_sandwich_option(ProgramEnvironment& env, VideoStream& stream, ProContr
 
         for (const std::unique_ptr<SandwichIngredientsTableRow>& row : table){
             const std::string& table_item = row->item.slug();
-            if (!(table_item == "baguette")) { //ignore baguette
+            if (!(table_item == "baguette")){ //ignore baguette
                 if (std::find(ALL_SANDWICH_FILLINGS_SLUGS().begin(), ALL_SANDWICH_FILLINGS_SLUGS().end(), table_item) != ALL_SANDWICH_FILLINGS_SLUGS().end()){
                     fillings[table_item]++;
                     num_fillings++;
@@ -933,9 +931,8 @@ else if(SANDWICH_OPTIONS.BASE_RECIPE == BaseRecipe::non_shiny){
                 num_condiments++;
             }
         }
-    }
-    //Otherwise get the preset ingredients
-    else{
+    }else{
+        //  Otherwise get the preset ingredients
         stream.log("Preset sandwich selected.", COLOR_BLACK);
         stream.overlay().add_log("Preset sandwich selected.");
 
@@ -1074,7 +1071,7 @@ void run_sandwich_maker(
     //Wait for labels to appear
     stream.log("Waiting for labels to appear.", COLOR_BLACK);
     stream.overlay().add_log("Waiting for labels to appear.", COLOR_WHITE);
-    pbf_wait(context, 300);
+    pbf_wait(context, 2400ms);
     context.wait_for_all_requests();
 
     //Now read in plate labels and store which plate has what
@@ -1097,7 +1094,7 @@ void run_sandwich_maker(
             if (center_filling.empty()){
                 if (read_label_try_count + 1 < max_read_label_tries){
                     // Wait more time
-                    pbf_wait(context, TICKS_PER_SECOND * 2);
+                    pbf_wait(context, 2000ms);
                     context.wait_for_all_requests();
                     screen = stream.video().snapshot();
                     continue;
@@ -1146,7 +1143,7 @@ void run_sandwich_maker(
         //this differs from the game layout: far right is 5 and far far left/right is 6 in game
         //however as long as we stay internally consistent with this numbering it will work
         for (int i = 0; i < (plates - 3); i++){
-            pbf_press_button(context, BUTTON_R, 20, 180);
+            pbf_press_button(context, BUTTON_R, 160ms, 1440ms);
             context.wait_for_all_requests();
 
             screen = stream.video().snapshot();
@@ -1169,7 +1166,7 @@ void run_sandwich_maker(
         stream.log("Re-centering plates if needed.");
         stream.overlay().add_log("Re-centering plates if needed.");
         for (int i = 0; i < (plates - 3); i++){
-            pbf_press_button(context, BUTTON_L, 20, 80);
+            pbf_press_button(context, BUTTON_L, 160ms, 640ms);
         }
 
         //If a label fails to read it'll cause issues down the line
@@ -1273,7 +1270,7 @@ void run_sandwich_maker(
             case 3: case 4: case 5: case 6:
                 //Press R the appropriate number of times
                 for (int k = 2; k < plate_index.at(j); k++){
-                    pbf_press_button(context, BUTTON_R, 20, 80);
+                    pbf_press_button(context, BUTTON_R, 160ms, 640ms);
                 }
                 target_plate = left_plate;
                 target_plate_label = SandwichPlateDetector::Side::LEFT;
@@ -1332,7 +1329,7 @@ void run_sandwich_maker(
 
             //Reset plate positions
             for (int k = 2; k < plate_index.at(j); k++){
-                pbf_press_button(context, BUTTON_L, 20, 80);
+                pbf_press_button(context, BUTTON_L, 160ms, 640ms);
             }
         }
     }
@@ -1362,7 +1359,7 @@ void run_sandwich_maker(
         expand_box(hand_box),
         center_plate
     );
-    pbf_mash_button(context, BUTTON_A, 125 * 5);
+    pbf_mash_button(context, BUTTON_A, 5000ms);
 
     env.log("Hand end box " + box_to_string(end_box));
     env.log("Built sandwich", COLOR_BLACK);

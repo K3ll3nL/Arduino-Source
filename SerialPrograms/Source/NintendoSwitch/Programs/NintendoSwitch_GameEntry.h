@@ -8,12 +8,20 @@
 #define PokemonAutomation_NintendoSwitch_GameEntry_H
 
 #include "CommonFramework/Tools/VideoStream.h"
-#include "NintendoSwitch/Controllers/NintendoSwitch_ProController.h"
-#include "NintendoSwitch/Controllers/NintendoSwitch_Joycon.h"
+#include "NintendoSwitch/Controllers/Procon/NintendoSwitch_ProController.h"
+#include "NintendoSwitch/Controllers/Joycon/NintendoSwitch_Joycon.h"
 #include "NintendoSwitch/NintendoSwitch_ConsoleHandle.h"
 
 namespace PokemonAutomation{
 namespace NintendoSwitch{
+
+
+void require_player(
+    Logger& logger,
+    ProControllerContext& context,
+    Button connect_button,
+    ControllerPlayerNumber required = ControllerPlayerNumber::PLAYER1
+);
 
 
 // Press Home button to go from game to Switch Home screen
@@ -35,18 +43,19 @@ void resume_game_from_home(
     bool skip_home_press = false
 );
 
+void move_to_user(ProControllerContext& context, uint8_t user_slot);
+void move_to_user(JoyconContext& context, uint8_t user_slot);
+
 void start_game_from_home(
     ConsoleHandle& console, ProControllerContext& context,
     bool tolerate_update_menu,
     uint8_t game_slot,
-    uint8_t user_slot,
-    Milliseconds start_game_mash
+    uint8_t user_slot
 );
 void start_game_from_home(
     ConsoleHandle& console, JoyconContext& context,
     uint8_t game_slot,
-    uint8_t user_slot,
-    Milliseconds start_game_mash
+    uint8_t user_slot
 );
 
 //  From the home menu:

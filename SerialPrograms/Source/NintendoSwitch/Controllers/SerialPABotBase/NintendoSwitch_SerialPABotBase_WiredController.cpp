@@ -6,9 +6,11 @@
 
 #include "Common/Cpp/Exceptions.h"
 #include "CommonFramework/Options/Environment/ThemeSelectorOption.h"
+#include "Controllers/JoystickTools.h"
 #include "Controllers/SerialPABotBase/SerialPABotBase.h"
-#include "Controllers/SerialPABotBase/SerialPABotBase_Routines_Protocol.h"
-#include "Controllers/SerialPABotBase/SerialPABotBase_Routines_NS2_WiredController.h"
+#include "Controllers/SerialPABotBase/Messages/SerialPABotBase_MessageWrappers_BaseProtocol_ControllerMode.h"
+#include "Controllers/SerialPABotBase/Messages/SerialPABotBase_MessageWrappers_BaseProtocol_Misc.h"
+#include "Controllers/SerialPABotBase/Messages/SerialPABotBase_MessageWrappers_NS_WiredController.h"
 #include "NintendoSwitch_SerialPABotBase_WiredController.h"
 
 //#include <iostream>
@@ -26,8 +28,7 @@ using namespace std::chrono_literals;
 SerialPABotBase_WiredController::SerialPABotBase_WiredController(
     Logger& logger,
     SerialPABotBase::SerialPABotBase_Connection& connection,
-    ControllerType controller_type,
-    ControllerResetMode reset_mode
+    ControllerType controller_type
 )
     : ProController(logger)
     , SerialPABotBase_Controller(
@@ -35,34 +36,14 @@ SerialPABotBase_WiredController::SerialPABotBase_WiredController(
         controller_type,
         connection
     )
-    , m_controller_type(controller_type)
 {
     using namespace SerialPABotBase;
 
-    switch (reset_mode){
-    case PokemonAutomation::ControllerResetMode::DO_NOT_RESET:
-        break;
-    case PokemonAutomation::ControllerResetMode::SIMPLE_RESET:
-        connection.botbase()->issue_request_and_wait(
-            DeviceRequest_change_controller_mode(controller_type_to_id(controller_type)),
-            nullptr
-        );
-        break;
-    case PokemonAutomation::ControllerResetMode::RESET_AND_CLEAR_STATE:
-        connection.botbase()->issue_request_and_wait(
-            DeviceRequest_reset_to_controller(controller_type_to_id(controller_type)),
-            nullptr
-        );
-        break;
-    }
 
-    //  Re-read the controller.
-    ControllerType current_controller = connection.refresh_controller_type();
-    if (current_controller != controller_type){
-        throw SerialProtocolException(logger, PA_CURRENT_FUNCTION, "Failed to set controller type.");
-    }
+    //  Add controller-specific messages.
+    connection.add_message_printer<MessageType_WiredController_ControllerStateMs>();
 
-    m_status_thread.reset(new SerialPABotBase::ControllerStatusThread(
+    m_status_thread.reset(new ControllerStatusThread(
         connection, *this
     ));
 }
@@ -70,7 +51,6 @@ SerialPABotBase_WiredController::~SerialPABotBase_WiredController(){
     stop();
 }
 void SerialPABotBase_WiredController::stop(){
-    ProController::stop();
     m_status_thread.reset();
 }
 
@@ -78,7 +58,7 @@ void SerialPABotBase_WiredController::stop(){
 
 
 void SerialPABotBase_WiredController::execute_state(
-    const Cancellable* cancellable,
+    Cancellable* cancellable,
     const SuperscalarScheduler::ScheduleEntry& entry
 ){
     if (!is_ready()){
@@ -172,12 +152,14 @@ void SerialPABotBase_WiredController::execute_state(
     while (time_left > Milliseconds::zero()){
         Milliseconds current = std::min(time_left, 65535ms);
         m_serial->issue_request(
-            SerialPABotBase::DeviceRequest_NS2_WiredController_ControllerStateMs(
+            DeviceRequest_WiredController_ControllerStateMs(
                 (uint16_t)current.count(),
                 buttons,
                 dpad_byte,
-                controller_state.left_stick_x, controller_state.left_stick_y,
-                controller_state.right_stick_x, controller_state.right_stick_y
+                JoystickTools::linear_float_to_u8(controller_state.left_joystick.x),
+                JoystickTools::linear_float_to_u8(-controller_state.left_joystick.y),
+                JoystickTools::linear_float_to_u8(controller_state.right_joystick.x),
+                JoystickTools::linear_float_to_u8(-controller_state.right_joystick.y)
             ),
             cancellable
         );

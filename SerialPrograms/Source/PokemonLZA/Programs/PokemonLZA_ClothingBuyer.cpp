@@ -9,6 +9,7 @@
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonLZA/Inference/PokemonLZA_SelectionArrowDetector.h"
 #include "PokemonLZA/Inference/PokemonLZA_DialogDetector.h"
@@ -54,6 +55,9 @@ ClothingBuyer::ClothingBuyer()
 void ClothingBuyer::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     assert_16_9_720p_min(env.logger(), env.console);
 
+    //  Connect the controller.
+    require_player(env.console, context, BUTTON_LCLICK);
+
     /*
     * Similar to SV clothing buyer.
     * Start at the top of the first category in clothing shop menu.
@@ -69,7 +73,7 @@ void ClothingBuyer::program(SingleSwitchProgramEnvironment& env, ProControllerCo
         pbf_press_button(context, BUTTON_A, 160ms, 80ms);
 
         //In sub-menu for item.
-        while (true) {
+        while (true){
             pbf_press_button(context, BUTTON_A, 160ms, 180ms);
 
             SelectionArrowWatcher buy_yes_no(
@@ -83,7 +87,7 @@ void ClothingBuyer::program(SingleSwitchProgramEnvironment& env, ProControllerCo
                 std::chrono::seconds(30),
                 { buy_yes_no, already_bought }
             );
-            switch (ret) {
+            switch (ret){
             case 0:
                 env.log("Purchase item.");
                 //Purchase Y/N detected.
@@ -137,7 +141,7 @@ void ClothingBuyer::program(SingleSwitchProgramEnvironment& env, ProControllerCo
                 { top_category_item }
             );
             context.wait_for_all_requests();
-            if (retCatTop == 0) {
+            if (retCatTop == 0){
                 env.log("Reached top of the item sub-menu.");
                 break;
             }

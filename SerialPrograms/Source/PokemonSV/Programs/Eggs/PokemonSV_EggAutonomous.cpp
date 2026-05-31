@@ -16,6 +16,7 @@
 #include "CommonFramework/VideoPipeline/VideoFeed.h"
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "Pokemon/Pokemon_Notification.h"
 #include "PokemonSV/Inference/Boxes/PokemonSV_BoxEggDetector.h"
@@ -87,7 +88,8 @@ std::unique_ptr<StatsTracker> EggAutonomous_Descriptor::make_stats() const{
 
 
 EggAutonomous::EggAutonomous()
-    : GO_HOME_WHEN_DONE(false)
+    : STOP_AFTER_CURRENT("Egg Box is Empty")
+    , GO_HOME_WHEN_DONE(false)
     , LANGUAGE(
         "<b>Game Language:</b>",
         IV_READER().languages(),
@@ -180,6 +182,7 @@ EggAutonomous::EggAutonomous()
     if (PreloadSettings::instance().DEVELOPER_MODE){
         PA_ADD_OPTION(SAVE_DEBUG_VIDEO);
     }
+    PA_ADD_OPTION(STOP_AFTER_CURRENT);
     PA_ADD_OPTION(GO_HOME_WHEN_DONE);
     PA_ADD_OPTION(LANGUAGE);
     PA_ADD_OPTION(EGG_SANDWICH);
@@ -197,8 +200,10 @@ EggAutonomous::EggAutonomous()
 void EggAutonomous::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     assert_16_9_720p_min(env.logger(), env.console);
 
+    DeferredStopButtonOption::ResetOnExit reset_on_exit(STOP_AFTER_CURRENT);
+
     //  Connect the controller.
-    pbf_press_button(context, BUTTON_L, 10, 100);
+    require_player(env.console, context, BUTTON_L);
 
     {
         // reset_position_to_flying_spot(env, context);
@@ -206,7 +211,7 @@ void EggAutonomous::program(SingleSwitchProgramEnvironment& env, ProControllerCo
         // hatch_eggs_full_routine(env, context, -1);
 
         // enter_box_system_from_overworld(env.program_info(), env.console, context);
-        // for(int i = 0; i < 5; i++){
+        // for (int i = 0; i < 5; i++){
         //     process_one_baby(env, context, i, 5);
         // }
 
@@ -311,6 +316,12 @@ void EggAutonomous::program(SingleSwitchProgramEnvironment& env, ProControllerCo
             env.log("Max num sandwiches reached: " + std::to_string(max_num_sandwiches), COLOR_PURPLE);
             break;
         }
+
+        if (STOP_AFTER_CURRENT.should_stop()){
+            env.log("Round completed. Stopping program...");
+            env.console.overlay().add_log("Round complete", COLOR_WHITE);
+            throw ProgramFinishedException();
+        }
         // end of one full picnic->hatch iteration
     } // end the full egg autonomous loop
 
@@ -323,10 +334,10 @@ void EggAutonomous::program(SingleSwitchProgramEnvironment& env, ProControllerCo
 int EggAutonomous::fetch_eggs_full_routine(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     auto& stats = env.current_stats<EggAutonomous_Descriptor::Stats>();
 
-    if (LOCATION == EggAutoLocation::ZeroGate) {
+    if (LOCATION == EggAutoLocation::ZeroGate){
         picnic_at_zero_gate(env.program_info(), env.console, context);
-    } else {
-        pbf_press_button(context, BUTTON_L, 50, 40);
+    }else{
+        pbf_press_button(context, BUTTON_L, 400ms, 320ms);
         picnic_from_overworld(env.program_info(), env.console, context);
     }
     // Now we are at picnic. We are at one end of picnic table while the egg basket is at the other end
@@ -354,9 +365,9 @@ int EggAutonomous::fetch_eggs_full_routine(SingleSwitchProgramEnvironment& env, 
     leave_picnic(env.program_info(), env.console, context);
 
     // Reset position to flying spot:
-    if (LOCATION == EggAutoLocation::ZeroGate) {
+    if (LOCATION == EggAutoLocation::ZeroGate){
         reset_position_to_flying_spot(env, context);
-    } else {
+    }else{
         //Lighthouse: We haven't moved much so just fly.
         open_map_from_overworld(env.program_info(), env.console, context);
         fly_to_overworld_from_map(env.program_info(), env.console, context);
@@ -458,10 +469,10 @@ void EggAutonomous::hatch_eggs_full_routine(SingleSwitchProgramEnvironment& env,
             stats.m_hatched++;
             env.update_stats();
         };
-        if (LOCATION == EggAutoLocation::ZeroGate) {
+        if (LOCATION == EggAutoLocation::ZeroGate){
             hatch_eggs_at_zero_gate(env.program_info(), env.console, context, (uint8_t)num_eggs_in_party, hatched_callback);
             reset_position_to_flying_spot(env, context);
-        } else {
+        }else{
             hatch_eggs_at_area_three_lighthouse(env.program_info(), env.console, context, (uint8_t)num_eggs_in_party, hatched_callback);
             reset_position_to_flying_spot(env, context);
             //Clear spawns - over time floette/vivillon drift over past the fence (usually aroudn the 3rd batch)
@@ -474,7 +485,7 @@ void EggAutonomous::hatch_eggs_full_routine(SingleSwitchProgramEnvironment& env,
         // Check each hatched baby whether they will be kept.
         // If yes, move them to the keep box.
         // Otherwise, release them or move them into box in case we will reset game later.
-        for(uint8_t i = 0; i < num_eggs_in_party; i++){
+        for (uint8_t i = 0; i < num_eggs_in_party; i++){
             process_one_baby(env, context, i, (uint8_t)num_eggs_in_party);
         }
 
@@ -677,11 +688,11 @@ bool EggAutonomous::move_pokemon_to_keep(SingleSwitchProgramEnvironment& env, Pr
 void EggAutonomous::reset_position_to_flying_spot(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     // Use map to fly back to the flying spot
     open_map_from_overworld(env.program_info(), env.console, context);
-    if (LOCATION == EggAutoLocation::ZeroGate) {
-        pbf_move_left_joystick(context, 128, 160, 20, 50);
-    } else { //lighthouse
-        pbf_move_left_joystick(context, 130, 0, 150ms, 50ms);
-        pbf_press_button(context, BUTTON_ZL, 40, 100);
+    if (LOCATION == EggAutoLocation::ZeroGate){
+        pbf_move_left_joystick(context, {0, -0.252}, 160ms, 400ms);
+    }else{ //lighthouse
+        pbf_move_left_joystick(context, {+0.016, +1}, 150ms, 50ms);
+        pbf_press_button(context, BUTTON_ZL, 320ms, 800ms);
     }
     fly_to_overworld_from_map(env.program_info(), env.console, context);
 }
@@ -750,9 +761,9 @@ void change_settings_egg_program(SingleSwitchProgramEnvironment& env, ProControl
         {MenuOptionItemEnum::AUTOSAVE, {MenuOptionToggleEnum::OFF}},
 
     };
-    session.set_options(options); 
+    session.set_options(options);
 
-    pbf_mash_button(context, BUTTON_A, 1 * TICKS_PER_SECOND);
+    pbf_mash_button(context, BUTTON_A, 1000ms);
     clear_dialog(env.console, context, ClearDialogMode::STOP_TIMEOUT, 5, {CallbackEnum::PROMPT_DIALOG});
     press_Bs_to_back_to_overworld(env.program_info(), env.console, context);    
 }
@@ -770,7 +781,7 @@ bool EggAutonomous::handle_recoverable_error(
 
     if (SAVE_DEBUG_VIDEO){
         // Take a video to give more context for debugging
-        pbf_press_button(context, BUTTON_CAPTURE, 2 * TICKS_PER_SECOND, 2 * TICKS_PER_SECOND);
+        pbf_press_button(context, BUTTON_CAPTURE, 2000ms, 2000ms);
         context.wait_for_all_requests();
     }
     // if there is no auto save, then we shouldn't reset game to lose previous progress.

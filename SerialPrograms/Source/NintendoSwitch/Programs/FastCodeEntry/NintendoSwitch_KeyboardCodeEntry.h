@@ -10,7 +10,7 @@
 #include <string>
 #include "Controllers/StandardHid/StandardHid_Keyboard.h"
 #include "NintendoSwitch/Options/NintendoSwitch_CodeEntrySettingsOption.h"
-#include "NintendoSwitch/Controllers/NintendoSwitch_ProController.h"
+#include "NintendoSwitch/Controllers/Procon/NintendoSwitch_ProController.h"
 #include "NintendoSwitch/NintendoSwitch_ConsoleHandle.h"
 
 namespace PokemonAutomation{
@@ -23,19 +23,21 @@ namespace FastCodeEntry{
 //  controller type.
 void keyboard_enter_code(
     ConsoleHandle& console, AbstractControllerContext& context,
-    KeyboardLayout keyboard_layout, const std::string& code,
-    bool include_plus
+    bool assume_console_type_is_ready,
+    KeyboardLayout keyboard_layout,
+    const std::string& code, bool include_plus
 );
 
 void keyboard_enter_code(
     ConsoleHandle& console, StandardHid::KeyboardContext& context,
-    KeyboardLayout keyboard_layout, const std::string& code,
-    bool include_plus
+    KeyboardLayout keyboard_layout,
+    const std::string& code, bool include_plus
 );
 void keyboard_enter_code(
     ConsoleHandle& console, ProControllerContext& context,
-    KeyboardLayout keyboard_layout, const std::string& code,
-    bool include_plus
+    bool assume_console_type_is_ready,
+    KeyboardLayout keyboard_layout,
+    const std::string& code, bool include_plus
 );
 
 

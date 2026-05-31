@@ -30,7 +30,7 @@ namespace PokemonSwSh{
 
 namespace{
 
-constexpr uint16_t k_wait_after_move = (uint16_t)(TICKS_PER_SECOND / 1.5);
+constexpr Milliseconds k_wait_after_move = 664ms;
 constexpr std::chrono::milliseconds k_wait_after_read = std::chrono::milliseconds(200);
 
 // A location can be represented as a uint16_t, meaning the order of the location starting at the first box.
@@ -65,24 +65,24 @@ uint16_t move_to_location(Logger& logger, ProControllerContext& context, uint16_
     // TODO: can make this more efficient by moving past grid boundary to appear at the other side
 
     for (int i = 0; i < difference_box; ++i){
-        pbf_press_button(context, BUTTON_R, 10, k_wait_after_move);
+        pbf_press_button(context, BUTTON_R, 80ms, k_wait_after_move);
     }
     for (int i = 0; i > difference_box; --i){
-        pbf_press_button(context, BUTTON_L, 10, k_wait_after_move);
+        pbf_press_button(context, BUTTON_L, 80ms, k_wait_after_move);
     }
 
     for (int i = 0; i < difference_row; ++i){
-        pbf_press_dpad(context, DPAD_DOWN, 10, k_wait_after_move);
+        pbf_press_dpad(context, DPAD_DOWN, 80ms, k_wait_after_move);
     }
     for (int i = 0; i > difference_row; --i){
-        pbf_press_dpad(context, DPAD_UP, 10, k_wait_after_move);
+        pbf_press_dpad(context, DPAD_UP, 80ms, k_wait_after_move);
     }
 
     for (int i = 0; i < difference_column; ++i){
-        pbf_press_dpad(context, DPAD_RIGHT, 10, k_wait_after_move);
+        pbf_press_dpad(context, DPAD_RIGHT, 80ms, k_wait_after_move);
     }
     for (int i = 0; i > difference_column; --i){
-        pbf_press_dpad(context, DPAD_LEFT, 10, k_wait_after_move);
+        pbf_press_dpad(context, DPAD_LEFT, 80ms, k_wait_after_move);
     }
     return to;
 }
@@ -142,8 +142,7 @@ BoxReorderNationalDex_Descriptor::BoxReorderNationalDex_Descriptor()
         "Order boxes of " + STRING_POKEMON + ".",
         ProgramControllerClass::StandardController_RequiresPrecision,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {}
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 
@@ -180,7 +179,8 @@ void BoxReorderNationalDex::program(SingleSwitchProgramEnvironment& env, ProCont
         grip_menu_connect_go_home(context);
         resume_game_no_interact(env.console, context, DODGE_SYSTEM_UPDATE_WINDOW);
     }else{
-        pbf_press_button(context, BUTTON_LCLICK, 5, 5);
+        //  Connect the controller.
+        require_player(env.console, context, BUTTON_LCLICK);
     }
 
     // Read all the pokemon and return a list of their slugs in the current box order.
@@ -190,7 +190,7 @@ void BoxReorderNationalDex::program(SingleSwitchProgramEnvironment& env, ProCont
     const std::vector<std::string>& dex_slugs = NATIONAL_DEX_SLUGS();
     // Build a map of slug -> national dex ID for fast lookup
     std::map<std::string, size_t> dex_slug_order;
-    for(size_t i = 0; i < dex_slugs.size(); ++i){
+    for (size_t i = 0; i < dex_slugs.size(); ++i){
         dex_slug_order.emplace(dex_slugs[i], i);
     }
 
@@ -222,11 +222,11 @@ void BoxReorderNationalDex::program(SingleSwitchProgramEnvironment& env, ProCont
         // Move the cursor to the unsorted_location
         current_location = move_to_location(env.console, context, current_location, unsorted_location);
         // Press A to grab the pokemon
-        pbf_press_button(context, BUTTON_A, 10, k_wait_after_move);
+        pbf_press_button(context, BUTTON_A, 80ms, k_wait_after_move);
         // Move the cursor to the sorted_location
         current_location = move_to_location(env.console, context, current_location, sorted_location);
         // Press A to finish swapping the pokemon
-        pbf_press_button(context, BUTTON_A, 10, k_wait_after_move);
+        pbf_press_button(context, BUTTON_A, 80ms, k_wait_after_move);
         // Now the order in the box is changed, update `current_order` to reflect this change.
         std::swap(current_order[unsorted_location], current_order[sorted_location]);
     }

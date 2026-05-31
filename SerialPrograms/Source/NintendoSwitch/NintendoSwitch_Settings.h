@@ -43,7 +43,7 @@ public:
     ControllerSettingsTable CONTROLLER_SETTINGS;
 
     BooleanCheckBoxOption TRUST_USER_CONSOLE_SELECTION;
-    MillisecondsOption START_GAME_MASH;
+    MillisecondsOption BLIND_START_GAME_MASH;
     MillisecondsOption SETTINGS_TO_HOME_DELAY0;
     BooleanCheckBoxOption START_GAME_REQUIRES_INTERNET;
     MillisecondsOption START_GAME_INTERNET_CHECK_DELAY0;
@@ -55,10 +55,13 @@ public:
 
     TimingOptions TIMING_OPTIONS;
 
-    DigitEntryTimingsOption     SWITCH1_DIGIT_ENTRY0;
-    KeyboardEntryTimingsOption  SWITCH1_KEYBOARD_ENTRY0;
-    DigitEntryTimingsOption     SWITCH2_DIGIT_ENTRY0;
-    KeyboardEntryTimingsOption  SWITCH2_KEYBOARD_ENTRY0;
+    MillisecondsOption DATE_MENU_OPEN_SWITCH2_0;
+    MillisecondsOption DATE_MENU_CLOSE_SWITCH2_0;
+
+    CodeboardTimingsOption CODEBOARD_ENTRY_SWITCH1_WIRED;
+    CodeboardTimingsOption CODEBOARD_ENTRY_SWITCH1_WIRELESS;
+    CodeboardTimingsOption CODEBOARD_ENTRY_SWITCH2_WIRED;
+    CodeboardTimingsOption CODEBOARD_ENTRY_SWITCH2_WIRELESS;
     KeyboardControllerTimingsOption KEYBOARD_CONTROLLER_TIMINGS;
 
     SectionDividerOption KEYBOARD_SECTION;

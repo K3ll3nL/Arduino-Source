@@ -9,6 +9,7 @@
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "CommonTools/VisualDetectors/FrozenImageDetector.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "PokemonSwSh/ShinyHuntTracker.h"
 #include "PokemonBDSP/Inference/PokemonBDSP_SelectionArrow.h"
 #include "PokemonBDSP/Inference/Battles/PokemonBDSP_BattleMenuDetector.h"
@@ -106,7 +107,7 @@ bool DoublesLeveling::battle(SingleSwitchProgramEnvironment& env, ProControllerC
         int ret = run_until<ProControllerContext>(
             env.console, context,
             [](ProControllerContext& context){
-                pbf_mash_button(context, BUTTON_B, 120 * TICKS_PER_SECOND);
+                pbf_mash_button(context, BUTTON_B, 120000ms);
             },
             {
                 battle_menu,
@@ -118,24 +119,24 @@ bool DoublesLeveling::battle(SingleSwitchProgramEnvironment& env, ProControllerC
         switch (ret){
         case 0:
             env.log("Battle menu detected!", COLOR_BLUE);
-            pbf_mash_button(context, BUTTON_ZL, 5 * TICKS_PER_SECOND);
+            pbf_mash_button(context, BUTTON_ZL, 5000ms);
             c++;
             break;
         case 1:
             env.log("Battle finished!", COLOR_BLUE);
-            pbf_mash_button(context, BUTTON_B, 250);
+            pbf_mash_button(context, BUTTON_B, 2000ms);
             return false;
         case 2:
             env.log("Detected move learn!", COLOR_BLUE);
             if (ON_LEARN_MOVE == OnLearnMove::DONT_LEARN){
-                pbf_move_right_joystick(context, 128, 255, 20, 105);
-                pbf_press_button(context, BUTTON_ZL, 20, 105);
+                pbf_move_right_joystick(context, {0, -1}, 160ms, 840ms);
+                pbf_press_button(context, BUTTON_ZL, 160ms, 840ms);
                 break;
             }
             return true;
         case 3:
             env.log("Detected possible overworld!", COLOR_BLUE);
-            pbf_mash_button(context, BUTTON_B, 250);
+            pbf_mash_button(context, BUTTON_B, 2000ms);
             return false;
         default:
             env.log("Timed out.", COLOR_RED);
@@ -169,7 +170,7 @@ void DoublesLeveling::program(SingleSwitchProgramEnvironment& env, ProController
     );
 
     //  Connect the controller.
-    pbf_press_button(context, BUTTON_B, 5, 5);
+    require_player(env.console, context, BUTTON_B);
 
     //  Encounter Loop
     while (true){

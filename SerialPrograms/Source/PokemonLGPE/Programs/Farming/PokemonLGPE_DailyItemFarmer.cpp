@@ -12,7 +12,7 @@
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
-#include "NintendoSwitch/Controllers/NintendoSwitch_Joycon.h"
+#include "NintendoSwitch/Controllers/Joycon/NintendoSwitch_Joycon.h"
 #include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "NintendoSwitch/Programs/DateSpam/NintendoSwitch_HomeToDateTime.h"
 #include "Pokemon/Pokemon_Strings.h"
@@ -96,50 +96,50 @@ void DailyItemFarmer::start_local_trade(SingleSwitchProgramEnvironment& env, Joy
     env.log("Starting local trade.");
     //Open Menu -> Communication -> Nearby player -> Local Trade
     pbf_press_button(context, BUTTON_X, 200ms, 800ms);
-    pbf_move_joystick(context, 255, 128, 100ms, 400ms);
+    pbf_move_joystick(context, {+1, 0}, 100ms, 400ms);
     pbf_press_button(context, BUTTON_A, 200ms, 1000ms);
     pbf_press_button(context, BUTTON_A, 200ms, 2000ms); //  Black screen
     pbf_press_button(context, BUTTON_A, 200ms, 1000ms);
     pbf_press_button(context, BUTTON_A, 200ms, 1000ms);
 
     //Enter link code
-    switch(LINK_CODE) {
+    switch(LINK_CODE){
     case LinkCode::Pikachu:
         break;
     case LinkCode::Eevee:
-        pbf_move_joystick(context, 255, 128, 100ms, 100ms);
+        pbf_move_joystick(context, {+1, 0}, 100ms, 100ms);
         break;
     case LinkCode::Bulbasaur:
-        pbf_move_joystick(context, 255, 128, 100ms, 100ms);
-        pbf_move_joystick(context, 255, 128, 100ms, 100ms);
+        pbf_move_joystick(context, {+1, 0}, 100ms, 100ms);
+        pbf_move_joystick(context, {+1, 0}, 100ms, 100ms);
         break;
     case LinkCode::Charmander:
-        pbf_move_joystick(context, 0, 128, 100ms, 100ms);
-        pbf_move_joystick(context, 0, 128, 100ms, 100ms);
+        pbf_move_joystick(context, {-1, 0}, 100ms, 100ms);
+        pbf_move_joystick(context, {-1, 0}, 100ms, 100ms);
         break;
     case LinkCode::Squirtle:
-        pbf_move_joystick(context, 0, 128, 100ms, 100ms);
+        pbf_move_joystick(context, {-1, 0}, 100ms, 100ms);
         break;
     case LinkCode::Pidgey:
-        pbf_move_joystick(context, 128, 255, 100ms, 100ms);
+        pbf_move_joystick(context, {0, -1}, 100ms, 100ms);
         break;
     case LinkCode::Caterpie:
-        pbf_move_joystick(context, 128, 255, 100ms, 100ms);
-        pbf_move_joystick(context, 255, 128, 100ms, 100ms);
+        pbf_move_joystick(context, {0, -1}, 100ms, 100ms);
+        pbf_move_joystick(context, {+1, 0}, 100ms, 100ms);
         break;
     case LinkCode::Rattata:
-        pbf_move_joystick(context, 128, 255, 100ms, 100ms);
-        pbf_move_joystick(context, 0, 128, 100ms, 100ms);
-        pbf_move_joystick(context, 0, 128, 100ms, 100ms);
+        pbf_move_joystick(context, {0, -1}, 100ms, 100ms);
+        pbf_move_joystick(context, {-1, 0}, 100ms, 100ms);
+        pbf_move_joystick(context, {-1, 0}, 100ms, 100ms);
         break;
     case LinkCode::Jigglypuff:
-        pbf_move_joystick(context, 128, 255, 100ms, 100ms);
-        pbf_move_joystick(context, 0, 128, 100ms, 100ms);
-        pbf_move_joystick(context, 0, 128, 100ms, 100ms);
+        pbf_move_joystick(context, {0, -1}, 100ms, 100ms);
+        pbf_move_joystick(context, {-1, 0}, 100ms, 100ms);
+        pbf_move_joystick(context, {-1, 0}, 100ms, 100ms);
         break;
     case LinkCode::Diglett:
-        pbf_move_joystick(context, 128, 255, 100ms, 100ms);
-        pbf_move_joystick(context, 0, 128, 100ms, 100ms);
+        pbf_move_joystick(context, {0, -1}, 100ms, 100ms);
+        pbf_move_joystick(context, {-1, 0}, 100ms, 100ms);
         break;
     default:
         env.log("Invalid link code selection. Defaulting to Pikachu.");
@@ -196,7 +196,7 @@ void DailyItemFarmer::program(SingleSwitchProgramEnvironment& env, CancellableSc
     context.wait_for_all_requests();
 
     env.log("Starting pickup loop.");
-    for (uint32_t count = 0; count < ATTEMPTS; count++) {
+    for (uint32_t count = 0; count < ATTEMPTS; count++){
         env.log("Pick up item.");
 
         pbf_mash_button(context, BUTTON_A, 4000ms);
@@ -254,7 +254,7 @@ void DailyItemFarmer::program(SingleSwitchProgramEnvironment& env, CancellableSc
         resume_game_from_home(env.console, context);
     }
 
-    if (GO_HOME_WHEN_DONE) {
+    if (GO_HOME_WHEN_DONE){
         pbf_press_button(context, BUTTON_HOME, 200ms, 1000ms);
     }
     send_program_finished_notification(env, NOTIFICATION_PROGRAM_FINISH);

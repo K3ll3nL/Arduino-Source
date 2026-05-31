@@ -9,6 +9,7 @@
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "PokemonSV/Programs/PokemonSV_SaveGame.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSV/Inference/Dialogs/PokemonSV_DialogDetector.h"
@@ -65,32 +66,35 @@ void ESPTraining::program(SingleSwitchProgramEnvironment& env, ProControllerCont
     assert_16_9_720p_min(env.logger(), env.console);
     ESPTrainingStats& stats = env.current_stats<ESPTrainingStats>();
 
+    //  Connect the controller.
+    require_player(env.console, context, BUTTON_LCLICK);
+
     for (uint32_t c = 0; c < ROUNDS; c++){
         env.log("Round: " + tostr_u_commas(c));
 
         //Initiate dialog with Dendra
         //Dendra needs time to turn and face the player
         AdvanceDialogWatcher advance_detector(COLOR_YELLOW);
-        pbf_press_button(context, BUTTON_A, 10, 50);
+        pbf_press_button(context, BUTTON_A, 80ms, 400ms);
         int retD = wait_until(env.console, context, Milliseconds(4000), { advance_detector });
         if (retD < 0){
             env.log("Dialog detected.");
         }
-        pbf_press_button(context, BUTTON_A, 10, 50);
+        pbf_press_button(context, BUTTON_A, 80ms, 400ms);
 
         //Yes let's train
-        pbf_press_button(context, BUTTON_A, 10, 50);
-        pbf_wait(context, 100);
+        pbf_press_button(context, BUTTON_A, 80ms, 400ms);
+        pbf_wait(context, 800ms);
         context.wait_for_all_requests();
 
         //What mode? - Knockout
-        pbf_press_button(context, BUTTON_A, 10, 50);
-        pbf_press_dpad(context, DPAD_DOWN, 10, 50);
-        pbf_press_button(context, BUTTON_A, 10, 50);
+        pbf_press_button(context, BUTTON_A, 80ms, 400ms);
+        pbf_press_dpad(context, DPAD_DOWN, 80ms, 400ms);
+        pbf_press_button(context, BUTTON_A, 80ms, 400ms);
         context.wait_for_all_requests();
 
         //mash past other dialog
-        pbf_mash_button(context, BUTTON_A, 360);
+        pbf_mash_button(context, BUTTON_A, 2880ms);
             
         //wait for start
         context.wait_for(std::chrono::milliseconds(13000));
@@ -108,7 +112,7 @@ void ESPTraining::program(SingleSwitchProgramEnvironment& env, ProControllerCont
         int ret = run_until<ProControllerContext>(
             env.console, context,
             [](ProControllerContext& context){
-                pbf_mash_button(context, BUTTON_B, 700);
+                pbf_mash_button(context, BUTTON_B, 5600ms);
             },
             {overworld}
         );
@@ -200,7 +204,7 @@ void run_esp_training(SingleSwitchProgramEnvironment& env, ProControllerContext&
 
             // Press button and check it did not drop input. Press again if it did.
             // This will result in a duplicate press between phases, but the press will do nothing.
-            pbf_press_button(context, emotion_button, 10, 50);
+            pbf_press_button(context, emotion_button, 80ms, 400ms);
             env.update_stats();
 
             ESPPressedEmotionDetector emotion_press_detected;
@@ -211,7 +215,7 @@ void run_esp_training(SingleSwitchProgramEnvironment& env, ProControllerContext&
             );
             if (check < 0){
                 env.log("Emotion press not detected in bottom right. Pressing button again.");
-                pbf_press_button(context, emotion_button, 10, 50);
+                pbf_press_button(context, emotion_button, 80ms, 400ms);
             }else{
                 env.log("Emotion press detected.");
             }

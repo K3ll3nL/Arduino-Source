@@ -1,0 +1,97 @@
+/*  Nintendo Switch - OEM Controller State
+ *
+ *  From: https://github.com/PokemonAutomation/
+ *
+ */
+
+#ifndef PokemonAutomation_NintendoSwitch_OemController_State_H
+#define PokemonAutomation_NintendoSwitch_OemController_State_H
+
+#include <stdbool.h>
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+//
+//  Console <-> Controller
+//
+
+
+typedef struct{
+    uint8_t left[4];
+    uint8_t right[4];
+} pabb_NintendoSwitch_Rumble;
+
+extern const pabb_NintendoSwitch_Rumble pabb_NintendoSwitch_Rumble_NEUTRAL_STATE;
+
+
+
+typedef struct{
+    uint8_t button3;
+    uint8_t button4;
+    uint8_t button5;
+    uint8_t left_joystick[3];
+    uint8_t right_joystick[3];
+    uint8_t vibrator;
+} pabb_NintendoSwitch_OemController_State0x30_Buttons;
+
+typedef struct{
+    int16_t accel_x;
+    int16_t accel_y;
+    int16_t accel_z;
+    int16_t rotation_x;
+    int16_t rotation_y;
+    int16_t rotation_z;
+} pabb_NintendoSwitch_OemController_State0x30_Gyro;
+
+typedef struct{
+    pabb_NintendoSwitch_OemController_State0x30_Gyro time0;
+    pabb_NintendoSwitch_OemController_State0x30_Gyro time1;
+    pabb_NintendoSwitch_OemController_State0x30_Gyro time2;
+} pabb_NintendoSwitch_OemController_State0x30_GyroX3;
+
+typedef struct{
+    pabb_NintendoSwitch_OemController_State0x30_Buttons buttons;
+    pabb_NintendoSwitch_OemController_State0x30_GyroX3 gyro;
+} pabb_NintendoSwitch_OemController_State0x30;
+
+
+
+
+extern const pabb_NintendoSwitch_OemController_State0x30 pabb_NintendoSwitch_OemController_State0x30_NEUTRAL_STATE;
+
+bool pabb_NintendoSwitch_OemController_State0x30_equals(
+    const pabb_NintendoSwitch_OemController_State0x30* state0,
+    const pabb_NintendoSwitch_OemController_State0x30* state1
+);
+
+
+//
+//  Controller <-> CC
+//
+
+typedef struct{
+    //  Bit 0: Connected
+    //  Bit 1: Ready
+    //  Bit 2: Paired
+    uint8_t status;
+
+    uint8_t player_lights;
+
+    uint8_t paired_mac_address[6];
+} pabb_NintendoSwitch_OemController_Status;
+
+typedef enum{
+    HOST_SHUTDOWN,
+    CONNECTION_REJECTED,
+} DisconnectReason;
+
+
+
+#ifdef __cplusplus
+}
+#endif
+#endif

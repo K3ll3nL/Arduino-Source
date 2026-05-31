@@ -1,7 +1,6 @@
 #ifdef PA_DPP
 
 #include <format>
-#include <dpp/dpp.h>
 #include "Common/Cpp/Concurrency/ScheduledTaskRunner.h"
 #include "CommonFramework/Globals.h"
 #include "CommonFramework/GlobalSettingsPanel.h"
@@ -19,6 +18,7 @@ namespace DppCommandHandler{
 user Handler::owner;
 Color Handler::color = COLOR_WHITE;
 
+
 void Handler::initialize(cluster& bot, commandhandler& handler){
     global_logger_tagged().log("Initializing DPP...");
 
@@ -26,7 +26,11 @@ void Handler::initialize(cluster& bot, commandhandler& handler){
         log_dpp(log.message, "Internal Log", log.severity);
     });
 
+#if DPP_VERSION_LONG >= 0x00100100 // (dpp version 10.1.0)
+    // Do nothing, owner will be set below in on_ready callback
+#else
     owner = bot.current_application_get_sync().owner;
+#endif
     auto cmd_type = GlobalSettings::instance().DISCORD->integration.command_type.get();
     std::string prefix = GlobalSettings::instance().DISCORD->integration.command_prefix;
 
@@ -37,14 +41,34 @@ void Handler::initialize(cluster& bot, commandhandler& handler){
     }
 
     bot.on_ready([&bot, &handler, this](const ready_t&){
+#if DPP_VERSION_LONG >= 0x00100100 // (dpp version 10.1.0)
+        log_dpp("Logged in as: " + bot.me.format_username() + ".", "Ready", ll_info);
+        Handler::create_unified_commands(handler);
+        bot.current_application_get([&](const dpp::confirmation_callback_t& cc){
+            if (cc.is_error()){
+                log_dpp("Error getting application details: " + cc.get_error().message, "Current App", ll_error);
+                return;
+            }
+            dpp::application app = cc.get<dpp::application>();
+            log_dpp("Application Name: " + app.name, "Current App", ll_info);
+            log_dpp("Application ID: " + std::to_string(app.id), "Current App", ll_info);
+            owner = app.owner;
+        });
+#else
         log_dpp("Logged in as: " + bot.current_user_get_sync().format_username() + ".", "Ready", ll_info);
         Handler::create_unified_commands(handler);
+#endif
     });
 
     bot.on_guild_create([&bot, this](const guild_create_t& event){
         try{
+#if DPP_VERSION_LONG >= 0x00100100 // (dpp version 10.1.0)
+            std::string id = std::to_string(event.created.id);
+            log_dpp("Loaded guild: " + event.created.name + " (" + id + ").", "Guild Create", ll_info);
+#else
             std::string id = std::to_string(event.created->id);
             log_dpp("Loaded guild: " + event.created->name + " (" + id + ").", "Guild Create", ll_info);
+#endif
             std::lock_guard<std::mutex> lg(m_count_lock);
             Utility::get_user_counts(bot, event);
         }catch (std::exception& e){
@@ -53,19 +77,35 @@ void Handler::initialize(cluster& bot, commandhandler& handler){
     });
 
     bot.on_guild_member_add([this](const guild_member_add_t& event){
+#if DPP_VERSION_LONG >= 0x00100100 // (dpp version 10.1.0)
+        std::string id = std::to_string(event.adding_guild.id);
+        if (!user_counts.empty() && user_counts.count(id)){
+            log_dpp("New member joined " + event.adding_guild.name + ". Incrementing member count.", "Guild Member Add", ll_info);
+            user_counts.at(id)++;
+        }
+#else
         std::string id = std::to_string(event.adding_guild->id);
         if (!user_counts.empty() && user_counts.count(id)){
             log_dpp("New member joined " + event.adding_guild->name + ". Incrementing member count.", "Guild Member Add", ll_info);
             user_counts.at(id)++;
         }
+#endif
     });
 
     bot.on_guild_member_remove([this](const guild_member_remove_t& event){
+#if DPP_VERSION_LONG >= 0x00100100 // (dpp version 10.1.0)
+        std::string id = std::to_string(event.removing_guild.id);
+        if (!user_counts.empty() && user_counts.count(id)){
+            log_dpp("Member left " + event.removing_guild.name + ". Decrementing member count.", "Guild Member Remove", ll_info);
+            user_counts.at(id)--;
+        }
+#else
         std::string id = std::to_string(event.removing_guild->id);
         if (!user_counts.empty() && user_counts.count(id)){
             log_dpp("Member left " + event.removing_guild->name + ". Decrementing member count.", "Guild Member Remove", ll_info);
             user_counts.at(id)--;
         }
+#endif
     });
 
     bot.on_message_create([&handler](const message_create_t& event){
@@ -90,7 +130,14 @@ void Handler::initialize(cluster& bot, commandhandler& handler){
     });
 }
 
-void Handler::send_message(cluster& bot, embed& embed, const std::string& channel, std::chrono::milliseconds delay, const std::string& msg, std::shared_ptr<PendingFileSend> file){
+void Handler::send_message(
+    cluster& bot,
+    embed& embed,
+    const std::string& channel,
+    std::chrono::milliseconds delay,
+    const std::string& msg,
+    std::shared_ptr<PendingFileSend> file
+){
     Handler::m_queue.add_event(delay > std::chrono::milliseconds(10000) ? std::chrono::milliseconds(0) : delay,
     [&bot, this, embed = std::move(embed), channel = channel, msg = msg, file = std::move(file)]() mutable {
         message m;
@@ -103,7 +150,7 @@ void Handler::send_message(cluster& bot, embed& embed, const std::string& channe
                 if (path.find(".txt") == std::string::npos){
                     embed.set_image("attachment://" + file->filename());
                 }
-            }catch (dpp::exception e){
+            }catch (dpp::exception& e){
                 log_dpp("Exception thrown while reading screenshot data: " + (std::string)e.what(), "send_message()", ll_error);
             }
         }
@@ -128,7 +175,7 @@ void Handler::update_response(const dpp::command_source& src, dpp::embed& embed,
             data = utility::read_file(file->filepath());
             m.add_file(file->filename(), data);
             embed.set_image("attachment://" + file->filename());
-        }catch (dpp::exception e){
+        }catch (dpp::exception& e){
             log_dpp("Exception thrown while reading screenshot data: " + (std::string)e.what(), "send_message()", ll_error);
         }
     }

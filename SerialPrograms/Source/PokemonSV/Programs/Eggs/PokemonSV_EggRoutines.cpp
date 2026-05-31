@@ -57,7 +57,7 @@ void clear_mons_in_front(
                 context.wait_for_all_requests();
                 context.wait_for(std::chrono::seconds(30));
                 stream.log("A " + Pokemon::STRING_POKEMON + " is standing in the way. Whistling and waiting 30 seconds...", COLOR_RED);
-                pbf_press_button(context, BUTTON_R, 20, 0);
+                pbf_press_button(context, BUTTON_R, 160ms, 0ms);
             }
         },
         {button}
@@ -71,7 +71,7 @@ void clear_mons_in_front(
 #if 0
     WhiteButtonDetector detector(COLOR_RED, WhiteButton::ButtonA, {0.020, 0.590, 0.035, 0.060});
     while (detector.detect(console.video().snapshot())){
-        pbf_press_button(context, BUTTON_R, 20, 30 * TICKS_PER_SECOND);
+        pbf_press_button(context, BUTTON_R, 20, 30000ms);
         context.wait_for_all_requests();
     }
 #endif
@@ -96,9 +96,9 @@ void handle_egg_hatching(
     int ret = run_until<ProControllerContext>(
         stream, context,
         [](ProControllerContext& context){
-            ssf_press_right_joystick(context, 0, 128, 0, 95);
-            for(int i = 0; i < 60; i++){
-                pbf_mash_button(context, BUTTON_A, 125);
+            ssf_press_right_joystick(context, {-1, 0}, 0ms, 760ms);
+            for (int i = 0; i < 60; i++){
+                pbf_mash_button(context, BUTTON_A, 1000ms);
             }
         },
         {overworld}
@@ -132,8 +132,8 @@ void do_egg_cycle_motion(
             // hatch circle:
             // Left joystick forward, right joystick right
             // click left joystick
-            ssf_press_left_joystick(context, 128, 0, 0ms, std::chrono::minutes(10));
-            ssf_press_right_joystick(context, 255, 128, 0ms, std::chrono::minutes(10));
+            ssf_press_left_joystick(context, {0, +1}, 0ms, std::chrono::minutes(10));
+            ssf_press_right_joystick(context, {+1, 0}, 0ms, std::chrono::minutes(10));
             pbf_press_button(context, BUTTON_LCLICK, std::chrono::minutes(10), 0ms);
         },
         {
@@ -168,7 +168,7 @@ void order_compote_du_fils(
     // We start this function when we enter the restaurant without pressing any button.
 
     // Se we first press A to clear a dialog:
-    pbf_press_button(context, BUTTON_A, 30, 100);
+    pbf_press_button(context, BUTTON_A, 240ms, 800ms);
 
     bool paid = false;
     bool eating = false;
@@ -192,26 +192,26 @@ void order_compote_du_fils(
             if (paid){
                 // This is a dialog box after we have paid the food.
                 // Mash A to clear any remaining dialog before a very long eating animation.
-                pbf_mash_button(context, BUTTON_A, 300);
+                pbf_mash_button(context, BUTTON_A, 2400ms);
                 context.wait_for_all_requests();
                 eating = true;
             }else{
-                pbf_press_button(context, BUTTON_A, 30, 100);
+                pbf_press_button(context, BUTTON_A, 240ms, 800ms);
             }
             break;
         case 1:
             stream.log("Detected restaurant menu.");
             stream.overlay().add_log("Restaurant menu", COLOR_WHITE);
-            pbf_press_dpad(context, DPAD_DOWN, 30, 60);
+            pbf_press_dpad(context, DPAD_DOWN, 240ms, 480ms);
             break;
         case 2:
             stream.log("Detected the dish we want.");
-            pbf_press_button(context, BUTTON_A, 30, 100);
+            pbf_press_button(context, BUTTON_A, 240ms, 800ms);
             break;
         case 3:
             stream.log("Detected the payment prompt.");
             stream.overlay().add_log("Pay dish", COLOR_WHITE);
-            pbf_press_button(context, BUTTON_A, 30, 100);
+            pbf_press_button(context, BUTTON_A, 240ms, 800ms);
             paid = true;
             break;
         default:
@@ -227,8 +227,8 @@ void order_compote_du_fils(
         int ret = run_until<ProControllerContext>(
             stream, context,
             [](ProControllerContext& context){
-                for(int i = 0; i < 60; i++){
-                    pbf_press_button(context, BUTTON_A, 25, 100);
+                for (int i = 0; i < 60; i++){
+                    pbf_press_button(context, BUTTON_A, 200ms, 800ms);
                 }
             },
             {{dialog_watcher}}
@@ -242,8 +242,8 @@ void order_compote_du_fils(
     }
 
     // Now leaving the restaurant
-    pbf_mash_button(context, BUTTON_B, 90);
-    pbf_wait(context, 100);
+    pbf_mash_button(context, BUTTON_B, 720ms);
+    pbf_wait(context, 800ms);
     while(true){
         context.wait_for_all_requests();
 
@@ -255,7 +255,7 @@ void order_compote_du_fils(
             {dialog_watcher, overworld}
         );
         if (ret == 0){
-            pbf_press_button(context, BUTTON_A, 30, 100);
+            pbf_press_button(context, BUTTON_A, 240ms, 800ms);
             continue;
         }else if (ret == 1){
             return; // outside restaurant
@@ -275,14 +275,14 @@ void picnic_at_zero_gate(
     // Orient camera to look at same direction as player character
     // This is needed because when save-load the game, the camera is reset
     // to this location.
-    pbf_press_button(context, BUTTON_L, 50, 40);
+    pbf_press_button(context, BUTTON_L, 400ms, 320ms);
 
     // Move right to make player character facing away from Aera Zero observation station
-    pbf_move_left_joystick(context, 255, 32, 50, 50);
+    pbf_move_left_joystick(context, {+1, +0.75}, 400ms, 400ms);
     // Press L to move camera to face the same direction as the player character
-    pbf_press_button(context, BUTTON_L, 50, 40);
+    pbf_press_button(context, BUTTON_L, 400ms, 320ms);
     // Move forward
-    pbf_move_left_joystick(context, 128, 0, 125, 0);
+    pbf_move_left_joystick(context, {0, +1}, 1000ms, 0ms);
 
     picnic_from_overworld(info, stream, context);
 }
@@ -294,7 +294,7 @@ bool eat_egg_sandwich_at_picnic(
     Language language
 ){
     // Move forward to table to make sandwich
-    pbf_move_left_joystick(context, 128, 0, 30, 40);
+    pbf_move_left_joystick(context, {0, +1}, 240ms, 320ms);
     context.wait_for_all_requests();
 
     clear_mons_in_front(env.program_info(), stream, context);
@@ -350,79 +350,79 @@ void collect_eggs_after_sandwich(
     stream.overlay().add_log("Move past picnic table", COLOR_WHITE);
 
     //  Recall your ride to reduce obstacles.
-    pbf_press_button(context, BUTTON_PLUS, 20, 105);
+    pbf_press_button(context, BUTTON_PLUS, 160ms, 840ms);
 
 #if 0
     // this sequence will purposefully fail if Camera support is off. 
     // If we fail to reach the egg basket, we can then check that Camera support is on.
 
     //  Move forward to table
-    pbf_move_left_joystick(context, 128, 0, 80, 40);
+    pbf_move_left_joystick(context, {0, +1}, 640ms, 320ms);
     //  Move left
-    pbf_move_left_joystick(context, 0, 128, 40, 40);
+    pbf_move_left_joystick(context, {-1, 0}, 320ms, 320ms);
     //  Move forward to pass table
-    pbf_move_left_joystick(context, 128, 0, 80, 40);
+    pbf_move_left_joystick(context, {0, +1}, 640ms, 320ms);
     //  Move right
-    pbf_move_left_joystick(context, 255, 128, 40, 85);
+    pbf_move_left_joystick(context, {+1, 0}, 320ms, 680ms);
     //  Move back/right to align to basket
-    pbf_move_left_joystick(context, 240, 255, 40, 40);
+    pbf_move_left_joystick(context, 240, 255, 320ms, 320ms);
 
     //  Move closer to the basket, up to the table
-    pbf_press_button(context, BUTTON_L, 20, 105);
-    pbf_move_left_joystick(context, 128, 0, 100, 40);
+    pbf_press_button(context, BUTTON_L, 160ms, 840ms);
+    pbf_move_left_joystick(context, {0, +1}, 800ms, 320ms);
 
     //  face away from the table
-    pbf_press_button(context, BUTTON_L, 20, 105);
-    pbf_move_left_joystick(context, 128, 255, 10, 40);  
+    pbf_press_button(context, BUTTON_L, 160ms, 840ms);
+    pbf_move_left_joystick(context, {0, -1}, 80ms, 320ms);
 #endif
 
 #if 1
     // this sequence will work with both Camera Support being Off and On
 
     //  Move forward to table
-    pbf_move_left_joystick(context, 128, 0, 320ms, 480ms);
+    pbf_move_left_joystick(context, {0, +1}, 320ms, 480ms);
 
     //  Move left
-    pbf_move_left_joystick(context, 0, 128, 80ms, 480ms);
+    pbf_move_left_joystick(context, {-1, 0}, 80ms, 480ms);
     pbf_press_button(context, BUTTON_L, 120ms, 480ms);
-    pbf_move_left_joystick(context, 128, 0, 320ms, 480ms);
+    pbf_move_left_joystick(context, {0, +1}, 320ms, 480ms);
 
     //  Move forward to pass table
-    pbf_move_left_joystick(context, 255, 128, 80ms, 480ms);
+    pbf_move_left_joystick(context, {+1, 0}, 80ms, 480ms);
     pbf_press_button(context, BUTTON_L, 120ms, 480ms);
-    pbf_move_left_joystick(context, 128, 0, 640ms, 480ms);
+    pbf_move_left_joystick(context, {0, +1}, 640ms, 480ms);
 
     //  Move right
-    pbf_move_left_joystick(context, 255, 128, 80ms, 480ms);
+    pbf_move_left_joystick(context, {+1, 0}, 80ms, 480ms);
     pbf_press_button(context, BUTTON_L, 120ms, 480ms);
-    pbf_move_left_joystick(context, 128, 0, 320ms, 480ms);
+    pbf_move_left_joystick(context, {0, +1}, 320ms, 480ms);
 
     //  Turn right to face basket
-    pbf_move_left_joystick(context, 255, 128, 80ms, 480ms);
+    pbf_move_left_joystick(context, {+1, 0}, 80ms, 480ms);
     pbf_press_button(context, BUTTON_L, 120ms, 480ms);
 
     //  Move closer to the basket, up to the table
-    pbf_move_left_joystick(context, 128, 0, 800ms, 480ms);
+    pbf_move_left_joystick(context, {0, +1}, 800ms, 480ms);
 
     //  back away from the table, then face forwards towards the basket again
-    pbf_move_left_joystick(context, 128, 255, 200ms, 480ms);
-    pbf_move_left_joystick(context, 128, 0, 80ms, 480ms);
+    pbf_move_left_joystick(context, {0, -1}, 200ms, 480ms);
+    pbf_move_left_joystick(context, {0, +1}, 80ms, 480ms);
     pbf_press_button(context, BUTTON_L, 120ms, 480ms);   
 #endif
 
 #if 0
     //  Move left
-    pbf_move_left_joystick(context, 0, 128, 40, 40);
+    pbf_move_left_joystick(context, {-1, 0}, 320ms, 320ms);
     //  Move forward to pass table
-    pbf_move_left_joystick(context, 128, 0, 80, 40); // old value: 80
+    pbf_move_left_joystick(context, {0, +1}, 640ms, 320ms); // old value: 80
     //  Move right
-    pbf_move_left_joystick(context, 255, 128, 50, 40);
+    pbf_move_left_joystick(context, {+1, 0}, 400ms, 320ms);
     //  Move back to face basket
-    pbf_move_left_joystick(context, 128, 255, 10, 40);
+    pbf_move_left_joystick(context, {0, -1}, 80ms, 320ms);
 
     //  Move closer to the basket.
-    pbf_press_button(context, BUTTON_L, 20, 105);
-    pbf_move_left_joystick(context, 128, 0, 10, 40);
+    pbf_press_button(context, BUTTON_L, 160ms, 840ms);
+    pbf_move_left_joystick(context, {0, +1}, 80ms, 320ms);
 #endif
 
 
@@ -538,13 +538,13 @@ void check_basket_to_collect_eggs(
                 return;
             }
             stream.log("Attempting to talk to basket...");
-            pbf_press_button(context, BUTTON_A, 20, 30);
+            pbf_press_button(context, BUTTON_A, 160ms, 240ms);
             continue;
 
         case 1:
             stream.log("Detected advanced dialog.");
             last_prompt = BUTTON_NONE;
-            pbf_press_button(context, BUTTON_B, 20, 30);
+            pbf_press_button(context, BUTTON_B, 160ms, 240ms);
             checked = true;
             continue;
 
@@ -552,13 +552,13 @@ void check_basket_to_collect_eggs(
             if (last_prompt != 0){
                 stream.log("Detected 2nd consecutive prompt. (unexpected)", COLOR_RED);
                 //  Repeat the previous button press.
-                pbf_press_button(context, last_prompt, 20, 80);
+                pbf_press_button(context, last_prompt, 160ms, 640ms);
                 continue;
             }
 
             if (pending_refuse){
                 stream.log("Confirming refused egg...");
-                pbf_press_button(context, BUTTON_A, 20, 80);
+                pbf_press_button(context, BUTTON_A, 160ms, 640ms);
                 pending_refuse = false;
                 continue;
             }
@@ -569,13 +569,13 @@ void check_basket_to_collect_eggs(
                 std::string msg = std::to_string(num_eggs_collected) + "/" + std::to_string(max_eggs);
                 stream.log("Found an egg " + msg + ". Keeping...");
                 stream.overlay().add_log("Egg " + msg, COLOR_GREEN);
-                pbf_press_button(context, BUTTON_A, 20, 80);
+                pbf_press_button(context, BUTTON_A, 160ms, 640ms);
                 
                 last_prompt = BUTTON_A;
             }else{
                 stream.log("Found an egg! But we already have enough...");
                 stream.overlay().add_log("Full. Skip egg.", COLOR_WHITE);
-                pbf_press_button(context, BUTTON_B, 20, 80);
+                pbf_press_button(context, BUTTON_B, 160ms, 640ms);
                 last_prompt = BUTTON_B;
                 pending_refuse = true;
             }
@@ -587,7 +587,7 @@ void check_basket_to_collect_eggs(
 //                "check_basket_to_collect_eggs(): No state detected after 5 seconds."
 //            );
             stream.log("Rotating view and trying again...", COLOR_RED);
-            pbf_move_right_joystick(context, 0, 128, 30, 0);
+            pbf_move_right_joystick(context, {-1, 0}, 240ms, 0ms);
         }
 
     }
@@ -633,14 +633,14 @@ void hatch_eggs_at_zero_gate(
     std::function<void(uint8_t)> egg_hatched_callback)
 {
     bool got_off_ramp = false;
-    for(uint8_t egg_idx = 0; egg_idx < num_eggs_in_party; egg_idx++){
+    for (uint8_t egg_idx = 0; egg_idx < num_eggs_in_party; egg_idx++){
         stream.log("Hatching egg " + std::to_string(egg_idx+1) + "/" + std::to_string(num_eggs_in_party) + ".");
         stream.overlay().add_log("Hatching egg " + std::to_string(egg_idx+1) + "/" + std::to_string(num_eggs_in_party), COLOR_BLUE);
 
         // Orient camera to look at same direction as player character
         // This is needed because when save-load the game, the camera is reset
         // to this location.
-        pbf_press_button(context, BUTTON_L, 50, 40);
+        pbf_press_button(context, BUTTON_L, 400ms, 320ms);
 
         context.wait_for_all_requests();
 
@@ -652,13 +652,13 @@ void hatch_eggs_at_zero_gate(
                 [&](ProControllerContext& context){
                     if (egg_idx == 0){
                         // At beginning, ride on Koraidon/Miradon and go off ramp:
-                        pbf_press_button(context, BUTTON_PLUS, 50, 100);
+                        pbf_press_button(context, BUTTON_PLUS, 400ms, 800ms);
                         // Move right to make player character facing away from Aera Zero observation station
-                        pbf_move_left_joystick(context, 255, 0, 50, 50);
+                        pbf_move_left_joystick(context, {+1, +1}, 400ms, 400ms);
                         // Press L to move camera to face the same direction as the player character
-                        pbf_press_button(context, BUTTON_L, 50, 40);
+                        pbf_press_button(context, BUTTON_L, 400ms, 320ms);
                         // Move forward
-                        pbf_move_left_joystick(context, 128, 0, 200, 0);
+                        pbf_move_left_joystick(context, {0, +1}, 1600ms, 0ms);
                     }
                 },
                 {dialog}
@@ -688,14 +688,14 @@ void hatch_eggs_at_area_three_lighthouse(
     std::function<void(uint8_t)> egg_hatched_callback)
 {
     bool got_off_ramp = false;
-    for(uint8_t egg_idx = 0; egg_idx < num_eggs_in_party; egg_idx++){
+    for (uint8_t egg_idx = 0; egg_idx < num_eggs_in_party; egg_idx++){
         stream.log("Hatching egg " + std::to_string(egg_idx+1) + "/" + std::to_string(num_eggs_in_party) + ".");
         stream.overlay().add_log("Hatching egg " + std::to_string(egg_idx+1) + "/" + std::to_string(num_eggs_in_party), COLOR_BLUE);
 
         // Orient camera to look at same direction as player character
         // This is needed because when save-load the game, the camera is reset
         // to this location.
-        pbf_press_button(context, BUTTON_L, 50, 40);
+        pbf_press_button(context, BUTTON_L, 400ms, 320ms);
 
         context.wait_for_all_requests();
 
@@ -707,17 +707,17 @@ void hatch_eggs_at_area_three_lighthouse(
                 [&](ProControllerContext& context){
                     if (egg_idx == 0){
                         //Run forward a bit
-                        pbf_move_left_joystick(context, 128, 0, 150, 20);
+                        pbf_move_left_joystick(context, {0, +1}, 1200ms, 160ms);
                         //Face at an angle, to avoid the tent to the left
-                        pbf_move_left_joystick(context, 0, 0, 50, 50);
+                        pbf_move_left_joystick(context, {-1, +1}, 400ms, 400ms);
                         //Get on your mount
-                        pbf_press_button(context, BUTTON_L, 50, 40);
-                        pbf_press_button(context, BUTTON_PLUS, 50, 100);
+                        pbf_press_button(context, BUTTON_L, 400ms, 320ms);
+                        pbf_press_button(context, BUTTON_PLUS, 400ms, 800ms);
                         //Go in deep, spawns outside the fence like to come in otherwise
-                        pbf_move_left_joystick(context, 128, 0, 750, 0);
-                        pbf_move_left_joystick(context, 0, 0, 50, 50);
-                        pbf_press_button(context, BUTTON_L, 50, 40);
-                        pbf_move_left_joystick(context, 128, 0, 550, 0);
+                        pbf_move_left_joystick(context, {0, +1}, 6000ms, 0ms);
+                        pbf_move_left_joystick(context, {-1, +1}, 400ms, 400ms);
+                        pbf_press_button(context, BUTTON_L, 400ms, 320ms);
+                        pbf_move_left_joystick(context, {0, +1}, 4400ms, 0ms);
                     }
                 },
                 {dialog}
@@ -729,7 +729,7 @@ void hatch_eggs_at_area_three_lighthouse(
                 stream.log("Reset location by flying back to lighthouse.");
                 // Use map to fly back to the flying spot
                 open_map_from_overworld(info, stream, context);
-                pbf_move_left_joystick(context, 200, 0, 20, 50);
+                pbf_move_left_joystick(context, {+0.567, +1}, 160ms, 400ms);
                 fly_to_overworld_from_map(info, stream, context);
                 continue;
             }
@@ -754,18 +754,18 @@ void hatch_eggs_anywhere(
 ){
     if (!already_on_ride){
         // At beginning, ride on Koraidon/Miradon and go off ramp:
-        pbf_press_button(context, BUTTON_PLUS, 50, 100);
+        pbf_press_button(context, BUTTON_PLUS, 400ms, 800ms);
         context.wait_for_all_requests();
     }
 
-    for(uint8_t egg_idx = 0; egg_idx < num_eggs_in_party; egg_idx++){
+    for (uint8_t egg_idx = 0; egg_idx < num_eggs_in_party; egg_idx++){
         stream.log("Hatching egg " + std::to_string(egg_idx+1) + "/" + std::to_string(num_eggs_in_party) + ".");
         stream.overlay().add_log("Hatching egg " + std::to_string(egg_idx+1) + "/" + std::to_string(num_eggs_in_party), COLOR_BLUE);
 
         // Orient camera to look at same direction as player character
         // This is needed because when save-load the game, the camera is reset
         // to this location.
-        pbf_press_button(context, BUTTON_L, 50, 40);
+        pbf_press_button(context, BUTTON_L, 400ms, 320ms);
 
         context.wait_for_all_requests();
 
@@ -785,7 +785,7 @@ void reset_position_at_zero_gate(
     // Use map to fly back to the flying spot
     open_map_from_overworld(info, stream, context);
 
-    pbf_move_left_joystick(context, 128, 160, 20, 50);
+    pbf_move_left_joystick(context, {0, -0.252}, 160ms, 400ms);
 
     fly_to_overworld_from_map(info, stream, context);
 }

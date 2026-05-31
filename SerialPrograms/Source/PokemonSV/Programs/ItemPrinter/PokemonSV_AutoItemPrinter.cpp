@@ -10,6 +10,7 @@
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSwSh/Inference/PokemonSwSh_IvJudgeReader.h"
 #include "PokemonSV/Inference/PokemonSV_WhiteButtonDetector.h"
@@ -104,11 +105,11 @@ void AutoItemPrinter::enter_printing_mode(SingleSwitchProgramEnvironment& env, P
             return;
         case 1: // overworld
         case 2: // dialog
-            pbf_press_button(context, BUTTON_A, 20, 105);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             continue;
         case 3: // prompt
             env.console.log("Prompt detected.");
-            pbf_press_button(context, BUTTON_A, 20, 105);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             continue;
         default:
             OperationFailedException::fire(
@@ -129,7 +130,7 @@ void AutoItemPrinter::program(SingleSwitchProgramEnvironment& env, ProController
     AutoItemPrinter_Descriptor::Stats& stats = env.current_stats<AutoItemPrinter_Descriptor::Stats>();
 
     //  Connect the controller.
-    pbf_press_button(context, BUTTON_L, 10, 0);
+    require_player(env.console, context, BUTTON_L);
 
     enter_printing_mode(env, context);
 

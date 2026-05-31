@@ -7,6 +7,7 @@
 #ifndef PokemonAutomation_Controllers_SerialPABotBase_SelectorWidget_H
 #define PokemonAutomation_Controllers_SerialPABotBase_SelectorWidget_H
 
+#include <QFileInfo>
 #include <QSerialPortInfo>
 #include "Common/Qt/NoWheelComboBox.h"
 #include "Controllers/ControllerDescriptor.h"
@@ -33,7 +34,7 @@ inline bool filter_serial_port(const QSerialPortInfo& port){
 
 #if defined(__APPLE__)
     // exlude tty
-    if (port.portName().startsWith("tty.")) {
+    if (port.portName().startsWith("tty.")){
         return false;
     }
     // exclude system builtin serial ports
@@ -44,19 +45,30 @@ inline bool filter_serial_port(const QSerialPortInfo& port){
     }
 #endif
 
+#if defined(__linux__)
+    const QString path = port.systemLocation();
+
+    QFileInfo file(path);
+    // Exclude devices that don't have Read/Write access
+    if (!(file.isReadable() && file.isWritable()))
+    {
+        return false;
+    }
+#endif
+
     return true;
 }
 
 
 
 
-class SerialPABotBase_SelectorWidget : public NoWheelComboBox{
+class SerialPABotBase_SelectorWidget : public NoWheelCompactComboBox{
 public:
     SerialPABotBase_SelectorWidget(
         ControllerSelectorWidget& parent,
         const ControllerDescriptor* current
     )
-        : NoWheelComboBox(&parent)
+        : NoWheelCompactComboBox(&parent)
         , m_parent(parent)
     {
 //        cout << "SerialPABotBase(): " << current << endl;
@@ -108,7 +120,7 @@ public:
 //        cout << "SerialPABotBase_SelectorWidget::refresh_devices()" << endl;
 
 
-        m_ports.emplace_back(new NullControllerDescriptor());
+        m_ports.emplace_back(new SerialPABotBase_Descriptor());
         for (QSerialPortInfo& port : QSerialPortInfo::availablePorts()){
             if (filter_serial_port(port)){
                 m_ports.emplace_back(

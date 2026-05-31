@@ -8,6 +8,7 @@
 #include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "NintendoSwitch/Programs/FastCodeEntry/NintendoSwitch_NumberCodeEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSwSh/PokemonSwSh_Settings.h"
@@ -30,8 +31,7 @@ TradeBot_Descriptor::TradeBot_Descriptor()
         "Surprise trade with a code for hosting giveaways.",
         ProgramControllerClass::StandardController_RequiresPrecision,
         FeedbackType::NONE,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {}
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 
@@ -118,11 +118,11 @@ void TradeBot::trade_slot(
     ssf_press_button(context, BUTTON_A, 40ms);
     ssf_press_button(context, BUTTON_B, 40ms);
 
-    FastCodeEntry::numberpad_enter_code(console, context, code, true);
+    FastCodeEntry::numberpad_enter_code(console, context, false, code, true);
     ssf_press_button(context, BUTTON_PLUS, 1600ms);
     ssf_press_button(context, BUTTON_B, 1000ms, 80ms);
     ssf_press_button(context, BUTTON_A, 400ms, 80ms);
-    pbf_mash_button(context, BUTTON_B, 400);
+    pbf_mash_button(context, BUTTON_B, 3200ms);
 
     pbf_wait(context, SEARCH_DELAY0);
 
@@ -165,7 +165,8 @@ void TradeBot::program(SingleSwitchProgramEnvironment& env, ProControllerContext
         grip_menu_connect_go_home(context);
         resume_game_no_interact(env.console, context, ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST);
     }else{
-        pbf_press_button(context, BUTTON_B, 5, 5);
+        //  Connect the controller.
+        require_player(env.console, context, BUTTON_B);
     }
 
     for (uint8_t box = 0; box < BOXES_TO_TRADE; box++){

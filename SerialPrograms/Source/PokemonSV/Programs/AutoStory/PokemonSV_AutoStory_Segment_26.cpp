@@ -5,6 +5,7 @@
  */
 
 #include "PokemonSV/Inference/Overworld/PokemonSV_DirectionDetector.h"
+#include "CommonFramework/VideoPipeline/VideoFeed.h"
 
 #include "CommonFramework/Exceptions/OperationFailedException.h"
 #include "CommonTools/Async/InferenceRoutines.h"
@@ -55,8 +56,8 @@ void AutoStory_Segment_26::run_segment(
     env.console.log("Start Segment " + name(), COLOR_ORANGE);
 
     AutoStory_Checkpoint_61().run_checkpoint(env, context, options, stats);
-	AutoStory_Checkpoint_62().run_checkpoint(env, context, options, stats);
-	AutoStory_Checkpoint_63().run_checkpoint(env, context, options, stats);
+    AutoStory_Checkpoint_62().run_checkpoint(env, context, options, stats);
+    AutoStory_Checkpoint_63().run_checkpoint(env, context, options, stats);
 
     context.wait_for_all_requests();
     env.console.log("End Segment " + name(), COLOR_GREEN);
@@ -98,16 +99,24 @@ void checkpoint_61(
     checkpoint_reattempt_loop(env, context, notif_status_update, stats, 
     [&](size_t attempt_number){
 
+        // first, clear Pokemon in Minimap.
+        if (attempt_number > 0 || ENABLE_TEST){
+            env.console.log("Fly to neighbouring Pokecenter, then fly back, to clear any pokemon covering the minimap.");
+            move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::KEEP_ZOOM, -1, +1, 0ms});
+            move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::KEEP_ZOOM, -1, +1, 0ms});
+        }
+
         // marker 1   keep{0.490625, 0.594444}  in{0.589583, 0.569444} 
         place_marker_offset_from_flypoint(env.program_info(), env.console, context, 
-            {ZoomChange::ZOOM_IN, 0, 0, 0}, 
+            {ZoomChange::ZOOM_IN, -1, +1, 0ms},
             FlyPoint::POKECENTER, 
             {0.589583, 0.569444}
         );
-
+        
         DirectionDetector direction;
+
         direction.change_direction(env.program_info(), env.console, context, 0.278620);
-        pbf_move_left_joystick(context, 128, 0, 400, 50);
+        pbf_move_left_joystick(context, {0, +1}, 3200ms, 400ms);
 
         realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
 
@@ -115,10 +124,10 @@ void checkpoint_61(
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){           
                 overworld_navigation(env.program_info(), env.console, context, 
                     NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-                    128, 0, 60, 20, false);
+                    0, +1, 60, 20, false);
             }, 
-            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){           
-                pbf_move_left_joystick(context, 0, 128, 40, 50);
+            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+                pbf_move_left_joystick(context, {-1, 0}, 320ms, 400ms);
                 realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
             }
         );
@@ -127,12 +136,12 @@ void checkpoint_61(
 
         handle_when_stationary_in_overworld(env.program_info(), env.console, context, 
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){           
-                walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_ONLY, 20);
+                walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_ONLY, 20000ms);
             }, 
-            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){           
-                pbf_move_left_joystick(context, 255, 0, 100, 50); // if to the left of the door, will move right and enter
-                pbf_move_left_joystick(context, 0, 128, 300, 50); // if to the right of the door, will move left
-                pbf_move_left_joystick(context, 255, 0, 100, 50); // then move right and enter
+            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+                pbf_move_left_joystick(context, {+1, +1}, 800ms, 400ms); // if to the left of the door, will move right and enter
+                pbf_move_left_joystick(context, {-1, 0}, 2400ms, 400ms); // if to the right of the door, will move left
+                pbf_move_left_joystick(context, {+1, +1}, 800ms, 400ms); // then move right and enter
             }
         );
 
@@ -140,7 +149,7 @@ void checkpoint_61(
         mash_button_till_overworld(env.console, context, BUTTON_A);
 
         // speak to gym receptionist
-        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_SPAM_A, 20);
+        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_SPAM_A, 20000ms);
         clear_dialog(env.console, context, ClearDialogMode::STOP_OVERWORLD, 60, {CallbackEnum::OVERWORLD});
 
     });    
@@ -156,51 +165,57 @@ void checkpoint_62(
     checkpoint_reattempt_loop(env, context, notif_status_update, stats,
     [&](size_t attempt_number){
 
-        pbf_move_left_joystick(context, 128, 255, 500, 100);
-        pbf_wait(context, 3 * TICKS_PER_SECOND);        
+        pbf_move_left_joystick(context, {0, -1}, 2400ms, 800ms);
+        pbf_wait(context, 3000ms);
         // wait for overworld after leaving gym
         wait_for_overworld(env.program_info(), env.console, context, 30);
 
-        // fly to Medali East Pokecenter
-        move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::ZOOM_IN, 255, 128, 20}, FlyPoint::POKECENTER);
-
-        pbf_press_button(context, BUTTON_L, 50, 50);
 
         DirectionDetector direction;
+        env.console.log("Fly back to Medali East Pokecenter");
+        env.console.log("Fly to neighbouring Pokecenter, then fly back, to clear any pokemon covering the minimap.");
+        env.console.log("Fly to Cascaraffa north to clear minimap. Then Medali West. End up in Medal East Pokecenter.");
+        move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::KEEP_ZOOM, -1, -0.409, 800ms}, FlyPoint::POKECENTER);
+        move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::KEEP_ZOOM, +1, +0.375, 680ms});
+        move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::ZOOM_IN, -1, +1, 0ms});
+
+
+        pbf_press_button(context, BUTTON_L, 400ms, 400ms);
+
         direction.change_direction(env.program_info(), env.console, context, 1.971173);
-        pbf_move_left_joystick(context, 128, 0, 600, 50);
+        pbf_move_left_joystick(context, {0, +1}, 4800ms, 400ms);
 
         direction.change_direction(env.program_info(), env.console, context, 3.191172);
-        pbf_move_left_joystick(context, 128, 0, 300, 50);
+        pbf_move_left_joystick(context, {0, +1}, 2400ms, 400ms);
 
          
         direction.change_direction(env.program_info(), env.console, context, 5.114177);  // old 4.975295
-        pbf_move_left_joystick(context, 128, 0, 300, 50);
+        pbf_move_left_joystick(context, {0, +1}, 2400ms, 400ms);
 
-        pbf_wait(context, 3 * TICKS_PER_SECOND);        
+        pbf_wait(context, 3000ms);
         // wait for overworld after entering Eatery
         wait_for_overworld(env.program_info(), env.console, context, 30);
 
-        pbf_move_left_joystick(context, 255, 128, 50, 50);
+        pbf_move_left_joystick(context, {+1, 0}, 400ms, 400ms);
         
         walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_SPAM_A);
         clear_dialog(env.console, context, ClearDialogMode::STOP_PROMPT, 60, {CallbackEnum::PROMPT_DIALOG});
 
         // grilled rice balls
-        pbf_press_button(context, BUTTON_A, 50, 50);
+        pbf_press_button(context, BUTTON_A, 400ms, 400ms);
         clear_dialog(env.console, context, ClearDialogMode::STOP_PROMPT, 60, {CallbackEnum::PROMPT_DIALOG});
         // medium serving
-        pbf_press_dpad(context, DPAD_DOWN, 13, 20);
-        pbf_press_button(context, BUTTON_A, 50, 50);
+        pbf_press_dpad(context, DPAD_DOWN, 104ms, 160ms);
+        pbf_press_button(context, BUTTON_A, 400ms, 400ms);
         clear_dialog(env.console, context, ClearDialogMode::STOP_PROMPT, 60, {CallbackEnum::PROMPT_DIALOG});
         // extra crispy
-        pbf_press_dpad(context, DPAD_UP, 13, 20);
-        pbf_press_button(context, BUTTON_A, 50, 50);
+        pbf_press_dpad(context, DPAD_UP, 104ms, 160ms);
+        pbf_press_button(context, BUTTON_A, 400ms, 400ms);
         clear_dialog(env.console, context, ClearDialogMode::STOP_PROMPT, 60, {CallbackEnum::PROMPT_DIALOG});
         // lemon
-        pbf_press_dpad(context, DPAD_DOWN, 13, 20);
-        pbf_press_button(context, BUTTON_A, 50, 50);
-        clear_dialog(env.console, context, ClearDialogMode::STOP_OVERWORLD, 60, {CallbackEnum::OVERWORLD});
+        pbf_press_dpad(context, DPAD_DOWN, 104ms, 160ms);
+        pbf_press_button(context, BUTTON_A, 400ms, 400ms);
+        clear_dialog(env.console, context, ClearDialogMode::STOP_OVERWORLD, 60, {CallbackEnum::OVERWORLD}, false);
 
 
         pbf_mash_button(context, BUTTON_A, 1000ms);
@@ -208,6 +223,8 @@ void checkpoint_62(
 
         env.console.log("Battle Normal Gym leader.");
         run_trainer_battle_press_A(env.console, context, BattleStopCondition::STOP_DIALOG);
+        // We see Dialog right before the final pokemon terastalizes, but after you select your move. So, technically, we see dialog before the battle officially ends.
+        // it's fine as long as you OHKO Larry's final Pokemon. If you can't OHKO the final Staraptor, they you probably won't be able to beat the Elite Four.
         clear_dialog(env.console, context, ClearDialogMode::STOP_TIMEOUT, 60);
         pbf_mash_button(context, BUTTON_A, 1000ms);
 
@@ -232,13 +249,20 @@ void checkpoint_63(
     [&](size_t attempt_number){
 
         // Gym leader defeated. Standing in Gym building
-        pbf_move_left_joystick(context, 128, 255, 500, 100);
-        pbf_wait(context, 3 * TICKS_PER_SECOND);
+        pbf_move_left_joystick(context, {0, -1}, 2400ms, 800ms);
+        pbf_wait(context, 3000ms);
         // wait for overworld after leaving Gym
         wait_for_overworld(env.program_info(), env.console, context, 30);
 
         // fly to Medali East Pokecenter
-        move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::ZOOM_IN, 255, 128, 20}, FlyPoint::POKECENTER);
+        env.console.log("Fly back to Medali East Pokecenter");
+        env.console.log("Fly to neighbouring Pokecenter, then fly back, to clear any pokemon covering the minimap.");
+        env.console.log("Fly to Cascaraffa north to clear minimap. Then Medali West. End up in Medal East Pokecenter.");
+        move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::KEEP_ZOOM, -1, -0.409, 800ms}, FlyPoint::POKECENTER);
+        move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::KEEP_ZOOM, +1, +0.375, 680ms});
+        move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::ZOOM_IN, -1, +1, 0ms});
+
+        
         move_from_medali_to_glaseado_mountain(env, context);
 
     });    
@@ -252,7 +276,7 @@ void move_from_medali_to_glaseado_mountain(SingleSwitchProgramEnvironment& env, 
 
     // marker 1.    x=0.399479, y=0.713889
     place_marker_offset_from_flypoint(env.program_info(), env.console, context, 
-        {ZoomChange::KEEP_ZOOM, 0, 0, 0}, 
+        {ZoomChange::KEEP_ZOOM, -1, +1, 0ms},
         FlyPoint::POKECENTER, 
         {0.399479, 0.713889}
     );        
@@ -260,10 +284,10 @@ void move_from_medali_to_glaseado_mountain(SingleSwitchProgramEnvironment& env, 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
             overworld_navigation(env.program_info(), env.console, context, 
                 NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-                128, 0, 20, 10, false);
+                0, +1, 20, 10, false);
         }, 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-            pbf_move_left_joystick(context, 0, 255, 40, 50);
+            pbf_move_left_joystick(context, {-1, -1}, 320ms, 400ms);
             realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
         }
     );
@@ -271,7 +295,7 @@ void move_from_medali_to_glaseado_mountain(SingleSwitchProgramEnvironment& env, 
 
     // marker 2.     x=0.410417, y=0.760185
     place_marker_offset_from_flypoint(env.program_info(), env.console, context, 
-        {ZoomChange::KEEP_ZOOM, 255, 0, 30}, 
+        {ZoomChange::KEEP_ZOOM, +1, +1, 240ms},
         FlyPoint::POKECENTER, 
         {0.410417, 0.760185}
     );        
@@ -279,10 +303,10 @@ void move_from_medali_to_glaseado_mountain(SingleSwitchProgramEnvironment& env, 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
             overworld_navigation(env.program_info(), env.console, context, 
                 NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-                128, 0, 30, 10, false);
+                0, +1, 30, 10, false);
         }, 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-            pbf_move_left_joystick(context, 0, 255, 40, 50);
+            pbf_move_left_joystick(context, {-1, -1}, 320ms, 400ms);
             realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
         }
     );
@@ -290,7 +314,7 @@ void move_from_medali_to_glaseado_mountain(SingleSwitchProgramEnvironment& env, 
 
     // marker 3.     : x=0.3875, y=0.712037
     place_marker_offset_from_flypoint(env.program_info(), env.console, context, 
-        {ZoomChange::ZOOM_OUT, 0, 0, 0}, 
+        {ZoomChange::ZOOM_OUT, -1, +1, 0ms},
         FlyPoint::POKECENTER, 
         {0.3875, 0.712037}
     );        
@@ -298,10 +322,10 @@ void move_from_medali_to_glaseado_mountain(SingleSwitchProgramEnvironment& env, 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
             overworld_navigation(env.program_info(), env.console, context, 
                 NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-                128, 0, 40, 10, false);
+                0, +1, 40, 10, false);
         }, 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-            pbf_move_left_joystick(context, 0, 255, 40, 50);
+            pbf_move_left_joystick(context, {-1, -1}, 320ms, 400ms);
             realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
         }
     );
@@ -309,7 +333,7 @@ void move_from_medali_to_glaseado_mountain(SingleSwitchProgramEnvironment& env, 
 
     // marker 4. cross creek     x=0.502083, y=0.255556
     place_marker_offset_from_flypoint(env.program_info(), env.console, context, 
-        {ZoomChange::ZOOM_OUT, 128, 0, 20}, 
+        {ZoomChange::ZOOM_OUT, 0, +1, 160ms},
         FlyPoint::POKECENTER, 
         {0.502083, 0.255556}
     );        
@@ -320,12 +344,12 @@ void move_from_medali_to_glaseado_mountain(SingleSwitchProgramEnvironment& env, 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
             overworld_navigation(env.program_info(), env.console, context, 
                 NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-                128, 0, 40, 20, false);
+                0, +1, 40, 20, false);
         }, 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-            pbf_move_left_joystick(context, 128, 0, 500ms, 0ms);
-            pbf_controller_state(context, BUTTON_B, DPAD_NONE, 128, 0, 128, 128, 1000ms);
-            pbf_move_left_joystick(context, 128, 0, 500ms, 0ms);
+            pbf_move_left_joystick(context, {0, +1}, 500ms, 0ms);
+            pbf_controller_state(context, BUTTON_B, DPAD_NONE, {0, +1}, {0, 0}, 1000ms);
+            pbf_move_left_joystick(context, {0, +1}, 500ms, 0ms);
             realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
         }
     );
@@ -336,7 +360,7 @@ void move_from_medali_to_glaseado_mountain(SingleSwitchProgramEnvironment& env, 
 
     // marker 5.     x=0.461458, y=0.297222
     place_marker_offset_from_flypoint(env.program_info(), env.console, context, 
-        {ZoomChange::ZOOM_OUT, 0, 0, 0}, 
+        {ZoomChange::ZOOM_OUT, -1, +1, 0ms},
         FlyPoint::POKECENTER, 
         {0.461458, 0.297222}
     );        
@@ -344,17 +368,17 @@ void move_from_medali_to_glaseado_mountain(SingleSwitchProgramEnvironment& env, 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
             overworld_navigation(env.program_info(), env.console, context, 
                 NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-                128, 0, 30, 10, false);
+                0, +1, 30, 10, false);
         }, 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-            pbf_move_left_joystick(context, 255, 255, 40, 50);
+            pbf_move_left_joystick(context, {+1, -1}, 320ms, 400ms);
             realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
         }
     );
 
     // marker 6.     x=0.451562, y=0.288889
     place_marker_offset_from_flypoint(env.program_info(), env.console, context, 
-        {ZoomChange::KEEP_ZOOM, 128, 0, 50}, 
+        {ZoomChange::KEEP_ZOOM, 0, +1, 400ms},
         FlyPoint::POKECENTER, 
         {0.451562, 0.288889}
     );        
@@ -362,10 +386,10 @@ void move_from_medali_to_glaseado_mountain(SingleSwitchProgramEnvironment& env, 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
             overworld_navigation(env.program_info(), env.console, context, 
                 NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-                128, 0, 40, 10, false);
+                0, +1, 40, 10, false);
         }, 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-            pbf_move_left_joystick(context, 0, 255, 40, 50);
+            pbf_move_left_joystick(context, {-1, -1}, 320ms, 400ms);
             realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
         }
     );
@@ -373,7 +397,7 @@ void move_from_medali_to_glaseado_mountain(SingleSwitchProgramEnvironment& env, 
 
     // marker 7.    : x=0.623958, y=0.35463
     place_marker_offset_from_flypoint(env.program_info(), env.console, context, 
-        {ZoomChange::ZOOM_IN, 0, 0, 50}, 
+        {ZoomChange::ZOOM_IN, -1, +1, 400ms},
         FlyPoint::POKECENTER, 
         {0.623958, 0.35463}
     );        
@@ -381,17 +405,17 @@ void move_from_medali_to_glaseado_mountain(SingleSwitchProgramEnvironment& env, 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
             overworld_navigation(env.program_info(), env.console, context, 
                 NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-                128, 0, 30, 10, false);
+                0, +1, 30, 10, false);
         }, 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-            pbf_move_left_joystick(context, 0, 255, 40, 50);
+            pbf_move_left_joystick(context, {-1, -1}, 320ms, 400ms);
             realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
         }
     );
 
     // marker 8.     x=0.544271, y=0.5
     place_marker_offset_from_flypoint(env.program_info(), env.console, context, 
-        {ZoomChange::ZOOM_IN, 0, 0, 0}, 
+        {ZoomChange::ZOOM_IN, -1, +1, 0ms},
         FlyPoint::POKECENTER, 
         {0.544271, 0.5}
     );        
@@ -399,17 +423,17 @@ void move_from_medali_to_glaseado_mountain(SingleSwitchProgramEnvironment& env, 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
             overworld_navigation(env.program_info(), env.console, context, 
                 NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-                128, 0, 20, 10, false);
+                0, +1, 20, 10, false);
         }, 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-            pbf_move_left_joystick(context, 0, 255, 40, 50);
+            pbf_move_left_joystick(context, {-1, -1}, 320ms, 400ms);
             realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
         }
     );
 
     // marker 9.    : x=0.417708, y=0.388889
     place_marker_offset_from_flypoint(env.program_info(), env.console, context, 
-        {ZoomChange::ZOOM_IN, 0, 0, 0}, 
+        {ZoomChange::ZOOM_IN, -1, +1, 0ms},
         FlyPoint::POKECENTER, 
         {0.417708, 0.388889}
     );        
@@ -417,10 +441,10 @@ void move_from_medali_to_glaseado_mountain(SingleSwitchProgramEnvironment& env, 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
             overworld_navigation(env.program_info(), env.console, context, 
                 NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-                128, 0, 20, 10, false);
+                0, +1, 20, 10, false);
         }, 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-            pbf_move_left_joystick(context, 255, 255, 40, 50);
+            pbf_move_left_joystick(context, {+1, -1}, 320ms, 400ms);
             realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
         }
     );
@@ -429,17 +453,17 @@ void move_from_medali_to_glaseado_mountain(SingleSwitchProgramEnvironment& env, 
     // marker 10. set marker to pokecenter
     realign_player_from_landmark(
         env.program_info(), env.console, context, 
-        {ZoomChange::ZOOM_IN, 0, 0, 0},
-        {ZoomChange::KEEP_ZOOM, 0, 0, 0}
+        {ZoomChange::ZOOM_IN, -1, +1, 0ms},
+        {ZoomChange::KEEP_ZOOM, -1, +1, 0ms}
     );  
     handle_when_stationary_in_overworld(env.program_info(), env.console, context, 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
             overworld_navigation(env.program_info(), env.console, context, 
                 NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-                128, 0, 20, 10, false);
+                0, +1, 20, 10, false);
         }, 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-            pbf_move_left_joystick(context, 255, 255, 40, 50);
+            pbf_move_left_joystick(context, {+1, -1}, 320ms, 400ms);
             realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
         }
     ); 
@@ -447,11 +471,11 @@ void move_from_medali_to_glaseado_mountain(SingleSwitchProgramEnvironment& env, 
     // marker 11. set marker past pokecenter
     handle_unexpected_battles(env.program_info(), env.console, context,
     [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-        realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_NEW_MARKER, 20, 0, 40);
+        realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_NEW_MARKER, -0.844, +1, 320ms);
     });      
     overworld_navigation(env.program_info(), env.console, context, 
         NavigationStopCondition::STOP_TIME, NavigationMovementMode::DIRECTIONAL_ONLY, 
-        128, 15, 12, 12, false);           // can't wrap in handle_when_stationary_in_overworld(), since we expect to be stationary when walking into the pokecenter
+        0, +0.883, 12, 12, false);           // can't wrap in handle_when_stationary_in_overworld(), since we expect to be stationary when walking into the pokecenter
         
 
     fly_to_overlapping_flypoint(env.program_info(), env.console, context); 

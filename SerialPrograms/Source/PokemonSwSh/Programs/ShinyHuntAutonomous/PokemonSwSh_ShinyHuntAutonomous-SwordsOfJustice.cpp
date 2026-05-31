@@ -7,8 +7,9 @@
 #include "Common/Cpp/PrettyPrint.h"
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonTools/Async/InferenceRoutines.h"
-#include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/NintendoSwitch_Settings.h"
+#include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "PokemonSwSh/PokemonSwSh_Settings.h"
 #include "PokemonSwSh/Commands/PokemonSwSh_Commands_DateSpam.h"
 #include "PokemonSwSh/Inference/Battles/PokemonSwSh_StartBattleDetector.h"
@@ -100,7 +101,8 @@ void ShinyHuntAutonomousSwordsOfJustice::program(SingleSwitchProgramEnvironment&
         grip_menu_connect_go_home(context);
         resume_game_no_interact(env.console, context, ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST);
     }else{
-        pbf_press_button(context, BUTTON_B, 5, 5);
+        //  Connect the controller.
+        require_player(env.console, context, BUTTON_B);
     }
 
     WallDuration PERIOD = std::chrono::hours(TIME_ROLLBACK_HOURS);
@@ -130,13 +132,13 @@ void ShinyHuntAutonomousSwordsOfJustice::program(SingleSwitchProgramEnvironment&
         pbf_press_button(context, BUTTON_X, 160ms, GameSettings::instance().OVERWORLD_TO_MENU_DELAY0);
         pbf_press_button(context, BUTTON_A, 160ms, ENTER_CAMP_DELAY0);
         if (AIRPLANE_MODE){
-            pbf_press_button(context, BUTTON_A, 20, 100);
-            pbf_press_button(context, BUTTON_A, 20, 100);
+            pbf_press_button(context, BUTTON_A, 160ms, 800ms);
+            pbf_press_button(context, BUTTON_A, 160ms, 800ms);
         }
-        pbf_press_button(context, BUTTON_X, 20, 50);
-        pbf_press_dpad(context, DPAD_LEFT, 20, 20);
+        pbf_press_button(context, BUTTON_X, 160ms, 400ms);
+        pbf_press_dpad(context, DPAD_LEFT, 160ms, 160ms);
         env.log("Starting Encounter: " + tostr_u_commas(stats.encounters() + 1));
-        pbf_press_button(context, BUTTON_A, 20, 0);
+        pbf_press_button(context, BUTTON_A, 160ms, 0ms);
         context.wait_for_all_requests();
 
         {

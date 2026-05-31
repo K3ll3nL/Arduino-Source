@@ -25,15 +25,15 @@ namespace PokemonSwSh{
 
 
 void take_video(ProControllerContext& context){
-    pbf_wait(context, 5 * TICKS_PER_SECOND);
-    pbf_press_button(context, BUTTON_CAPTURE, 2 * TICKS_PER_SECOND, 5 * TICKS_PER_SECOND);
+    pbf_wait(context, 5000ms);
+    pbf_press_button(context, BUTTON_CAPTURE, 2000ms, 5000ms);
 //    context->wait_for_all_requests();
 }
 void run_away(
     VideoStream& stream, ProControllerContext& context,
     Milliseconds exit_battle_time
 ){
-    pbf_press_dpad(context, DPAD_UP, 10, 0);
+    pbf_press_dpad(context, DPAD_UP, 160ms, 0ms);
     pbf_press_button(context, BUTTON_A, 250ms, 750ms);
 
     BlackScreenOverWatcher black_screen_detector;
@@ -147,7 +147,7 @@ bool StandardEncounterHandler::handle_standard_encounter(const ShinyDetectionRes
     m_env.update_stats();
 
     if (result.shiny_type == ShinyType::UNKNOWN){
-        pbf_mash_button(m_context, BUTTON_B, TICKS_PER_SECOND);
+        pbf_mash_button(m_context, BUTTON_B, 1000ms);
         return false;
     }
 
@@ -290,13 +290,13 @@ bool StandardEncounterHandler::handle_standard_encounter_end_battle(
         );
         switch (results.result){
         case CatchResult::POKEMON_CAUGHT:
-            pbf_mash_button(m_context, BUTTON_B, 2 * TICKS_PER_SECOND);
+            pbf_mash_button(m_context, BUTTON_B, 2000ms);
             pbf_press_button(m_context, BUTTON_X, 160ms, GameSettings::instance().OVERWORLD_TO_MENU_DELAY0); //  Save game.
-            pbf_press_button(m_context, BUTTON_R, 20, 150);
-            pbf_press_button(m_context, BUTTON_A, 10, 500);
+            pbf_press_button(m_context, BUTTON_R, 160ms, 1200ms);
+            pbf_press_button(m_context, BUTTON_A, 80ms, 4000ms);
             break;
         case CatchResult::POKEMON_FAINTED:
-            pbf_mash_button(m_context, BUTTON_B, 2 * TICKS_PER_SECOND);
+            pbf_mash_button(m_context, BUTTON_B, 2000ms);
             break;
         default:
             throw_and_log<FatalProgramException>(

@@ -9,7 +9,7 @@
 
 #include <utility>
 #include "Common/Compiler.h"
-#include "AbstractLogger.h"
+#include "Logging/AbstractLogger.h"
 
 namespace PokemonAutomation{
 
@@ -77,7 +77,7 @@ public:
 class ParseException : public Exception{
 public:
     ParseException() = default;
-    ParseException(std::string message) : m_message(std::move(message)) {}
+    ParseException(std::string message);
     virtual const char* name() const override{ return "ParseException"; }
     virtual std::string message() const override{ return m_message; }
 protected:
@@ -121,6 +121,7 @@ private:
 //  These are thrown for logic errors. They are always bugs.
 class InternalProgramError : public Exception{
 public:
+    // location: use `PA_CURRENT_FUNCTION`
     InternalProgramError(Logger* logger, const char* location, std::string message);
     virtual const char* name() const override{ return "InternalProgramError"; }
     virtual std::string message() const override;
@@ -151,6 +152,20 @@ private:
     std::string m_message;
 };
 
+
+//  These are thrown if failed to create an ML model session. They
+//  are usually due to unable to load ML model files or not enough GPU
+//  memory.
+class MLModelSessionCreationError : public Exception{
+public:
+    // If logger is not nullptr, call logger to write error message in the constructor.
+    // Otherwise, write error message to std::cerr.
+    MLModelSessionCreationError(Logger* logger, std::string model_path);
+    virtual const char* name() const override{ return "MLModelCreationError"; }
+    virtual std::string message() const override;
+private:
+    std::string m_model_path;
+};
 
 
 

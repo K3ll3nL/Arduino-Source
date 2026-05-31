@@ -7,7 +7,7 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QLabel>
-#include "Common/Cpp/StringTools.h"
+#include "Common/Cpp/Strings/StringTools.h"
 #include "BoxFloatWidget.h"
 
 //#include <iostream>
@@ -17,10 +17,7 @@
 namespace PokemonAutomation{
 
 
-
-ConfigWidget* BoxFloatOption::make_QtWidget(QWidget& parent){
-    return new BoxFloatWidget(parent, *this);
-}
+template class RegisterConfigWidget<BoxFloatWidget>;
 
 
 

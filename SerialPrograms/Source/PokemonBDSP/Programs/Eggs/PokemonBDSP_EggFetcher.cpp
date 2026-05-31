@@ -7,6 +7,7 @@
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonFramework/ProgramStats/StatsTracking.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonBDSP_EggRoutines.h"
 #include "PokemonBDSP_EggFetcher.h"
@@ -76,28 +77,28 @@ void EggFetcher::program(SingleSwitchProgramEnvironment& env, ProControllerConte
     env.update_stats();
 
     //  Connect the controller.
-    pbf_move_right_joystick(context, 0, 255, 10, 0);
+    require_player(env.console, context, BUTTON_L);
 
     //  Move to corner.
-    pbf_move_left_joystick(context, 0, 255, 125, 0);
+    pbf_move_left_joystick(context, {-1, -1}, 1000ms, 0ms);
 
     for (uint16_t c = 0; c < MAX_FETCH_ATTEMPTS; c++){
         env.update_stats();
         send_program_status_notification(env, NOTIFICATION_STATUS_UPDATE);
 
-        egg_spin_with_A(context, TRAVEL_TIME_PER_FETCH0);
-        SHORTCUT.run(context, 100);
+        egg_spin(context, true, TRAVEL_TIME_PER_FETCH0);
+        SHORTCUT.run(context, 800ms);
 
         //  Move to man.
-        pbf_move_left_joystick(context, 0, 255, 30, 0);
-        pbf_move_left_joystick(context, 128, 0, 35, 0);
-        pbf_move_left_joystick(context, 255, 128, 60, 0);
+        pbf_move_left_joystick(context, {-1, -1}, 240ms, 0ms);
+        pbf_move_left_joystick(context, {0, +1}, 280ms, 0ms);
+        pbf_move_left_joystick(context, {+1, 0}, 480ms, 0ms);
 
         //  Fetch egg.
-        pbf_mash_button(context, BUTTON_ZL, 600);
-        pbf_mash_button(context, BUTTON_B, 520);
-        pbf_move_left_joystick(context, 0, 255, 125, 0);
-        SHORTCUT.run(context, 100);
+        pbf_mash_button(context, BUTTON_ZL, 4800ms);
+        pbf_mash_button(context, BUTTON_B, 4160ms);
+        pbf_move_left_joystick(context, {-1, -1}, 1000ms, 0ms);
+        SHORTCUT.run(context, 800ms);
 
         stats.m_attempts++;
     }

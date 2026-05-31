@@ -11,8 +11,8 @@
 
 #include <vector>
 #include "Common/Cpp/Containers/Pimpl.h"
+#include "ControllerInput/Keyboard/KeyboardHidButtons.h"
 #include "Controllers/Controller.h"
-#include "StandardHid_Keyboard_ControllerButtons.h"
 
 namespace PokemonAutomation{
 namespace StandardHid{
@@ -39,11 +39,6 @@ public:
     };
 
 
-protected:
-    //  Must call before destruction begins.
-    void stop() noexcept;
-
-
 public:
     //  Standard Commands
 
@@ -52,28 +47,24 @@ public:
     //  6 chronologically will be applied.
 
     virtual void issue_key(
-        const Cancellable* cancellable,
+        Cancellable* cancellable,
         Milliseconds delay, Milliseconds hold, Milliseconds cooldown,
         KeyboardKey key
     ) = 0;
     virtual void issue_keys(
-        const Cancellable* cancellable,
+        Cancellable* cancellable,
         Milliseconds delay, Milliseconds hold, Milliseconds cooldown,
         const std::vector<KeyboardKey>& keys
     ) = 0;
 
 
 public:
-    //  Keyboard Input
+    //  Controller Input
 
-    virtual void keyboard_release_all() override;
-    virtual void keyboard_press(const QKeyEvent& event) override;
-    virtual void keyboard_release(const QKeyEvent& event) override;
+    virtual void run_controller_input(const ControllerInputState& state) override;
 
 
 private:
-    class KeyboardManager;
-    Pimpl<KeyboardManager> m_keyboard_manager;
 };
 
 

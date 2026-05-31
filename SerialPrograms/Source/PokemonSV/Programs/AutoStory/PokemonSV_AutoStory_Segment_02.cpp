@@ -81,11 +81,11 @@ void checkpoint_04(
 
         DirectionDetector direction;
         direction.change_direction(env.program_info(), env.console, context, 3.72);
-        pbf_move_left_joystick(context, 128, 0, 400, 50);
+        pbf_move_left_joystick(context, {0, +1}, 3200ms, 400ms);
         direction.change_direction(env.program_info(), env.console, context, 4.55);
-        pbf_move_left_joystick(context, 128, 0, 600, 50);
+        pbf_move_left_joystick(context, {0, +1}, 4800ms, 400ms);
         direction.change_direction(env.program_info(), env.console, context, 5.27);
-        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_SPAM_A, 20);
+        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_SPAM_A, 20000ms);
 
         context.wait_for_all_requests();
         env.console.log("Starting battle...");
@@ -95,8 +95,7 @@ void checkpoint_04(
         context.wait_for_all_requests();
         env.console.log("Finished battle.");
 
-    }
-    );
+    }, false);
 
 }
 

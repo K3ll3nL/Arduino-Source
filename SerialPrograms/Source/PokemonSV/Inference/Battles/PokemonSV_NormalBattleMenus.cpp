@@ -89,13 +89,13 @@ bool NormalBattleMenuDetector::move_to_slot(VideoStream& stream, ProControllerCo
             return true;
         }
         case 1:
-            pbf_press_dpad(context, DPAD_DOWN, 20, 30);
+            pbf_press_dpad(context, DPAD_DOWN, 160ms, 240ms);
             continue;
         case 2:
-            pbf_press_dpad(context, DPAD_DOWN, 20, 30);
+            pbf_press_dpad(context, DPAD_DOWN, 160ms, 240ms);
             continue;
         case 3:
-            pbf_press_dpad(context, DPAD_UP, 20, 30);
+            pbf_press_dpad(context, DPAD_UP, 160ms, 240ms);
             continue;
         }
     }
@@ -134,7 +134,7 @@ std::set<std::string> read_singles_opponent(
             }
             stream.log("Detected battle menu. Opening status...");
             battle_menu_seen = true;
-            pbf_press_button(context, BUTTON_Y, 20, 105);
+            pbf_press_button(context, BUTTON_Y, 160ms, 840ms);
             continue;
 
         case 1:
@@ -162,12 +162,12 @@ std::set<std::string> read_singles_opponent(
                 }
             }
 
-            pbf_mash_button(context, BUTTON_B, 125);
+            pbf_mash_button(context, BUTTON_B, 1000ms);
             continue;
 
         default:
             stream.log("No recognized state. Mashing B...", COLOR_RED);
-            pbf_mash_button(context, BUTTON_B, 250);
+            pbf_mash_button(context, BUTTON_B, 2000ms);
         }
     }
 
@@ -241,14 +241,14 @@ bool MoveSelectDetector::move_to_slot(VideoStream& stream, ProControllerContext&
         case 0:
             return true;
         case 1:
-            pbf_press_dpad(context, DPAD_DOWN, 20, 30);
+            pbf_press_dpad(context, DPAD_DOWN, 160ms, 240ms);
             continue;
         case 2:
-            pbf_press_dpad(context, DPAD_DOWN, 20, 30);
-            pbf_press_dpad(context, DPAD_DOWN, 20, 30);
+            pbf_press_dpad(context, DPAD_DOWN, 160ms, 240ms);
+            pbf_press_dpad(context, DPAD_DOWN, 160ms, 240ms);
             continue;
         case 3:
-            pbf_press_dpad(context, DPAD_UP, 20, 30);
+            pbf_press_dpad(context, DPAD_UP, 160ms, 240ms);
             continue;
         }
     }
@@ -326,19 +326,19 @@ bool SwapMenuDetector::move_to_slot(VideoStream& stream, ProControllerContext& c
         case 0:
             return true;
         case 1:
-            pbf_press_dpad(context, DPAD_DOWN, 20, 30);
+            pbf_press_dpad(context, DPAD_DOWN, 160ms, 240ms);
             continue;
         case 2:
-            pbf_press_dpad(context, DPAD_DOWN, 20, 30);
+            pbf_press_dpad(context, DPAD_DOWN, 160ms, 240ms);
             continue;
         case 3:
-            pbf_press_dpad(context, DPAD_DOWN, 20, 30);
+            pbf_press_dpad(context, DPAD_DOWN, 160ms, 240ms);
             continue;
         case 4:
-            pbf_press_dpad(context, DPAD_DOWN, 20, 30);
+            pbf_press_dpad(context, DPAD_DOWN, 160ms, 240ms);
             continue;
         case 5:
-            pbf_press_dpad(context, DPAD_DOWN, 20, 30);
+            pbf_press_dpad(context, DPAD_DOWN, 160ms, 240ms);
             continue;
         }
     }

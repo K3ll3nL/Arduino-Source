@@ -11,8 +11,13 @@
 #define PokemonAutomation_NintendoSwitch_ControllerWithScheduler_H
 
 #include "Common/Cpp/CancellableScope.h"
+#include "Controllers/Joystick.h"
 #include "Controllers/Schedulers/ControllerWithScheduler.h"
 #include "NintendoSwitch_ControllerButtons.h"
+
+//#include <iostream>
+//using std::cout;
+//using std::endl;
 
 namespace PokemonAutomation{
 namespace NintendoSwitch{
@@ -21,10 +26,8 @@ namespace NintendoSwitch{
 struct SwitchControllerState{
     Button buttons = BUTTON_NONE;
     DpadPosition dpad = DpadPosition::DPAD_NONE;
-    uint8_t left_stick_x = 128;
-    uint8_t left_stick_y = 128;
-    uint8_t right_stick_x = 128;
-    uint8_t right_stick_y = 128;
+    JoystickPosition left_joystick;
+    JoystickPosition right_joystick;
 
     uint16_t gyro[6] = {};
 };
@@ -96,29 +99,25 @@ struct SwitchCommand_Dpad : public SwitchCommand{
     }
 };
 struct SwitchCommand_LeftJoystick : public SwitchCommand{
-    uint8_t x;
-    uint8_t y;
+    JoystickPosition position;
 
-    SwitchCommand_LeftJoystick(uint8_t x, uint8_t y)
+    SwitchCommand_LeftJoystick(const JoystickPosition& position)
         : SwitchCommand((size_t)SwitchResource::JOYSTICK_LEFT)
-        , x(x), y(y)
+        , position(position)
     {}
     virtual void apply(SwitchControllerState& state) const override{
-        state.left_stick_x = x;
-        state.left_stick_y = y;
+        state.left_joystick = position;
     }
 };
 struct SwitchCommand_RightJoystick : public SwitchCommand{
-    uint8_t x;
-    uint8_t y;
+    JoystickPosition position;
 
-    SwitchCommand_RightJoystick(uint8_t x, uint8_t y)
+    SwitchCommand_RightJoystick(const JoystickPosition& position)
         : SwitchCommand((size_t)SwitchResource::JOYSTICK_RIGHT)
-        , x(x), y(y)
+        , position(position)
     {}
     virtual void apply(SwitchControllerState& state) const override{
-        state.right_stick_x = x;
-        state.right_stick_y = y;
+        state.right_joystick = position;
     }
 };
 struct SwitchCommand_Gyro : public SwitchCommand{
@@ -179,69 +178,69 @@ public:
     //  Superscalar Commands (the "ssf" framework)
 
     void issue_buttons(
-        const Cancellable* cancellable,
+        Cancellable* cancellable,
         Milliseconds delay, Milliseconds hold, Milliseconds cooldown,
         Button button
     );
     void issue_dpad(
-        const Cancellable* cancellable,
+        Cancellable* cancellable,
         Milliseconds delay, Milliseconds hold, Milliseconds cooldown,
         DpadPosition position
     );
     void issue_left_joystick(
-        const Cancellable* cancellable,
+        Cancellable* cancellable,
         Milliseconds delay, Milliseconds hold, Milliseconds cooldown,
-        uint8_t x, uint8_t y
+        const JoystickPosition& position
     );
     void issue_right_joystick(
-        const Cancellable* cancellable,
+        Cancellable* cancellable,
         Milliseconds delay, Milliseconds hold, Milliseconds cooldown,
-        uint8_t x, uint8_t y
+        const JoystickPosition& position
     );
 
     void issue_gyro(
-        const Cancellable* cancellable,
+        Cancellable* cancellable,
         SwitchResource id, const char* name,
         Milliseconds delay, Milliseconds hold, Milliseconds cooldown,
         int16_t value
     );
     void issue_gyro_accel_x(
-        const Cancellable* cancellable,
+        Cancellable* cancellable,
         Milliseconds delay, Milliseconds hold, Milliseconds cooldown,
         int16_t value
     ){
         issue_gyro(cancellable, SwitchResource::GYRO_ACCEL_X, "issue_gyro_accel_x", delay, hold, cooldown, value);
     }
     void issue_gyro_accel_y(
-        const Cancellable* cancellable,
+        Cancellable* cancellable,
         Milliseconds delay, Milliseconds hold, Milliseconds cooldown,
         int16_t value
     ){
         issue_gyro(cancellable, SwitchResource::GYRO_ACCEL_Y, "issue_gyro_accel_y", delay, hold, cooldown, value);
     }
     void issue_gyro_accel_z(
-        const Cancellable* cancellable,
+        Cancellable* cancellable,
         Milliseconds delay, Milliseconds hold, Milliseconds cooldown,
         int16_t value
     ){
         issue_gyro(cancellable, SwitchResource::GYRO_ACCEL_Z, "issue_gyro_accel_z", delay, hold, cooldown, value);
     }
     void issue_gyro_rotate_x(
-        const Cancellable* cancellable,
+        Cancellable* cancellable,
         Milliseconds delay, Milliseconds hold, Milliseconds cooldown,
         int16_t value
     ){
         issue_gyro(cancellable, SwitchResource::GYRO_ROTATE_X, "issue_gyro_rotate_x", delay, hold, cooldown, value);
     }
     void issue_gyro_rotate_y(
-        const Cancellable* cancellable,
+        Cancellable* cancellable,
         Milliseconds delay, Milliseconds hold, Milliseconds cooldown,
         int16_t value
     ){
         issue_gyro(cancellable, SwitchResource::GYRO_ROTATE_Y, "issue_gyro_rotate_y", delay, hold, cooldown, value);
     }
     void issue_gyro_rotate_z(
-        const Cancellable* cancellable,
+        Cancellable* cancellable,
         Milliseconds delay, Milliseconds hold, Milliseconds cooldown,
         int16_t value
     ){
@@ -249,12 +248,13 @@ public:
     }
 
     void issue_full_controller_state(
-        const Cancellable* cancellable,
+        Cancellable* cancellable,
+        bool enable_logging,
         Milliseconds hold,
         Button button,
-        DpadPosition position,
-        uint8_t left_x, uint8_t left_y,
-        uint8_t right_x, uint8_t right_y
+        DpadPosition dpad,
+        const JoystickPosition& left_joystick,
+        const JoystickPosition& right_joystick
     );
 
 
@@ -262,21 +262,24 @@ public:
     //  High speed RPCs.
 
     void issue_mash_button(
-        const Cancellable* cancellable,
+        Cancellable* cancellable,
         Milliseconds duration,
-        Button button
+        Button button,
+        Milliseconds delay,
+        Milliseconds hold,
+        Milliseconds cooldown
     );
     void issue_mash_button(
-        const Cancellable* cancellable,
+        Cancellable* cancellable,
         Milliseconds duration,
         Button button0, Button button1
     );
     void issue_mash_AZs(
-        const Cancellable* cancellable,
+        Cancellable* cancellable,
         Milliseconds duration
     );
     void issue_system_scroll(
-        const Cancellable* cancellable,
+        Cancellable* cancellable,
         Milliseconds delay, Milliseconds hold, Milliseconds cooldown,
         DpadPosition direction  //  Diagonals not allowed.
     );

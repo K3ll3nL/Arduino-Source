@@ -49,7 +49,7 @@ private:
     OCR::LanguageOCROption LANGUAGE;
     SimpleIntegerOption<uint32_t> NUM_APRICORN_ONE;
     SimpleIntegerOption<uint32_t> NUM_APRICORN_TWO;
-    SimpleIntegerOption<uint32_t> NUM_NPCS;
+    SimpleIntegerOption<uint8_t> NUM_NPCS;
     CramomaticTable BALL_TABLE;
 
     TouchDateIntervalOption TOUCH_DATE_INTERVAL;
@@ -62,6 +62,7 @@ private:
     SimpleIntegerOption<uint16_t> MAX_UNKNOWN_ADVANCES;
     MillisecondsOption ADVANCE_PRESS_DURATION;
     MillisecondsOption ADVANCE_RELEASE_DURATION;
+    MillisecondsOption DIALOG_RELEASE_DURATION;
     BooleanCheckBoxOption SAVE_SCREENSHOTS;
     BooleanCheckBoxOption LOG_VALUES;
 

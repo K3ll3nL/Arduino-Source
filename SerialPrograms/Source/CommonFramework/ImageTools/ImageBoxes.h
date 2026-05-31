@@ -94,6 +94,12 @@ struct ImageFloatBox{
         : x(p_x), y(p_y)
         , width(p_width), height(p_height)
     {}
+
+    double area() const{
+        return width * height;
+    }
+    void merge_with(const ImageFloatBox& box);
+    double overlapping_area(const ImageFloatBox& box) const;
 };
 
 
@@ -122,6 +128,18 @@ ImageFloatBox translate_to_parent(
     const ImageViewRGB32& original_image,
     const ImageFloatBox& inference_box,
     const ImagePixelBox& box
+);
+
+//  Returns "inner_relative_to_master".
+ImageFloatBox translate_to_parent(
+    const ImageFloatBox& outer_relative_to_master,
+    const ImageFloatBox& inner_relative_to_outer
+);
+
+//  Returns "inner_relative_to_outer".
+ImageFloatBox translate_to_child(
+    const ImageFloatBox& outer_relative_to_master,
+    const ImageFloatBox& inner_relative_to_master
 );
 
 

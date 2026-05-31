@@ -4,9 +4,9 @@
  * 
  */
 
-#include "Common/CRC32.h"
+#include "Common/Cpp/Exceptions.h"
+#include "Common/CRC32/pabb_CRC32.h"
 #include "Common/SerialPABotBase/SerialPABotBase_Protocol.h"
-//#include "Controllers/SerialPABotBase/Connection/MessageConverter.h"
 #include "BotBaseMessage.h"
 #include "PABotBaseConnection.h"
 
@@ -16,12 +16,14 @@
 
 namespace PokemonAutomation{
 
-MessageSniffer null_sniffer;
 
-PABotBaseConnection::PABotBaseConnection(Logger& logger, std::unique_ptr<StreamConnection> connection)
+
+PABotBaseConnection::PABotBaseConnection(
+    Logger& logger,
+    std::unique_ptr<UnreliableStreamConnectionPushing> connection
+)
     : m_connection(std::move(connection))
     , m_logger(logger)
-    , m_sniffer(&null_sniffer)
 {
     m_connection->add_listener(*this);
 }
@@ -38,11 +40,16 @@ void PABotBaseConnection::safely_stop(){
 }
 
 
-void PABotBaseConnection::set_sniffer(MessageSniffer* sniffer){
-    if (sniffer == nullptr){
-        sniffer = &null_sniffer;
+void PABotBaseConnection::add_message_printer(const BotBaseMessageType& type){
+    auto ret = m_printers.emplace(type.type(), &type);
+    if (ret.second){
+        return;
     }
-    m_sniffer = sniffer;
+    throw InternalProgramError(
+        nullptr,
+        PA_CURRENT_FUNCTION,
+        "Duplicate Message Type: 0x" + tostr_hex(type.type())
+    );
 }
 
 
@@ -53,7 +60,7 @@ void PABotBaseConnection::send_zeros(uint8_t bytes){
 
     char ch = 0;
     for (uint8_t c = 0; c < bytes; c++){
-        m_connection->send(&ch, 1);
+        m_connection->unreliable_send(&ch, 1);
 //        Sleep(10);
     }
 }
@@ -63,7 +70,18 @@ void PABotBaseConnection::send_message(const BotBaseMessage& message, bool is_re
     }
 
 //    log("Sending: " + message_to_string(type, msg));
-    m_sniffer->on_send(message, is_retransmit);
+    {
+        std::string str = is_retransmit ? "Re-send" : "Sending";
+        auto iter = m_printers.find(message.type);
+        if (iter == m_printers.end()){
+            m_logger.log(str + ": Unknown Message Type (0x" + tostr_hex(message.type) + ")", COLOR_RED);
+        }else if (is_retransmit || iter->second->should_print(message.body)){
+            m_logger.log(
+                str + ": " + iter->second->tostr(message.body),
+                is_retransmit ? COLOR_ORANGE : COLOR_DARKGREEN
+            );
+        }
+    }
 
     size_t total_bytes = PABB_PROTOCOL_OVERHEAD + message.body.size();
     if (total_bytes > PABB_PROTOCOL_MAX_PACKET_SIZE){
@@ -75,9 +93,9 @@ void PABotBaseConnection::send_message(const BotBaseMessage& message, bool is_re
     buffer += message.type;
     buffer += message.body;
     buffer += std::string(sizeof(uint32_t), 0);
-    pabb_crc32_write_to_message(&buffer[0], buffer.size());
+    pabb_crc32_write_to_message(0xffffffff, &buffer[0], buffer.size());
 
-    m_connection->send(&buffer[0], buffer.size());
+    m_connection->unreliable_send(&buffer[0], buffer.size());
 }
 
 
@@ -91,16 +109,16 @@ void PABotBaseConnection::push_error_byte(ErrorBatchType type, char byte){
     case ErrorBatchType::NO_ERROR_:
         break;
     case ErrorBatchType::ZERO_BYTES:
-        m_logger.log("Skipped " + std::to_string(m_current_error_batch.size()) + " zero byte(s).");
+        m_logger.log("Skipped " + std::to_string(m_current_error_batch.size()) + " zero byte(s).", COLOR_RED);
         break;
     case ErrorBatchType::FF_BYTES:
-        m_logger.log("Skipped " + std::to_string(m_current_error_batch.size()) + " 0xff byte(s).");
+        m_logger.log("Skipped " + std::to_string(m_current_error_batch.size()) + " 0xff byte(s).", COLOR_RED);
         break;
     case ErrorBatchType::ASCII_BYTES:
-        m_logger.log("Received possible ASCII: " + m_current_error_batch);
+        m_logger.log("Received possible ASCII: " + m_current_error_batch, COLOR_RED);
         break;
     case ErrorBatchType::OTHER:
-//        m_logger.log("Skipped " + std::to_string(m_current_error_batch.size()) + " invalid length byte(s).");
+//        m_logger.log("Skipped " + std::to_string(m_current_error_batch.size()) + " invalid length byte(s).", COLOR_RED);
         break;
     }
 
@@ -118,7 +136,7 @@ void PABotBaseConnection::on_recv(const void* data, size_t bytes){
         uint8_t length = ~m_recv_buffer[0];
 
         if (m_recv_buffer[0] == 0){
-//            m_logger.log("Skipping zero byte.");
+//            m_logger.log("Skipping zero byte.", COLOR_RED);
             push_error_byte(ErrorBatchType::ZERO_BYTES, 0);
             m_recv_buffer.pop_front();
             continue;
@@ -129,7 +147,7 @@ void PABotBaseConnection::on_recv(const void* data, size_t bytes){
             if (length == 0){
                 push_error_byte(ErrorBatchType::FF_BYTES, ~length);
             }else{
-                m_logger.log("Message is too short: bytes = " + std::to_string(length));
+                m_logger.log("Message is too short: bytes = " + std::to_string(length), COLOR_RED);
                 push_error_byte(ErrorBatchType::OTHER, ~length);
             }
             m_recv_buffer.pop_front();
@@ -142,7 +160,7 @@ void PABotBaseConnection::on_recv(const void* data, size_t bytes){
 //            std::string text = ascii < 32
 //                ? ", ascii = " + std::to_string(ascii)
 //                : std::string(", char = ") + ascii;
-//            m_logger.log("Message is too long: bytes = " + std::to_string(length) + text);
+//            m_logger.log("Message is too long: bytes = " + std::to_string(length) + text, COLOR_RED);
             push_error_byte(ErrorBatchType::ASCII_BYTES, ~length);
             m_recv_buffer.pop_front();
             continue;
@@ -161,7 +179,8 @@ void PABotBaseConnection::on_recv(const void* data, size_t bytes){
         //  Verify checksum
         {
             //  Calculate checksum.
-            uint32_t checksumA = pabb_crc32(0xffffffff, &message[0], length - sizeof(uint32_t));
+            uint32_t checksumA = 0xffffffff;
+            pabb_crc32_buffer(&checksumA, &message[0], length - sizeof(uint32_t));
 
             //  Read the checksum from the message.
             uint32_t checksumE = ((uint32_t*)(&message[0] + length))[-1];
@@ -169,7 +188,7 @@ void PABotBaseConnection::on_recv(const void* data, size_t bytes){
             //  Compare
 //            std::cout << checksumA << " / " << checksumE << std::endl;
             if (checksumA != checksumE){
-                m_logger.log("Invalid Checksum: bytes = " + std::to_string(length));
+                m_logger.log("Invalid Checksum: bytes = " + std::to_string(length), COLOR_RED);
 //                std::cout << checksumA << " / " << checksumE << std::endl;
 //                log(message_to_string(message[1], &message[2], length - PABB_PROTOCOL_OVERHEAD));
                 m_recv_buffer.pop_front();
@@ -179,7 +198,14 @@ void PABotBaseConnection::on_recv(const void* data, size_t bytes){
         m_recv_buffer.erase(m_recv_buffer.begin(), m_recv_buffer.begin() + length);
 
         BotBaseMessage msg(message[1], std::string(&message[2], length - PABB_PROTOCOL_OVERHEAD));
-        m_sniffer->on_recv(msg);
+        {
+            auto iter = m_printers.find(msg.type);
+            if (iter == m_printers.end()){
+                m_logger.log("Receive: Unknown Message Type (0x" + tostr_hex(msg.type) + ")", COLOR_RED);
+            }else if (iter->second->should_print(msg.body)){
+                m_logger.log("Receive: " + iter->second->tostr(msg.body), COLOR_DARKGREEN);
+            }
+        }
         on_recv_message(std::move(msg));
     }
 }

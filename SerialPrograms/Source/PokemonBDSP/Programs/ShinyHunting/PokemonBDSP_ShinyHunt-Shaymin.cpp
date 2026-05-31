@@ -8,6 +8,7 @@
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "PokemonSwSh/ShinyHuntTracker.h"
 #include "PokemonBDSP/Inference/Battles/PokemonBDSP_StartBattleDetector.h"
 #include "PokemonBDSP/Inference/Battles/PokemonBDSP_BattleMenuDetector.h"
@@ -141,7 +142,7 @@ void ShinyHuntShaymin::program(SingleSwitchProgramEnvironment& env, ProControlle
     LeadingShinyTracker lead_tracker(env.console);
 
     //  Connect the controller.
-    pbf_press_button(context, BUTTON_B, 5, 5);
+    require_player(env.console, context, BUTTON_B);
 
     //  Encounter Loop
     while (true){
@@ -172,12 +173,12 @@ void ShinyHuntShaymin::program(SingleSwitchProgramEnvironment& env, ProControlle
         lead_tracker.report_result(result_own.shiny_type);
 
         //  Clear dialogs.
-        pbf_mash_button(context, BUTTON_B, 75);
+        pbf_mash_button(context, BUTTON_B, 600ms);
 
         //  Hop on bike, ride down to seabreak path
 //        SHORTCUT.run(env.console, 0);
-        pbf_move_left_joystick(context, 128, 255, 360, 0);
-        pbf_move_left_joystick(context, 128, 0, 400, 0);
+        pbf_move_left_joystick(context, {0, -1}, 2880ms, 0ms);
+        pbf_move_left_joystick(context, {0, +1}, 3200ms, 0ms);
     }
 
     send_program_finished_notification(env, NOTIFICATION_PROGRAM_FINISH);

@@ -23,10 +23,10 @@ void OverworldTrigger::whistle(ProControllerContext& context, bool rotate){
     m_target_tracker.set_stop_on_target(false);
 
     if (rotate){
-        pbf_move_right_joystick(context, 192, 255, 50, 70);
+        pbf_move_right_joystick(context, {+0.5, -1}, 400ms, 560ms);
     }
-    pbf_press_button(context, BUTTON_LCLICK, 5, 0);
-    pbf_mash_button(context, BUTTON_B, 120);
+    pbf_press_button(context, BUTTON_LCLICK, 40ms, 0ms);
+    pbf_mash_button(context, BUTTON_B, 960ms);
 
     context.wait_for_all_requests();
     m_target_tracker.set_stop_on_target(true);
@@ -34,7 +34,7 @@ void OverworldTrigger::whistle(ProControllerContext& context, bool rotate){
         throw OperationCancelledException();
     }
 
-    pbf_mash_button(context, BUTTON_B, 40);
+    pbf_mash_button(context, BUTTON_B, 320ms);
 
     context.wait_for_all_requests();
     m_target_tracker.set_stop_on_target(false);

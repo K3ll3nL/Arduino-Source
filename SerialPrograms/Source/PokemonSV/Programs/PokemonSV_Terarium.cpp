@@ -40,7 +40,7 @@ void return_to_plaza(const ProgramInfo& info, VideoStream& stream, ProController
                 int ret_overworld = run_until<ProControllerContext>(
                     stream, context,
                     [&](ProControllerContext& context){
-                        pbf_mash_button(context, BUTTON_B, 10000);
+                        pbf_mash_button(context, BUTTON_B, 80000ms);
                     },
                     {overworld}
                 );
@@ -56,23 +56,23 @@ void return_to_plaza(const ProgramInfo& info, VideoStream& stream, ProController
                 }
 
                 //Move cursor to top left corner - even works when at Entrance fly point
-                pbf_press_button(context, BUTTON_ZL, 40, 100);
-                pbf_move_left_joystick(context, 0, 0, 500, 40);
+                pbf_press_button(context, BUTTON_ZL, 320ms, 800ms);
+                pbf_move_left_joystick(context, {-1, +1}, 4000ms, 320ms);
 
                 //Now move toward center
                 if (laggy){
-                    pbf_move_left_joystick(context, 255, 255, 300, 40); //overshoot by a bit (still works even if not laggy)
+                    pbf_move_left_joystick(context, {+1, -1}, 2400ms, 320ms); //overshoot by a bit (still works even if not laggy)
                 }else{
-                    pbf_move_left_joystick(context, 255, 255, 250, 40); //250 is more accurate but 300 helps with lag
+                    pbf_move_left_joystick(context, {+1, -1}, 2000ms, 320ms); //250 is more accurate but 300 helps with lag
                 }
-                pbf_press_button(context, BUTTON_ZR, 40, 100);
+                pbf_press_button(context, BUTTON_ZR, 320ms, 800ms);
 
                 try{
                     //The only pokecenter on the map is Central Plaza
                     fly_to_closest_pokecenter_on_map(info, stream, context);
                     context.wait_for_all_requests();
                     returned_to_pokecenter = true;
-                }catch(...){
+                }catch (...){
                     stream.log("Failed to return to Pokecenter. Closing map and retrying.");
                     laggy = true;
                 }
@@ -90,7 +90,7 @@ void return_to_plaza(const ProgramInfo& info, VideoStream& stream, ProController
             bool is_shiny = (bool)encounter_watcher.shiny_screenshot();
             if (is_shiny){
                 stream.log("Shiny detected!");
-                pbf_press_button(context, BUTTON_CAPTURE, 2 * TICKS_PER_SECOND, 5 * TICKS_PER_SECOND);
+                pbf_press_button(context, BUTTON_CAPTURE, 2000ms, 5000ms);
                 throw ProgramFinishedException();
             }else{
                 stream.log("Detected battle. Running from battle.");
@@ -98,7 +98,7 @@ void return_to_plaza(const ProgramInfo& info, VideoStream& stream, ProController
                     //Smoke Ball or Flying type required due to Arena Trap
                     NormalBattleMenuWatcher battle_menu(COLOR_YELLOW);
                     battle_menu.move_to_slot(stream, context, 3);
-                    pbf_press_button(context, BUTTON_A, 10, 50);
+                    pbf_press_button(context, BUTTON_A, 80ms, 400ms);
                 }catch (...){
                     stream.log("Unable to flee.");
                     OperationFailedException::fire(
@@ -116,8 +116,8 @@ void return_to_plaza(const ProgramInfo& info, VideoStream& stream, ProController
 void map_move_cursor_fly(
     const ProgramInfo& info,
     VideoStream& stream, ProControllerContext& context,
-    uint8_t x, uint8_t y,
-    uint8_t hold, uint8_t release,
+    double x, double y,
+    Milliseconds hold, Milliseconds release,
     std::string location
 ){
     stream.log("Attempting to fly to " + location + ".");
@@ -125,8 +125,8 @@ void map_move_cursor_fly(
     for (int i = 0; i < 3; i++){
         try{
             open_map_from_overworld(info, stream, context);
-            pbf_move_left_joystick(context, x, y, hold, release);
-            pbf_press_button(context, BUTTON_ZL, 40, 100);
+            pbf_move_left_joystick(context, {x, y}, hold, release);
+            pbf_press_button(context, BUTTON_ZL, 320ms, 800ms);
             fly_to_overworld_from_map(info, stream, context);
             break;
         }
@@ -145,68 +145,68 @@ void map_move_cursor_fly(
 }
 
 void central_to_polar_rest(const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-    map_move_cursor_fly(info, stream, context, 75, 0, 230, 20, "Polar Rest Area");
+    map_move_cursor_fly(info, stream, context, -0.414, +1, 1840ms, 160ms, "Polar Rest Area");
 }
 
 void central_to_polar_class1(const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-    map_move_cursor_fly(info, stream, context, 0, 20, 150, 20, "Polar Classroom 1");
+    map_move_cursor_fly(info, stream, context, -1, +0.844, 1200ms, 160ms, "Polar Classroom 1");
 }
 
 void central_to_polar_plaza(const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-    map_move_cursor_fly(info, stream, context, 20, 25, 245, 20, "Polar Plaza");
+    map_move_cursor_fly(info, stream, context, -0.844, +0.805, 1960ms, 160ms, "Polar Plaza");
 }
 
 void central_to_coastal_plaza(const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-    map_move_cursor_fly(info, stream, context, 180, 0, 210, 20, "Coastal Plaza");
+    map_move_cursor_fly(info, stream, context, +0.409, +1, 1680ms, 160ms, "Coastal Plaza");
 }
 
 void central_to_canyon_plaza(const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-    map_move_cursor_fly(info, stream, context, 0, 255, 215, 20, "Canyon Plaza");
+    map_move_cursor_fly(info, stream, context, -1, -1, 1720ms, 160ms, "Canyon Plaza");
 }
 
 void central_to_savanna_plaza(const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-    map_move_cursor_fly(info, stream, context, 165, 255, 180, 20, "Savanna Plaza");
+    map_move_cursor_fly(info, stream, context, +0.291, -1, 1440ms, 160ms, "Savanna Plaza");
 }
 
 void central_to_canyon_rest(const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-    map_move_cursor_fly(info, stream, context, 0, 140, 160, 20, "Canyon Rest Area");
+    map_move_cursor_fly(info, stream, context, -1, -0.094, 1280ms, 160ms, "Canyon Rest Area");
 }
 
 void central_to_savanna_class(const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-    map_move_cursor_fly(info, stream, context, 255, 220, 140, 20, "Savanna Classroom");
+    map_move_cursor_fly(info, stream, context, +1, -0.724, 1120ms, 160ms, "Savanna Classroom");
 }
 
 void central_to_chargestone(const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-    map_move_cursor_fly(info, stream, context, 0, 135, 130, 20, "Chargestone Cavern");
+    map_move_cursor_fly(info, stream, context, -1, -0.055, 1040ms, 160ms, "Chargestone Cavern");
 }
 
 void jump_glide_fly(
     VideoStream& stream, ProControllerContext& context,
     bool inverted_flight,
-    uint16_t hold_up,
-    uint16_t flight_wait,
-    uint16_t drop_time
+    Milliseconds hold_up,
+    Milliseconds flight_wait,
+    Milliseconds drop_time
 ){
     stream.log("Jump, glide, fly.");
 
     ssf_press_button(context, BUTTON_B, 0ms, 800ms);
     ssf_press_button(context, BUTTON_B, 0ms, 160ms, 80ms);
     ssf_press_button(context, BUTTON_B, 0ms, 160ms);
-    pbf_wait(context, 100);
+    pbf_wait(context, 800ms);
     context.wait_for_all_requests();
-    pbf_press_button(context, BUTTON_LCLICK, 50, 0);
+    pbf_press_button(context, BUTTON_LCLICK, 400ms, 0ms);
 
 
     if (inverted_flight){
-        pbf_move_left_joystick(context, 128, 255, hold_up, 250);
+        pbf_move_left_joystick(context, {0, -1}, hold_up, 2000ms);
     }else{
-        pbf_move_left_joystick(context, 128, 0, hold_up, 250);
+        pbf_move_left_joystick(context, {0, +1}, hold_up, 2000ms);
     }
 
     pbf_wait(context, flight_wait);
     context.wait_for_all_requests();
 
-    pbf_press_button(context, BUTTON_B, 20, 50);
+    pbf_press_button(context, BUTTON_B, 160ms, 400ms);
     pbf_wait(context, drop_time);
     context.wait_for_all_requests();
 }

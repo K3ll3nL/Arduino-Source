@@ -1,11 +1,10 @@
 # Set the minimum cmake version required
-cmake_minimum_required(VERSION 3.18.0)
+cmake_minimum_required(VERSION 3.24.0)
 
 # Tell CMake to re-run configuration when these files change (get around Qt issues with stale CMake files)
 set(_cmake_files_to_watch
     "${CMAKE_SOURCE_DIR}/CMakeLists.txt"
     "${CMAKE_SOURCE_DIR}/CMakePresets.json"
-    "${CMAKE_SOURCE_DIR}/SourceFiles.cmake"
 )
 
 # Watch any helper .cmake files under cmake/
@@ -35,20 +34,11 @@ set(CMAKE_AUTOUIC ON)
 add_custom_target(build-time-make-directory ALL
     COMMAND ${CMAKE_COMMAND} -E make_directory Assembly/)
 
-# Determine if this is an internal repo and normalize REPO_ROOT_DIR
-# CMAKE_CURRENT_SOURCE_DIR: the full path to this CmakeLists.txt
-# Find if "Arduino-Source-Internal" is in the path and store the find result to internal_repo_position
-string(FIND "${CMAKE_CURRENT_SOURCE_DIR}" "Arduino-Source-Internal" internal_repo_position)
-if(internal_repo_position EQUAL -1)  # no "Arduino-Source-Internal" in the path
-    # We are building the public repo, CMakeLists.txt is one level deep in the root repo dir
-    set(REPO_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../")
-else()
-    # We are building the internal repo, CMakeLists.txt is three levels deep in the root repo dir
-    set(REPO_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../")
-endif()
+# Internal repo or not, we're always building from the SerialPrograms folder
+set(REPO_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../")
 
 # Determine environment
-if(DEFINED ENV{GITHUB_ACTIONS})
+if(DEFINED ENV{GITHUB_ACTIONS} OR DEFINED IS_AZURE_BUILD)
     message(STATUS "Detected CI environment, skipping qt deployment")
     set(QT_DEPLOY_FILES FALSE)
 else()
@@ -57,7 +47,7 @@ else()
 endif()
 
 if(APPLE)
-    set(DEST_DIR "$<TARGET_FILE_DIR:SerialPrograms>/..")
+    set(DEST_DIR "$<TARGET_FILE_DIR:SerialPrograms>/../../..")
 elseif(PACKAGE_BUILD)
     set(DEST_DIR "$<TARGET_FILE_DIR:SerialPrograms>/Output")
     set(WIN_DEPLOY_DIR "${DEST_DIR}/Binaries64")
@@ -87,7 +77,7 @@ if(WIN32 AND QT_DEPLOY_FILES)
     set(QT_BASE_DIR "C:/Qt")
     if(QT_CANDIDATE_DIR AND EXISTS "${QT_CANDIDATE_DIR}")
         message(STATUS "Using preferred Qt directory for Qt${QT_MAJOR} ${PREFERRED_QT_VER}: ${QT_CANDIDATE_DIR}")
-        set(CMAKE_PREFIX_PATH "${QT_CANDIDATE_DIR}")
+        list(APPEND CMAKE_PREFIX_PATH "${QT_CANDIDATE_DIR}")
         find_package(Qt${QT_MAJOR} ${PREFERRED_QT_VER} COMPONENTS Widgets SerialPort Multimedia MultimediaWidgets REQUIRED)
     else()
         # Find all subdirectories in the Qt base directory
@@ -104,7 +94,7 @@ if(WIN32 AND QT_DEPLOY_FILES)
         # Debug message to verify the latest Qt directory
         if(QT_LATEST_DIR)
             message(STATUS "Latest Qt directory for Qt${QT_MAJOR}: ${QT_LATEST_DIR}")
-            set(CMAKE_PREFIX_PATH "${QT_LATEST_DIR}/msvc2022_64/lib/cmake")
+            list(APPEND CMAKE_PREFIX_PATH "${QT_LATEST_DIR}/msvc2022_64/lib/cmake")
         else()
             message(FATAL_ERROR "No Qt${QT_MAJOR} installation found in ${QT_BASE_DIR}")
         endif()
@@ -129,7 +119,7 @@ add_compile_definitions(QT_DISABLE_DEPRECATED_BEFORE=0x050F00)
 link_directories(${CMAKE_CURRENT_LIST_DIR})
 
 # add the list of all code file paths as ${LIBRARY_SOURCES} and ${EXECUTABLE_SOURCES}
-include(SourceFiles.cmake)
+include(cmake/SourceFiles.cmake)
 
 # Organize source files in IDE project view
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/../../ FILES ${LIBRARY_SOURCES})
@@ -163,16 +153,36 @@ else()
     target_sources(SerialPrograms PRIVATE ../IconResource/IconResource.rc)
 endif()
 
-target_link_libraries(SerialPrograms PRIVATE SerialProgramsLib)
+target_link_libraries(
+    SerialPrograms PRIVATE
+    $<LINK_LIBRARY:WHOLE_ARCHIVE,SerialProgramsLib>
+)
 
 # Add source code exclusive to the internal repo and add C++ macro of official release
 if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../../Internal/SerialPrograms/Internal0.cpp")
+    message(STATUS "Building internal SerialPrograms")
     target_compile_definitions(SerialProgramsLib PRIVATE PA_OFFICIAL)
     target_compile_definitions(SerialPrograms PRIVATE PA_OFFICIAL)
     target_sources(SerialProgramsLib PRIVATE ../../Internal/SerialPrograms/NintendoSwitch_TestPrograms.cpp)
     target_sources(SerialProgramsLib PRIVATE ../../Internal/SerialPrograms/NintendoSwitch_TestPrograms.h)
     target_sources(SerialProgramsLib PRIVATE ../../Internal/SerialPrograms/Internal0.cpp)
     target_sources(SerialProgramsLib PRIVATE ../../Internal/SerialPrograms/Internal1.cpp)
+endif()
+
+if (IS_AZURE_BUILD)
+    target_compile_definitions(SerialProgramsLib PRIVATE
+        PA_VERSION_MAJOR=${VERSION_MAJOR}
+        PA_VERSION_MINOR=${VERSION_MINOR}
+        PA_VERSION_PATCH=${VERSION_PATCH}
+        PA_IS_BETA=${IS_BETA}
+    )
+
+    target_compile_definitions(SerialPrograms PRIVATE
+        PA_VERSION_MAJOR=${VERSION_MAJOR}
+        PA_VERSION_MINOR=${VERSION_MINOR}
+        PA_VERSION_PATCH=${VERSION_PATCH}
+        PA_IS_BETA=${IS_BETA}
+    )
 endif()
 
 # Function to apply common properties to both library and executable targets
@@ -193,6 +203,13 @@ endfunction()
 # Apply common properties to both targets
 apply_common_target_properties(SerialProgramsLib)
 apply_common_target_properties(SerialPrograms)
+
+if(MSVC)
+    set_source_files_properties("../3rdParty/miniz-3.1.1/miniz.c" PROPERTIES COMPILE_FLAGS "/W0")
+else()
+    # For GCC/Clang
+    set_source_files_properties("../3rdParty/miniz-3.1.1/miniz.c" PROPERTIES COMPILE_FLAGS "-w")
+endif()
 
 # REPO_ROOT_DIR: the root folder of the git repository, "Arduino-Source/"
 set(PACKAGES_DIR "${REPO_ROOT_DIR}/Packages")
@@ -265,16 +282,11 @@ if (WIN32)
 
     add_library(dpp_lib IMPORTED UNKNOWN)
     set_target_properties(dpp_lib PROPERTIES
-        IMPORTED_LOCATION_RELEASE           ${CMAKE_CURRENT_SOURCE_DIR}/../3rdPartyBinaries/dpp.lib
-        IMPORTED_LOCATION_DEBUG             ${CMAKE_CURRENT_SOURCE_DIR}/../3rdPartyBinaries/dppd.lib
-        MAP_IMPORTED_CONFIG_DEBUG           DEBUG
-        MAP_IMPORTED_CONFIG_RELEASE         RELEASE
-        MAP_IMPORTED_CONFIG_RELWITHDEBINFO  RELEASE
-        MAP_IMPORTED_CONFIG_MINSIZEREL      RELEASE
+        IMPORTED_LOCATION   ${CMAKE_CURRENT_SOURCE_DIR}/../3rdPartyBinaries/dpp.lib
     )
 
     add_library(discord_lib IMPORTED UNKNOWN)
-    target_include_directories(SerialProgramsLib SYSTEM PRIVATE ../3rdParty/discord_social_sdk_win/)
+    target_include_directories(SerialProgramsLib SYSTEM PRIVATE ../3rdParty/discord_social_sdk/)
     set_target_properties(discord_lib PROPERTIES
         IMPORTED_LOCATION_RELEASE           ${CMAKE_CURRENT_SOURCE_DIR}/../3rdPartyBinaries/discord_social_sdk_win/lib/release/discord_partner_sdk.lib
         IMPORTED_LOCATION_DEBUG             ${CMAKE_CURRENT_SOURCE_DIR}/../3rdPartyBinaries/discord_social_sdk_win/lib/debug/discord_partner_sdk.lib
@@ -333,25 +345,26 @@ if (WIN32)
 else() # macOS and Linux
     find_package(PkgConfig REQUIRED)  # required to execute `pkg_search_module()` below
     if (APPLE)
-        # ==== Get ONNX Runtime paths ====
-        # First, try to see if there is an ONNX Runtime library built from source.
-        # Assume the onnxruntime repo, https://github.com/microsoft/onnxruntime is placed in the same folder as
-        # this Arduino-Source repo:
-        set(ONNXRUNTIME_ROOTDIR "${REPO_ROOT_DIR}../onnxruntime/")
-        set(ONNXRUNTIME_HEADER_DIR "${ONNXRUNTIME_ROOTDIR}include/onnxruntime/core/session/")
-        if(EXISTS "${ONNXRUNTIME_HEADER_DIR}")
-            # we have ONNX Runtime built from source
-            message("Use ONNX Runtime built from source at ${ONNXRUNTIME_ROOTDIR}")
-            target_include_directories(SerialProgramsLib PRIVATE ${ONNXRUNTIME_HEADER_DIR})
-            target_link_libraries(SerialProgramsLib PRIVATE ${ONNXRUNTIME_ROOTDIR}/build/MacOS/Release/libonnxruntime.dylib)
+        # prepare onnxruntime if needed
+        set(ONNXRUNTIME_VERSION "1.23.2")
+        set(ONNXRUNTIME_WORK_DIR "${REPO_ROOT_DIR}/3rdPartyBinaries")
+        if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
+            set(ONNXRUNTIME_ARCH "arm64")
         else()
-            message("Built-from-source ONNX Runtime folder ${ONNXRUNTIME_ROOTDIR} does not exist.")
-            message("Use ONNX Runtime installed by Homebrew.")
-            pkg_search_module(ONNXRUNTIME REQUIRED libonnxruntime onnxruntime)
-            target_include_directories(SerialProgramsLib PRIVATE ${ONNXRUNTIME_INCLUDE_DIRS})
-            target_link_directories(SerialProgramsLib PUBLIC ${ONNXRUNTIME_LIBRARY_DIRS})
-            target_link_libraries(SerialProgramsLib PUBLIC ${ONNXRUNTIME_LINK_LIBRARIES})
+            set(ONNXRUNTIME_ARCH "x86_64")
         endif()
+        set(ONNXRUNTIME_LIB_DIR "${ONNXRUNTIME_WORK_DIR}/onnxruntime-osx-${ONNXRUNTIME_ARCH}-${ONNXRUNTIME_VERSION}")
+        set(ONNXRUNTIME_LIB_TAR "${ONNXRUNTIME_LIB_DIR}.tgz")
+        set(ONNXRUNTIME_DYLIB   "${ONNXRUNTIME_LIB_DIR}/lib/libonnxruntime.dylib")
+        if (NOT EXISTS "${ONNXRUNTIME_LIB_DIR}")
+            message(STATUS "ONNXRUNTIME not found, extracting from tgz...")
+            execute_process(
+                COMMAND ${CMAKE_COMMAND} -E tar xf "${ONNXRUNTIME_LIB_TAR}"
+                WORKING_DIRECTORY "${ONNXRUNTIME_WORK_DIR}"
+            )
+        endif()
+        target_include_directories(SerialProgramsLib SYSTEM PRIVATE "${ONNXRUNTIME_LIB_DIR}/include")
+        target_link_libraries(SerialProgramsLib PRIVATE "${ONNXRUNTIME_DYLIB}")
     else() # Linux
         # ONNX RUNTIME LINUX CONFIG
         # NOTE: users can specify their own ONNX_ROOT_PATH (this is the base folder for ONNX) on the command line when evoking cmake.
@@ -361,74 +374,97 @@ else() # macOS and Linux
         # extract it, and then link it up
 
         # Set the ONNXRUNTIME version and arch, allows for quick updates
-        set(ONNXRUNTIME_VERSION "1.23.0")
-        set(ONNXRUNTIME_ARCH "x64")
-        set(ONNXRUNTIME_DIR_NAME "onnxruntime-linux-${ONNXRUNTIME_ARCH}-${ONNXRUNTIME_VERSION}")
-        set(ONNXRUNTIME_TGZ_NAME "${ONNXRUNTIME_DIR_NAME}.tgz")
-        # build up the URL based on the version and name
-        set(ONNXRUNTIME_URL "https://github.com/microsoft/onnxruntime/releases/download/v${ONNXRUNTIME_VERSION}/${ONNXRUNTIME_TGZ_NAME}")
+        pkg_check_modules(ONNXRUNTIME QUIET libonnxruntime)
 
-        # Cache variable is editable by users *and* is properly stored
-        set(ONNX_ROOT_PATH "" CACHE PATH "Path to the root of a pre-installed ONNX Runtime (e.g., /path/to/onnxruntime-linux-x64-1.23.0)")
+        if(ONNXRUNTIME_FOUND)
+            message(STATUS "Found system installed ONNX Runtime")
 
-        # Download the onnxruntime if it doesn't exist or if the path is bad
-        if(NOT ONNX_ROOT_PATH OR NOT EXISTS "${ONNX_ROOT_PATH}/include/onnxruntime_cxx_api.h")
-            set(EXTRACTED_ONNX_PATH "${CMAKE_BINARY_DIR}/${ONNXRUNTIME_DIR_NAME}")
+            message(STATUS "Found ONNX Include Dirs: ${ONNXRUNTIME_INCLUDE_DIRS}")
+            message(STATUS "Found ONNX Library: ${ONNXRUNTIME_LIBRARIES}")
 
-            if(NOT IS_DIRECTORY ${EXTRACTED_ONNX_PATH})
-                message(STATUS "ONNX_ROOT_PATH not found. Downloading ONNX Runtime v${ONNXRUNTIME_VERSION}...")
-                
-                # logic for downloading...
-                set(DOWNLOAD_LOCATION "${CMAKE_BINARY_DIR}/${ONNXRUNTIME_TGZ_NAME}")
-                file(DOWNLOAD
-                    ${ONNXRUNTIME_URL}
-                    ${DOWNLOAD_LOCATION}
-                    SHOW_PROGRESS
-                    STATUS download_status
-                )
-                list(GET download_status 0 error_code)
-                if(NOT error_code EQUAL 0)
-                    list(GET download_status 1 error_message)
-                    message(FATAL_ERROR "Failed to download ONNX Runtime: ${error_message}")
+            target_include_directories(SerialProgramsLib PUBLIC ${ONNXRUNTIME_INCLUDE_DIRS})
+            target_link_libraries(SerialProgramsLib PUBLIC ${ONNXRUNTIME_LIBRARIES})
+
+        else()
+            set(ONNXRUNTIME_VERSION "1.23.0")
+            set(ONNXRUNTIME_ARCH "x64")
+            set(ONNXRUNTIME_DIR_NAME "onnxruntime-linux-${ONNXRUNTIME_ARCH}-${ONNXRUNTIME_VERSION}")
+            set(ONNXRUNTIME_TGZ_NAME "${ONNXRUNTIME_DIR_NAME}.tgz")
+            # build up the URL based on the version and name
+            set(ONNXRUNTIME_URL "https://github.com/microsoft/onnxruntime/releases/download/v${ONNXRUNTIME_VERSION}/${ONNXRUNTIME_TGZ_NAME}")
+
+            # Cache variable is editable by users *and* is properly stored
+            set(ONNX_ROOT_PATH "" CACHE PATH "Path to the root of a pre-installed ONNX Runtime (e.g., /path/to/onnxruntime-linux-x64-1.23.0)")
+
+            # Download the onnxruntime if it doesn't exist or if the path is bad
+            if(NOT ONNX_ROOT_PATH OR NOT EXISTS "${ONNX_ROOT_PATH}/include/onnxruntime_cxx_api.h")
+                set(EXTRACTED_ONNX_PATH "${CMAKE_BINARY_DIR}/${ONNXRUNTIME_DIR_NAME}")
+
+                if(NOT IS_DIRECTORY ${EXTRACTED_ONNX_PATH})
+                    message(STATUS "ONNX_ROOT_PATH not found. Downloading ONNX Runtime v${ONNXRUNTIME_VERSION}...")
+
+                    # logic for downloading...
+                    set(DOWNLOAD_LOCATION "${CMAKE_BINARY_DIR}/${ONNXRUNTIME_TGZ_NAME}")
+                    file(DOWNLOAD
+                        ${ONNXRUNTIME_URL}
+                        ${DOWNLOAD_LOCATION}
+                        SHOW_PROGRESS
+                        STATUS download_status
+                    )
+                    list(GET download_status 0 error_code)
+                    if(NOT error_code EQUAL 0)
+                        list(GET download_status 1 error_message)
+                        message(FATAL_ERROR "Failed to download ONNX Runtime: ${error_message}")
+                    endif()
+
+                    # logic for extracting the tarball to our working directory
+                    message(STATUS "Extracting ONNX Runtime...")
+                    execute_process(
+                        COMMAND ${CMAKE_COMMAND} -E tar xzf "${DOWNLOAD_LOCATION}"
+                        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+                    )
                 endif()
 
-                # logic for extracting the tarball to our working directory
-                message(STATUS "Extracting ONNX Runtime...")
-                execute_process(
-                    COMMAND ${CMAKE_COMMAND} -E tar xzf "${DOWNLOAD_LOCATION}"
-                    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-                )
+                # Update the ONNX_ROOT_PATH to point to our downloaded version, force ensures we update it
+                set(ONNX_ROOT_PATH "${EXTRACTED_ONNX_PATH}" CACHE PATH "Path to the downloaded ONNX Runtime" FORCE)
+                message(STATUS "Using downloaded ONNX Runtime at: ${ONNX_ROOT_PATH}")
+            else()
+                message(STATUS "Using user-provided ONNX Runtime at: ${ONNX_ROOT_PATH}")
             endif()
 
-            # Update the ONNX_ROOT_PATH to point to our downloaded version, force ensures we update it
-            set(ONNX_ROOT_PATH "${EXTRACTED_ONNX_PATH}" CACHE PATH "Path to the downloaded ONNX Runtime" FORCE)
-            message(STATUS "Using downloaded ONNX Runtime at: ${ONNX_ROOT_PATH}")
-        else()
-            message(STATUS "Using user-provided ONNX Runtime at: ${ONNX_ROOT_PATH}")
-        endif()
+            # configure and find headers from the onnxruntime
+            find_path(ONNX_INCLUDE_DIRS
+                NAMES onnxruntime_cxx_api.h
+                HINTS "${ONNX_ROOT_PATH}/include"
+                REQUIRED
+            )
 
-        # configure and find headers from the onnxruntime
-        find_path(ONNX_INCLUDE_DIRS
-            NAMES onnxruntime_cxx_api.h
-            HINTS "${ONNX_ROOT_PATH}/include"
-            REQUIRED
+            find_library(ONNX_RUNTIME_LIB
+                NAMES onnxruntime
+                HINTS "${ONNX_ROOT_PATH}/lib"
+                REQUIRED
+            )
+
+            if(ONNX_INCLUDE_DIRS AND ONNX_RUNTIME_LIB)
+                # only link if it was found, otherwise we error out
+                message(STATUS "Found ONNX Include Dirs: ${ONNX_INCLUDE_DIRS}")
+                message(STATUS "Found ONNX Library: ${ONNX_RUNTIME_LIB}")
+                target_include_directories(SerialProgramsLib PUBLIC "${ONNX_INCLUDE_DIRS}")
+                target_link_libraries(SerialProgramsLib PUBLIC "${ONNX_RUNTIME_LIB}")
+            else()
+                message(FATAL_ERROR "Could not find ONNX Runtime headers or library.")
+            endif()
+        endif ()
+
+        # Systemd DBus Library
+        message(STATUS "Using bundled sdbus-c++ library.")
+        target_include_directories(SerialProgramsLib PRIVATE
+            ${REPO_ROOT_DIR}/3rdParty/sdbus-cpp/include
         )
-
-        find_library(ONNX_RUNTIME_LIB
-            NAMES onnxruntime
-            HINTS "${ONNX_ROOT_PATH}/lib"
-            REQUIRED
+        target_link_libraries(SerialProgramsLib PRIVATE
+            ${REPO_ROOT_DIR}/3rdParty/sdbus-cpp/lib/libsdbus-c++.a
+            systemd #sdbus-c++ relies on libsystemd, almost all distros should have this
         )
-
-        if(ONNX_INCLUDE_DIRS AND ONNX_RUNTIME_LIB)
-            # only link if it was found, otherwise we error out
-            message(STATUS "Found ONNX Include Dirs: ${ONNX_INCLUDE_DIRS}")
-            message(STATUS "Found ONNX Library: ${ONNX_RUNTIME_LIB}")
-            target_include_directories(SerialProgramsLib PUBLIC "${ONNX_INCLUDE_DIRS}")
-            target_link_libraries(SerialProgramsLib PUBLIC "${ONNX_RUNTIME_LIB}")
-        else()
-            message(FATAL_ERROR "Could not find ONNX Runtime headers or library.")
-        endif()
     endif() # end Linux
 
     # Find OpenCV
@@ -451,17 +487,42 @@ else() # macOS and Linux
         target_link_libraries(SerialProgramsLib PUBLIC ${LEPTONICA_LINK_LIBRARIES})
     endif()
 
-    pkg_search_module(DPP dpp=10.0.22)
+    pkg_search_module(DPP dpp=10.1.5)
     if (DPP_FOUND) # enable dpp integration
+        message(STATUS "Compiling with DPP integration enabled")
         target_compile_definitions(SerialProgramsLib PUBLIC PA_DPP)
         ## to build against headers within this repo and properly set flags ##
         ## don't enable the following line ##
         # target_include_directories(SerialProgramsLib PRIVATE ${DPP_INCLUDE_DIRS})
         target_link_directories(SerialProgramsLib PUBLIC ${DPP_LIBRARY_DIRS})
         target_link_libraries(SerialProgramsLib PUBLIC ${DPP_LIBRARIES})
+    else()
+        message(NOTICE "Compiling with DPP integration disabled")
     endif()
 
     if (APPLE)
+        set(DISCORD_ZIP "${REPO_ROOT_DIR}/3rdPartyBinaries/discord_social_sdk_mac.zip")
+        set(DISCORD_DIR "${REPO_ROOT_DIR}/3rdPartyBinaries/discord_social_sdk_mac")
+        set(DISCORD_LIB_RELEASE "${REPO_ROOT_DIR}/3rdPartyBinaries/discord_social_sdk_mac/lib/release/libdiscord_partner_sdk.dylib")
+    else()
+        set(DISCORD_ZIP "${REPO_ROOT_DIR}/3rdPartyBinaries/discord_social_sdk_linux.zip")
+        set(DISCORD_DIR "${REPO_ROOT_DIR}/3rdPartyBinaries/discord_social_sdk_linux")
+        set(DISCORD_LIB_RELEASE "${REPO_ROOT_DIR}/3rdPartyBinaries/discord_social_sdk_linux/lib/release/libdiscord_partner_sdk.so")
+    endif()
+
+    if (NOT EXISTS "${DISCORD_DIR}")
+        message(STATUS "Discord SDK not found, extracting from zip...")
+        execute_process(
+            COMMAND ${CMAKE_COMMAND} -E tar xf "${DISCORD_ZIP}"
+            WORKING_DIRECTORY "${REPO_ROOT_DIR}/3rdPartyBinaries"
+        )
+    endif()
+
+    target_compile_definitions(SerialProgramsLib PUBLIC PA_SOCIAL_SDK)
+    target_include_directories(SerialProgramsLib SYSTEM PRIVATE ../3rdParty/discord_social_sdk/)
+    target_link_libraries(SerialProgramsLib PRIVATE ${DISCORD_LIB_RELEASE})
+
+    if(APPLE)
         target_compile_options(SerialProgramsLib PRIVATE -Wall -Wextra -Wpedantic -Werror -Wshorten-64-to-32)
         # on macOS, need this framework to query OS API to control display sleep and system sleep behavior
         target_link_libraries(SerialProgramsLib PRIVATE "-framework IOKit -framework CoreFoundation")
@@ -470,7 +531,7 @@ else() # macOS and Linux
         target_compile_options(SerialProgramsLib PRIVATE -Wall -Wextra -Wpedantic -Werror -fno-strict-aliasing)
     endif()
 
-    IF(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
+    if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
         # Arm CPU
         #   Run-time ISA dispatching
         target_compile_definitions(SerialProgramsLib PRIVATE PA_AutoDispatch_arm64_20_M1)
@@ -571,6 +632,9 @@ if (WIN32)
     set(DISCORD_DLL_DEBUG "${REPO_ROOT_DIR}/3rdPartyBinaries/discord_social_sdk_win/bin/debug/discord_partner_sdk.dll")
     set(DISCORD_DLL_RELEASE "${REPO_ROOT_DIR}/3rdPartyBinaries/discord_social_sdk_win/bin/release/discord_partner_sdk.dll")
 
+    set(DPP_DEBUG_DLL "${REPO_ROOT_DIR}/3rdPartyBinaries/dpp_debug/dpp.dll")
+    set(DPP_RELEASE_DLL "${REPO_ROOT_DIR}/3rdPartyBinaries/dpp_release/dpp.dll")
+
     if(QT_DEPLOY_FILES)
         # Run windeployqt if Qt DLLs are missing
         if(WINDEPLOYQT_EXECUTABLE AND NOT EXISTS "${WIN_DEPLOY_DIR}/Qt6Core.dll")
@@ -584,8 +648,10 @@ if (WIN32)
             )
             add_custom_target(run_windeployqt DEPENDS $<TARGET_FILE:SerialPrograms>)
         else()
-            message(WARNING "windeployqt not found, skipping Qt deployment.")
+            add_custom_target(run_windeployqt COMMENT "Skipping windeployqt (not found)")
         endif()
+    else()
+        add_custom_target(run_windeployqt COMMENT "Skipping windeployqt (CI environment)")
     endif()
 
     # Copy Discord SDK DLL
@@ -613,6 +679,15 @@ if (WIN32)
             WORKING_DIRECTORY "${REPO_ROOT_DIR}/3rdPartyBinaries"
         )
     endif()
+
+    # Copy dpp dll
+    add_custom_command(
+        TARGET SerialPrograms POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E echo "[Deploy] Copying dpp DLL"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<IF:$<CONFIG:Debug>,${DPP_DEBUG_DLL},${DPP_RELEASE_DLL}>"
+            "${WIN_DEPLOY_DIR}/dpp.dll"
+    )
 
     # Extract OpenCV debug DLL if missing
     if (NOT EXISTS "${OPENCV_DEBUG_DLL}")
@@ -653,3 +728,6 @@ endif() # end WIN32
 if (QT_MAJOR GREATER_EQUAL 6)
     qt_finalize_target(SerialPrograms)
 endif()
+
+# Add command-line executable (GUI-free) from subdirectory
+include(Source/CommandLine/CommandLineExecutable.cmake)

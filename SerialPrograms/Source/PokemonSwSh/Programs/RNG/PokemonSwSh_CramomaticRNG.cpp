@@ -19,9 +19,10 @@
 #include "CommonFramework/Tools/DebugDumper.h"
 #include "CommonTools/Images/SolidColorTest.h"
 #include "CommonTools/Async/InferenceRoutines.h"
+#include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
-#include "NintendoSwitch/NintendoSwitch_Settings.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "Pokemon/Inference/Pokemon_PokeballNameReader.h"
 #include "Pokemon/Inference/Pokemon_NameReader.h"
@@ -145,6 +146,13 @@ CramomaticRNG::CramomaticRNG()
         LockMode::LOCK_WHILE_RUNNING,
         "80 ms"
     )
+    , DIALOG_RELEASE_DURATION(
+        "<b>Dialog Release Duration:</b><br>"
+        "After releasing the button, wait this long before checking the dialog.<br>"
+        "<font color=\"red\">For tick-imprecise controllers, this number will be increased automatically.</font>",
+        LockMode::LOCK_WHILE_RUNNING,
+        "1840 ms"
+    )
     , SAVE_SCREENSHOTS(
         "<b>Save Debug Screenshots:</b>",
         LockMode::LOCK_WHILE_RUNNING,
@@ -173,13 +181,14 @@ CramomaticRNG::CramomaticRNG()
     PA_ADD_OPTION(MAX_UNKNOWN_ADVANCES);
     PA_ADD_OPTION(ADVANCE_PRESS_DURATION);
     PA_ADD_OPTION(ADVANCE_RELEASE_DURATION);
+    PA_ADD_OPTION(DIALOG_RELEASE_DURATION);
     PA_ADD_OPTION(SAVE_SCREENSHOTS);
     PA_ADD_OPTION(LOG_VALUES);
 }
 
 void CramomaticRNG::navigate_to_party(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
-    pbf_press_button(context, BUTTON_X, 10, 125);
-    pbf_press_button(context, BUTTON_A, 20, 10);
+    pbf_press_button(context, BUTTON_X, 80ms, 1000ms);
+    pbf_press_button(context, BUTTON_A, 160ms, 80ms);
     pbf_wait(context, 2000ms);
 }
 
@@ -189,7 +198,13 @@ CramomaticTarget CramomaticRNG::calculate_target(SingleSwitchProgramEnvironment&
     uint16_t priority_advances = 0;
     std::vector<CramomaticTarget> possible_targets;
 
-    std::sort(selected_balls.begin(), selected_balls.end(), [](CramomaticSelection sel1, CramomaticSelection sel2) { return sel1.priority > sel2.priority; });
+    std::sort(
+        selected_balls.begin(),
+        selected_balls.end(),
+        [](CramomaticSelection sel1, CramomaticSelection sel2){
+            return sel1.priority > sel2.priority;
+        }
+    );
     // priority_advances only starts counting up after the first good result is found
     while (priority_advances <= MAX_PRIORITY_ADVANCES){
         // calculate the result for the current temp_rng state
@@ -245,8 +260,11 @@ CramomaticTarget CramomaticRNG::calculate_target(SingleSwitchProgramEnvironment&
 
                     uint16_t priority = selection.priority;
                     selected_balls.erase(
-                        std::remove_if(selected_balls.begin(), selected_balls.end()
-                            , [priority](CramomaticSelection sel) { return sel.priority <= priority; })
+                        std::remove_if(
+                            selected_balls.begin(),
+                            selected_balls.end(),
+                            [priority](CramomaticSelection sel){ return sel.priority <= priority; }
+                        )
                         , selected_balls.end());
                     break;
                 }
@@ -283,10 +301,10 @@ CramomaticTarget CramomaticRNG::calculate_target(SingleSwitchProgramEnvironment&
 
 void CramomaticRNG::leave_to_overworld_and_interact(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     pbf_press_button(context, BUTTON_B, 2000ms, 40ms);
-    pbf_press_button(context, BUTTON_B, 10, 70);
+    pbf_press_button(context, BUTTON_B, 80ms, 560ms);
 
-    pbf_mash_button(context, BUTTON_A, 320);
-    pbf_wait(context, 125);
+    pbf_mash_button(context, BUTTON_A, 2560ms);
+    pbf_wait(context, 1000ms);
 }
 
 void CramomaticRNG::choose_apricorn(SingleSwitchProgramEnvironment& env, ProControllerContext& context, bool sport){
@@ -307,16 +325,16 @@ void CramomaticRNG::choose_apricorn(SingleSwitchProgramEnvironment& env, ProCont
 
     // select the apricorn(s)
     pbf_wait(context, 1000ms);
-    pbf_press_button(context, BUTTON_A, 10, 30);
+    pbf_press_button(context, BUTTON_A, 80ms, 240ms);
     if (sport){
-        pbf_press_dpad(context, DPAD_DOWN, 20, 10);
+        pbf_press_dpad(context, DPAD_DOWN, 160ms, 80ms);
     }
-    pbf_press_button(context, BUTTON_A, 10, 30);
-    pbf_press_button(context, BUTTON_A, 10, 30);
+    pbf_press_button(context, BUTTON_A, 80ms, 240ms);
+    pbf_press_button(context, BUTTON_A, 80ms, 240ms);
     if (sport){
-        pbf_press_dpad(context, DPAD_UP, 20, 10);
+        pbf_press_dpad(context, DPAD_UP, 160ms, 80ms);
     }
-    pbf_press_button(context, BUTTON_A, 10, 30);
+    pbf_press_button(context, BUTTON_A, 80ms, 240ms);
 
     pbf_mash_button(context, BUTTON_A, 5000ms);
 }
@@ -338,7 +356,7 @@ std::pair<bool, std::string> CramomaticRNG::receive_ball(SingleSwitchProgramEnvi
 
     while (presses < 30 && !arrow_detected){
         presses++;
-        pbf_press_button(context, BUTTON_B, 10, 165);
+        pbf_press_button(context, BUTTON_B, 80ms, DIALOG_RELEASE_DURATION);
         context.wait_for_all_requests();
 
         VideoSnapshot screen = env.console.video().snapshot();
@@ -377,7 +395,7 @@ void CramomaticRNG::recover_from_wrong_state(SingleSwitchProgramEnvironment& env
     pbf_mash_button(context, BUTTON_B, 30s);
 
     // take a step in case Hyde repositioned the player
-    pbf_move_left_joystick(context, 128, 0, 1000ms, 80ms);
+    pbf_move_left_joystick(context, {0, +1}, 1000ms, 80ms);
 
     context.wait_for_all_requests();
 }
@@ -395,9 +413,15 @@ void CramomaticRNG::program(SingleSwitchProgramEnvironment& env, ProControllerCo
 
     if (START_LOCATION.start_in_grip_menu()){
         grip_menu_connect_go_home(context);
-        resume_game_back_out(env.console, context, ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST, 200);
+        resume_game_back_out(
+            env.console,
+            context,
+            ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST,
+            1600ms
+        );
     }else{
-        pbf_press_button(context, BUTTON_B, 5, 5);
+        //  Connect the controller.
+        require_player(env.console, context, BUTTON_B);
     }
 
     static const std::set<std::string> APRIBALLS{

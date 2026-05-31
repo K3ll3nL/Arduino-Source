@@ -7,9 +7,10 @@
 #ifndef PokemonAutomation_VideoPipeline_SnapshotManager_H
 #define PokemonAutomation_VideoPipeline_SnapshotManager_H
 
-#include <mutex>
-#include <condition_variable>
-#include "Common/Cpp/AbstractLogger.h"
+#include <map>
+#include "Common/Cpp/Concurrency/Mutex.h"
+#include "Common/Cpp/Concurrency/ConditionVariable.h"
+#include "Common/Cpp/Logging/AbstractLogger.h"
 #include "CommonFramework/Tools/StatAccumulator.h"
 #include "CommonFramework/VideoPipeline/VideoFeed.h"
 #include "QVideoFrameCache.h"
@@ -29,26 +30,38 @@ public:
 
 private:
     static QImage frame_to_image(const QVideoFrame& frame);
+    VideoSnapshot convert(QVideoFrame frame, WallClock timestamp) noexcept;
     void convert(uint64_t seqnum, QVideoFrame frame, WallClock timestamp) noexcept;
     bool try_dispatch_conversion(uint64_t seqnum, QVideoFrame frame, WallClock timestamp) noexcept;
     void dispatch_conversion(uint64_t seqnum, QVideoFrame frame, WallClock timestamp) noexcept;
+
+    bool push_new_screenshot(uint64_t seqnum, VideoSnapshot snapshot);
+
+    struct ObjectsToGC{
+        std::vector<AsyncTask> tasks_to_free;
+        std::vector<VideoSnapshot> snapshots_to_free;
+
+        void destroy_now();
+    };
+    ObjectsToGC cleanup();
 
 private:
     Logger& m_logger;
     QVideoFrameCache& m_cache;
 
-    std::mutex m_lock;
-    std::condition_variable m_cv;
+    Mutex m_lock;
+    ConditionVariable m_cv;
 
-    size_t m_active_conversions;
-    std::map<uint64_t, std::unique_ptr<AsyncTask>> m_pending_conversions;
+    std::map<uint64_t, AsyncTask> m_pending_conversions;
     bool m_queued_convert = false;
 
-    uint64_t m_converting_seqnum;
+    //  Keep an archive of older snapshots. The idea here is that we don't want
+    //  snapshots to be destroyed in other places (such as the video pivot)
+    //  because it's expensive. So instead, we keep a reference here which we
+    //  will periodically clear out on the conversion threads.
+    std::map<uint64_t, VideoSnapshot> m_converted_snapshot_archive;
 
-    uint64_t m_converted_seqnum;
-    VideoSnapshot m_converted_snapshot;
-
+    SpinLock m_stats_lock;
     PeriodicStatsReporterI32 m_stats_conversion;
 };
 

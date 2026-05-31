@@ -9,6 +9,7 @@
 #include "CommonFramework/ProgramStats/StatsTracking.h"
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonLA/PokemonLA_Settings.h"
 #include "PokemonLA/PokemonLA_TravelLocations.h"
@@ -126,29 +127,27 @@ bool NuggetFarmerHighlands::run_iteration(
         int ret = run_until<ProControllerContext>(
             env.console, context,
             [](ProControllerContext& context){
-                pbf_move_left_joystick(context, 0, 212, 50, 0);
-                pbf_press_button(context, BUTTON_B, 492, 80);
+                pbf_move_left_joystick(context, {-1, -0.661}, 400ms, 0ms);
+                pbf_press_button(context, BUTTON_B, 3936ms, 640ms);
 
-                pbf_move_left_joystick(context, 224, 0, 50, 0);
+                pbf_move_left_joystick(context, {+0.756, +1}, 400ms, 0ms);
 //                pbf_press_button(context, BUTTON_B, 350, 80);
-                pbf_press_button(context, BUTTON_B, 80, 0);
+                pbf_press_button(context, BUTTON_B, 640ms, 0ms);
                 for (size_t c = 0; c < 7; c++){
-                    pbf_press_button(context, BUTTON_A | BUTTON_B, 5, 0);
-                    pbf_press_button(context, BUTTON_B, 5, 0);
+                    pbf_press_button(context, BUTTON_A | BUTTON_B, 40ms, 0ms);
+                    pbf_press_button(context, BUTTON_B, 40ms, 0ms);
                 }
-                pbf_press_button(context, BUTTON_B, 200, 80);
-                pbf_wait(context, 80);
+                pbf_press_button(context, BUTTON_B, 1600ms, 640ms);
+                pbf_wait(context, 640ms);
 
-                pbf_move_left_joystick(context, 0, 64, 50, 0);
-                pbf_press_button(context, BUTTON_B, 250, 80);
+                pbf_move_left_joystick(context, {-1, +0.5}, 400ms, 0ms);
+                pbf_press_button(context, BUTTON_B, 2000ms, 640ms);
 
-                pbf_move_left_joystick(context, 0, 48, 50, 0);
-                pbf_press_button(context, BUTTON_B, 250, 0);
+                pbf_move_left_joystick(context, {-1, +0.625}, 400ms, 0ms);
+                pbf_press_button(context, BUTTON_B, 2000ms, 0ms);
 
-                pbf_move_left_joystick(context, 64, 255, 50, 0);
-                pbf_press_button(context, BUTTON_B, 150, 250);
-
-//                pbf_move_right_joystick(context, 0, 128, 200, 125);
+                pbf_move_left_joystick(context, {-0.5, -1}, 400ms, 0ms);
+                pbf_press_button(context, BUTTON_B, 1200ms, 2000ms);
 
             },
             {
@@ -220,7 +219,7 @@ void NuggetFarmerHighlands::program(SingleSwitchProgramEnvironment& env, ProCont
     NuggetFarmerHighlands_Descriptor::Stats& stats = env.current_stats<NuggetFarmerHighlands_Descriptor::Stats>();
 
     //  Connect the controller.
-    pbf_press_button(context, BUTTON_LCLICK, 5, 5);
+    require_player(env.console, context, BUTTON_LCLICK);
 
     // Put a save here so that when the program reloads from error it won't break.
     save_game_from_overworld(env, env.console, context);

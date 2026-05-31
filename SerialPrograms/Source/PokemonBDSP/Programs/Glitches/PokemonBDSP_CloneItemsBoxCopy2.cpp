@@ -11,6 +11,7 @@
 #include "CommonTools/VisualDetectors/ImageMatchDetector.h"
 #include "CommonTools/StartupChecks/StartProgramChecks.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonBDSP/PokemonBDSP_Settings.h"
 #include "PokemonBDSP/Programs/PokemonBDSP_BoxRelease.h"
@@ -98,7 +99,7 @@ void CloneItemsBoxCopy2::program(SingleSwitchProgramEnvironment& env, ProControl
 //    uint16_t POKEMON_TO_MENU_DELAY = GameSettings::instance().POKEMON_TO_MENU_DELAY;
 
     //  Connect the controller.
-    pbf_mash_button(context, BUTTON_RCLICK, 50);
+    require_player(env.console, context, BUTTON_RCLICK);
 
     //  Enter box system.
     menu_to_box(context);
@@ -112,34 +113,34 @@ void CloneItemsBoxCopy2::program(SingleSwitchProgramEnvironment& env, ProControl
         send_program_status_notification(env, NOTIFICATION_STATUS_UPDATE);
 
         //  Select 1st mon.
-        pbf_press_button(context, BUTTON_ZL, 20, 50);
+        pbf_press_button(context, BUTTON_ZL, 160ms, 400ms);
 
         //  Enter box system again.
         overworld_to_box(context);
 
 #if 0
         //  Detach all items.
-        pbf_press_button(context, BUTTON_X, 20, 50);
+        pbf_press_button(context, BUTTON_X, 160ms, 400ms);
         detach_box(context, BOX_SCROLL_DELAY);
 
         //  Back to previous menu.
         box_to_overworld(context);
 
         //  View Summary
-        pbf_move_right_joystick(context, 128, 255, 20, 10);
-        pbf_press_button(context, BUTTON_ZL, 20, 250);
+        pbf_move_right_joystick(context, {0, -1}, 160ms, 80ms);
+        pbf_press_button(context, BUTTON_ZL, 160ms, 2000ms);
 
         //  Back out.
-        pbf_press_button(context, BUTTON_B, 20, 230);
+        pbf_press_button(context, BUTTON_B, 160ms, 1840ms);
 
 #else
         //  Move entire box to a new box.
-        pbf_press_button(context, BUTTON_Y, 20, 50);
-        pbf_press_button(context, BUTTON_Y, 20, 50);
+        pbf_press_button(context, BUTTON_Y, 160ms, 400ms);
+        pbf_press_button(context, BUTTON_Y, 160ms, 400ms);
         pbf_press_button(context, BUTTON_ZL, 160ms, BOX_PICKUP_DROP_DELAY);
         for (size_t c = 0; c < 10; c++){
-            pbf_move_right_joystick(context, 255, 128, 5, 3);
-            pbf_move_right_joystick(context, 128, 255, 5, 3);
+            pbf_move_right_joystick(context, {+1, 0}, 40ms, 24ms);
+            pbf_move_right_joystick(context, {0, -1}, 40ms, 24ms);
         }
         pbf_press_button(context, BUTTON_ZL, 160ms, BOX_PICKUP_DROP_DELAY);
         int box_offset = RELEASE ? 1 : 1 + box;
@@ -152,11 +153,11 @@ void CloneItemsBoxCopy2::program(SingleSwitchProgramEnvironment& env, ProControl
         box_to_overworld(context);
 
         //  View Summary
-        pbf_move_right_joystick(context, 128, 255, 20, 10);
-        pbf_press_button(context, BUTTON_ZL, 20, 250);
+        pbf_move_right_joystick(context, {0, -1}, 160ms, 80ms);
+        pbf_press_button(context, BUTTON_ZL, 160ms, 2000ms);
 
         //  Back out.
-        pbf_press_button(context, BUTTON_B, 20, 230);
+        pbf_press_button(context, BUTTON_B, 160ms, 1840ms);
 
         if (RELEASE){
             //  Release the cloned box.
@@ -165,11 +166,11 @@ void CloneItemsBoxCopy2::program(SingleSwitchProgramEnvironment& env, ProControl
             pbf_press_button(context, BUTTON_L, 160ms, BOX_CHANGE_DELAY);
 
             //  Move cursor back to starting position.
-            pbf_move_right_joystick(context, 128, 255, 160ms, BOX_SCROLL_DELAY);
-            pbf_move_right_joystick(context, 128, 255, 160ms, BOX_SCROLL_DELAY);
-            pbf_move_right_joystick(context, 128, 255, 160ms, BOX_SCROLL_DELAY);
-            pbf_move_right_joystick(context, 255, 128, 160ms, BOX_SCROLL_DELAY);
-            pbf_move_right_joystick(context, 255, 128, 160ms, BOX_SCROLL_DELAY);
+            pbf_move_right_joystick(context, {0, -1}, 160ms, BOX_SCROLL_DELAY);
+            pbf_move_right_joystick(context, {0, -1}, 160ms, BOX_SCROLL_DELAY);
+            pbf_move_right_joystick(context, {0, -1}, 160ms, BOX_SCROLL_DELAY);
+            pbf_move_right_joystick(context, {+1, 0}, 160ms, BOX_SCROLL_DELAY);
+            pbf_move_right_joystick(context, {+1, 0}, 160ms, BOX_SCROLL_DELAY);
         }
 #endif
 

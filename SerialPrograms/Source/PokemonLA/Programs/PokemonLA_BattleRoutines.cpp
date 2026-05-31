@@ -28,7 +28,7 @@ void mash_A_until_end_of_battle(VideoStream& stream, ProControllerContext& conte
     int ret = run_until<ProControllerContext>(
         stream, context,
         [](ProControllerContext& context){
-            pbf_mash_button(context, BUTTON_A, 180 * TICKS_PER_SECOND);
+            pbf_mash_button(context, BUTTON_A, 180000ms);
         },
         {{detector}}
     );
@@ -57,14 +57,14 @@ size_t switch_pokemon(
         );
     }
     // Move past leading fainted pokemon
-    for(size_t i = 0; i < pokemon_to_switch_to; i++){
-        pbf_press_dpad(context, DPAD_DOWN, 20, 80);
+    for (size_t i = 0; i < pokemon_to_switch_to; i++){
+        pbf_press_dpad(context, DPAD_DOWN, 160ms, 640ms);
     }
 
     while(true){
         // Choose the next pokemon to battle.
-        pbf_press_button(context, BUTTON_A, 20, 100);
-        pbf_press_button(context, BUTTON_A, 20, 150);
+        pbf_press_button(context, BUTTON_A, 160ms, 800ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 1200ms);
         context.wait_for_all_requests();
 
         // Check whether we can send this pokemon to battle:
@@ -88,9 +88,9 @@ size_t switch_pokemon(
         }
 
         // Fist hit B to clear the "cannot send pokemon" dialogue
-        pbf_press_button(context, BUTTON_B, 20, 100);
+        pbf_press_button(context, BUTTON_B, 160ms, 800ms);
         // Move to the next pokemon
-        pbf_press_dpad(context, DPAD_DOWN, 20, 80);
+        pbf_press_dpad(context, DPAD_DOWN, 160ms, 640ms);
     }
 
     return pokemon_to_switch_to;
@@ -106,21 +106,21 @@ void use_move_blindly(
     // Select move styles
     if (style == MoveStyle::Agile){
         // Agile style
-        pbf_press_button(context, BUTTON_L, 10, 125);
+        pbf_press_button(context, BUTTON_L, 80ms, 1000ms);
     }else if (style == MoveStyle::Strong){
         // Strong style
-        pbf_press_button(context, BUTTON_R, 10, 125);
+        pbf_press_button(context, BUTTON_R, 80ms, 1000ms);
     }
 
     // Use the move
-    pbf_press_button(context, BUTTON_A, 10, 125);
+    pbf_press_button(context, BUTTON_A, 80ms, 1000ms);
 
     stream.log(
         "Using pokemon " + std::to_string(cur_pokemon) + " move " + std::to_string(cur_move) +
         " style " + MoveStyle_Database().find(style)->display
     );
 
-    pbf_wait(context, 1 * TICKS_PER_SECOND);
+    pbf_wait(context, 1000ms);
     context.wait_for_all_requests();
 }
 
@@ -186,7 +186,7 @@ void use_next_move_with_pp(
         }
         
         // Go to the next move.
-        pbf_press_dpad(context, DPAD_DOWN, 20, 100);
+        pbf_press_dpad(context, DPAD_DOWN, 160ms, 800ms);
         // env.console.context().wait_for_all_requests();
         cur_move++;
         stream.log("No PP. Use next move, " + std::to_string(cur_move), COLOR_RED);

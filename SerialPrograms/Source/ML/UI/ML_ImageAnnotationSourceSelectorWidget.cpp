@@ -10,7 +10,7 @@
 #include <QComboBox>
 #include <QPushButton>
 #include <QFileDialog>
-#include <filesystem>
+#include "Common/Cpp/Filesystem.h"
 #include "Common/Qt/NoWheelComboBox.h"
 #include "CommonFramework/VideoPipeline/Backends/CameraImplementations.h"
 
@@ -67,8 +67,8 @@ ImageAnnotationSourceSelectorWidget::ImageAnnotationSourceSelectorWidget(ImageAn
     m_folder_info_label = new QLabel(this);
     folder_info_row->addWidget(m_folder_info_label, 1);
 
-    QPushButton* prev_image_button = new QPushButton("Prev Image in Folder (Z)", this);
-    QPushButton* next_image_button = new QPushButton("Next Image in Folder (X)", this);
+    QPushButton* prev_image_button = new QPushButton("Prev Image in Folder (z/Z)", this);
+    QPushButton* next_image_button = new QPushButton("Next Image in Folder (x/X)", this);
     folder_info_row->addWidget(prev_image_button, 2);
     folder_info_row->addSpacing(2);
     folder_info_row->addWidget(next_image_button, 2);
@@ -83,7 +83,7 @@ ImageAnnotationSourceSelectorWidget::ImageAnnotationSourceSelectorWidget(ImageAn
             const std::string& image_path = m_session.option().m_image_path;
             std::string starting_dir = ".";
             if (image_path.size() > 0){
-                starting_dir = std::filesystem::path(image_path).parent_path().string();
+                starting_dir = Filesystem::Path(image_path).parent_path().string();
             }
             const std::string path = QFileDialog::getOpenFileName(
                 nullptr, "Open image file", QString::fromStdString(starting_dir), "*.png *.jpg *.jpeg"
@@ -107,14 +107,14 @@ ImageAnnotationSourceSelectorWidget::ImageAnnotationSourceSelectorWidget(ImageAn
     connect(
         prev_image_button, &QPushButton::clicked,
         this, [this](bool){
-            this->go_to_previous_image();
-        }  
+            this->go_to_image_by_index_offset(-1);
+        }
     );
     connect(
         next_image_button, &QPushButton::clicked,
         this, [this](bool){
-            this->go_to_next_image();
-        }  
+            this->go_to_image_by_index_offset(1);
+        }
     );
 
     m_session.video_session().add_state_listener(*this);
@@ -126,16 +126,26 @@ ImageAnnotationSourceSelectorWidget::ImageAnnotationSourceSelectorWidget(ImageAn
     }
 }
 
-void ImageAnnotationSourceSelectorWidget::go_to_previous_image(){
-    if (m_cur_image_file_idx_in_folder != SIZE_MAX && m_cur_image_file_idx_in_folder > 0){
-        m_cur_image_file_idx_in_folder--;
-        m_session.set_image_source(m_image_paths_in_folder[m_cur_image_file_idx_in_folder]);
+void ImageAnnotationSourceSelectorWidget::go_to_image_by_index_offset(int offset){
+    if (m_cur_image_file_idx_in_folder == SIZE_MAX || m_image_paths_in_folder.empty()){
+        return;
     }
-}
 
-void ImageAnnotationSourceSelectorWidget::go_to_next_image(){
-    if (m_cur_image_file_idx_in_folder != SIZE_MAX && m_cur_image_file_idx_in_folder + 1 < m_image_paths_in_folder.size()){
-        m_cur_image_file_idx_in_folder++;
+    const int folder_size = static_cast<int>(m_image_paths_in_folder.size());
+
+    // Calculate new index with wrap-around behavior
+    int new_idx = static_cast<int>(m_cur_image_file_idx_in_folder) + offset;
+
+    // Handle wrap-around using modulo arithmetic
+    // For negative indices, we need to add multiples of folder_size until positive
+    new_idx = new_idx % folder_size;
+    if (new_idx < 0){
+        new_idx += folder_size;
+    }
+
+    // Only update if the index actually changed
+    if (static_cast<size_t>(new_idx) != m_cur_image_file_idx_in_folder){
+        m_cur_image_file_idx_in_folder = static_cast<size_t>(new_idx);
         m_session.set_image_source(m_image_paths_in_folder[m_cur_image_file_idx_in_folder]);
     }
 }
@@ -146,7 +156,7 @@ void ImageAnnotationSourceSelectorWidget::post_startup(VideoSource* source){
     const std::string& image_path = m_session.option().m_image_path;
     m_source_file_path_label->setText(QString::fromStdString(image_path));
 
-    const auto path = std::filesystem::path(image_path);
+    const auto path = Filesystem::Path(image_path);
     const auto filename = path.filename();
     const std::string folder_path = path.parent_path().string();
     const bool recursive_search = false;
@@ -155,7 +165,7 @@ void ImageAnnotationSourceSelectorWidget::post_startup(VideoSource* source){
     const size_t num_images = m_image_paths_in_folder.size();
     m_cur_image_file_idx_in_folder = SIZE_MAX;
     for (size_t i = 0; i < num_images; i++){
-        if (std::filesystem::path(m_image_paths_in_folder[i]).filename() == filename){
+        if (Filesystem::Path(m_image_paths_in_folder[i]).filename() == filename){
             m_cur_image_file_idx_in_folder = i;
         }
     }
@@ -163,7 +173,7 @@ void ImageAnnotationSourceSelectorWidget::post_startup(VideoSource* source){
         std::cerr << "When searching the loaded image folder " << folder_path << ", cannot find the loaded image filename "
             << filename << "." << std::endl;
         m_folder_info_label->setText(QString::fromStdString("\?\?\?/" + std::to_string(num_images) + " in folder"));
-    } else{
+    }else{
         m_folder_info_label->setText(QString::fromStdString(
             std::to_string(m_cur_image_file_idx_in_folder+1) + "/" + std::to_string(num_images) + " in folder"));
     }

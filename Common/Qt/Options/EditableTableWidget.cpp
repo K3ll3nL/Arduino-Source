@@ -22,9 +22,7 @@
 namespace PokemonAutomation{
 
 
-ConfigWidget* EditableTableOption::make_QtWidget(QWidget& parent){
-    return new EditableTableWidget(parent, *this);
-}
+template class RegisterConfigWidget<EditableTableWidget>;
 
 
 
@@ -109,7 +107,16 @@ EditableTableWidget::EditableTableWidget(QWidget& parent, EditableTableOption& v
                     if (path.empty()){
                         return;
                     }
-                    value.load_json(load_json_file(path));
+                    try{
+                        value.load_json(load_json_file(path));
+                    }catch (Exception& e){
+                        QMessageBox::warning(
+                            nullptr,
+                            "Failed to load JSON.",
+                            QString::fromStdString(e.message())
+                        );
+                    }
+
                 }
             );
         }
@@ -132,7 +139,12 @@ EditableTableWidget::EditableTableWidget(QWidget& parent, EditableTableOption& v
             );
         }
         {
-            QPushButton* button = new QPushButton("Restore Defaults", this);
+            QPushButton* button = new QPushButton(
+                value.defaults().empty()
+                    ? "Clear Table"
+                    : "Restore Defaults",
+                this
+            );
             buttons->addWidget(button, 1);
             connect(
                 button, &QPushButton::clicked,
@@ -156,6 +168,16 @@ EditableTableWidget::EditableTableWidget(QWidget& parent, EditableTableOption& v
 }
 
 void EditableTableWidget::update_value(){
+    //  Refresh the header in case that changed.
+    QStringList header;
+    for (const std::string& name : m_value.make_header()){
+        header << QString::fromStdString(name);
+    }
+    header << "" << "" << "";
+    m_table->setColumnCount(int(header.size()));
+    m_table->setHorizontalHeaderLabels(header);
+
+    //  Now update the table.
     std::vector<std::shared_ptr<EditableTableRow>> latest = m_value.current_refs();
 //    cout << "latest.size() = " << latest.size() << endl;
 
@@ -213,7 +235,7 @@ void EditableTableWidget::update_value(){
                 //  QTableWidget for some reason forces the visibility of its
                 //  cells to visible.
 //                cout << "make cell widget" << endl;
-                QWidget* widget = &cells[c]->make_QtWidget(*m_table)->widget();
+                QWidget* widget = &ConfigWidget::make_from_option(*cells[c], m_table)->widget();
                 QWidget* cell_widget = new QWidget(this);
                 QVBoxLayout* layout = new QVBoxLayout(cell_widget);
                 layout->setContentsMargins(0, 0, 0, 0);

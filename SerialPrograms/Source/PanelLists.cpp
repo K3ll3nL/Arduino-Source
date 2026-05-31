@@ -8,6 +8,7 @@
 #include <QVBoxLayout>
 #include <QLabel>
 #include "Common/Qt/NoWheelComboBox.h"
+#include "CommonFramework/Globals.h"
 #include "CommonFramework/PersistentSettings.h"
 #include "CommonFramework/Windows/DpiScaler.h"
 #include "CommonFramework/Panels/UI/PanelListWidget.h"
@@ -17,11 +18,13 @@
 #include "PokemonSwSh/PokemonSwSh_Panels.h"
 #include "PokemonHome/PokemonHome_Panels.h"
 #include "PokemonBDSP/PokemonBDSP_Panels.h"
+#include "PokemonFRLG/PokemonFRLG_Panels.h"
 #include "PokemonLA/PokemonLA_Panels.h"
 #include "PokemonLGPE/PokemonLGPE_Panels.h"
 #include "PokemonRSE/PokemonRSE_Panels.h"
 #include "PokemonSV/PokemonSV_Panels.h"
 #include "PokemonLZA/PokemonLZA_Panels.h"
+#include "PokemonPokopia/PokemonPokopia_Panels.h"
 #include "ZeldaTotK/ZeldaTotK_Panels.h"
 #include "PanelLists.h"
 
@@ -40,7 +43,7 @@ ProgramSelect::ProgramSelect(QWidget& parent, PanelHolder& holder)
 {
     QVBoxLayout* layout = new QVBoxLayout(this);
     layout->setAlignment(Qt::AlignTop);
-    m_dropdown = new NoWheelComboBox(this);
+    m_dropdown = new NoWheelCompactComboBox(this);
     m_dropdown->setMaxVisibleItems(20);
     layout->addWidget(m_dropdown);
 
@@ -54,6 +57,8 @@ ProgramSelect::ProgramSelect(QWidget& parent, PanelHolder& holder)
     add(std::make_unique<NintendoSwitch::PokemonSV::PanelListFactory>());
 
     add(std::make_unique<NintendoSwitch::PokemonLZA::PanelListFactory>());
+    add(std::make_unique<NintendoSwitch::PokemonFRLG::PanelListFactory>());
+    add(std::make_unique<NintendoSwitch::PokemonPokopia::PanelListFactory>());
     if (PreloadSettings::instance().DEVELOPER_MODE){
         add(std::make_unique<NintendoSwitch::PokemonRSE::PanelListFactory>());
     }

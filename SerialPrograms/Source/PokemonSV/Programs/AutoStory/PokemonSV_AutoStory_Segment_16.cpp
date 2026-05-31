@@ -4,6 +4,8 @@
  *
  */
 
+#include "CommonFramework/VideoPipeline/VideoFeed.h"
+
 #include "CommonFramework/Exceptions/OperationFailedException.h"
 #include "CommonFramework/VideoPipeline/VideoOverlay.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
@@ -86,27 +88,34 @@ void checkpoint_35(
     [&](size_t attempt_number){         
         context.wait_for_all_requests();
         DirectionDetector direction;
+        
+        if (attempt_number > 0 || ENABLE_TEST){
+            env.console.log("Fly to neighbouring Pokecenter, then fly back, to clear any pokemon covering the minimap.");
+            move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::KEEP_ZOOM, -1, +1, 0ms});
+            move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::KEEP_ZOOM, -1, +1, 0ms});
+        }
+
         do_action_and_monitor_for_battles(env.program_info(), env.console, context,
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
                 direction.change_direction(env.program_info(), env.console, context, 0.3491);
-                pbf_move_left_joystick(context, 128, 0, 400, 100);
+                pbf_move_left_joystick(context, {0, +1}, 3200ms, 800ms);
                 direction.change_direction(env.program_info(), env.console, context, 5.075911);
-                pbf_move_left_joystick(context, 128, 0, 525, 100);                
+                pbf_move_left_joystick(context, {0, +1}, 4200ms, 800ms);
         });
 
         direction.change_direction(env.program_info(), env.console, context, 3.771252);
         get_on_ride(env.program_info(), env.console, context);
         // walk towards elevator
-        pbf_move_left_joystick(context, 128, 0, 700, 100);
+        pbf_move_left_joystick(context, {0, +1}, 5600ms, 800ms);
         // jump to ensure you get on elevator
-        pbf_controller_state(context, BUTTON_B, DPAD_NONE, 128, 0, 128, 128, 200);
-        pbf_wait(context, 3 * TICKS_PER_SECOND);
+        pbf_controller_state(context, BUTTON_B, DPAD_NONE, {0, +1}, {0, 0}, 1600ms);
+        pbf_wait(context, 3000ms);
         // wait for overworld to reappear after stepping off elevator
         wait_for_overworld(env.program_info(), env.console, context, 30);
 
-        pbf_move_left_joystick(context, 128, 0, 120, 100);     
+        pbf_move_left_joystick(context, {0, +1}, 960ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 5.11);  
-        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_ONLY, 20);
+        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_ONLY, 20000ms);
         mash_button_till_overworld(env.console, context, BUTTON_A);
        
     });
@@ -123,37 +132,41 @@ void checkpoint_36(
     checkpoint_reattempt_loop(env, context, notif_status_update, stats,
     [&](size_t attempt_number){         
         context.wait_for_all_requests();
-        move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::ZOOM_IN, 100, 0, 80});
+
+        // At this startpoint, no Pokemon show up on minimap/map
+
+        // fly from Cascaraffa Gym to Cascaraffa North Pokecenter
+        move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::ZOOM_IN, -0.219, +1, 640ms});
 
         // section 1
         // warning: can't reliably set the marker when in Cascarrafa, possibly due to too many NPCs. worse when sandstorm is up.
         // what happens is that the program doesn't reliably push the cursor as much as it should
-        realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_NEW_MARKER, 0, 135, 410);
+        realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_NEW_MARKER, -1, -0.055, 3280ms);
         overworld_navigation(env.program_info(), env.console, context, 
             NavigationStopCondition::STOP_DIALOG, NavigationMovementMode::DIRECTIONAL_ONLY, 
-            128, 0, 60, 20, false);
+            0, +1, 60, 20, false);
         // talk to Arven over phone
         mash_button_till_overworld(env.console, context, BUTTON_A, 360);
 
         // section 2
         realign_player_from_landmark(
             env.program_info(), env.console, context, 
-            {ZoomChange::KEEP_ZOOM, 0, 0, 80},
-            {ZoomChange::ZOOM_IN, 255, 255, 110}
+            {ZoomChange::KEEP_ZOOM, -1, +1, 640ms},
+            {ZoomChange::ZOOM_IN, +1, -1, 880ms}
         );
         overworld_navigation(env.program_info(), env.console, context, 
             NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-            128, 0, 60, 20, false);
+            0, +1, 60, 20, false);
 
         // section 3
         realign_player_from_landmark(
             env.program_info(), env.console, context, 
-            {ZoomChange::KEEP_ZOOM, 0, 0, 40},
-            {ZoomChange::ZOOM_IN, 255, 128, 45}
+            {ZoomChange::KEEP_ZOOM, -1, +1, 320ms},
+            {ZoomChange::ZOOM_IN, +1, 0, 360ms}
         );
         overworld_navigation(env.program_info(), env.console, context, 
             NavigationStopCondition::STOP_DIALOG, NavigationMovementMode::DIRECTIONAL_ONLY, 
-            128, 0, 30, 10, false);
+            0, +1, 30, 10, false);
         
         // cutscene with Kofu looking at flowers
         mash_button_till_overworld(env.console, context, BUTTON_A, 360);            
@@ -161,18 +174,18 @@ void checkpoint_36(
         // section 4. set marker to pokecenter
         realign_player_from_landmark(
             env.program_info(), env.console, context, 
-            {ZoomChange::KEEP_ZOOM, 0, 0, 0},
-            {ZoomChange::ZOOM_IN, 0, 0, 0}
+            {ZoomChange::KEEP_ZOOM, -1, +1, 0ms},
+            {ZoomChange::ZOOM_IN, -1, +1, 0ms}
         );      
         overworld_navigation(env.program_info(), env.console, context, 
             NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-            128, 0, 20, 10, false);   
+            0, +1, 20, 10, false);   
 
         // section 5. set marker past pokecenter
-        realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_NEW_MARKER, 0, 100, 30);
+        realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_NEW_MARKER, -1, +0.219, 240ms);
         overworld_navigation(env.program_info(), env.console, context, 
             NavigationStopCondition::STOP_TIME, NavigationMovementMode::DIRECTIONAL_ONLY, 
-            128, 15, 12, 12, false);     
+            0, +0.883, 12, 12, false);     
 
         fly_to_overlapping_flypoint(env.program_info(), env.console, context);           
        

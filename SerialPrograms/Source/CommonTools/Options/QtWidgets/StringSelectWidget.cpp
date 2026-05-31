@@ -13,20 +13,15 @@
 #include "CommonFramework/Logging/Logger.h"
 #include "StringSelectWidget.h"
 
-#include <iostream>
-using std::cout;
-using std::endl;
+//#include <iostream>
+//using std::cout;
+//using std::endl;
 
 namespace PokemonAutomation{
 
 
-
-ConfigWidget* StringSelectCell::make_QtWidget(QWidget& parent){
-    return new StringSelectCellWidget(parent, *this);
-}
-ConfigWidget* StringSelectOption::make_QtWidget(QWidget& parent){
-    return new StringSelectOptionWidget(parent, *this);
-}
+template class RegisterConfigWidget<StringSelectCellWidget>;
+template class RegisterConfigWidget<StringSelectOptionWidget>;
 
 
 
@@ -35,7 +30,7 @@ StringSelectCellWidget::~StringSelectCellWidget(){
     m_value.remove_listener(*this);
 }
 StringSelectCellWidget::StringSelectCellWidget(QWidget& parent, StringSelectCell& value)
-    : NoWheelComboBox(&parent)
+    : NoWheelCompactComboBox(&parent)
     , ConfigWidget(value, *this)
     , m_value(value)
 {
@@ -134,7 +129,7 @@ void StringSelectCellWidget::hide_options(){
 
 }
 QSize StringSelectCellWidget::sizeHint() const{
-    QSize ret = NoWheelComboBox::sizeHint();
+    QSize ret = NoWheelCompactComboBox::sizeHint();
 //    cout << ret.width() << " x " << ret.height() << endl;
 
     double width = ret.width();
@@ -148,11 +143,11 @@ QSize StringSelectCellWidget::sizeHint() const{
 void StringSelectCellWidget::focusInEvent(QFocusEvent* event){
 //    cout << "focusInEvent()" << endl;
     update_value();
-    NoWheelComboBox::focusInEvent(event);
+    NoWheelCompactComboBox::focusInEvent(event);
 }
 void StringSelectCellWidget::focusOutEvent(QFocusEvent* event){
 //    cout << "focusOutEvent()" << endl;
-    NoWheelComboBox::focusOutEvent(event);
+    NoWheelCompactComboBox::focusOutEvent(event);
 //    update_value();
 }
 void StringSelectCellWidget::update_value(){

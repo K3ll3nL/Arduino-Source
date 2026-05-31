@@ -149,7 +149,7 @@ void loop_adventures(
                 env.log("Touching date to prevent rollover.");
                 pbf_press_button(context, BUTTON_HOME, 160ms, GameSettings::instance().GAME_TO_HOME_DELAY_SAFE0);
                 touch_date_from_home(console, context, ConsoleSettings::instance().SETTINGS_TO_HOME_DELAY0);
-                resume_game_back_out(console, context, ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST, 5 * TICKS_PER_SECOND);
+                resume_game_back_out(console, context, ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST, 5000ms);
             });
         }
 
@@ -162,16 +162,16 @@ void loop_adventures(
             return;
         case AdventureResult::START_ERROR:
             restart_count++;
-            if (restart_count == 3){
+            if (restart_count == 10){
                 report_error(
                     &env.logger(),
                     env.program_info(),
                     "Error",
-                    {{"Message:", "Failed to start adventure 3 times in the row."}}
+                    {{"Message:", "Failed to start adventure 10 times in the row."}}
                 );
                 throw_and_log<OperationFailedException>(
                     env.logger(), ErrorReport::SEND_ERROR_REPORT,
-                    "Failed to start adventure 3 times in the row."
+                    "Failed to start adventure 10 times in the row."
                 );
             }
             env.log("Failed to start adventure. Resetting all Switches...", COLOR_RED);

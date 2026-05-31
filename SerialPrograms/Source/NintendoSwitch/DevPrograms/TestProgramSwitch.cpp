@@ -12,8 +12,7 @@
 #include "Common/Cpp/Exceptions.h"
 #include "Common/Cpp/PrettyPrint.h"
 #include "Common/Cpp/Containers/FixedLimitVector.tpp"
-#include "Common/Cpp/Concurrency/AsyncDispatcher.h"
-#include "Common/Cpp/Concurrency/PeriodicScheduler.h"
+#include "Common/Cpp/Concurrency/BusyPeriodicRunner.h"
 #include "CommonFramework/Exceptions/OperationFailedException.h"
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "CommonTools/OCR/OCR_RawOCR.h"
@@ -34,7 +33,7 @@
 #include "PokemonLA/Inference/Battles/PokemonLA_BattleMenuDetector.h"
 #include "PokemonSwSh/Inference/PokemonSwSh_SummaryShinySymbolDetector.h"
 #include "CommonTools/OCR/OCR_NumberReader.h"
-#include "NintendoSwitch/Inference/NintendoSwitch_DetectHome.h"
+#include "NintendoSwitch/Inference/NintendoSwitch_CheckOnlineDetector.h"
 #include "PokemonLA/Inference/Objects/PokemonLA_FlagTracker.h"
 #include "Kernels/Waterfill/Kernels_Waterfill.h"
 #include "Kernels/Waterfill/Kernels_Waterfill_Session.h"
@@ -155,7 +154,27 @@
 #include "PokemonLZA/Inference/Battles/PokemonLZA_RunFromBattleDetector.h"
 #include "PokemonLZA/Inference/Map/PokemonLZA_MapIconDetector.h"
 #include "PokemonLZA/Inference/Map/PokemonLZA_MapDetector.h"
-
+#include "PokemonLZA/Inference/Boxes/PokemonLZA_BoxDetection.h"
+#include "Common/Cpp/Options/CheckboxDropdownDatabase.h"
+#include "Common/Cpp/Options/CheckboxDropdownOption.h"
+#include "Common/Cpp/Options/CheckboxDropdownOption.tpp"
+//#include "Integrations/PybindSwitchController.h"
+#include "Common/PABotBase2/ReliableConnectionLayer/PABotBase2_ConnectionDebug.h"
+#include "Common/PABotBase2/ReliableConnectionLayer/PABotBase2_PacketSender.h"
+#include "Common/PABotBase2/ReliableConnectionLayer/PABotBase2_StreamCoalescer.h"
+#include "Common/Cpp/StreamConnections/StreamInterface.h"
+#include "Common/Cpp/ListenerSet.h"
+#include "Common/CRC32/pabb_CRC32.h"
+#include "Common/PABotBase2/ReliableConnectionLayer/PABotBase2_PacketParser.h"
+#include "Common/PABotBase2/ReliableConnectionLayer/PABotBase2FW_ReliableStreamConnection.h"
+#include "Common/PABotBase2/ReliableConnectionLayer/PABotBase2CC_ReliableStreamConnection.h"
+#include "Common/Cpp/StreamConnections/MockDevice.h"
+#include "ML/Inference/ML_PaddleOCRPipeline.h"
+#include "CommonTools/OCR/OCR_RawPaddleOCR.h"
+#include "CommonTools/Images/ImageTools.h"
+#include "PokemonFRLG/Inference/PokemonFRLG_BattleSelectionArrowDetector.h"
+#include "Controllers/RumbleListener.h"
+#include "PokemonSwSh/Inference/PokemonSwSh_SelectionArrowFinder.h"
 
 
 
@@ -167,9 +186,24 @@
 using std::cout;
 using std::endl;
 
-
 using namespace PokemonAutomation::Kernels;
 using namespace PokemonAutomation::Kernels::Waterfill;
+
+
+
+
+namespace PokemonAutomation{
+
+
+
+
+
+
+
+
+
+
+}
 
 
 
@@ -177,6 +211,8 @@ namespace PokemonAutomation{
 namespace NintendoSwitch{
 
 
+const CheckboxDropdownDatabase<Button>& ProController_Button_Database();
+const EnumDropdownDatabase<DpadPosition>& ProController_Dpad_Database();
 
 
 
@@ -214,8 +250,19 @@ TestProgram::TestProgram()
         false
     )
     , IMAGE_PATH(false, "Path to image for testing", LockMode::UNLOCK_WHILE_RUNNING, "default.png", "default.png")
+    , FLOAT("Float option:", LockMode::UNLOCK_WHILE_RUNNING, 0) 
     , STATIC_TEXT("Test text...")
     , BOX("Box", LockMode::UNLOCK_WHILE_RUNNING, 0, 0, 1, 1)
+    , BUTTONS("Buttons", ProController_Button_Database(), LockMode::UNLOCK_WHILE_RUNNING, BUTTON_NONE)
+    , DPAD(ProController_Dpad_Database(), LockMode::UNLOCK_WHILE_RUNNING, DPAD_NONE)
+    , COMMANDS(
+        "Command Schedule:",
+        {
+            ControllerClass::NintendoSwitch_ProController,
+            ControllerClass::NintendoSwitch_LeftJoycon,
+            ControllerClass::NintendoSwitch_RightJoycon,
+        }
+    )
     , NOTIFICATION_TEST("Test", true, true, ImageAttachmentMode::JPG)
     , NOTIFICATIONS({
         &NOTIFICATION_TEST,
@@ -228,8 +275,12 @@ TestProgram::TestProgram()
     PA_ADD_OPTION(LANGUAGE);
 //    PA_ADD_OPTION(CONSOLE_MODEL);
     PA_ADD_OPTION(IMAGE_PATH);
+    PA_ADD_OPTION(FLOAT);
     PA_ADD_OPTION(STATIC_TEXT);
     PA_ADD_OPTION(BOX);
+    PA_ADD_OPTION(BUTTONS);
+    PA_ADD_OPTION(DPAD);
+    PA_ADD_OPTION(COMMANDS);
 //    PA_ADD_OPTION(battle_AI);
     PA_ADD_OPTION(NOTIFICATIONS);
     BUTTON0.add_listener(*this);
@@ -239,6 +290,7 @@ TestProgram::TestProgram()
 
 //using namespace Kernels;
 using namespace Kernels::Waterfill;
+using namespace PABotBase2;
 
 
 
@@ -252,24 +304,10 @@ void TestProgram::on_press(){
 
 
 
-#if 0
-class TealDialogMatcher : public ImageMatch::WaterfillTemplateMatcher{
-public:
-    TealDialogMatcher() : WaterfillTemplateMatcher(
-        "PokemonLZA/DialogBox/DialogBoxTitleGreenLine-Template.png", Color(180,200,70), Color(200, 220, 115), 50
-    ) {
-        m_aspect_ratio_lower = 0.9;
-        m_aspect_ratio_upper = 1.1;
-        m_area_ratio_lower = 0.8;
-        m_area_ratio_upper = 1.1;
-    }
 
-    static const ImageMatch::WaterfillTemplateMatcher& instance() {
-        static DialogTitleGreenLineMatcher matcher;
-        return matcher;
-    }
-};
-#endif
+
+
+
 
 
 
@@ -279,11 +317,12 @@ void TestProgram::program(MultiSwitchProgramEnvironment& env, CancellableScope& 
     using namespace OCR;
     using namespace NintendoSwitch;
     using namespace Pokemon;
-//    using namespace PokemonSwSh;
+    using namespace PokemonSwSh;
 //    using namespace PokemonBDSP;
 //    using namespace PokemonLA;
 //    using namespace PokemonSV;
-    using namespace PokemonLZA;
+//    using namespace PokemonLZA;
+//    using namespace PokemonFRLG;
 
     [[maybe_unused]] Logger& logger = env.logger();
     [[maybe_unused]] ConsoleHandle& console = env.consoles[0];
@@ -295,13 +334,375 @@ void TestProgram::program(MultiSwitchProgramEnvironment& env, CancellableScope& 
     VideoOverlaySet overlays(overlay);
 
 
+    auto snapshot = feed.snapshot();
+    YCommMenuDetector detector(true);
+    detector.make_overlays(overlays);
+    cout << detector.detect(snapshot) << endl;
 
+#if 0
+    SelectionArrowFinder arrow(overlay, {0.462377, 0.332039, 0.388222, 0.640777});
+
+    cout << arrow.detect(snapshot) << endl;
+
+    auto arrows = arrow.last_detection();
+    if (!arrows.empty()){
+        cout << arrows[0].y << endl;
+    }
+#endif
+
+//    WhiteDialogBoxDetector detector;
+//    detector.make_overlays(overlays);
+//    cout << detector.detect(snapshot) << endl;
+
+
+#if 0
+    RumbleWatcher<ProController> rumble(context, 200);
+    int ret = wait_until(
+        console, context,
+        WallClock::max(),
+        {rumble}
+    );
+    if (ret == 0){
+        cout << "Detected rumble magnitude: " << rumble.max_magnitude() << endl;
+    }else{
+        cout << "Did not detect anything." << endl;
+    }
+#endif
+
+
+#if 0
+    auto snapshot = feed.snapshot();
+
+    BattleSelectionArrowDetector detector(COLOR_RED, &overlay, SafariBattleMenuOption::BALL);
+//    UpdatePopupDetector detector(console);
+    detector.make_overlays(overlays);
+
+    cout << detector.detect(snapshot) << endl;
+#endif
+
+
+#if 0
+    auto snapshot = feed.snapshot();
+
+    ImageFloatBox box = find_contents_float_box(snapshot);
+    cout << box.x << ", " << box.y << ", " << box.width << ", " << box.height << endl;
+
+    overlays.add(COLOR_RED, box);
+#endif
+
+#if 0
+    PokemonLA::EventDialogDetector detector(logger, overlay, true);
+
+    auto snapshot = feed.snapshot();
+    detector.process_frame(snapshot, current_time());
+#endif
+
+#if 0
+    UpdateMenuWatcher update_menu(console, COLOR_PURPLE);
+    CheckOnlineWatcher check_online(COLOR_CYAN);
+    update_menu.make_overlays(overlays);
+    check_online.make_overlays(overlays);
+#endif
+
+
+
+#if 0
+    {
+        MockDevice device;
+
+        ReliableStreamConnection connection(
+            logger,
+            device,
+            1s
+        );
+
+        connection.send_request(PABB2_CONNECTION_OPCODE_ASK_VERSION);
+        connection.send_request(PABB2_CONNECTION_OPCODE_ASK_PACKET_SIZE);
+        connection.send_request(PABB2_CONNECTION_OPCODE_ASK_BUFFER_SLOTS);
+        connection.send_request(PABB2_CONNECTION_OPCODE_ASK_RESET);
+
+
+        context.wait_for(60s);
+    }
+#endif
+
+
+
+
+#if 0
+    CloseGameWatcher close_game(console);
+    close_game.make_overlays(overlays);
+
+    auto snapshot = feed.snapshot();
+    cout << close_game.detect(snapshot) << endl;
+#endif
+
+
+#if 0
+    MockConnection unreliable_connection;
+    {
+        ReliableStreamConnection connection(logger, unreliable_connection, 100s);
+
+        coalescer = &connection.m_stream_coalescer;
+
+
+        cout << connection.send_request(0x20) << endl;
+//        cout << connection.send_request(0x21) << endl;
+
+        while (true){
+            scope.throw_if_cancelled();
+            cout << "Sent = " << connection.send("0123456789", 10) << endl;
+            pabb2_PacketSender_print(&connection.m_reliable_sender, true);
+            scope.wait_for(50ms);
+        }
+
+
+        scope.wait_for(10s);
+        cout << "================ End Test ================" << endl;
+    }
+#endif
+
+#if 0
+    DataPacket packet;
+    pabb2_StreamCoalescer coalescer;
+    pabb2_StreamCoalescer_init(&coalescer);
+
+    coalescer.stream_head = 32;
+    coalescer.stream_tail = 32;
+
+    packet.set(3, 32, "asdf");
+    cout << pabb2_StreamCoalescer_push_stream(&coalescer, &packet) << endl;
+
+    pabb2_StreamCoalescer_push_packet(&coalescer, 1);
+    pabb2_StreamCoalescer_push_packet(&coalescer, 2);
+    pabb2_StreamCoalescer_print(&coalescer, true);
+
+    pabb2_StreamCoalescer_push_packet(&coalescer, 0);
+    pabb2_StreamCoalescer_print(&coalescer, true);
+
+    packet.set(5, 60, "qwersdfg");
+    cout << pabb2_StreamCoalescer_push_stream(&coalescer, &packet) << endl;
+    pabb2_StreamCoalescer_print(&coalescer, true);
+
+    packet.set(4, 36, "01234567890123456789abcd");
+    cout << pabb2_StreamCoalescer_push_stream(&coalescer, &packet) << endl;
+
+    pabb2_StreamCoalescer_print(&coalescer, true);
+
+
+    char buffer[100] = {};
+
+    cout << "read = " << pabb2_StreamCoalescer_read(&coalescer, buffer, 1) << endl;
+    cout << buffer << endl;
+
+    pabb2_StreamCoalescer_print(&coalescer, true);
+
+    cout << "read = " << pabb2_StreamCoalescer_read(&coalescer, buffer, 10) << endl;
+    cout << buffer << endl;
+
+    pabb2_StreamCoalescer_print(&coalescer, true);
+
+    cout << "read = " << pabb2_StreamCoalescer_read(&coalescer, buffer, 100) << endl;
+    cout << buffer << endl;
+
+    pabb2_StreamCoalescer_print(&coalescer, true);
+#endif
+
+
+#if 0
+    LogSender sender;
+    pabb2_PacketSender queue;
+    pabb2_PacketSender_init(&queue, fp_LogSender, &sender);
+
+    cout << pabb2_PacketSender_send_stream(&queue, "asdf", 4) << endl;
+    cout << pabb2_PacketSender_send_stream(&queue, "qwer", 4) << endl;
+    cout << pabb2_PacketSender_send_stream(&queue, "zxcv", 4) << endl;
+    pabb2_PacketSender_remove(&queue, 0);
+
+    cout << pabb2_PacketSender_send_stream(&queue, "01234567890123456789", 20) << endl;
+//    cout << pabb2_PacketSender_send_stream(&queue, "sdfg", 4) << endl;
+//    cout << pabb2_PacketSender_send_stream(&queue, "xcvb", 4) << endl;
+
+    pabb2_PacketSender_print(&queue, true);
+
+    pabb2_PacketSender_remove(&queue, 0);
+    cout << pabb2_PacketSender_send_stream(&queue, "sdfgh", 5) << endl;
+    cout << pabb2_PacketSender_send_stream(&queue, "xcvb", 4) << endl;
+
+    pabb2_PacketSender_print(&queue, true);
+#endif
+
+
+#if 0
+    LogSender sender;
+    pabb2_PacketSender queue;
+    pabb2_PacketSender_init(&queue);
+
+    PacketHeader* packet;
+
+    packet = pabb2_PacketSender_reserve_packet(&queue, 16);
+    if (packet){
+        packet->opcode = 1;
+        pabb2_PacketSender_commit_packet(&queue, packet);
+        sender.send(packet, packet->packet_bytes);
+    }else{
+        cout << "Reserve Failed" << endl;
+    }
+
+    packet = pabb2_PacketSender_reserve_packet(&queue, 16);
+    if (packet){
+        packet->opcode = 2;
+        pabb2_PacketSender_commit_packet(&queue, packet);
+        sender.send(packet, packet->packet_bytes);
+    }else{
+        cout << "Reserve Failed" << endl;
+    }
+
+    packet = pabb2_PacketSender_reserve_packet(&queue, 16);
+    if (packet){
+        packet->opcode = 3;
+        pabb2_PacketSender_commit_packet(&queue, packet);
+        sender.send(packet, packet->packet_bytes);
+    }else{
+        cout << "Reserve Failed" << endl;
+    }
+
+    packet = pabb2_PacketSender_reserve_packet(&queue, 15);
+    if (packet){
+        packet->opcode = 4;
+        pabb2_PacketSender_commit_packet(&queue, packet);
+        sender.send(packet, packet->packet_bytes);
+    }else{
+        cout << "Reserve Failed" << endl;
+    }
+
+    packet = pabb2_PacketSender_reserve_packet(&queue, 16);
+    if (packet){
+        packet->opcode = 5;
+        pabb2_PacketSender_commit_packet(&queue, packet);
+        sender.send(packet, packet->packet_bytes);
+    }else{
+        cout << "Reserve Failed" << endl;
+    }
+
+    cout << dump(queue) << endl;
+
+#if 1
+    pabb2_PacketSender_remove(&queue, 0);
+    packet = pabb2_PacketSender_reserve_packet(&queue, 16);
+    if (packet){
+        packet->opcode = 6;
+        pabb2_PacketSender_commit_packet(&queue, packet);
+        sender.send(packet, packet->packet_bytes);
+    }else{
+        cout << "Reserve Failed" << endl;
+    }
+
+    cout << dump(queue) << endl;
+#endif
+
+    packet = pabb2_PacketSender_reserve_packet(&queue, 16);
+    if (packet){
+        packet->opcode = 7;
+        pabb2_PacketSender_commit_packet(&queue, packet);
+        sender.send(packet, packet->packet_bytes);
+    }else{
+        cout << "Reserve Failed" << endl;
+    }
+
+
+#endif
+
+
+
+#if 0
+    LogSender sender;
+    PABotBase2::RequestQueue queue(logger, sender, 16, 64);
+
+    try{
+        cout << queue.send_str("asdfqwe") << endl;
+        cout << queue.send_str("wer") << endl;
+    }catch (...){
+        cout << "Caught Exception" << endl;
+    }
+
+    cout << "Dumping queue... 0" << endl;
+    cout << queue.dump_queue(true) << endl;
+
+#if 0
+    {
+        queue.report_acked(0);
+        cout << "Dumping queue... 3" << endl;
+        cout << queue.dump_queue(true) << endl;
+    }
+    {
+        queue.report_acked(4);
+        cout << "Dumping queue... 2" << endl;
+        cout << queue.dump_queue(true) << endl;
+    }
+#endif
+    {
+        queue.report_acked(7);
+        cout << "Dumping queue... 1" << endl;
+        cout << queue.dump_queue(true) << endl;
+    }
+#endif
+
+
+
+
+#if 0
+    {
+        PybindSwitchProController controller("COM12");
+        controller.push_button(1000, 200, 800, BUTTON_B);
+        controller.wait_for_all_requests();
+    }
+#endif
+
+
+#if 0
+
+    // ImageRGB32 image1(IMAGE_PATH);
+    auto image1 = feed.snapshot();
+    ImageViewRGB32 cropped = extract_box_reference(image1, ImageFloatBox{BOX.x(), BOX.y(), BOX.width(), BOX.height()});
+
+    // auto snapshot = feed.snapshot();
+    std::string text = OCR::paddle_ocr_read(LANGUAGE, cropped);
+    cout << text << endl;
+
+    
+
+#endif
+
+#if 0
+    std::string move_results = "Move Effectiveness:";
+    move_results += "\n- Top: " + std::string("asdf");
+    move_results += "\n- Left: " + std::string("asdf");
+    move_results += "\n- Right: " + std::string("asdf");
+    move_results += "\n- Bottom: " + std::string("asdf");
+    console.log(move_results);
+#endif
+
+//    close_game_from_home(console, context);
+
+
+#if 0
+    auto snapshot = feed.snapshot();
+
+    BoxWatcher box;
+    box.make_overlays(overlays);
+    cout << box.detect(snapshot) << endl;
+#endif
+
+
+
+#if 0
     auto snapshot = feed.snapshot();
     cout << snapshot->width() << " x " << snapshot->height() << endl;
 
     RunFromBattleDetector detector(COLOR_RED, &overlay);
     cout << detector.detect(snapshot) << endl;
-
+#endif
 
 #if 0
 close_game_from_home(console, context);
@@ -362,12 +763,12 @@ close_game_from_home(console, context);
 
     auto snapshot = feed.snapshot();
     detector0.detect(snapshot);
-    detector1.detect(snapshot);
-    detector2.detect(snapshot);
-    detector3.detect(snapshot);
-    detector4.detect(snapshot);
-    detector5.detect(snapshot);
-    detector6.detect(snapshot);
+//    detector1.detect(snapshot);
+//    detector2.detect(snapshot);
+//    detector3.detect(snapshot);
+//    detector4.detect(snapshot);
+//    detector5.detect(snapshot);
+//    detector6.detect(snapshot);
 #endif
 
 

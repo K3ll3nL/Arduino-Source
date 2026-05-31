@@ -24,7 +24,6 @@
 #include "Common/Cpp/Exceptions.h"
 #include "Common/Cpp/Containers/AlignedVector.h"
 #include "Common/Cpp/CpuId/CpuId.h"
-#include "Common/Cpp/Concurrency/AsyncDispatcher.h"
 #include "CommonFramework/Globals.h"
 #include "CommonFramework/Exceptions/ProgramFinishedException.h"
 #include "CommonFramework/Exceptions/OperationFailedException.h"
@@ -54,7 +53,7 @@
 #include "Kernels/Waterfill/Kernels_Waterfill_Session.h"
 #include "PokemonLA/Inference/PokemonLA_MountDetector.h"
 #include "PokemonLA/Inference/Objects/PokemonLA_ArcPhoneDetector.h"
-#include "Common/Cpp/Concurrency/PeriodicScheduler.h"
+#include "Common/Cpp/Concurrency/BusyPeriodicRunner.h"
 #include "Pokemon/Inference/Pokemon_IvJudgeReader.h"
 #include "Kernels/Kernels_Alignment.h"
 #include "Kernels/ScaleInvariantMatrixMatch/Kernels_ScaleInvariantMatrixMatch.h"
@@ -72,7 +71,7 @@
 #include "CommonFramework/ImageTypes/ImageHSV32.h"
 #include "PokemonSwSh/Inference/PokemonSwSh_YCommDetector.h"
 #include "PokemonLA/Inference/Objects/PokemonLA_FlagTracker.h"
-#include "Common/Cpp/StringTools.h"
+#include "Common/Cpp/Strings/StringTools.h"
 #include "PokemonSwSh/Inference/Battles/PokemonSwSh_BattleMenuDetector.h"
 #include "PokemonSwSh/Inference/PokemonSwSh_SummaryShinySymbolDetector.h"
 #include "Common/Cpp/Options/EnumDropdownDatabase.h"
@@ -89,6 +88,7 @@
 #include "Integrations/DiscordWebhook.h"
 #include "PokemonSV/Programs/TeraRaids/PokemonSV_JoinTracker.h"
 #include "PokemonSV/Inference/Boxes/PokemonSV_BoxDetection.h"
+#include "PokemonSV/Inference/Map/PokemonSV_DestinationMarkerDetector.h"
 #include "CommonFramework/Environment/Environment.h"
 #include "Common/Cpp/PrettyPrint.h"
 #include "Common/Qt/TimeQt.h"
@@ -107,7 +107,7 @@
 #include "Common/Cpp/Concurrency/Watchdog.h"
 #include "PokemonSV/Inference/Battles/PokemonSV_TeraBattleMenus.h"
 //#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
-#include "NintendoSwitch/Inference/NintendoSwitch_DetectHome.h"
+#include "NintendoSwitch/Inference/NintendoSwitch_CheckOnlineDetector.h"
 #include "PokemonSV/Inference/Picnics/PokemonSV_SandwichRecipeDetector.h"
 #include "PokemonSwSh/MaxLair/Inference/PokemonSwSh_MaxLair_Detect_BattleMenu.h"
 #include "PokemonSwSh/MaxLair/Inference/PokemonSwSh_MaxLair_Detect_PokemonSelectMenu.h"
@@ -120,6 +120,8 @@
 #include "Common/Cpp/Containers/CircularBuffer.h"
 #include "Common/Cpp/Sockets/ClientSocket.h"
 #include "Common/Cpp/Containers/SparseArray.h"
+#include "CommonFramework/Tools/GlobalThreadPools.h"
+#include "CommonFramework/Tools/FileUnzip.h"
 
 #ifdef PA_ARCH_x86
 //#include "Kernels/Kernels_x64_SSE41.h"
@@ -141,6 +143,11 @@
 //#include "Common/SerialPABotBase/LightweightWallClock_StdChrono.h"
 #include "Common/Cpp/Options/MacAddressOption.h"
 #include "CommonTools/Images/ImageFilter.h"
+#include "Common/PABotBase2/ReliableConnectionLayer/PABotBase2CC_ReliableStreamConnection.h"
+#include "Common/PABotBase2/ReliableConnectionLayer/PABotBase2FW_ReliableStreamConnection.h"
+#include "Common/Cpp/StreamConnections/MockDevice.h"
+#include "CommonTools/Random.h"
+#include "CommonTools/OCR/OCR_TextMatcher.h"
 
 
 //#include <opencv2/core.hpp>
@@ -169,10 +176,14 @@ TestProgramComputer_Descriptor::TestProgramComputer_Descriptor()
 {}
 TestProgramComputer::TestProgramComputer()
     : STATIC_TEXT("test text")
+    , IMAGE_PATH(false, "Path to image for testing", LockMode::UNLOCK_WHILE_RUNNING, "default.png", "default.png")
+    , INPUT_TEXT(false, "Input text:", LockMode::UNLOCK_WHILE_RUNNING, "", "")
     , SCREEN_WATCHER("Capture Box", 0, 0, 1, 1)
     , MAC_ADDRESS(LockMode::UNLOCK_WHILE_RUNNING, 6, nullptr)
 {
     PA_ADD_OPTION(STATIC_TEXT);
+    PA_ADD_OPTION(IMAGE_PATH);
+    PA_ADD_OPTION(INPUT_TEXT);
 //    PA_ADD_OPTION(SCREEN_WATCHER);
     PA_ADD_OPTION(MAC_ADDRESS);
 }
@@ -263,8 +274,6 @@ std::atomic<size_t> CheckedObject<Type>::m_instances(0);
 
 
 
-
-
 #if 0
 struct RequestManagerConfig{
     using ClockType = LightweightWallClock_StdChrono;
@@ -283,6 +292,84 @@ struct RequestManagerConfig{
 
 
 
+
+
+
+std::string random_string(size_t max_length){
+    size_t length = rand() % max_length;
+
+    static const char TABLE[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+
+    std::string ret;
+    for (size_t c = 0; c < length; c++){
+        ret += TABLE[rand() % 62];
+    }
+    return ret;
+}
+
+void stress_test(Logger& logger, CancellableScope& scope){
+    using namespace std::chrono_literals;
+
+    MockDevice device(GlobalThreadPools::unlimited_normal());
+
+    PABotBase2::ReliableStreamConnection connection(
+        &scope,
+        logger, true,
+        GlobalThreadPools::unlimited_realtime(),
+        device.host_side_connection(),
+        100ms,
+        &device.print_lock()
+    );
+
+    //  Connect
+    connection.reset();
+    connection.send_request(PABB2_CONNECTION_OPCODE_ASK_VERSION);
+    connection.wait_for_pending();
+    connection.send_request(PABB2_CONNECTION_OPCODE_ASK_PACKET_SIZE);
+    connection.wait_for_pending();
+    connection.send_request(PABB2_CONNECTION_OPCODE_ASK_BUFFER_SLOTS);
+    connection.wait_for_pending();
+
+    uint64_t bytes_sent = 0;
+    WallClock last_print = current_time();
+
+    try{
+        while (true){
+            scope.throw_if_cancelled();
+
+            std::string data = random_string(20);
+            const char* ptr = data.data();
+            size_t left = data.size();
+            while (left > 0){
+                if (current_time() - last_print > Seconds(1)){
+                    cout << "Bytes Sent = " << bytes_sent + data.size() - left << endl;
+                    last_print = current_time();
+                }
+    //            scope.wait_for(Milliseconds(rand() % 100));
+                connection.send_stream(ptr, left);
+                size_t sent = left;
+//                if (sent == 0){
+//                    device.verify_stream_data();
+//                }
+                ptr += sent;
+                left -= sent;
+            }
+            device.verify_stream_data();
+            bytes_sent += data.size();
+            device.push_expected_stream_data(data.data(), data.size());
+        }
+    }catch (Exception&){
+        connection.print();
+        device.print();
+        throw;
+    }
+
+}
+
+
+std::mutex print_lock;
+
+
 void TestProgramComputer::program(ProgramEnvironment& env, CancellableScope& scope){
     using namespace Kernels;
     using namespace NintendoSwitch;
@@ -293,8 +380,119 @@ void TestProgramComputer::program(ProgramEnvironment& env, CancellableScope& sco
 
     using namespace std::chrono_literals;
 
+    [[maybe_unused]] Logger& logger = env.logger();
+
+//    cout << random_u32(100, 115) << endl;
 
 
+    cout << OCR::random_match_probability(10, 1, 0.5) << endl;
+
+
+#if 0
+    ImageRGB32 image(IMAGE_PATH);
+    ImageFloatBox num_sunflora_box = {0.27, 0.02, 0.04, 0.055};
+    // extract_box_reference(image, num_sunflora_box).save("crop.png");
+    int number = OCR::read_number_waterfill(logger, extract_box_reference(image, num_sunflora_box), 0xff000000, 0xff808080);
+
+    int expected_number = std::stoi(std::string(INPUT_TEXT));
+
+    std::string number_string = std::to_string(number);
+    std::string expected_number_string = std::to_string(expected_number);
+
+    // checks that expected_number is a prefix of number
+    // this is to handle the Asian languages that have extra characters after the number
+    if (number_string.compare(0, expected_number_string.size(), expected_number_string) == 0){
+        cout << "matches" << endl;
+    }else{
+        cout << "does not matche" << endl;
+    }
+#endif
+
+
+#if 0
+    ImageRGB32 image(IMAGE_PATH);
+    DestinationMarkerDetector detector(COLOR_CYAN, {0.717, 0.165, 0.03, 0.061}, false);
+    cout << detector.detect(image) << endl;
+#endif
+
+
+
+#if 0
+    std::string zip_path = SETTINGS_PATH() + "test2.zip";
+    std::string target_dir = SETTINGS_PATH() + "testB/";
+    unzip_file(zip_path.c_str(), target_dir.c_str());
+
+#endif
+
+#if 0
+    stress_test(logger, scope);
+#endif
+
+
+
+#if 0
+    {
+        MockDevice device(GlobalThreadPools::unlimited_normal());
+
+        ReliableStreamConnection connection(
+            &scope,
+            logger, true,
+            GlobalThreadPools::unlimited_realtime(),
+            device,
+            100ms,
+            &device.print_lock()
+        );
+
+        connection.reset();
+
+        connection.send_request(PABB2_CONNECTION_OPCODE_ASK_VERSION);
+        connection.wait_for_pending();
+
+        connection.send_request(PABB2_CONNECTION_OPCODE_ASK_PACKET_SIZE);
+        connection.wait_for_pending();
+
+        connection.send_request(PABB2_CONNECTION_OPCODE_ASK_BUFFER_SLOTS);
+        connection.wait_for_pending();
+
+
+        connection.send("asdf", 4); device.push_expected_stream_data("asdf", 4);
+        connection.send("qwer", 4); device.push_expected_stream_data("qwer", 4);
+        connection.send("zxcv", 4); device.push_expected_stream_data("zxcv", 4);
+        connection.wait_for_pending();
+
+        {
+            std::lock_guard<Mutex> lg(device.print_lock());
+            cout << "sent = " << connection.send("0123456789abcdef", 16) << endl;
+        }
+        device.push_expected_stream_data("0123456789abcdef", 16);
+//        connection.send("0123456789abcdef", 16);
+//        connection.send("0123456789abcdef", 16);
+//        connection.send("0123456789abcdef", 16);
+
+        while (connection.pending() != 0 || device.verify_stream_data()){
+        }
+
+        connection.wait_for_pending();
+
+        {
+            std::lock_guard<Mutex> lg(device.print_lock());
+            cout << "============> Done" << endl;
+        }
+        device.verify_stream_data();
+
+        connection.print();
+        device.print();
+
+        {
+            std::lock_guard<Mutex> lg(device.print_lock());
+            cout << "============> Finishing up" << endl;
+        }
+        scope.wait_for(5s);
+        device.verify_stream_data();
+
+        scope.wait_for(60s);
+    }
+#endif
 
 
 

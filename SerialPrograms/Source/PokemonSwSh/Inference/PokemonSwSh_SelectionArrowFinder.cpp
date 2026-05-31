@@ -117,11 +117,14 @@ bool SelectionArrowFinder::detect(const ImageViewRGB32& screen){
     // Smallest arrow takes at least 600 pixels on 1920x1080 screen.
     const size_t min_arrow_area = size_t(600.0 * screen_scale * screen_scale);
     std::vector<ImagePixelBox> arrows = find_selection_arrows(
-        extract_box_reference(screen, m_box), min_arrow_area);
+        extract_box_reference(screen, m_box),
+        min_arrow_area
+    );
 
     m_arrow_boxes.clear();
     for (const ImagePixelBox& mark : arrows){
-        m_arrow_boxes.emplace_back(m_overlay, translate_to_parent(screen, m_box, mark), COLOR_MAGENTA);
+        m_last_detection.emplace_back(translate_to_parent(screen, m_box, mark));
+        m_arrow_boxes.emplace_back(m_overlay, m_last_detection.back(), COLOR_MAGENTA);
     }
     return !m_arrow_boxes.empty();
 }
@@ -189,8 +192,8 @@ StoragePokemonMenuArrowFinder::StoragePokemonMenuArrowFinder(VideoOverlay& overl
 RotomPhoneMenuArrowFinder::RotomPhoneMenuArrowFinder(VideoOverlay& overlay)
     : m_overlay_set(overlay)
 {
-    for(size_t i_row = 0; i_row < 2; i_row++){
-        for(size_t j_col = 0; j_col < 5; j_col++){
+    for (size_t i_row = 0; i_row < 2; i_row++){
+        for (size_t j_col = 0; j_col < 5; j_col++){
             ImageFloatBox box(0.047 + j_col*0.183, 0.175 + 0.333*i_row, 0.059, 0.104);
             m_overlay_set.add(COLOR_YELLOW, box);
         }

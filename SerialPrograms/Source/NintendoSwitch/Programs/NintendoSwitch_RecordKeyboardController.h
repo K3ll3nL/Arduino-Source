@@ -7,13 +7,13 @@
 #ifndef PokemonAutomation_NintendoSwitch_RecordKeyboardController_H
 #define PokemonAutomation_NintendoSwitch_RecordKeyboardController_H
 
-#include <functional>
-#include "Common/Cpp/Json/JsonObject.h"
+//#include <functional>
+//#include "Common/Cpp/Json/JsonObject.h"
 #include "Common/Cpp/Options/BooleanCheckBoxOption.h"
 #include "Common/Cpp/Options/SimpleIntegerOption.h"
 #include "Common/Cpp/Options/StringOption.h"
-#include "NintendoSwitch/Controllers/NintendoSwitch_Joycon.h"
-#include "Controllers/KeyboardInput/KeyboardInput.h"
+#include "Common/Cpp/Options/StaticTextOption.h"
+//#include "Controllers/KeyboardInput/KeyboardInput.h"
 #include "NintendoSwitch/NintendoSwitch_SingleSwitchProgram.h"
 
 namespace PokemonAutomation{
@@ -21,56 +21,20 @@ namespace NintendoSwitch{
 
 class ProControllerState;
 
-enum class NonNeutralControllerField {
-    BUTTON,
-    DPAD,
-    LEFT_JOYSTICK,
-    RIGHT_JOYSTICK,
-    JOYSTICK,
-    MULTIPLE,
-    NONE,
-};
-NonNeutralControllerField get_non_neutral_pro_controller_field(Button button, DpadPosition dpad, uint8_t left_x, uint8_t left_y, uint8_t right_x, uint8_t right_y);
-NonNeutralControllerField get_non_neutral_joycon_controller_field(Button button, uint8_t x, uint8_t y);
 
-// helper function that exposes the Pro Controller fields from the given JSON
-void json_to_pro_controller_state(
-    const JsonArray& history, 
-    std::function<void(int64_t duration_in_ms)>&& neutral_action,
-    std::function<void(
-        NonNeutralControllerField non_neutral_field,
-        Button button, 
-        DpadPosition dpad, 
-        uint8_t left_x, 
-        uint8_t left_y, 
-        uint8_t right_x, 
-        uint8_t right_y, 
-        int64_t duration_in_ms
-    )>&& non_neutral_action
-);
-
-// helper function that exposes the Joycon fields from the given JSON
-void json_to_joycon_state(
-    const JsonArray& history, 
-    std::function<void(int64_t duration_in_ms)>&& neutral_action,
-    std::function<void(
-        NonNeutralControllerField non_neutral_field,
-        Button button, 
-        uint8_t x, 
-        uint8_t y, 
-        int64_t duration_in_ms
-    )>&& non_neutral_action
-);
 
 // given the json, with the controller history, output a text file which represents C++ code.
 void json_to_cpp_code(Logger& logger, const JsonValue& json, const std::string& output_file_name);
-std::string json_to_cpp_code_pro_controller(const JsonArray& history_json);
-std::string json_to_cpp_code_joycon(const JsonArray& history);
 
 // given the json, with the controller history, run the controller actions using the pbf functions.
-void json_to_pbf_actions(SingleSwitchProgramEnvironment& env, CancellableScope& scope, const JsonValue& json, ControllerClass controller_class, uint32_t num_loops, uint32_t seconds_wait_between_loops);
-void json_to_pbf_actions_pro_controller(ProControllerContext& context, const JsonArray& history, uint32_t num_loops, uint32_t seconds_wait_between_loops);
-void json_to_pbf_actions_joycon(JoyconContext& context, const JsonArray& history, uint32_t num_loops, uint32_t seconds_wait_between_loops);
+void json_to_pbf_actions(
+    SingleSwitchProgramEnvironment& env,
+    CancellableScope& scope,
+    const JsonValue& json,
+    ControllerClass controller_class,
+    uint32_t num_loops,
+    uint32_t seconds_wait_between_loops
+);
 
 class RecordKeyboardController_Descriptor : public SingleSwitchProgramDescriptor{
 public:
@@ -79,7 +43,10 @@ public:
 
 
 
-class RecordKeyboardController : public SingleSwitchProgramInstance, public KeyboardEventHandler::KeyboardListener{ 
+class RecordKeyboardController
+    : public SingleSwitchProgramInstance
+    , public AbstractController::InputSniffer
+{
 public:
     ~RecordKeyboardController();
     RecordKeyboardController();
@@ -90,8 +57,7 @@ public:
 private:
     // whenever a keyboard command is sent/stopped: 
     // add to m_controller_history the time_stamp and the ControllerState serialized to JSON.
-    virtual void on_keyboard_command_sent(WallClock time_stamp, const ControllerState& state) override;
-    virtual void on_keyboard_command_stopped(WallClock time_stamp) override;
+    virtual void on_command_input(WallClock timestamp, const ControllerState& state) override;
 
     // convert m_controller_history to json
     // remove adjacent duplicate controller states.
@@ -120,9 +86,9 @@ private:
         // {
         //     "is_neutral": true
         // }
-    struct ControllerStateSnapshot {
+    struct ControllerStateSnapshot{
         WallClock time_stamp;
-        JsonObject controller_state;
+        JsonValue controller_state;
     };
 
 private:
@@ -136,6 +102,8 @@ private:
     SimpleIntegerOption<uint32_t> LOOP;
     SimpleIntegerOption<uint32_t> WAIT;
     BooleanCheckBoxOption GENERATE_CPP_CODE_AFTER_RECORDING;
+
+    StaticTextOption USAGE_NOTE;
 
     std::vector<ControllerStateSnapshot> m_controller_history;
     

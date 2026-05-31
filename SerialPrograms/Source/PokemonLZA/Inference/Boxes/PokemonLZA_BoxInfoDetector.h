@@ -1,4 +1,4 @@
-/*  Box Info Detector
+/*  Detectors for various pokemon info on box view
  *
  *  From: https://github.com/PokemonAutomation/
  *
@@ -15,6 +15,7 @@
 #include "CommonTools/InferenceCallbacks/VisualInferenceCallback.h"
 
 namespace PokemonAutomation{
+    class Logger;
 namespace NintendoSwitch{
 namespace PokemonLZA{
 
@@ -116,6 +117,45 @@ public:
 private:
     BoxShinyWatcher m_shiny_watcher;
     BoxAlphaWatcher m_alpha_watcher;
+};
+
+
+enum class DexType{
+    LUMIOSE,
+    HYPERSPACE,
+};
+
+
+class BoxDexNumberDetector : public StaticScreenDetector{
+public:
+    BoxDexNumberDetector(Logger& logger);
+
+    virtual void make_overlays(VideoOverlaySet& items) const override;
+
+    virtual bool detect(const ImageViewRGB32& screen) override;
+
+    // Return either DexType::LUMIOSE or DexType::HYPERSPACE.
+    DexType dex_type() const { return m_dex_type; }
+    // Return dex number (1-indexed).
+    uint16_t dex_number() const { return m_dex_number; }
+
+
+    // Debugging value, used to compute whether the pokemon origin symbol is Lumiose or Hyperspace.
+    double dex_type_color_ratio() const { return m_dex_type_color_ratio; }
+    // Debugging value, if the detected dex number value is not a correct dex number, what number it is.
+    int dex_number_when_error() const { return m_dex_number_when_error; }
+
+private:
+    friend class BoxShinyWatcher;
+
+    Logger& m_logger;
+    ImageFloatBox m_dex_number_box;
+    ImageFloatBox m_dex_type_box;
+
+    uint16_t m_dex_number = 0;
+    DexType m_dex_type = DexType::LUMIOSE;
+    double m_dex_type_color_ratio = 0.0;
+    int m_dex_number_when_error = 0;
 };
 
 

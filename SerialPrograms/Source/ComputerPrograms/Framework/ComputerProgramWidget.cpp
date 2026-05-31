@@ -59,7 +59,7 @@ ComputerProgramWidget::ComputerProgramWidget(
         QVBoxLayout* scroll_layout = new QVBoxLayout(scroll_inner);
         scroll_layout->setAlignment(Qt::AlignTop);
 
-        m_options = option.options().make_QtWidget(*this);
+        m_options = ConfigWidget::make_from_option(option.options(), this);
         scroll_layout->addWidget(&m_options->widget());
 
         scroll_layout->addStretch(1);
@@ -93,7 +93,7 @@ ComputerProgramWidget::ComputerProgramWidget(
     connect(
         m_actions_bar, &RunnablePanelActionBar::defaults_clicked,
         this, [&]{
-            std::lock_guard<std::mutex> lg(m_session.program_lock());
+            std::lock_guard<Mutex> lg(m_session.program_lock());
             option.restore_defaults();
             m_options->update_all(false);
         }

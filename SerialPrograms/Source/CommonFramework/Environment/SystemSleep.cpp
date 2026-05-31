@@ -11,6 +11,8 @@
 #include "SystemSleep_Windows.tpp"
 #elif __APPLE__
 #include "SystemSleep_Apple.tpp"
+#elif __linux__
+#include "SystemSleep_Linux.tpp"
 #else
 namespace PokemonAutomation{
     SystemSleepController& SystemSleepController::instance(){
@@ -35,7 +37,7 @@ void SystemSleepController::remove_listener(Listener& listener){
     m_listeners.remove(listener);
 }
 void SystemSleepController::notify_listeners(SleepSuppress state){
-    m_listeners.run_method_unique(&Listener::sleep_suppress_state_changed, state);
+    m_listeners.run_method(&Listener::sleep_suppress_state_changed, state);
 }
 
 SleepSuppress SystemSleepController::current_state() const{

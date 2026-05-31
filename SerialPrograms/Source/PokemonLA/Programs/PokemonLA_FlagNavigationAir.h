@@ -8,7 +8,7 @@
 #define PokemonAutomation_PokemonLA_FlagNavigation_H
 
 #include "CommonTools/Async/SuperControlSession.h"
-#include "NintendoSwitch/Controllers/NintendoSwitch_ProController.h"
+#include "NintendoSwitch/Controllers/Procon/NintendoSwitch_ProController.h"
 #include "PokemonLA/Inference/Objects/PokemonLA_FlagTracker.h"
 #include "PokemonLA/Inference/Objects/PokemonLA_ButtonDetector.h"
 #include "PokemonLA/Inference/PokemonLA_DialogDetector.h"
@@ -40,9 +40,6 @@ private:
 
 
 private:
-    static const uint16_t GET_ON_MOUNT_TIME = 125;
-    static const uint16_t GET_ON_BRAVIARY_TIME = 280;
-
     enum class State{
         UNKNOWN,
         WYRDEER_BASCULEGION_OFF,

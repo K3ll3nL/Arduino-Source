@@ -9,6 +9,7 @@
 #include "CommonFramework/ProgramStats/StatsTracking.h"
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonLA/PokemonLA_Settings.h"
 #include "PokemonLA/PokemonLA_TravelLocations.h"
@@ -114,11 +115,11 @@ void FroslassFinder::run_iteration(
     env.console.log("Beginning Shiny Detection...");
 
     //Setup
-    pbf_move_left_joystick(context, 108, 255, 20, 20);
-    pbf_press_button(context, BUTTON_ZL, 10,10);
-    pbf_wait(context, (uint16_t)(0.5 * TICKS_PER_SECOND));
+    pbf_move_left_joystick(context, {-0.156, -1}, 160ms, 160ms);
+    pbf_press_button(context, BUTTON_ZL, 80ms, 80ms);
+    pbf_wait(context, 500ms);
     change_mount(env.console, context, MountState::BRAVIARY_ON);
-    pbf_wait(context, (uint16_t)(0.5 * TICKS_PER_SECOND));
+    pbf_wait(context, 500ms);
 
     {
         float shiny_coefficient = 1.0;
@@ -177,7 +178,7 @@ void FroslassFinder::program(SingleSwitchProgramEnvironment& env, ProControllerC
     FroslassFinder_Descriptor::Stats& stats = env.current_stats<FroslassFinder_Descriptor::Stats>();
 
     //  Connect the controller.
-    pbf_press_button(context, BUTTON_LCLICK, 5, 5);
+    require_player(env.console, context, BUTTON_LCLICK);
 
     bool fresh_from_reset = false;
     while (true){

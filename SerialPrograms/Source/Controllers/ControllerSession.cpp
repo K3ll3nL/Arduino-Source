@@ -206,7 +206,7 @@ void ControllerSession::make_controller(
 bool ControllerSession::set_device(const std::shared_ptr<const ControllerDescriptor>& device){
 //    cout << "ControllerSession::set_device() = " << device->display_name() << endl;
     {
-        std::lock_guard<std::mutex> lg0(m_reset_lock);
+        std::lock_guard<Mutex> lg0(m_reset_lock);
 
         //  Destroy the current connection+controller.
         std::unique_ptr<AbstractController> controller;
@@ -245,7 +245,7 @@ bool ControllerSession::set_controller(ControllerType controller_type){
 //    cout << "ControllerSession::set_controller()" << endl;
     std::shared_ptr<const ControllerDescriptor> device;
     {
-        std::lock_guard<std::mutex> lg0(m_reset_lock);
+        std::lock_guard<Mutex> lg0(m_reset_lock);
 
         //  Destroy the current connection+controller.
         std::unique_ptr<AbstractController> controller;
@@ -255,8 +255,11 @@ bool ControllerSession::set_controller(ControllerType controller_type){
             if (m_options_locked){
                 return false;
             }
-            if (m_connection && m_connection->current_controller() == controller_type){
-                return true;
+            if (m_connection){
+                if (m_connection->current_controller() == controller_type){
+                    return true;
+                }
+                m_connection->try_set_controller_type(controller_type, false);
             }
 
             //  Move these out to indicate that we should no longer access them.
@@ -284,7 +287,7 @@ std::string ControllerSession::reset(bool clear_settings){
 //    cout << "ControllerSession::reset()" << endl;
 
     {
-        std::lock_guard<std::mutex> lg0(m_reset_lock);
+        std::lock_guard<Mutex> lg0(m_reset_lock);
 
 //        std::optional<ControllerType> change_controller;
 
@@ -305,6 +308,7 @@ std::string ControllerSession::reset(bool clear_settings){
             if (m_connection && m_connection->is_ready()){
                 m_desired_controller = m_connection->current_controller();
 //                cout << "Ready! - " << (int)m_desired_controller << endl;
+                m_connection->try_set_controller_type(m_desired_controller, clear_settings);
             }
 
             //  Move these out to indicate that we should no longer access them.
@@ -326,7 +330,7 @@ std::string ControllerSession::reset(bool clear_settings){
 
 
 //void ControllerSession::pre_connection_not_ready(ControllerConnection& connection){
-//    m_listeners.run_method_unique(&Listener::pre_connection_not_ready, connection);
+//    m_listeners.run_method(&Listener::pre_connection_not_ready, connection);
 //}
 void ControllerSession::post_connection_ready(ControllerConnection& connection){
 //    cout << "ControllerSession::post_connection_ready()" << endl;
@@ -340,7 +344,6 @@ void ControllerSession::post_connection_ready(ControllerConnection& connection){
     ControllerType current_controller = ControllerType::None;
 
     ControllerType desired_controller;
-    ControllerResetMode reset_mode;
 
     std::unique_ptr<AbstractController> controller;
 
@@ -363,8 +366,6 @@ void ControllerSession::post_connection_ready(ControllerConnection& connection){
             desired_controller = m_connection->current_controller();
         }
 
-        reset_mode = m_next_reset_mode;
-
         supported_controllers = m_connection->controller_list();
         current_controller = m_connection->current_controller();
     }
@@ -375,8 +376,7 @@ void ControllerSession::post_connection_ready(ControllerConnection& connection){
         controller = m_descriptor->make_controller(
             m_logger,
             connection,
-            desired_controller,
-            reset_mode
+            desired_controller
         );
     }
 
@@ -415,9 +415,9 @@ void ControllerSession::status_text_changed(
     }
 //    cout << "ControllerSession::status_text_changed(): controller_error = " << controller_error << endl;
     if (controller_error.empty()){
-        m_listeners.run_method_unique(&Listener::post_status_text_changed, text);
+        m_listeners.run_method(&Listener::post_status_text_changed, text);
     }else{
-        m_listeners.run_method_unique(&Listener::post_status_text_changed, controller_error);
+        m_listeners.run_method(&Listener::post_status_text_changed, controller_error);
     }
 }
 void ControllerSession::on_error(
@@ -432,25 +432,25 @@ void ControllerSession::on_error(
 
 
 void ControllerSession::signal_ready_changed(bool ready){
-    m_listeners.run_method_unique(&Listener::ready_changed, ready);
+    m_listeners.run_method(&Listener::ready_changed, ready);
 }
 void ControllerSession::signal_descriptor_changed(
     const std::shared_ptr<const ControllerDescriptor>& descriptor
 ){
-    m_listeners.run_method_unique(&Listener::descriptor_changed, descriptor);
+    m_listeners.run_method(&Listener::descriptor_changed, descriptor);
 }
 void ControllerSession::signal_controller_changed(
     ControllerType controller_type,
     const std::vector<ControllerType>& available_controllers
 ){
-    m_listeners.run_method_unique(&Listener::controller_changed, controller_type, available_controllers);
+    m_listeners.run_method(&Listener::controller_changed, controller_type, available_controllers);
 }
 void ControllerSession::signal_status_text_changed(const std::string& text){
 //    cout << text << endl;
-    m_listeners.run_method_unique(&Listener::post_status_text_changed, text);
+    m_listeners.run_method(&Listener::post_status_text_changed, text);
 }
 void ControllerSession::signal_options_locked(bool locked){
-    m_listeners.run_method_unique(&Listener::options_locked, locked);
+    m_listeners.run_method(&Listener::options_locked, locked);
 }
 
 

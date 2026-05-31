@@ -17,6 +17,7 @@
 #include "CommonFramework/AudioPipeline/UI/AudioDisplayWidget.h"
 #include "CommonFramework/VideoPipeline/UI/VideoSourceSelectorWidget.h"
 #include "CommonFramework/VideoPipeline/UI/VideoDisplayWidget.h"
+#include "ControllerInput/Keyboard/GlobalKeyboardHidTracker.h"
 #include "Controllers/ControllerSelectorWidget.h"
 #include "NintendoSwitch_CommandRow.h"
 #include "NintendoSwitch_SwitchSystemWidget.h"
@@ -202,13 +203,13 @@ void SwitchSystemWidget::update_ui(ProgramState state){
 
 void SwitchSystemWidget::key_press(QKeyEvent* event){
 //    cout << "press:   " << event->nativeVirtualKey() << endl;
-    m_command->on_key_press(*event);
+    global_keyboard_tracker().on_key_press(*event);
     m_video_display->on_key_press(event);
 }
 
 void SwitchSystemWidget::key_release(QKeyEvent* event){
 //    cout << "release: " << event->nativeVirtualKey() << endl;
-    m_command->on_key_release(*event);
+    global_keyboard_tracker().on_key_release(*event);
     m_video_display->on_key_release(event);
 }
 

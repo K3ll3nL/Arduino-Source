@@ -14,8 +14,25 @@ namespace PokemonAutomation{
 enum class ControllerInterface{
     None,
     SerialPABotBase,
+    SerialPABotBase2,
     TcpSysbotBase,
     UsbSysbotBase,
+};
+
+enum class ControllerPerformanceClass{
+    Unknown,
+    SerialPABotBase_Wired,
+    SerialPABotBase_Wireless,
+    SysbotBase,
+};
+
+
+enum class ControllerClass{
+    None,
+    HID_Keyboard,
+    NintendoSwitch_ProController,
+    NintendoSwitch_LeftJoycon,
+    NintendoSwitch_RightJoycon,
 };
 
 
@@ -25,31 +42,20 @@ enum class ControllerType{
     HID_Keyboard,
 
     NintendoSwitch_WiredController,     //  Generic 3rd party wired controller.
-    NintendoSwitch_WiredProController,  //  The official Pro Controller, connected over USB.
+    NintendoSwitch_WiredProController,
+    NintendoSwitch_WiredLeftJoycon,
+    NintendoSwitch_WiredRightJoycon,
     NintendoSwitch_WirelessProController,
-    NintendoSwitch_LeftJoycon,
-    NintendoSwitch_RightJoycon,
+    NintendoSwitch_WirelessLeftJoycon,
+    NintendoSwitch_WirelessRightJoycon,
+
     NintendoSwitch2_WiredController,    //  Generic 3rd party wired controller.
-    NintendoSwitch2_WiredProController, //  The official Pro Controller, connected over USB.
+    NintendoSwitch2_WiredProController,
+    NintendoSwitch2_WiredLeftJoycon,
+    NintendoSwitch2_WiredRightJoycon,
     NintendoSwitch2_WirelessProController,
-    NintendoSwitch2_LeftJoycon,
-    NintendoSwitch2_RightJoycon,
-};
-
-
-enum class ControllerPerformanceClass{
-    Unknown,
-    SerialPABotBase_Wired,
-    SerialPABotBase_Wireless,
-    SysbotBase,
-};
-
-enum class ControllerClass{
-    None,
-    HID_Keyboard,
-    NintendoSwitch_ProController,
-    NintendoSwitch_LeftJoycon,
-    NintendoSwitch_RightJoycon,
+    NintendoSwitch2_WirelessLeftJoycon,
+    NintendoSwitch2_WirelessRightJoycon,
 };
 
 

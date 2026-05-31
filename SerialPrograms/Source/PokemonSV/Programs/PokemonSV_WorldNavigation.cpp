@@ -44,7 +44,7 @@ namespace PokemonSV{
 bool fly_to_overworld_from_map(const ProgramInfo& info, VideoStream& stream, ProControllerContext& context, bool check_fly_menuitem){
     context.wait_for_all_requests();
     // Press A to bring up the promp dialog on choosing "Fly here", "Set as destination", "Never mind".
-    pbf_press_button(context, BUTTON_A, 20, 130);
+    pbf_press_button(context, BUTTON_A, 160ms, 1040ms);
 
     WallClock start = current_time();
     while (true){
@@ -82,16 +82,16 @@ bool fly_to_overworld_from_map(const ProgramInfo& info, VideoStream& stream, Pro
         case 1: // map
             stream.log("Detected map. Pressing A to open map menu.");
             // Press A to bring up the promp dialog on choosing "Fly here", "Set as destination", "Never mind".
-            pbf_press_button(context, BUTTON_A, 20, 130);
+            pbf_press_button(context, BUTTON_A, 160ms, 1040ms);
             continue;
         case 2: // spot_dialog_watcher or flyMenuItemWatcher
             stream.log("Detected fly here prompt dialog.");
             stream.overlay().add_log("Fly");
-            pbf_press_button(context, BUTTON_A, 20, 130);
+            pbf_press_button(context, BUTTON_A, 160ms, 1040ms);
             continue;
         case 3: //confirm_watcher
             stream.log("Detected fly confirmation prompt.");
-            pbf_press_button(context, BUTTON_A, 20, 130);
+            pbf_press_button(context, BUTTON_A, 160ms, 1040ms);
             continue;
         case 4: //battle
             stream.log("Detected battle.");
@@ -143,7 +143,7 @@ void picnic_from_overworld(const ProgramInfo& info, VideoStream& stream, ProCont
         switch (ret){
         case 0:
             stream.log("Detected overworld.");
-            pbf_press_button(context, BUTTON_X, 20, 105); // open menu 
+            pbf_press_button(context, BUTTON_X, 160ms, 840ms); // open menu
             continue;
         case 1:
             stream.log("Detected main menu.");
@@ -155,14 +155,14 @@ void picnic_from_overworld(const ProgramInfo& info, VideoStream& stream, ProCont
                     stream
                 );
             }
-            pbf_mash_button(context, BUTTON_A, 125); // mash button A to enter picnic mode
+            pbf_mash_button(context, BUTTON_A, 1000ms); // mash button A to enter picnic mode
             continue;
         case 2:
             stream.log("Detected picnic.");
             stream.overlay().add_log("Start picnic", COLOR_WHITE);
             // extra wait to make sure by the end the player can move.
             // the player throwing out pokeballs animation is long.
-            pbf_wait(context, 1000);
+            pbf_wait(context, 8000ms);
             context.wait_for_all_requests();
             return;
         default:
@@ -180,8 +180,8 @@ void leave_picnic(const ProgramInfo& info, VideoStream& stream, ProControllerCon
     stream.log("Leaving picnic...");
     stream.overlay().add_log("Leaving picnic", COLOR_WHITE);
 
-    pbf_press_button(context, BUTTON_Y, 30, 100);
-    for(int i = 0; i < 5; i++){
+    pbf_press_button(context, BUTTON_Y, 240ms, 800ms);
+    for (int i = 0; i < 5; i++){
         PromptDialogWatcher prompt(COLOR_RED, {0.595, 0.517, 0.273, 0.131});
         context.wait_for_all_requests();
         int ret = wait_until(
@@ -204,12 +204,12 @@ void leave_picnic(const ProgramInfo& info, VideoStream& stream, ProControllerCon
         }
 
         // prompt not found, maybe button Y dropped?
-        pbf_press_button(context, BUTTON_Y, 30, 100);
+        pbf_press_button(context, BUTTON_Y, 240ms, 800ms);
     }
 
     // We have now the prompt to asking for confirmation of leaving picnic.
     // Mash A to confirm
-    pbf_mash_button(context, BUTTON_A, 150);
+    pbf_mash_button(context, BUTTON_A, 1200ms);
     context.wait_for_all_requests();
     
     // Wait for overworld:
@@ -271,7 +271,7 @@ void print_flypoint_location(const ProgramInfo& info, VideoStream& stream, ProCo
         return;
     }
 
-    for(const auto& box: found_locations){
+    for (const auto& box: found_locations){
         std::ostringstream os;
         os << "Found " + fly_point_string + " at box: {" << box.x << ", " << box.y << "}"; // << ", width=" << box.width << ", height=" << box.height;
         stream.log(os.str());
@@ -294,46 +294,46 @@ void place_marker_offset_from_flypoint(
     WallClock start = current_time();
 
     while (true){
-        if (current_time() - start > std::chrono::minutes(5)){
+        if (current_time() - start > std::chrono::minutes(2)){
             OperationFailedException::fire(
                 ErrorReport::SEND_ERROR_REPORT,
-                "place_marker_offset_from_flypoint(): Failed to place down marker after 5 minutes.",
+                "place_marker_offset_from_flypoint(): Failed to place down marker after 2 minutes.",
                 stream
             );
         }
 
-        try {
+        try{
             open_map_from_overworld(info, stream, context, false);
 
             // move cursor near landmark (pokecenter)
             switch(move_cursor_near_flypoint.zoom_change){
             case ZoomChange::ZOOM_IN:
-                pbf_press_button(context, BUTTON_ZR, 20, 105);
+                pbf_press_button(context, BUTTON_ZR, 160ms, 840ms);
                 break;
             case ZoomChange::ZOOM_IN_TWICE:
-                pbf_press_button(context, BUTTON_ZR, 20, 105);
-                pbf_press_button(context, BUTTON_ZR, 20, 105);
+                pbf_press_button(context, BUTTON_ZR, 160ms, 840ms);
+                pbf_press_button(context, BUTTON_ZR, 160ms, 840ms);
                 break;                
             case ZoomChange::ZOOM_OUT:
-                pbf_press_button(context, BUTTON_ZL, 20, 105);
+                pbf_press_button(context, BUTTON_ZL, 160ms, 840ms);
                 break;    
             case ZoomChange::ZOOM_OUT_TWICE:
-                pbf_press_button(context, BUTTON_ZL, 20, 105);
-                pbf_press_button(context, BUTTON_ZL, 20, 105);
+                pbf_press_button(context, BUTTON_ZL, 160ms, 840ms);
+                pbf_press_button(context, BUTTON_ZL, 160ms, 840ms);
                 break;                  
             case ZoomChange::KEEP_ZOOM:
                 break;
             }
-            uint8_t move_x1 = move_cursor_near_flypoint.move_x;
-            uint8_t move_y1 = move_cursor_near_flypoint.move_y;
-            uint16_t move_duration1 = move_cursor_near_flypoint.move_duration;
-            pbf_move_left_joystick(context, move_x1, move_y1, move_duration1, 1 * TICKS_PER_SECOND);
+            double move_x1 = move_cursor_near_flypoint.move_x;
+            double move_y1 = move_cursor_near_flypoint.move_y;
+            Milliseconds move_duration1 = move_cursor_near_flypoint.move_duration;
+            pbf_move_left_joystick(context, {move_x1, move_y1}, move_duration1, 1000ms);
 
             move_cursor_to_position_offset_from_flypoint(info, stream, context, fly_point, {marker_offset.x, marker_offset.y});
 
             // place down marker
-            pbf_press_button(context, BUTTON_A, 20, 105);
-            pbf_press_button(context, BUTTON_A, 20, 105);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             leave_phone_to_overworld(info, stream, context);
 
             return;      
@@ -368,7 +368,7 @@ void move_cursor_to_position_offset_from_flypoint(const ProgramInfo& info, Video
         double closest_icon_y = 0.0;
         double closest_dist2 = DBL_MAX;  // distance^2 in pixels
 
-        for(const auto& box: found_locations){
+        for (const auto& box: found_locations){
             const double found_x = box.x;
             const double found_y = box.y;
             const double x_diff = (found_x - expected_x) * 1920;
@@ -389,8 +389,8 @@ void move_cursor_to_position_offset_from_flypoint(const ProgramInfo& info, Video
         const double dif_x = (closest_icon_x - expected_x) * 1920;
         const double dif_y = (closest_icon_y - expected_y) * 1080;
         const double magnitude = std::max(std::sqrt(closest_dist2), 1.0);
-        double push_x = dif_x * 64 / magnitude;
-        double push_y = dif_y * 64 / magnitude;
+        double push_x = dif_x * 0.5 / magnitude;
+        double push_y = dif_y * 0.5 / magnitude;
 
         double scale = 0.29;
         if (closest_dist2 < 1000){ // if we're already very close to the target, reduce push velocity and push duration
@@ -414,11 +414,23 @@ void move_cursor_to_position_offset_from_flypoint(const ProgramInfo& info, Video
             break;
         }
 
-        const uint8_t move_x = uint8_t(std::max(std::min(int(round(push_x + 128) + 0.5), 255), 0));
-        const uint8_t move_y = uint8_t(std::max(std::min(int(round(push_y + 128) + 0.5), 255), 0));
+        const double move_x = std::max(std::min(push_x, 1.0), -1.0);
+        const double move_y = -std::max(std::min(push_y, 1.0), -1.0);
 
-        const uint16_t push_time = std::max(uint16_t(magnitude * scale + 0.5), uint16_t(3));
-        pbf_move_left_joystick(context, move_x, move_y, push_time, 30);
+        const uint16_t push_time_ticks = std::max(uint16_t(magnitude * scale + 0.5), uint16_t(3));
+        Milliseconds push_time = push_time_ticks * 8ms;
+        pbf_move_left_joystick(context, {move_x, move_y}, push_time, 240ms);
+        if (closest_dist2 > 100 && i > 4){ 
+            // add a wait for the case where the cursor is bouncing between a snap point and the desired location.
+            // the wait allows the true distance to be calculated. Without the wait, you could end up capturing a transitional moment 
+            // where the cursor is falling towards the snap point, therefore causing the calculated distance to be 
+            // less than expected, leading to the push being weaker than needed, which could perpetuate the issue
+            // as the push may not be strong enough to escape the gravity of a snap point.
+            // e.g. when caught in the gravity of a snap point, sqrt(closest_dist2) could be 45-50. But if you wait to let the 
+            // distance settle, the true sqrt(closest_dist2) could be 68.
+            // we only add the wait if closest_dist2 is large, so that we don't reduce the efficiency of small adjustments
+            pbf_wait(context, 500ms);
+        }
         context.wait_for_all_requests();
     }
 
@@ -451,7 +463,7 @@ bool detect_closest_flypoint_and_move_map_cursor_there(
         }
         
         // Find the detected PokeCenter icon closest to the screen center (where player character is on the map).
-        for(const auto& box: found_locations){
+        for (const auto& box: found_locations){
             const double loc_x = (box.x + box.width/2) * screen_width;
             const double loc_y = (box.y + box.height/2) * screen_height;
             const double x_diff = loc_x - center_x, y_diff = loc_y - center_y;
@@ -474,17 +486,18 @@ bool detect_closest_flypoint_and_move_map_cursor_there(
     const double dif_x = (closest_icon_x - center_x) * 1920/ screen_width;
     const double dif_y = (closest_icon_y - center_y) * 1080/ screen_height;
     const double magnitude = std::max(std::sqrt(max_dist), 1.0);
-    const double push_x = dif_x * 64 / magnitude, push_y = dif_y * 64 / magnitude;
+    const double push_x = dif_x * 0.5 / magnitude, push_y = dif_y * 0.5 / magnitude;
 
     // 0.5 is too large, 0.25 a little too small, 0.30 is a bit too much for a far-away pokecenter
     const double scale = push_scale;
 
-    const uint8_t move_x = uint8_t(std::max(std::min(int(round(push_x + 128) + 0.5), 255), 0));
-    const uint8_t move_y = uint8_t(std::max(std::min(int(round(push_y + 128) + 0.5), 255), 0));
+    const double move_x = std::max(std::min(push_x, +1.0), -1.0);
+    const double move_y = -std::max(std::min(push_y, +1.0), -1.0);
 
     stream.overlay().add_log("Move Cursor to PokeCenter", COLOR_WHITE);
-    const uint16_t push_time = std::max(uint16_t(magnitude * scale + 0.5), uint16_t(3));
-    pbf_move_left_joystick(context, move_x, move_y, push_time, 30);
+    const uint16_t push_time_ticks = std::max(uint16_t(magnitude * scale + 0.5), uint16_t(3));
+    Milliseconds push_time = push_time_ticks * 8ms;
+    pbf_move_left_joystick(context, {move_x, move_y}, push_time, 240ms);
     context.wait_for_all_requests();
     return true;
 }
@@ -530,8 +543,8 @@ void fly_to_closest_pokecenter_on_map(const ProgramInfo& info, VideoStream& stre
     const std::array<double, MAX_TRY_COUNT> adjustment_table =  {1, 1.4, 1, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 0.9, 0.8, 1.4}; // {1, 1.4, 1.5};
     
     while(true){
-        try {
-            pbf_press_button(context, BUTTON_ZR, 40, 100);
+        try{
+            pbf_press_button(context, BUTTON_ZR, 320ms, 800ms);
             // try different magnitudes of cursor push with each failure.
             double push_scale = 0.29 * adjustment_table[try_count];
             // std::cout << "push_scale: " << std::to_string(push_scale) << std::endl;
@@ -560,8 +573,8 @@ void fly_to_closest_pokecenter_on_map(const ProgramInfo& info, VideoStream& stre
     // Zoom out to the max warpable level and try pressing on the player character.
     stream.log("Zoom to max map level to try searching for Pokecenter again.");
     stream.overlay().add_log("Pokecenter Icon occluded");
-    pbf_press_button(context, BUTTON_ZL, 40, 100);
-    pbf_press_button(context, BUTTON_ZL, 40, 100);
+    pbf_press_button(context, BUTTON_ZL, 320ms, 800ms);
+    pbf_press_button(context, BUTTON_ZL, 320ms, 800ms);
 
     const bool check_fly_menuitem = true;
     if (fly_to_overworld_from_map(info, stream, context, check_fly_menuitem)){
@@ -572,13 +585,13 @@ void fly_to_closest_pokecenter_on_map(const ProgramInfo& info, VideoStream& stre
     stream.log("No PokeCenter icon overlapping with the player character on the max warpable level");
     stream.overlay().add_log("No overlapping PokeCenter");
     // press B to close the destination menu item
-    pbf_press_button(context, BUTTON_B, 60, 100);
+    pbf_press_button(context, BUTTON_B, 480ms, 800ms);
 
 
     // Part 3: Tries to detect a pokecenter that is further away from the player, while at max warpable level
     try_count = 0;
     while(true){
-        try {
+        try{
             double push_scale = 0.29 * adjustment_table[try_count];
             // std::cout << "push_scale: " << std::to_string(push_scale) << std::endl;
             // Now try finding the closest pokecenter at the max warpable level
@@ -605,16 +618,16 @@ void fly_to_closest_pokecenter_on_map(const ProgramInfo& info, VideoStream& stre
             press_Bs_to_back_to_overworld(info, stream, context);
             open_map_from_overworld(info, stream, context);
             // zoom out to max warpable level
-            pbf_press_button(context, BUTTON_ZL, 40, 100);
+            pbf_press_button(context, BUTTON_ZL, 320ms, 800ms);
         }
     }
 }
 
 void jump_off_wall_until_map_open(const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
     for (auto i = 0; i < 3; i++){
-        pbf_press_button(context, BUTTON_L, 50, 50);
-        pbf_press_button(context, BUTTON_B, 50, 50);
-        pbf_move_left_joystick(context, 128, 255, 100, 50);
+        pbf_press_button(context, BUTTON_L, 400ms, 400ms);
+        pbf_press_button(context, BUTTON_B, 400ms, 400ms);
+        pbf_move_left_joystick(context, {0, -1}, 800ms, 400ms);
         context.wait_for_all_requests();
         try{
             open_map_from_overworld(info, stream, context);
@@ -637,7 +650,7 @@ void jump_off_wall_until_map_open(const ProgramInfo& info, VideoStream& stream, 
 // Open map and teleport back to town pokecenter
 void reset_to_pokecenter(const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
     while (true){
-        try {
+        try{
             open_map_from_overworld(info, stream, context);
             fly_to_closest_pokecenter_on_map(info, stream, context);
             break;
@@ -655,23 +668,23 @@ void walk_forward_until_dialog(
     VideoStream& stream,
     ProControllerContext& context,
     NavigationMovementMode movement_mode,
-    uint16_t seconds_timeout,
-    uint8_t x,
-    uint8_t y
+    Milliseconds timeout,
+    double x,
+    double y
 ){
 
-    DialogBoxWatcher        dialog(COLOR_RED, true);
+    DialogBoxWatcher dialog(COLOR_RED, true);
     context.wait_for_all_requests();
     int ret = run_until<ProControllerContext>(
         stream, context,
         [&](ProControllerContext& context){
-            ssf_press_left_joystick(context, x, y, 0, seconds_timeout * TICKS_PER_SECOND);
+            ssf_press_left_joystick(context, {x, y}, 0ms, timeout);
             if (movement_mode == NavigationMovementMode::DIRECTIONAL_ONLY){
-                pbf_wait(context, seconds_timeout * TICKS_PER_SECOND);
+                pbf_wait(context, timeout);
             } else if (movement_mode == NavigationMovementMode::DIRECTIONAL_SPAM_A){
-                pbf_mash_button(context, BUTTON_A, seconds_timeout * TICKS_PER_SECOND);
+                pbf_mash_button(context, BUTTON_A, timeout);
                 // for (size_t j = 0; j < seconds_timeout; j++){
-                //     pbf_press_button(context, BUTTON_A, 20, 105);
+                //     pbf_press_button(context, BUTTON_A, 160ms, 840ms);
                 // }
             }
         },
@@ -696,31 +709,31 @@ void walk_forward_while_clear_front_path(
     const ProgramInfo& info, 
     VideoStream& stream,
     ProControllerContext& context,
-    uint16_t forward_ticks,
-    uint8_t y,
-    uint16_t ticks_between_lets_go,
-    uint16_t delay_after_lets_go
+    Milliseconds forward_duration,
+    double y,
+    Milliseconds duration_between_lets_go,
+    Milliseconds delay_after_lets_go
 ){
     context.wait_for_all_requests();
-    pbf_press_button(context, BUTTON_R, 20, delay_after_lets_go);
+    pbf_press_button(context, BUTTON_R, 160ms, delay_after_lets_go);
 
-    uint16_t num_ticks_left = forward_ticks;
+    Milliseconds milliseconds_left = forward_duration;
     while (true){
 
-        if (num_ticks_left < ticks_between_lets_go){
-            pbf_move_left_joystick(context, 128, y, num_ticks_left, 20);
+        if (milliseconds_left < duration_between_lets_go){
+            pbf_move_left_joystick(context, {0, y}, milliseconds_left, 160ms);
             context.wait_for_all_requests();
-            stream.log("walk_forward_while_clear_front_path() ticks traveled: " + std::to_string(forward_ticks));
+            stream.log("walk_forward_while_clear_front_path() duration traveled: " + std::to_string(forward_duration.count()) + "ms");
             break;
         }
 
-        pbf_move_left_joystick(context, 128, y, ticks_between_lets_go, 20);
-        num_ticks_left -= ticks_between_lets_go;
+        pbf_move_left_joystick(context, {0, y}, duration_between_lets_go, 160ms);
+        milliseconds_left -= duration_between_lets_go;
 
         context.wait_for_all_requests();
-        stream.log("walk_forward_while_clear_front_path() ticks traveled: " + std::to_string(forward_ticks - num_ticks_left));
+        stream.log("walk_forward_while_clear_front_path() duration traveled: " + std::to_string(forward_duration.count() - milliseconds_left.count()) + "ms");
 
-        pbf_press_button(context, BUTTON_R, 20, delay_after_lets_go);
+        pbf_press_button(context, BUTTON_R, 160ms, delay_after_lets_go);
         
 
     }
@@ -733,10 +746,10 @@ bool attempt_fly_to_overlapping_flypoint(
     ProControllerContext& context
 ){
     while (true){
-        try {
+        try{
             open_map_from_overworld(info, stream, context, false);
             context.wait_for_all_requests();
-            pbf_press_button(context, BUTTON_ZL, 40, 100);
+            pbf_press_button(context, BUTTON_ZL, 320ms, 800ms);
 
             return fly_to_overworld_from_map(info, stream, context, true);
 
@@ -775,28 +788,28 @@ void heal_at_pokecenter(
 ){
     context.wait_for_all_requests();
     
-    if (!attempt_fly_to_overlapping_flypoint(info, stream, context)){
-        OperationFailedException::fire(
-            ErrorReport::SEND_ERROR_REPORT,
-            "Failed to fly to pokecenter.",
-            stream
-        );  
-    }           
+    // if (!attempt_fly_to_overlapping_flypoint(info, stream, context)){
+    //     OperationFailedException::fire(
+    //         ErrorReport::SEND_ERROR_REPORT,
+    //         "Failed to fly to pokecenter.",
+    //         stream
+    //     );  
+    // }           
     uint16_t seconds_timeout = 60;
 
     // re-orient camera
-    pbf_press_button(context, BUTTON_L, 20, 20);
+    pbf_press_button(context, BUTTON_L, 160ms, 160ms);
     // move towards pokecenter
-    pbf_move_left_joystick(context, 128, 255, 100, 20);
+    pbf_move_left_joystick(context, {0, -1}, 800ms, 160ms);
     // re-orient camera
-    pbf_press_button(context, BUTTON_L, 20, 20); 
+    pbf_press_button(context, BUTTON_L, 160ms, 160ms);
 
     bool seen_prompt = false;
 
     while (true){
         OverworldWatcher    overworld(stream.logger(), COLOR_CYAN);
         // TODO: test the Prompt watcher on all languages. Ensure FloatBox is sized correctly.
-        PromptDialogWatcher prompt(COLOR_YELLOW, {0.50, 0.400, 0.400, 0.080}); // 0.630, 0.400, 0.100, 0.080 // {0.50, 0.40, 0.40, 0.50}
+        PromptDialogWatcher prompt(COLOR_YELLOW, {0.50, 0.400, 0.400, 0.320}); // 0.50, 0.400, 0.400, 0.080  // 0.630, 0.400, 0.100, 0.080 // {0.50, 0.40, 0.40, 0.50}
         AdvanceDialogWatcher    advance_dialog(COLOR_RED);
         TutorialWatcher     tutorial(COLOR_RED);
         context.wait_for_all_requests();
@@ -816,20 +829,20 @@ void heal_at_pokecenter(
                 stream.log("heal_at_pokecenter: Done healing.");
                 return;
             }
-            pbf_press_button(context, BUTTON_A, 20, 105);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             break;
         case 1: // prompt
             stream.log("heal_at_pokecenter: Detected prompt.");
             seen_prompt = true;
-            pbf_press_button(context, BUTTON_A, 20, 105);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             break;
         case 2: // advance dialog
             stream.log("heal_at_pokecenter: Detected advance dialog.");
-            pbf_press_button(context, BUTTON_A, 20, 105);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             break;
         case 3: // tutorial
             stream.log("heal_at_pokecenter: Detected tutorial.");
-            pbf_press_button(context, BUTTON_A, 20, 105);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             break;   
         default:
             stream.log("heal_at_pokecenter: Timed out.");
@@ -929,7 +942,7 @@ void run_battle_press_A(
         case CallbackEnum::BATTLE: // battle
             stream.log("Detected battle menu.");
             consecutive_move_select = 0;
-            pbf_press_button(context, BUTTON_A, 20, 105);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             break;
         case CallbackEnum::MOVE_SELECT:
             stream.log("Detected move select. Spam first move");
@@ -970,15 +983,15 @@ void run_battle_press_A(
             if (stop_condition == BattleStopCondition::STOP_DIALOG){
                 return;
             }
-            pbf_press_button(context, BUTTON_A, 20, 105);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             break;
         case CallbackEnum::DIALOG_ARROW:  // dialog arrow
             stream.log("run_battle_press_A: Detected dialog arrow.");
-            pbf_press_button(context, BUTTON_A, 20, 105);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             break;
         case CallbackEnum::NEXT_POKEMON:
             stream.log("run_battle_press_A: Detected prompt for bringing in next pokemon. Keep current pokemon.");
-            pbf_mash_button(context, BUTTON_B, 100);
+            pbf_mash_button(context, BUTTON_B, 800ms);
             break;
         case CallbackEnum::SWAP_MENU:
             OperationFailedException::fire(
@@ -988,11 +1001,11 @@ void run_battle_press_A(
             );    
         case CallbackEnum::SELECT_MOVE_TARGET:
             stream.log("run_battle_press_A: Detected arrows to select move target. Press A.");
-            pbf_mash_button(context, BUTTON_A, 100);
+            pbf_mash_button(context, BUTTON_A, 800ms);
             break;
         case CallbackEnum::BATTLE_BAG:
             stream.log("run_battle_press_A: Detected Bag. Press B. Hold Dpad Up so cursor is back on 'Battle'.");
-            pbf_mash_button(context, BUTTON_B, 100);
+            pbf_mash_button(context, BUTTON_B, 800ms);
             pbf_press_dpad(context, DPAD_UP, 2000ms, 100ms);
             break;
         default:
@@ -1041,9 +1054,9 @@ void select_top_move(VideoStream& stream, ProControllerContext& context, size_t 
     if (consecutive_move_select > 3){
         // to handle case where move is disabled/out of PP/taunted
         stream.log("Failed to select a move 3 times. Choosing a different move.", COLOR_RED);
-        pbf_press_dpad(context, DPAD_DOWN, 20, 40);
+        pbf_press_dpad(context, DPAD_DOWN, 160ms, 320ms);
     }
-    pbf_mash_button(context, BUTTON_A, 100);
+    pbf_mash_button(context, BUTTON_A, 800ms);
 
 }
 

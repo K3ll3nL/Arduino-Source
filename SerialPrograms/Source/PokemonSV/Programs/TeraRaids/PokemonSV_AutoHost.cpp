@@ -13,6 +13,7 @@
 #include "CommonTools/VisualDetectors/BlackScreenDetector.h"
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSV/PokemonSV_Settings.h"
 #include "PokemonSV/Inference/Battles/PokemonSV_TeraBattleMenus.h"
@@ -198,7 +199,7 @@ bool AutoHost::start_raid(
             env.console, context,
             [start_time](ProControllerContext& context){
                 while (true){
-                    pbf_press_button(context, BUTTON_A, 20, 105);
+                    pbf_press_button(context, BUTTON_A, 160ms, 840ms);
                     context.wait_for_all_requests();
                     if (current_time() > start_time + std::chrono::minutes(4)){
                         return;
@@ -271,7 +272,7 @@ void AutoHost::program(SingleSwitchProgramEnvironment& env, ProControllerContext
     AutoHost_Descriptor::Stats& stats = env.current_stats<AutoHost_Descriptor::Stats>();
 
     //  Connect the controller.
-    pbf_press_button(context, BUTTON_L, 10, 10);
+    require_player(env.console, context, BUTTON_L);
 
     m_killswitch_time = WallClock::max();
 
@@ -302,7 +303,7 @@ void AutoHost::program(SingleSwitchProgramEnvironment& env, ProControllerContext
                     last_time_fix = now;
                 }
             }
-            reset_game_from_home(env.program_info(), env.console, context, 5 * TICKS_PER_SECOND);
+            reset_game_from_home(env.program_info(), env.console, context, 5000ms);
         }
         skip_reset = false;
 

@@ -8,7 +8,7 @@
 #define PokemonAutomation_CommonTools_VisualInferencePivot_H
 
 #include "Common/Cpp/Concurrency/SpinLock.h"
-#include "Common/Cpp/Concurrency/PeriodicScheduler.h"
+#include "Common/Cpp/Concurrency/BusyPeriodicRunner.h"
 #include "CommonFramework/Tools/StatAccumulator.h"
 #include "CommonFramework/VideoPipeline/VideoFeed.h"
 #include "CommonFramework/VideoPipeline/VideoOverlayTypes.h"
@@ -20,9 +20,9 @@ class VideoFeed;
 
 
 
-class VisualInferencePivot final : public PeriodicRunner, public OverlayStat{
+class VisualInferencePivot final : public BusyPeriodicRunner, public OverlayStat{
 public:
-    VisualInferencePivot(CancellableScope& scope, VideoFeed& feed, AsyncDispatcher& dispatcher);
+    VisualInferencePivot(CancellableScope& scope, VideoFeed& feed);
     virtual ~VisualInferencePivot();
 
     //  If this callback returns true:
@@ -33,7 +33,8 @@ public:
         Cancellable& scope,
         std::atomic<InferenceCallback*>* set_when_triggered,
         VisualInferenceCallback& callback,
-        std::chrono::milliseconds period
+        std::chrono::milliseconds period,
+        WallClock start_time
     );
 
     //  Returns the latency stats for the callback. Units are microseconds.

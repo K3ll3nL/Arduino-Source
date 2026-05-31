@@ -16,22 +16,29 @@
 
 #include <memory>
 #include <deque>
-#include "Common/Cpp/SerialConnection/StreamInterface.h"
+#include <map>
+#include "Common/Cpp/StreamConnections/PushingStreamConnections.h"
 #include "Common/SerialPABotBase/SerialPABotBase_Protocol.h"
 #include "BotBase.h"
-#include "MessageSniffer.h"
 
 namespace PokemonAutomation{
+
+
+class BotBaseMessageType;
+
 
 
 //  None the functions in this class are thread-safe. It is up to
 //  the child class to wrap and make them thread-safe.
 class PABotBaseConnection : public StreamListener{
 public:
-    PABotBaseConnection(Logger& logger, std::unique_ptr<StreamConnection> connection);
+    PABotBaseConnection(
+        Logger& logger,
+        std::unique_ptr<UnreliableStreamConnectionPushing> connection
+    );
     virtual ~PABotBaseConnection();
 
-    void set_sniffer(MessageSniffer* sniffer);
+    void add_message_printer(const BotBaseMessageType& type);
 
 public:
     void send_zeros(uint8_t bytes = PABB_PROTOCOL_MAX_PACKET_SIZE);
@@ -55,7 +62,7 @@ private:
     void push_error_byte(ErrorBatchType type, char byte);
 
 private:
-    std::unique_ptr<StreamConnection> m_connection;
+    std::unique_ptr<UnreliableStreamConnectionPushing> m_connection;
     std::deque<char> m_recv_buffer;
 
     ErrorBatchType m_current_error_type;
@@ -63,7 +70,8 @@ private:
 
 protected:
     Logger& m_logger;
-    MessageSniffer* m_sniffer;
+
+    std::map<uint8_t, const BotBaseMessageType*> m_printers;
 };
 
 

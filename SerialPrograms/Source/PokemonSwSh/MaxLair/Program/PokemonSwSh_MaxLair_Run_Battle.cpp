@@ -60,12 +60,12 @@ bool read_battle_menu(
         }
 
         stream.log("Unable to read opponent from battle. Attempting to read from summary.", COLOR_ORANGE);
-        pbf_press_button(context, BUTTON_Y, 10, TICKS_PER_SECOND);
-        pbf_press_dpad(context, DPAD_UP, 10, 50);
-        pbf_press_button(context, BUTTON_A, 10, 2 * TICKS_PER_SECOND);
+        pbf_press_button(context, BUTTON_Y, 80ms, 1000ms);
+        pbf_press_dpad(context, DPAD_UP, 80ms, 400ms);
+        pbf_press_button(context, BUTTON_A, 80ms, 2000ms);
         context.wait_for_all_requests();
         mon = reader.read_opponent_in_summary(stream.logger(), stream.video().snapshot());
-        pbf_mash_button(context, BUTTON_B, 3 * TICKS_PER_SECOND);
+        pbf_mash_button(context, BUTTON_B, 3000ms);
         state.opponent = std::move(mon);
 
         if (state.wins == 3 && !state.boss.empty()){
@@ -106,7 +106,7 @@ bool read_battle_menu(
         player.dmax_turns_left = 0;
         player.health = Health{0, 1};
         player.can_dmax = false;
-        pbf_press_button(context, BUTTON_A, 10, TICKS_PER_SECOND);
+        pbf_press_button(context, BUTTON_A, 80ms, 1000ms);
         context.wait_for_all_requests();
         return true;
     }
@@ -143,7 +143,7 @@ bool read_battle_menu(
 
     for (size_t attempts = 0; attempts < 5; attempts++){
         //  Enter move selection to read PP.
-        pbf_press_button(context, BUTTON_A, 10, TICKS_PER_SECOND);
+        pbf_press_button(context, BUTTON_A, 80ms, 1000ms);
         context.wait_for_all_requests();
 
 
@@ -170,11 +170,11 @@ bool read_battle_menu(
         if (move_slot < 0){
             stream.log("Unable to detect move slot.", COLOR_RED);
 //            dump_image(stream.logger(), MODULE_NAME, "MoveSlot", screen);
-//            pbf_press_button(context, BUTTON_A, 10, TICKS_PER_SECOND);
-//            pbf_press_dpad(context, DPAD_RIGHT, 2 * TICKS_PER_SECOND, 0);
-//            pbf_press_dpad(context, DPAD_UP, 2 * TICKS_PER_SECOND, 0);
+//            pbf_press_button(context, BUTTON_A, 80ms, 1000ms);
+//            pbf_press_dpad(context, DPAD_RIGHT, 2000ms, 0ms);
+//            pbf_press_dpad(context, DPAD_UP, 2000ms, 0ms);
 //            move_slot = 0;
-            pbf_mash_button(context, BUTTON_B, 1 * TICKS_PER_SECOND);
+            pbf_mash_button(context, BUTTON_B, 1000ms);
             continue;
         }else{
             stream.log("Current Move Slot: " + std::to_string(move_slot), COLOR_BLUE);
@@ -227,7 +227,7 @@ StateMachineAction run_move_select(
 
         if (cheer_only){
             stream.log("Choosing move Cheer. (you are dead)", COLOR_PURPLE);
-//            pbf_mash_button(context, BUTTON_A, 2 * TICKS_PER_SECOND);
+//            pbf_mash_button(context, BUTTON_A, 2000ms);
 //            context.wait_for_all_requests();
             break;
         }
@@ -240,12 +240,12 @@ StateMachineAction run_move_select(
         stream.log("Choosing move " + std::to_string((int)move.first) + (move.second ? " (dmax)." : "."), COLOR_PURPLE);
 
         if (player.can_dmax && move.second){
-            pbf_press_dpad(context, DPAD_LEFT, 10, 50);
-            pbf_press_button(context, BUTTON_A, 10, TICKS_PER_SECOND);
+            pbf_press_dpad(context, DPAD_LEFT, 80ms, 400ms);
+            pbf_press_button(context, BUTTON_A, 80ms, 1000ms);
             player.dmax_turns_left = 3;
         }
         while (state.move_slot != move.first){
-            pbf_press_dpad(context, DPAD_DOWN, 10, 50);
+            pbf_press_dpad(context, DPAD_DOWN, 80ms, 400ms);
             state.move_slot++;
             state.move_slot %= 4;
         }
@@ -349,7 +349,7 @@ StateMachineAction throw_balls(
     }
 
     BattleBallReader reader(stream, language);
-    pbf_press_button(context, BUTTON_A, 50, 75);
+    pbf_press_button(context, BUTTON_A, 400ms, 600ms);
     context.wait_for_all_requests();
 
     int16_t balls = move_to_ball(reader, stream, context, ball);

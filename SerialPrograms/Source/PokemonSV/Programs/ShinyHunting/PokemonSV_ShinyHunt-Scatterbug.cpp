@@ -15,6 +15,7 @@
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSV/Inference/Boxes/PokemonSV_IvJudgeReader.h"
 #include "PokemonSV/Inference/Battles/PokemonSV_EncounterWatcher.h"
@@ -152,7 +153,7 @@ void ShinyHuntScatterbug::program(SingleSwitchProgramEnvironment& env, ProContro
     ShinyHuntScatterbug_Descriptor::Stats& stats = env.current_stats<ShinyHuntScatterbug_Descriptor::Stats>();
 
     //  Connect the controller.
-    pbf_press_button(context, BUTTON_L, 10, 50);
+    require_player(env.console, context, BUTTON_L);
 
     assert_16_9_720p_min(env.logger(), env.console);
 
@@ -187,14 +188,14 @@ void ShinyHuntScatterbug::program(SingleSwitchProgramEnvironment& env, ProContro
         try{
             run_one_sandwich_iteration(env, context);
             consecutive_failures = 0;
-        }catch(OperationFailedException& e){
+        }catch (OperationFailedException& e){
             stats.m_errors++;
             env.update_stats();
             e.send_notification(env, NOTIFICATION_ERROR_RECOVERABLE);
 
             if (SAVE_DEBUG_VIDEO){
                 // Take a video to give more context for debugging
-                pbf_press_button(context, BUTTON_CAPTURE, 2 * TICKS_PER_SECOND, 2 * TICKS_PER_SECOND);
+                pbf_press_button(context, BUTTON_CAPTURE, 2000ms, 2000ms);
                 context.wait_for_all_requests();
             }
 
@@ -220,7 +221,7 @@ void ShinyHuntScatterbug::program(SingleSwitchProgramEnvironment& env, ProContro
             ++stats.m_game_resets;
             env.update_stats();
 
-        }catch(ProgramFinishedException&){
+        }catch (ProgramFinishedException&){
             GO_HOME_WHEN_DONE.run_end_of_program(context);
             throw;
         }
@@ -332,13 +333,13 @@ void ShinyHuntScatterbug::run_one_sandwich_iteration(
             // Orient camera to look at same direction as player character
             // This is needed because when save-load the game, the camera is reset
             // to this location.
-            pbf_press_button(context, BUTTON_L, 50, 40);
+            pbf_press_button(context, BUTTON_L, 400ms, 320ms);
             // Move forward
-            pbf_move_left_joystick(context, 128, 0, 180, 0);
+            pbf_move_left_joystick(context, {0, +1}, 1440ms, 0ms);
             if (!SKIP_SANDWICH){
                 picnic_from_overworld(env.program_info(), env.console, context);
 
-                pbf_move_left_joystick(context, 128, 0, 30, 40);
+                pbf_move_left_joystick(context, {0, +1}, 240ms, 320ms);
                 enter_sandwich_recipe_list(env.program_info(), env.console, context);
                 make_sandwich_option(env, env.console, context, SANDWICH_OPTIONS);
                 last_sandwich_time = current_time();
@@ -412,40 +413,40 @@ void ShinyHuntScatterbug::run_lets_go_iteration(SingleSwitchProgramEnvironment& 
     // Orient camera to look at same direction as player character
     // This is needed because when save-load the game, the camera is reset
     // to this location.
-    pbf_press_button(context, BUTTON_L, 50, 40);
+    pbf_press_button(context, BUTTON_L, 400ms, 320ms);
 
     const bool throw_ball_if_bubble = true;
 
     auto move_forward_with_lets_go = [&](int num_iterations){
         context.wait_for_all_requests();
-        for(int i = 0; i < num_iterations; i++){
+        for (int i = 0; i < num_iterations; i++){
             use_lets_go_to_clear_in_front(console, context, *m_encounter_tracker, throw_ball_if_bubble, [&](ProControllerContext& context){
                 // Do the following movement while the Let's Go pokemon clearing wild pokemon.
                 // Slowly Moving forward
-                pbf_move_left_joystick(context, 128, 105, 800, 0);
+                pbf_move_left_joystick(context, {0, +0.18}, 6400ms, 0ms);
             });
         }
     };
 
     if (path_id == 0){
         // move rightward, to the west
-        pbf_move_left_joystick(context, 255, 128, 100, 20);
+        pbf_move_left_joystick(context, {+1, 0}, 800ms, 160ms);
         // Align camera
-        pbf_press_button(context, BUTTON_L, 50, 40);
+        pbf_press_button(context, BUTTON_L, 400ms, 320ms);
 
         move_forward_with_lets_go(10);
     }else{ // path_id == 1
         // move leftward, to the east
-        pbf_move_left_joystick(context, 0, 128, 100, 20);
+        pbf_move_left_joystick(context, {-1, 0}, 800ms, 160ms);
         // Align camera
-        pbf_press_button(context, BUTTON_L, 50, 40);
+        pbf_press_button(context, BUTTON_L, 400ms, 320ms);
 
         move_forward_with_lets_go(5);
 
         // move rightward, to south
-        pbf_move_left_joystick(context, 255, 128, 50, 20);
+        pbf_move_left_joystick(context, {+1, 0}, 400ms, 160ms);
         // Align camera
-        pbf_press_button(context, BUTTON_L, 50, 40);
+        pbf_press_button(context, BUTTON_L, 400ms, 320ms);
 
         move_forward_with_lets_go(5);
     }

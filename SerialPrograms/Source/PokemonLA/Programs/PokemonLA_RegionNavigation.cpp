@@ -29,37 +29,37 @@ namespace PokemonLA{
 void goto_professor(Logger& logger, ProControllerContext& context, Camp camp){
     switch (camp){
     case Camp::FIELDLANDS_FIELDLANDS:
-        pbf_move_left_joystick(context, 255, 0, 125, 0);
+        pbf_move_left_joystick(context, {+1, +1}, 1000ms, 0ms);
         return;
     case Camp::FIELDLANDS_HEIGHTS:
-        pbf_move_left_joystick(context, 240, 0, 200, 0);
+        pbf_move_left_joystick(context, {+0.882, +1}, 1600ms, 0ms);
         return;
     case Camp::MIRELANDS_MIRELANDS:
-        pbf_move_left_joystick(context, 255, 64, 160, 0);
+        pbf_move_left_joystick(context, {+1, +0.5}, 1280ms, 0ms);
         return;
     case Camp::MIRELANDS_BOGBOUND:
-        pbf_move_left_joystick(context, 255, 64, 140, 0);
+        pbf_move_left_joystick(context, {+1, +0.5}, 1120ms, 0ms);
         return;
     case Camp::COASTLANDS_BEACHSIDE:
-        pbf_move_left_joystick(context, 255, 96, 125, 0);
+        pbf_move_left_joystick(context, {+1, +0.25}, 1000ms, 0ms);
         return;
     case Camp::COASTLANDS_COASTLANDS:
-        pbf_move_left_joystick(context, 255, 48, 105, 0);
+        pbf_move_left_joystick(context, {+1, +0.625}, 840ms, 0ms);
         return;
     case Camp::HIGHLANDS_HIGHLANDS:
-        pbf_move_left_joystick(context, 255, 64, 176, 0);
+        pbf_move_left_joystick(context, {+1, +0.5}, 1408ms, 0ms);
         return;
     case Camp::HIGHLANDS_MOUNTAIN:
-        pbf_move_left_joystick(context, 255, 32, 125, 0);
+        pbf_move_left_joystick(context, {+1, +0.75}, 1000ms, 0ms);
         return;
     case Camp::HIGHLANDS_SUMMIT:
-        pbf_move_left_joystick(context, 255, 0, 125, 0);
+        pbf_move_left_joystick(context, {+1, +1}, 1000ms, 0ms);
         return;
     case Camp::ICELANDS_SNOWFIELDS:
-        pbf_move_left_joystick(context, 255, 56, 125, 0);
+        pbf_move_left_joystick(context, {+1, +0.562}, 1000ms, 0ms);
         return;
     case Camp::ICELANDS_ICEPEAK:
-        pbf_move_left_joystick(context, 255, 48, 75, 0);
+        pbf_move_left_joystick(context, {+1, +0.625}, 600ms, 0ms);
         return;
     default:
         throw InternalProgramError(
@@ -92,7 +92,7 @@ void from_professor_return_to_jubilife(
             stream, context,
             [](ProControllerContext& context){
                 for (size_t c = 0; c < 20; c++){
-                    pbf_press_button(context, BUTTON_A, 20, 125);
+                    pbf_press_button(context, BUTTON_A, 160ms, 1000ms);
                 }
             },
             {
@@ -105,16 +105,16 @@ void from_professor_return_to_jubilife(
         switch (ret){
         case 0:
             stream.log("Detected return option...");
-            pbf_press_dpad(context, DPAD_DOWN, 20, 105);
+            pbf_press_dpad(context, DPAD_DOWN, 160ms, 840ms);
             mash_A_to_change_region(env, stream, context);
             return;
         case 1:
             stream.log("Detected report research option...");
-            pbf_press_button(context, BUTTON_A, 20, 125);
+            pbf_press_button(context, BUTTON_A, 160ms, 1000ms);
             break;
         case 2:
             stream.log("Backing out of Pokedex...");
-            pbf_mash_button(context, BUTTON_B, 20);
+            pbf_mash_button(context, BUTTON_B, 160ms);
             break;
         default:
             OperationFailedException::fire(
@@ -134,7 +134,7 @@ void mash_A_to_enter_sub_area(
     int ret = run_until<ProControllerContext>(
         stream, context,
         [](ProControllerContext& context){
-            pbf_mash_button(context, BUTTON_A, 7 * TICKS_PER_SECOND);
+            pbf_mash_button(context, BUTTON_A, 7000ms);
         },
         {{black_screen0}}
     );
@@ -223,13 +223,13 @@ void open_travel_map_from_jubilife(
     ProgramEnvironment& env, VideoStream& stream, ProControllerContext& context,
     bool fresh_from_reset
 ){
-    pbf_move_left_joystick(context, 128, 255, 200, 0);
+    pbf_move_left_joystick(context, {0, -1}, 1600ms, 0ms);
     MapDetector detector;
     int ret = run_until<ProControllerContext>(
         stream, context,
         [](ProControllerContext& context){
             for (size_t c = 0; c < 10; c++){
-                pbf_press_button(context, BUTTON_A, 20, 105);
+                pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             }
         },
         {{detector}}
@@ -280,7 +280,7 @@ void goto_camp_from_jubilife(
         if (current_region == location.region){
             break;
         }
-        pbf_press_dpad(context, direction, 20, 40);
+        pbf_press_dpad(context, direction, 160ms, 320ms);
         context.wait_for_all_requests();
     }
     if (current_region != location.region){
@@ -292,9 +292,9 @@ void goto_camp_from_jubilife(
     }
 
     if (location.warp_slot != 0){
-        pbf_press_button(context, BUTTON_A, 20, 105);
+        pbf_press_button(context, BUTTON_A, 160ms, 840ms);
         for (size_t c = 0; c < location.warp_slot; c++){
-            pbf_press_dpad(context, DPAD_DOWN, 20, 30);
+            pbf_press_dpad(context, DPAD_DOWN, 160ms, 240ms);
         }
     }
 
@@ -311,7 +311,7 @@ void goto_camp_from_jubilife(
     // It's a settlement or arena that requires another warp:
 
     //  Open the map.
-    pbf_press_button(context, BUTTON_MINUS, 20, 30);
+    pbf_press_button(context, BUTTON_MINUS, 160ms, 240ms);
     {
         MapDetector detector;
         int ret = wait_until(
@@ -331,7 +331,7 @@ void goto_camp_from_jubilife(
     }
 
     //  Warp to sub-camp.
-    pbf_press_button(context, BUTTON_X, 20, 30);
+    pbf_press_button(context, BUTTON_X, 160ms, 240ms);
     {
         ButtonDetector detector(
             stream.logger(), stream.overlay(),
@@ -352,12 +352,12 @@ void goto_camp_from_jubilife(
             );
         }
     }
-    pbf_wait(context, 50);
+    pbf_wait(context, 400ms);
     for (size_t c = 0; c < location.warp_sub_slot; c++){
         const DpadPosition dir = (location.reverse_sub_menu_direction ? DPAD_UP : DPAD_DOWN);
-        pbf_press_dpad(context, dir, 20, 30);
+        pbf_press_dpad(context, dir, 160ms, 240ms);
     }
-    pbf_mash_button(context, BUTTON_A, 125);
+    pbf_mash_button(context, BUTTON_A, 1000ms);
 
     BlackScreenOverWatcher black_screen(COLOR_RED, {0.1, 0.1, 0.8, 0.6});
     int ret = wait_until(
@@ -409,7 +409,7 @@ void goto_camp_from_overworld(
         }
 
         //  Open the map.
-        pbf_press_button(context, BUTTON_MINUS, 20, 30);
+        pbf_press_button(context, BUTTON_MINUS, 160ms, 240ms);
         {
             MapDetector detector;
             int ret = wait_until(
@@ -420,7 +420,7 @@ void goto_camp_from_overworld(
             if (ret < 0){
 //                dump_image(stream.logger(), env.program_info(), "MapNotDetected", stream.video().snapshot());
                 stream.log("Map not detected after 5 seconds.", COLOR_RED);
-                pbf_mash_button(context, BUTTON_B, TICKS_PER_SECOND);
+                pbf_mash_button(context, BUTTON_B, 1000ms);
                 context.wait_for_all_requests();
                 continue;
             }
@@ -429,7 +429,7 @@ void goto_camp_from_overworld(
         }
 
         //  Try to fly back to camp.
-        pbf_press_button(context, BUTTON_X, 20, 30);
+        pbf_press_button(context, BUTTON_X, 160ms, 240ms);
 
         {
             ButtonDetector detector(
@@ -445,13 +445,13 @@ void goto_camp_from_overworld(
             );
             if (ret >= 0){
                 stream.log("Flying back to camp...");
-                pbf_mash_button(context, BUTTON_A, 125);
+                pbf_mash_button(context, BUTTON_A, 1000ms);
                 break;
             }
             stream.log("Unable to fly. Are you under attack?", COLOR_RED);
         }
 
-        pbf_mash_button(context, BUTTON_B, 125);
+        pbf_mash_button(context, BUTTON_B, 1000ms);
         grace_period = std::chrono::seconds(5);
     }
 
@@ -497,7 +497,7 @@ void fast_travel_from_overworld(
         }
 
         //  Open the map.
-        pbf_press_button(context, BUTTON_MINUS, 20, 30);
+        pbf_press_button(context, BUTTON_MINUS, 160ms, 240ms);
         {
             MapDetector detector;
             int ret = wait_until(
@@ -517,7 +517,7 @@ void fast_travel_from_overworld(
         }
 
         //  Warp to sub-camp.
-        pbf_press_button(context, BUTTON_X, 20, 30);
+        pbf_press_button(context, BUTTON_X, 160ms, 240ms);
         {
             ButtonDetector detector(
                 stream.logger(), stream.overlay(),
@@ -532,22 +532,22 @@ void fast_travel_from_overworld(
             );
             if (ret >= 0){
                 stream.log("Fast traveling...");
-                pbf_wait(context, 50);
+                pbf_wait(context, 400ms);
                 if (location.warp_slot != 0){
                     for (size_t c = 0; c < location.warp_slot; c++){
-                        pbf_press_dpad(context, DPAD_DOWN, 20, 30);
+                        pbf_press_dpad(context, DPAD_DOWN, 160ms, 240ms);
                     }
                 }
                 for (size_t c = 0; c < location.warp_sub_slot; c++){
                     const DpadPosition dir = (location.reverse_sub_menu_direction ? DPAD_UP : DPAD_DOWN);
-                    pbf_press_dpad(context, dir, 20, 30);
+                    pbf_press_dpad(context, dir, 160ms, 240ms);
                 }
-                pbf_mash_button(context, BUTTON_A, 125);
+                pbf_mash_button(context, BUTTON_A, 1000ms);
                 break;
             }
         }
 
-        pbf_mash_button(context, BUTTON_B, 125);
+        pbf_mash_button(context, BUTTON_B, 1000ms);
         grace_period = std::chrono::seconds(5);
     }
     BlackScreenOverWatcher black_screen(COLOR_RED, {0.1, 0.1, 0.8, 0.6});
@@ -575,21 +575,21 @@ void goto_Mai_from_camp(
     switch (camp){
     case Camp::FIELDLANDS_FIELDLANDS:
         // 80 - 128, time - 400
-        pbf_move_left_joystick(context, 85, 255, 300, 0);
+        pbf_move_left_joystick(context, {-0.336, -1}, 2400ms, 0ms);
         return;
     case Camp::MIRELANDS_MIRELANDS:
-        pbf_move_left_joystick(context, 0, 120, 310, 0);
+        pbf_move_left_joystick(context, {-1, +0.062}, 2480ms, 0ms);
         return;
     case Camp::COASTLANDS_BEACHSIDE:
         // 255, 150 -170, 600 too long
-        pbf_move_left_joystick(context, 255, 165, 550, 0);
+        pbf_move_left_joystick(context, {+1, -0.291}, 4400ms, 0ms);
         return;
     case Camp::HIGHLANDS_HIGHLANDS:
         // 255, 150 - 170
-        pbf_move_left_joystick(context, 255, 165, 370, 0);
+        pbf_move_left_joystick(context, {+1, -0.291}, 2960ms, 0ms);
         return;
     case Camp::ICELANDS_SNOWFIELDS:
-        pbf_move_left_joystick(context, 255, 124, 250, 0);
+        pbf_move_left_joystick(context, {+1, +0.031}, 2000ms, 0ms);
         return;
     default:
         throw InternalProgramError(

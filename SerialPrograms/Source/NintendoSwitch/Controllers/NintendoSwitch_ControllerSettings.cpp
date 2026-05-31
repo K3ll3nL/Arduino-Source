@@ -5,13 +5,18 @@
  */
 
 #include <chrono>
-#include "Common/CRC32.h"
+#include <set>
+#include "Common/CRC32/pabb_CRC32.h"
 #include "CommonFramework/Logging/Logger.h"
+//#include "CommonFramework/PersistentSettings.h"
+#include "CommonFramework/Panels/PanelTools.h"
+#include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch_ControllerSettings.h"
 
 //#include <iostream>
 //using std::cout;
 //using std::endl;
+//#include "Common/Cpp/PrettyPrint.h"
 
 namespace PokemonAutomation{
 namespace NintendoSwitch{
@@ -63,7 +68,8 @@ struct JoyconColors : public ControllerColors{
     virtual void write_to_profile(ControllerProfile& profile, ControllerType controller) const override{
         profile.official_name = name;
         switch (controller){
-        case ControllerType::NintendoSwitch_WirelessProController:{
+        case ControllerType::NintendoSwitch_WirelessProController:
+        case ControllerType::NintendoSwitch_WiredProController:{
             //  Set the grips to the joycon colors.
             profile.left_grip = left_body;
             profile.right_grip = right_body;
@@ -71,11 +77,13 @@ struct JoyconColors : public ControllerColors{
             profile.button_color = average_colors(left_body, right_body);
             break;
         }
-        case ControllerType::NintendoSwitch_LeftJoycon:
+        case ControllerType::NintendoSwitch_WiredLeftJoycon:
+        case ControllerType::NintendoSwitch_WirelessLeftJoycon:
             profile.button_color = left_buttons;
             profile.body_color = left_body;
             break;
-        case ControllerType::NintendoSwitch_RightJoycon:
+        case ControllerType::NintendoSwitch_WiredRightJoycon:
+        case ControllerType::NintendoSwitch_WirelessRightJoycon:
             profile.button_color = right_buttons;
             profile.body_color = right_body;
             break;
@@ -106,7 +114,8 @@ struct ProconColors : public ControllerColors{
     virtual void write_to_profile(ControllerProfile& profile, ControllerType controller) const override{
         profile.official_name = name;
         switch (controller){
-        case ControllerType::NintendoSwitch_WirelessProController:{
+        case ControllerType::NintendoSwitch_WirelessProController:
+        case ControllerType::NintendoSwitch_WiredProController:{
             //  Set the grips to the joycon colors.
             profile.left_grip = left_grip;
             profile.right_grip = right_grip;
@@ -114,11 +123,13 @@ struct ProconColors : public ControllerColors{
             profile.button_color = buttons;
             break;
         }
-        case ControllerType::NintendoSwitch_LeftJoycon:
+        case ControllerType::NintendoSwitch_WiredLeftJoycon:
+        case ControllerType::NintendoSwitch_WirelessLeftJoycon:
             profile.button_color = buttons;
             profile.body_color = left_grip;
             break;
-        case ControllerType::NintendoSwitch_RightJoycon:
+        case ControllerType::NintendoSwitch_WiredRightJoycon:
+        case ControllerType::NintendoSwitch_WirelessRightJoycon:
             profile.button_color = buttons;
             profile.body_color = right_grip;
             break;
@@ -218,8 +229,8 @@ const StringSelectDatabase& CONTROLLER_DATABASE(){
 const EnumDropdownDatabase<ControllerType>& ControllerSettingsType_Database(){
     static const EnumDropdownDatabase<ControllerType> database({
         {ControllerType::NintendoSwitch_WirelessProController,  "pro-controller",   "NS1: Pro Controller"},
-        {ControllerType::NintendoSwitch_LeftJoycon,             "left-joycon",      "NS1: Left Joycon"},
-        {ControllerType::NintendoSwitch_RightJoycon,            "right-joycon",     "NS1: Right Joycon"},
+        {ControllerType::NintendoSwitch_WirelessLeftJoycon,     "left-joycon",      "NS1: Left Joycon"},
+        {ControllerType::NintendoSwitch_WirelessRightJoycon,    "right-joycon",     "NS1: Right Joycon"},
     });
     return database;
 }
@@ -227,6 +238,7 @@ const EnumDropdownDatabase<ControllerType>& ControllerSettingsType_Database(){
 
 
 ControllerSettingsRow::~ControllerSettingsRow(){
+    randomize.remove_listener(static_cast<ButtonListener&>(*this));
     official_color.remove_listener(*this);
 #if 1
     right_grip.remove_listener(*this);
@@ -236,7 +248,7 @@ ControllerSettingsRow::~ControllerSettingsRow(){
 #endif
     controller.remove_listener(*this);
 }
-ControllerSettingsRow::ControllerSettingsRow(EditableTableOption& parent_table)
+ControllerSettingsRow::ControllerSettingsRow(EditableTableOption& parent_table, bool random_profile)
     : EditableTableRow(parent_table)
     , name(false, LockMode::UNLOCK_WHILE_RUNNING, "", "COM3")
     , controller_mac_address(LockMode::UNLOCK_WHILE_RUNNING, 6, nullptr)
@@ -270,6 +282,7 @@ ControllerSettingsRow::ControllerSettingsRow(EditableTableOption& parent_table)
         LockMode::UNLOCK_WHILE_RUNNING,
         0
     )
+    , randomize("Randomize")
     , m_pending_official_load(0)
 {
     add_option(name, "Name");
@@ -279,9 +292,12 @@ ControllerSettingsRow::ControllerSettingsRow(EditableTableOption& parent_table)
     add_option(body_color, "Body");
     add_option(left_grip, "Left Grip");
     add_option(right_grip, "Right Grip");
+    add_option(randomize, "Randomize");
     add_option(official_color, "Official Color");
 
-    set_profile(ControllerSettingsTable::random_profile(controller));
+    if (random_profile){
+        set_profile(ControllerSettingsTable::random_profile(controller, nullptr));
+    }
 
     controller.add_listener(*this);
 #if 1
@@ -291,6 +307,7 @@ ControllerSettingsRow::ControllerSettingsRow(EditableTableOption& parent_table)
     right_grip.add_listener(*this);
 #endif
     official_color.add_listener(*this);
+    randomize.add_listener(static_cast<ButtonListener&>(*this));
 }
 std::unique_ptr<EditableTableRow> ControllerSettingsRow::clone() const{
     std::unique_ptr<ControllerSettingsRow> ret(new ControllerSettingsRow(parent()));
@@ -317,9 +334,15 @@ void ControllerSettingsRow::on_config_value_changed(void* object){
     }
 
     if (object == &controller){
-        ConfigOptionState state = controller == ControllerType::NintendoSwitch_WirelessProController
-            ? ConfigOptionState::ENABLED
-            : ConfigOptionState::HIDDEN;
+        ConfigOptionState state;
+        switch (controller){
+        case ControllerType::NintendoSwitch_WirelessProController:
+        case ControllerType::NintendoSwitch_WiredProController:
+            state = ConfigOptionState::ENABLED;
+            break;
+        default:
+            state = ConfigOptionState::HIDDEN;
+        }
         left_grip.set_visibility(state);
         right_grip.set_visibility(state);
 
@@ -350,18 +373,22 @@ void ControllerSettingsRow::on_config_value_changed(void* object){
     }
 
 }
+void ControllerSettingsRow::on_press(){
+    set_profile(ControllerSettingsTable::random_profile(controller, nullptr));
+}
 
 
 
 
 ControllerSettingsTable::ControllerSettingsTable()
     : EditableTableOption_t<ControllerSettingsRow>(
-        "<b>Wireless Controller Settings:</b><br>"
-        "Changes take effect after resetting the device."
-        "<br><br>"
+        "<b>OEM Controller Settings:</b><br><br>"
+        "The OEM controllers (official Joycons and Pro Controller) support colors. "
+        "This table will let you customize those colors."
+        "<br>"
         "The \"Name\" column is an arbitrary text field to help you identify which device it is. "
         "By default it uses the name of the serial port. But this can be misleading if the port has changed. "
-        "<br><br>"
+        "<br>"
         "Do not change the MAC address as it is used to identify which device the row belongs to. "
         "Changing it will not actually change the MAC address of the device."
         "<br><br>"
@@ -379,22 +406,107 @@ std::vector<std::string> ControllerSettingsTable::make_header() const{
         "Body",
         "Left Grip",
         "Right Grip",
+        "",
         "Quick Select",
     };
 }
 
 
+uint32_t invert_RGB32(uint32_t x){
+    uint8_t r = (uint8_t)(x >> 16);
+    uint8_t g = (uint8_t)(x >>  8);
+    uint8_t b = (uint8_t)(x >>  0);
+    r = 255 - r;
+    g = 255 - g;
+    b = 255 - b;
+    return
+        ((uint32_t)r << 16) |
+        ((uint32_t)g <<  8) |
+        ((uint32_t)b <<  0);
+}
+bool is_white(uint32_t x){
+    uint8_t r = (uint8_t)(x >> 16);
+    uint8_t g = (uint8_t)(x >>  8);
+    uint8_t b = (uint8_t)(x >>  0);
+    return r >= 0xf0 && g >= 0xf0 && b >= 0xf0;
+}
+bool is_black(uint32_t x){
+    uint8_t r = (uint8_t)(x >> 16);
+    uint8_t g = (uint8_t)(x >>  8);
+    uint8_t b = (uint8_t)(x >>  0);
+    return r < 0x20 && g < 0x20 && b < 0x20;
+}
 
-ControllerProfile ControllerSettingsTable::random_profile(ControllerType controller){
+
+ControllerProfile ControllerSettingsTable::random_profile(
+    ControllerType controller,
+    const uint8_t* mac_address
+){
     const std::vector<const ControllerColors*>& DATABASE = OFFICIAL_CONTROLLER_COLORS();
+
+    //  Ban all colors are the similar to the stock colors.
+    static const std::set<std::string> BLACK_LIST{
+        "Developer Black",
+        "Stock: Grey / Grey",
+        "Procon: Stock Black",
+        "Procon: Monster Hunter Rise",
+        "Procon: Monster Hunter Sunbreak",
+    };
 
     ControllerProfile profile;
 
-    uint64_t seed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
-    seed = pabb_crc32(0, &seed, sizeof(seed));
-    seed %= DATABASE.size();
+    uint32_t seed = 0;
+    for (size_t c = 0; c < 100; c++, seed++){
+        if (mac_address){
+            pabb_crc32_buffer(&seed, mac_address, 6 * sizeof(uint8_t));
+        }else{
+            uint64_t seed64 = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+            pabb_crc32_buffer(&seed, &seed64, sizeof(seed64));
+        }
 
-    DATABASE[(size_t)seed]->write_to_profile(profile, controller);
+        size_t index = seed % DATABASE.size();
+//        cout << "index = " << index << ", seed = " << seed << ", size = " << DATABASE.size() << endl;
+
+        DATABASE[index]->write_to_profile(profile, controller);
+        if (BLACK_LIST.contains(profile.official_name)){
+            continue;
+        }
+
+//        cout << "name: " << profile.official_name << endl;
+
+        //  Apply random shuffles.
+        if (seed & 0x80000000){
+            profile.official_name.clear();
+            std::swap(profile.body_color, profile.button_color);
+        }
+        if (seed & 0x40000000){
+            profile.official_name.clear();
+            profile.body_color = invert_RGB32(profile.body_color);
+        }
+        if (seed & 0x20000000){
+            profile.official_name.clear();
+            profile.left_grip = invert_RGB32(profile.left_grip);
+        }
+        if (seed & 0x10000000){
+            profile.official_name.clear();
+            profile.right_grip = invert_RGB32(profile.right_grip);
+        }
+
+        //  Run blacklists.
+        if (is_black(profile.left_grip)){
+            continue;
+        }
+        if (is_black(profile.right_grip)){
+            continue;
+        }
+
+        break;
+    }
+
+//    cout << tostr_hex(profile.body_color) << endl;
+//    cout << tostr_hex(profile.left_grip) << endl;
+//    cout << tostr_hex(profile.right_grip) << endl;
+
     return profile;
 }
 ControllerProfile ControllerSettingsTable::get_or_make_profile(
@@ -408,16 +520,30 @@ ControllerProfile ControllerSettingsTable::get_or_make_profile(
 
     //  Only relevant to Switch controllers.
     switch (controller){
-    case ControllerType::NintendoSwitch_WiredController:
     case ControllerType::NintendoSwitch_WiredProController:
     case ControllerType::NintendoSwitch_WirelessProController:
-    case ControllerType::NintendoSwitch_LeftJoycon:
-    case ControllerType::NintendoSwitch_RightJoycon:
-    case ControllerType::NintendoSwitch2_WiredController:
-    case ControllerType::NintendoSwitch2_WiredProController:
-    case ControllerType::NintendoSwitch2_WirelessProController:
-    case ControllerType::NintendoSwitch2_LeftJoycon:
-    case ControllerType::NintendoSwitch2_RightJoycon:
+        controller = ControllerType::NintendoSwitch_WirelessProController;
+        break;
+    case ControllerType::NintendoSwitch_WiredLeftJoycon:
+    case ControllerType::NintendoSwitch_WirelessLeftJoycon:
+        controller = ControllerType::NintendoSwitch_WirelessLeftJoycon;
+        break;
+    case ControllerType::NintendoSwitch_WiredRightJoycon:
+    case ControllerType::NintendoSwitch_WirelessRightJoycon:
+        controller = ControllerType::NintendoSwitch_WirelessRightJoycon;
+        break;
+//    case ControllerType::NintendoSwitch2_WiredProController:
+//    case ControllerType::NintendoSwitch2_WirelessProController:
+//        controller = ControllerType::NintendoSwitch2_WirelessProController;
+//        break;
+//    case ControllerType::NintendoSwitch2_WiredLeftJoycon:
+//    case ControllerType::NintendoSwitch2_WirelessLeftJoycon:
+//        controller = ControllerType::NintendoSwitch2_WirelessLeftJoycon;
+//        break;
+//    case ControllerType::NintendoSwitch2_WiredRightJoycon:
+//    case ControllerType::NintendoSwitch2_WirelessRightJoycon:
+//        controller = ControllerType::NintendoSwitch2_WirelessRightJoycon;
+//        break;
         break;
     default:
         return profile;
@@ -425,7 +551,7 @@ ControllerProfile ControllerSettingsTable::get_or_make_profile(
 
     bool found = false;
     this->run_on_all_rows([&, controller](ControllerSettingsRow& row){
-        if (row.controller_mac_address != mac_address){
+        if (row.controller_mac_address != mac_address || row.controller != controller){
             return false;
         }
 
@@ -442,15 +568,21 @@ ControllerProfile ControllerSettingsTable::get_or_make_profile(
 
     global_logger_tagged().log("ControllerSettingsTable: Creating new profile...");
 
-    profile = random_profile(controller);
+    profile = random_profile(controller, mac_address);
 
-    std::unique_ptr<ControllerSettingsRow> row(new ControllerSettingsRow(*this));
+    std::unique_ptr<ControllerSettingsRow> row(new ControllerSettingsRow(*this, false));
     row->name.set(name);
     row->controller_mac_address.set(mac_address);
     row->controller.set(controller);
     row->set_profile(profile);
 
     this->append_row(std::move(row));
+//    PERSISTENT_SETTINGS().write();
+
+    //  This is brutal (tech-debt). The only way to force the settings to save
+    //  is to load the panel. TODO: Redesign panels to allow external editing.
+    //  This is also coming in from a different thread (not the main Qt thread).
+    PanelDescriptorWrapper<ConsoleSettings_Descriptor, ConsoleSettingsPanel>().make_panel()->save_settings();
 
     return profile;
 }

@@ -10,6 +10,7 @@
 #include "CommonFramework/VideoPipeline/VideoFeed.h"
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonLA/PokemonLA_Settings.h"
 #include "PokemonLA/Inference/PokemonLA_MountDetector.h"
@@ -107,16 +108,16 @@ void CrobatFinder::run_iteration(SingleSwitchProgramEnvironment& env, ProControl
     for (size_t c = 0; c < 10; c++){
         MountState mount = mount_detector.detect(env.console.video().snapshot());
         if (mount == MountState::WYRDEER_OFF){
-            pbf_press_button(context, BUTTON_PLUS, 20, 105);
+            pbf_press_button(context, BUTTON_PLUS, 160ms, 840ms);
             error = false;
             break;
         }
         if (mount == MountState::WYRDEER_ON){
-            pbf_wait(context, 5 * TICKS_PER_SECOND);
+            pbf_wait(context, 5000ms);
             error = false;
             break;
         }
-        pbf_press_dpad(context, DPAD_LEFT, 20, 50);
+        pbf_press_dpad(context, DPAD_LEFT, 160ms, 400ms);
         context.wait_for_all_requests();
     }
     if (error){
@@ -148,24 +149,24 @@ void CrobatFinder::run_iteration(SingleSwitchProgramEnvironment& env, ProControl
 
                 // FORWARD PORTION OF CAVE UNTIL LEDGE
                 pbf_press_button(context, BUTTON_B, 2200ms, 640ms); // wyrdeer sprint
-                pbf_move_left_joystick(context, 0, 128, 10, 20); // turn left
-                pbf_press_button(context, BUTTON_ZL, 20, 50); // align camera
+                pbf_move_left_joystick(context, {-1, 0},  80ms, 160ms); // turn left
+                pbf_press_button(context, BUTTON_ZL, 160ms, 400ms); // align camera
 
                 // ASCEND THE LEDGE WITH BRAVIARY
-                pbf_press_dpad(context, DPAD_RIGHT, 20, 50); // swap to braviary
+                pbf_press_dpad(context, DPAD_RIGHT, 160ms, 400ms); // swap to braviary
                 pbf_wait(context, 600ms); // wait for the ascent
                 pbf_press_button(context, BUTTON_Y, 2400ms, 160ms); // descend to swap to Wyrdeer automatically
 
                 // TO CROBAT PORTION
                 pbf_press_button(context, BUTTON_B, 1050ms, 640ms); // sprint forward for a split second
-                pbf_move_left_joystick(context, 255, 150, 10, 20); // rotate slightly right
-                pbf_press_button(context, BUTTON_ZL, 20, 70); // align camera
+                pbf_move_left_joystick(context, {+1, -0.173}, 80ms, 160ms); // rotate slightly right
+                pbf_press_button(context, BUTTON_ZL, 160ms, 560ms); // align camera
 
                 context.wait_for_all_requests();
                 destination_time = current_time();
                 shiny_action.store(&SHINY_DETECTED_DESTINATION, std::memory_order_release);
 
-                pbf_move_left_joystick(context, 128, 0, (uint16_t)(3.8 * TICKS_PER_SECOND), 0); // forward to crobat check
+                pbf_move_left_joystick(context, {0, +1}, 3800ms, 0ms); // forward to crobat check
 
             },
             {{shiny_detector}}
@@ -189,7 +190,7 @@ void CrobatFinder::program(SingleSwitchProgramEnvironment& env, ProControllerCon
     CrobatFinder_Descriptor::Stats& stats = env.current_stats<CrobatFinder_Descriptor::Stats>();
 
     //  Connect the controller.
-    pbf_press_button(context, BUTTON_LCLICK, 5, 5);
+    require_player(env.console, context, BUTTON_LCLICK);
 
     while (true){
         env.update_stats();

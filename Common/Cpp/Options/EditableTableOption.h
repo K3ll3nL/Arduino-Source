@@ -70,7 +70,7 @@ private:
 
 
 //  This is the table itself.
-class EditableTableOption : public ConfigOption{
+class EditableTableOption : public ConfigOptionImpl<EditableTableOption>{
 public:
     EditableTableOption(
         std::string label,
@@ -85,8 +85,12 @@ public:
     );
     void set_default(std::vector<std::unique_ptr<EditableTableRow>> default_value);
 
+
 public:
     const std::string& label() const{ return m_label; }
+    const std::vector<std::unique_ptr<EditableTableRow>>& defaults() const{
+        return m_default;
+    }
 
     //  Returns the # of rows at this moment of time.
     //  Since this value can be out-of-date before you return, do not use
@@ -128,6 +132,15 @@ public:
 
     //  Lambda returns a boolean. False to continue running. True to stop.
     template <typename RowType, typename Lambda>
+    void run_on_all_rows(Lambda function) const{
+        ReadSpinLock lg(m_current_lock);
+        for (auto& item : m_current){
+            if (function(static_cast<const RowType&>(*item))){
+                return;
+            }
+        }
+    }
+    template <typename RowType, typename Lambda>
     void run_on_all_rows(Lambda function){
         ReadSpinLock lg(m_current_lock);
         for (auto& item : m_current){
@@ -145,6 +158,7 @@ public:
     virtual std::string check_validity() const override;
     virtual void restore_defaults() override final;
 
+
 public:
     bool saveload_enabled() const{ return m_enable_saveload; }
     virtual std::vector<std::string> make_header() const = 0;
@@ -156,8 +170,6 @@ public:
     void clone_row(const EditableTableRow& row);
     void remove_row(EditableTableRow& row);
 
-public:
-    virtual ConfigWidget* make_QtWidget(QWidget& parent) override;
 
 private:
     const std::string m_label;

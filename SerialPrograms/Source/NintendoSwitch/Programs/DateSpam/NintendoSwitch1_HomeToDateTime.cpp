@@ -94,12 +94,12 @@ void home_to_date_time_Switch1_wired_blind(
     //  confirmation menus.
     ssf_issue_scroll(context, SSF_SCROLL_LEFT, 0ms);
 }
-void home_to_date_time_Switch1_wireless_esp32_blind(
+void home_to_date_time_Switch1_wireless_blind(
     Logger& logger, ProControllerContext& context, bool to_date_change
 ){
     ThrottleScope scope(context->logging_throttler());
     if (scope){
-        context->logger().log("NintendoSwitch::home_to_date_time_Switch1_wireless_esp32_blind()");
+        context->logger().log("NintendoSwitch::home_to_date_time_Switch1_wireless_blind()");
     }
 
     Milliseconds tv = context->timing_variation();
@@ -200,7 +200,7 @@ void home_to_date_time_Switch1_sbb_blind(
     ssf_issue_scroll_ptv(context, SSF_SCROLL_DOWN);
     ssf_issue_scroll_ptv(context, SSF_SCROLL_DOWN);
     ssf_issue_scroll(context, SSF_SCROLL_DOWN, 500ms, tv, tv);
-    ssf_press_right_joystick(context, 128, 224, 1000ms, 300ms, tv);
+    ssf_press_right_joystick(context, {0, -0.75}, 1000ms, 300ms, tv);
 //        ssf_issue_scroll(context, SSF_SCROLL_DOWN, 1000ms, 250ms, tv);  //  Scroll down
     ssf_issue_scroll_ptv(context, SSF_SCROLL_DOWN);
     ssf_issue_scroll_ptv(context, SSF_SCROLL_DOWN);
@@ -361,16 +361,16 @@ void home_to_date_time_Switch1_wired_feedback(
 
 }
 
-void home_to_date_time_Switch1_wireless_esp32_feedback(
+void home_to_date_time_Switch1_wireless_feedback(
     VideoStream& stream, ProControllerContext& context, bool to_date_change
 ){
-    stream.log("home_to_date_time_Switch1_wireless_esp32_feedback()");
+    stream.log("home_to_date_time_Switch1_wireless_feedback()");
 
     size_t max_attempts = 5;
     for (size_t i = 0; i < max_attempts; i++){
         ThrottleScope scope(context->logging_throttler());
         if (scope){
-            context->logger().log("NintendoSwitch::home_to_date_time_Switch1_wireless_esp32_feedback()");
+            context->logger().log("NintendoSwitch::home_to_date_time_Switch1_wireless_feedback()");
         }
 
         Milliseconds tv = context->timing_variation();
@@ -416,7 +416,7 @@ void home_to_date_time_Switch1_wireless_esp32_feedback(
         );
         if (ret < 0){  // failed to detect "System" being highlighted. press home and re-try
             pbf_press_button(context, BUTTON_HOME, 100ms, 2000ms);
-            stream.log("home_to_date_time_Switch1_wireless_esp32_feedback: Failed to detect 'System' being highlighted. Re-try", COLOR_YELLOW);
+            stream.log("home_to_date_time_Switch1_wireless_feedback: Failed to detect 'System' being highlighted. Re-try", COLOR_YELLOW);
             continue;
         }        
 
@@ -454,7 +454,7 @@ void home_to_date_time_Switch1_wireless_esp32_feedback(
         );
         if (ret < 0){  // failed to detect "Synchronize clock" being highlighted. press home and re-try
             pbf_press_button(context, BUTTON_HOME, 100ms, 2000ms);
-            stream.log("home_to_date_time_Switch1_wireless_esp32_feedback: Failed to detect 'Synchronize clock' being highlighted. Re-try", COLOR_YELLOW);
+            stream.log("home_to_date_time_Switch1_wireless_feedback: Failed to detect 'Synchronize clock' being highlighted. Re-try", COLOR_YELLOW);
             continue;
         }
 
@@ -502,15 +502,15 @@ void home_to_date_time_Switch1_joycon_blind(JoyconContext& context, bool to_date
     //From ControllerPerformanceClass::SerialPABotBase_Wireless
     //as Joycon will only have that controller type
 
-    pbf_move_joystick(context, 255, 128, unit, unit);
-    pbf_move_joystick(context, 255, 128, unit, unit);
-    pbf_move_joystick(context, 255, 128, unit, unit);
+    pbf_move_joystick(context, {+1, 0}, unit, unit);
+    pbf_move_joystick(context, {+1, 0}, unit, unit);
+    pbf_move_joystick(context, {+1, 0}, unit, unit);
 
     //  Down twice in case we drop one.
-    pbf_move_joystick(context, 128, 255, unit, unit);
-    pbf_move_joystick(context, 128, 255, unit, unit);
+    pbf_move_joystick(context, {0, -1}, unit, unit);
+    pbf_move_joystick(context, {0, -1}, unit, unit);
 
-    pbf_move_joystick(context, 0, 128, unit, unit);
+    pbf_move_joystick(context, {-1, 0}, unit, unit);
 
     //  Press A multiple times to make sure one goes through.
     pbf_press_button(context, BUTTON_A, unit, unit);
@@ -518,17 +518,17 @@ void home_to_date_time_Switch1_joycon_blind(JoyconContext& context, bool to_date
     pbf_press_button(context, BUTTON_A, unit, unit);
 
     // Scroll to System, move right to top option (update)
-    pbf_move_joystick(context, 128, 255, 2500ms, unit);
-    pbf_move_joystick(context, 255, 128, 500ms, unit);
+    pbf_move_joystick(context, {0, -1}, 2500ms, unit);
+    pbf_move_joystick(context, {+1, 0}, 500ms, unit);
 
     // To date/time
-    pbf_move_joystick(context, 128, 255, unit, unit);
-    pbf_move_joystick(context, 128, 255, unit, unit);
+    pbf_move_joystick(context, {0, -1}, unit, unit);
+    pbf_move_joystick(context, {0, -1}, unit, unit);
     context.wait_for_all_requests();
-    pbf_move_joystick(context, 128, 255, 525ms, unit);
-    //pbf_move_joystick(context, 128, 255, 365ms, 305ms);
-    pbf_move_joystick(context, 128, 255, unit, unit);
-    //pbf_move_joystick(context, 128, 255, 2*unit, unit);
+    pbf_move_joystick(context, {0, -1}, 525ms, unit);
+    //pbf_move_joystick(context, {0, -1}, 365ms, 305ms);
+    pbf_move_joystick(context, {0, -1}, unit, unit);
+    //pbf_move_joystick(context, {0, -1}, 2*unit, unit);
     context.wait_for_all_requests();
 
     if (!to_date_change){
@@ -542,10 +542,10 @@ void home_to_date_time_Switch1_joycon_blind(JoyconContext& context, bool to_date
     {
         auto iterations = Milliseconds(216) / unit + 1;
         do{
-            pbf_move_joystick(context, 128, 255, unit, unit);
+            pbf_move_joystick(context, {0, -1}, unit, unit);
         }while (--iterations);
     }
-    pbf_move_joystick(context, 128, 255, unit, 0ms);
+    pbf_move_joystick(context, {0, -1}, unit, 0ms);
 }
 
 

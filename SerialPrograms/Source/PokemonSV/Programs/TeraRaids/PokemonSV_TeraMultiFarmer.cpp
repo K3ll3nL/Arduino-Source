@@ -13,6 +13,7 @@
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "Pokemon/Inference/Pokemon_NameReader.h"
 #include "PokemonSV/PokemonSV_Settings.h"
@@ -263,11 +264,11 @@ void TeraMultiFarmer::reset_host(const ProgramInfo& info, ConsoleHandle& console
             m_last_time_fix = now;
         }
     }
-    reset_game_from_home(info, console, context, 5 * TICKS_PER_SECOND);
+    reset_game_from_home(info, console, context, 5000ms);
 }
 void TeraMultiFarmer::reset_joiner(const ProgramInfo& info, ConsoleHandle& console, ProControllerContext& context){
     pbf_press_button(context, BUTTON_HOME, 160ms, GameSettings::instance().GAME_TO_HOME_DELAY1);
-    reset_game_from_home(info, console, context, 5 * TICKS_PER_SECOND);
+    reset_game_from_home(info, console, context, 5000ms);
 }
 bool TeraMultiFarmer::run_raid_host(ProgramEnvironment& env, ConsoleHandle& console, ProControllerContext& context){
     TeraMultiFarmer_Descriptor::Stats& stats = env.current_stats<TeraMultiFarmer_Descriptor::Stats>();
@@ -310,7 +311,7 @@ void TeraMultiFarmer::run_raid_joiner(ProgramEnvironment& env, ConsoleHandle& co
     }
 
     if (RECOVERY_MODE == RecoveryMode::SAVE_AND_RESET){
-        pbf_press_button(context, BUTTON_X, 20, 105);
+        pbf_press_button(context, BUTTON_X, 160ms, 840ms);
         save_game_from_menu(env.program_info(), console, context);
     }
 
@@ -425,7 +426,7 @@ bool TeraMultiFarmer::start_sequence_host(
 #endif
 
     //  Start the raid.
-    pbf_mash_button(context, BUTTON_A, 10 * TICKS_PER_SECOND);
+    pbf_mash_button(context, BUTTON_A, 10000ms);
 
     return true;
 }
@@ -530,6 +531,8 @@ void TeraMultiFarmer::program(MultiSwitchProgramEnvironment& env, CancellableSco
     }
     env.run_in_parallel(scope, [&](ConsoleHandle& console, ProControllerContext& context){
         assert_16_9_720p_min(console.logger(), console);
+        //  Connect the controller.
+        require_player(console, context, BUTTON_LCLICK);
     });
 
 //    Mode mode = MODE;
@@ -549,11 +552,11 @@ void TeraMultiFarmer::program(MultiSwitchProgramEnvironment& env, CancellableSco
             if (console.index() != host_index){
                 //  Do 2 presses in quick succession in case one drops or is
                 //  needed to connect the controller.
-                pbf_press_button(context, BUTTON_X, 5, 5);
-                pbf_press_button(context, BUTTON_X, 20, 105);
+                pbf_press_button(context, BUTTON_X, 40ms, 40ms);
+                pbf_press_button(context, BUTTON_X, 160ms, 840ms);
                 save_game_from_menu(env.program_info(), console, context);
             }else{
-                pbf_press_button(context, BUTTON_L, 5, 5);
+                pbf_press_button(context, BUTTON_L, 40ms, 40ms);
             }
         });
     }

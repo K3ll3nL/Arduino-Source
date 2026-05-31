@@ -39,7 +39,7 @@ TestBoxCellInfo_Descriptor::TestBoxCellInfo_Descriptor()
 {}
 
 
-TestBoxCellInfo::TestBoxCellInfo() {}
+TestBoxCellInfo::TestBoxCellInfo(){}
 
 
 // A watcher that keeps shows current box cell info
@@ -53,7 +53,7 @@ public:
     , m_env(env)
     {}
 
-    virtual ~TestBoxCellInfoWatcher() {}
+    virtual ~TestBoxCellInfoWatcher(){}
 
     virtual void make_overlays(VideoOverlaySet& items) const override{
         m_box_detector.make_overlays(items);
@@ -100,7 +100,7 @@ public:
             os << "Cell (" << int(m_last_row) << ", " << int(m_last_col) << ") ";
             if (!sth_in_cell){
                 os << "Empty";
-            } else{
+            }else{
                 os << m_info_watcher.info_str() << " Pokemon"; 
             }
             m_env.console.overlay().add_log(os.str());

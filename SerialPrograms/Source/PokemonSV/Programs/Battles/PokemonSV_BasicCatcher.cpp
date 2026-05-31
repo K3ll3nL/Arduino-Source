@@ -32,7 +32,7 @@ int move_to_ball(
     const BattleBallReader& reader,
     VideoStream& stream, ProControllerContext& context,
     const std::string& ball_slug,
-    bool forward, int attempts, uint16_t delay
+    bool forward, int attempts, Milliseconds delay
 ){
     VideoSnapshot frame = stream.video().snapshot();
     std::string first_ball = reader.read_ball(frame);
@@ -42,7 +42,7 @@ int move_to_ball(
 
     size_t repeat_counter = 0;
     for (int c = 1; c < attempts; c++){
-        pbf_press_dpad(context, forward ? DPAD_RIGHT : DPAD_LEFT, 10, delay);
+        pbf_press_dpad(context, forward ? DPAD_RIGHT : DPAD_LEFT, 80ms, delay);
         context.wait_for_all_requests();
         frame = stream.video().snapshot();
         std::string current_ball = reader.read_ball(frame);
@@ -66,7 +66,7 @@ int16_t move_to_ball(
     const std::string& ball_slug
 ){
     //  Search forward at high speed.
-    int ret = move_to_ball(reader, stream, context, ball_slug, true, 100, 40);
+    int ret = move_to_ball(reader, stream, context, ball_slug, true, 100, 320ms);
     if (ret < 0){
         return 0;
     }
@@ -76,12 +76,12 @@ int16_t move_to_ball(
     }
 
     //  Wait a second to let the video catch up.
-    pbf_wait(context, TICKS_PER_SECOND);
+    pbf_wait(context, 1000ms);
     context.wait_for_all_requests();
 
     //  Now try again in reverse at a lower speed in case we overshot.
     //  This will return immediately if we got it right the first time.
-    ret = move_to_ball(reader, stream, context, ball_slug, false, 5, TICKS_PER_SECOND);
+    ret = move_to_ball(reader, stream, context, ball_slug, false, 5, 1000ms);
     if (ret < 0){
         return 0;
     }
@@ -117,21 +117,21 @@ int16_t throw_ball(
         switch (ret){
         case 0:
             stream.log("Detected battle menu. Opening up ball selection...");
-            pbf_press_button(context, BUTTON_X, 20, 30);
+            pbf_press_button(context, BUTTON_X, 160ms, 240ms);
             break;
         case 1:
             stream.log("Detected move select. Backing out...");
-            pbf_mash_button(context, BUTTON_B, 125);
+            pbf_mash_button(context, BUTTON_B, 1000ms);
             break;
         case 2:
             stream.log("Tera catch menu. Opening up ball selection...");
             tera_catch_detector.move_to_slot(stream, context, 0);
-            pbf_press_button(context, BUTTON_A, 20, 30);
+            pbf_press_button(context, BUTTON_A, 160ms, 240ms);
             break;
         default:
             if (quantity > 0){
                 stream.log("Throwing ball...", COLOR_BLUE);
-                pbf_mash_button(context, BUTTON_A, 30);
+                pbf_mash_button(context, BUTTON_A, 240ms);
                 return quantity;
             }
             if (quantity == 0){
@@ -147,7 +147,7 @@ int16_t throw_ball(
                 );
             }
             attempts++;
-            pbf_mash_button(context, BUTTON_B, 3 * TICKS_PER_SECOND);
+            pbf_mash_button(context, BUTTON_B, 3000ms);
         }
     }
 }
@@ -222,14 +222,14 @@ CatchResults basic_catcher(
 
                 stream.log("BasicCatcher: Unable to throw ball. Attempting to use first move instead...", COLOR_RED);
                 battle_menu.move_to_slot(stream, context, 0);
-                pbf_mash_button(context, BUTTON_A, 3 * TICKS_PER_SECOND);
-                pbf_mash_button(context, BUTTON_B, 3 * TICKS_PER_SECOND);
+                pbf_mash_button(context, BUTTON_A, 3000ms);
+                pbf_mash_button(context, BUTTON_B, 3000ms);
                 last_move_attack = true;
                 break;
             }
 
             last_move_attack = false;
-            pbf_press_button(context, BUTTON_X, 20, 105);
+            pbf_press_button(context, BUTTON_X, 160ms, 840ms);
 #if 0
             context.wait_for_all_requests();
             BattleBallReader reader(stream, language, COLOR_RED);
@@ -244,7 +244,7 @@ CatchResults basic_catcher(
                 return CatchResults{CatchResult::OUT_OF_BALLS, balls_used};
             }
 #endif
-            pbf_mash_button(context, BUTTON_B, 500);
+            pbf_mash_button(context, BUTTON_B, 4000ms);
             balls_used++;
             if (on_throw_lambda){
                 on_throw_lambda();
@@ -270,12 +270,12 @@ CatchResults basic_catcher(
         case 3:
             stream.log("Detected add to party...");
             caught = true;
-            pbf_press_button(context, BUTTON_B, 20, 230);
+            pbf_press_button(context, BUTTON_B, 160ms, 1840ms);
             break;
         case 4:
             stream.log("Detected dialog...");
             caught = true;
-            pbf_press_button(context, BUTTON_B, 20, 230);
+            pbf_press_button(context, BUTTON_B, 160ms, 1840ms);
             break;
         default:
             OperationFailedException::fire(

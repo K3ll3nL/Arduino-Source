@@ -12,7 +12,7 @@
 #include <map>
 #include "Common/Compiler.h"
 #include "Common/Cpp/Time.h"
-#include "Common/Cpp/AbstractLogger.h"
+#include "Common/Cpp/Logging/AbstractLogger.h"
 //#include "Common/Cpp/CancellableScope.h"
 
 namespace PokemonAutomation{
@@ -49,7 +49,7 @@ public:
 public:
     SuperscalarScheduler(Logger& logger, WallDuration flush_threshold);
 
-    void clear_on_next(){
+    void clear_on_next() noexcept{
         m_pending_clear = true;
     }
 

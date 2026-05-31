@@ -9,6 +9,7 @@
 #include "Controllers/ControllerTypes.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSwSh/PokemonSwSh_Settings.h"
 #include "PokemonSwSh/Commands/PokemonSwSh_Commands_DateSpam.h"
@@ -59,7 +60,8 @@ void DailyHighlightFarmer::program(SingleSwitchProgramEnvironment& env, ProContr
     if (START_LOCATION.start_in_grip_menu()){
         grip_menu_connect_go_home(context);
     }else{
-        pbf_press_button(context, BUTTON_B, 5, 5);
+        //  Connect the controller.
+        require_player(env.console, context, BUTTON_B);
         ssf_press_button(context, BUTTON_HOME, GameSettings::instance().GAME_TO_HOME_DELAY_FAST0, 160ms);
     }
 
@@ -69,16 +71,16 @@ void DailyHighlightFarmer::program(SingleSwitchProgramEnvironment& env, ProContr
         env.log("Fetch Attempts: " + tostr_u_commas(c));
         home_roll_date_enter_game_autorollback(env.console, context, year);
         if (context->performance_class() == ControllerPerformanceClass::SysbotBase){
-            pbf_wait(context, 90);
+            pbf_wait(context, 720ms);
         }else{
-            pbf_mash_button(context, BUTTON_B, 90);
+            pbf_mash_button(context, BUTTON_B, 720ms);
         }
 
-        pbf_press_button(context, BUTTON_A, 10, 110);
-        pbf_press_button(context, BUTTON_ZL, 10, 40);
-        pbf_press_dpad(context, DPAD_DOWN, 10, 10);
-        pbf_mash_button(context, BUTTON_ZL, 400);
-        pbf_mash_button(context, BUTTON_B, 700);
+        pbf_press_button(context, BUTTON_A, 80ms, 880ms);
+        pbf_press_button(context, BUTTON_ZL, 80ms, 320ms);
+        pbf_press_dpad(context, DPAD_DOWN, 80ms, 80ms);
+        pbf_mash_button(context, BUTTON_ZL, 3200ms);
+        pbf_mash_button(context, BUTTON_B, 5600ms);
 
         if (SAVE_ITERATIONS0 != 0){
             save_count++;

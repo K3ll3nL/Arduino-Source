@@ -8,9 +8,9 @@
 #define PokemonAutomation_PokemonLZA_DialogDetector_H
 
 #include <optional>
-#include <atomic>
+//#include <atomic>
 #include "Common/Cpp/Color.h"
-#include "Common/Cpp/AbstractLogger.h"
+//#include "Common/Cpp/Logging/AbstractLogger.h"
 #include "CommonFramework/ImageTools/ImageBoxes.h"
 #include "CommonFramework/VideoPipeline/VideoOverlayScopes.h"
 #include "CommonTools/VisualDetector.h"
@@ -19,31 +19,6 @@
 namespace PokemonAutomation{
 namespace NintendoSwitch{
 namespace PokemonLZA{
-
-//  Detect normal dialogue that is used in cases like when you talk to npcs in most situations.
-//
-//  Don't use this as there are lot of different dialogs. Use one of the newer
-//  ones below. This was done using official screenshots before launch before
-//  we knew there were so many different dialogs.
-//
-class NormalDialogDetector : public VisualInferenceCallback{
-public:
-    NormalDialogDetector(Logger& logger, VideoOverlay& overlay, bool stop_on_detected);
-
-    bool detected() const{
-        return m_detected.load(std::memory_order_acquire);
-    }
-
-    virtual void make_overlays(VideoOverlaySet& items) const override;
-    virtual bool process_frame(const ImageViewRGB32& frame, WallClock timestamp) override;
-
-private:
-    bool m_stop_on_detected;
-    std::atomic<bool> m_detected;
-    ImageFloatBox m_title_green_line_box;
-};
-
-
 
 
 // Common white dialog box
@@ -205,6 +180,37 @@ public:
     {}
 };
 
+
+// Light blue dialog box for holograms
+class LightBlueDialogDetector : public StaticScreenDetector{
+public:
+    LightBlueDialogDetector(Color color = COLOR_RED, VideoOverlay* overlay = nullptr);
+
+    virtual void make_overlays(VideoOverlaySet& items) const override;
+
+    //  This is not const so that detectors can save/cache state.
+    virtual bool detect(const ImageViewRGB32& screen) override;
+
+private:
+    friend class LightBlueDialogWatcher;
+
+    const Color m_color;
+    VideoOverlay* m_overlay;
+    const ImageFloatBox m_corner;
+
+    ImageFloatBox m_last_detected_box;
+    std::optional<OverlayBoxScope> m_last_detected_box_scope;
+};
+class LightBlueDialogWatcher : public DetectorToFinder<LightBlueDialogDetector>{
+public:
+    LightBlueDialogWatcher(
+        Color color = COLOR_RED,
+        VideoOverlay* overlay = nullptr,
+        std::chrono::milliseconds hold_duration = std::chrono::milliseconds(250)
+    )
+         : DetectorToFinder("BlueDialogWatcher", hold_duration, color, overlay)
+    {}
+};
 
 
 }

@@ -11,6 +11,7 @@
 #include "CommonFramework/VideoPipeline/VideoFeed.h"
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "Pokemon/Inference/Pokemon_NameReader.h"
 #include "PokemonLA/PokemonLA_Settings.h"
@@ -154,7 +155,7 @@ bool RamanasCombeeFinder::handle_battle(SingleSwitchProgramEnvironment& env, Pro
 
     PokemonDetails pokemon = get_pokemon_details(env.console, context, LANGUAGE);
 
-    pbf_press_button(context, BUTTON_B, 20, 225);
+    pbf_press_button(context, BUTTON_B, 160ms, 1800ms);
 
     context.wait_for_all_requests();
 
@@ -183,50 +184,50 @@ void RamanasCombeeFinder::grouped_path(SingleSwitchProgramEnvironment& env, ProC
 
             env.console.log("Checking Tree 1");
             change_mount(env.console,context,MountState::BRAVIARY_ON);
-            pbf_move_left_joystick(context, 239, 0, 100, 20);
-            pbf_press_button(context, BUTTON_B, 2390, 0);
-            pbf_press_button(context, BUTTON_Y, 380, 0);
-            pbf_move_right_joystick(context, 127, 255, 90, 20);
+            pbf_move_left_joystick(context, {+0.874, +1}, 800ms, 160ms);
+            pbf_press_button(context, BUTTON_B, 19120ms, 0ms);
+            pbf_press_button(context, BUTTON_Y, 3040ms, 0ms);
+            pbf_move_right_joystick(context, {0, -1}, 720ms, 160ms);
             check_tree_no_stop(env, context);
 
             env.console.log("Checking Tree 2");
-            pbf_press_button(context, BUTTON_PLUS, 20, 200);
-            pbf_move_left_joystick(context, 242, 0, 100, 20);
+            pbf_press_button(context, BUTTON_PLUS, 160ms, 1600ms);
+            pbf_move_left_joystick(context, {+0.898, +1}, 800ms, 160ms);
             context.wait_for_all_requests();
             enable_shiny_sound(context);
-            pbf_press_button(context, BUTTON_B, 420, 0);
-            pbf_press_button(context, BUTTON_Y, 380, 0);
-            pbf_move_right_joystick(context, 127, 255, 90, 20);
+            pbf_press_button(context, BUTTON_B, 3360ms, 0ms);
+            pbf_press_button(context, BUTTON_Y, 3040ms, 0ms);
+            pbf_move_right_joystick(context, {0, -1}, 720ms, 160ms);
             check_tree_no_stop(env, context);
 
             env.console.log("Checking Tree 3");
-            pbf_press_button(context, BUTTON_PLUS, 20, 200);
-            pbf_move_left_joystick(context, 0, 60, 100, 20);
+            pbf_press_button(context, BUTTON_PLUS, 160ms, 1600ms);
+            pbf_move_left_joystick(context, {-1, +0.531}, 800ms, 160ms);
             context.wait_for_all_requests();
             enable_shiny_sound(context);
-            pbf_press_button(context, BUTTON_B, 350, 0);
-            pbf_press_button(context, BUTTON_Y, 380, 0);
-            pbf_move_right_joystick(context, 127, 255, 90, 20);
+            pbf_press_button(context, BUTTON_B, 2800ms, 0ms);
+            pbf_press_button(context, BUTTON_Y, 3040ms, 0ms);
+            pbf_move_right_joystick(context, {0, -1}, 720ms, 160ms);
             check_tree_no_stop(env, context);
 
             env.console.log("Checking Tree 4");
-            pbf_press_button(context, BUTTON_PLUS, 20, 200);
-            pbf_move_left_joystick(context, 50, 255, 100, 20);
+            pbf_press_button(context, BUTTON_PLUS, 160ms, 1600ms);
+            pbf_move_left_joystick(context, {-0.609, -1}, 800ms, 160ms);
             context.wait_for_all_requests();
             enable_shiny_sound(context);
-            pbf_press_button(context, BUTTON_B, 375, 0);
-            pbf_press_button(context, BUTTON_Y, 380, 0);
-            pbf_move_right_joystick(context, 127, 255, 90, 20);
+            pbf_press_button(context, BUTTON_B, 3000ms, 0ms);
+            pbf_press_button(context, BUTTON_Y, 3040ms, 0ms);
+            pbf_move_right_joystick(context, {0, -1}, 720ms, 160ms);
             check_tree_no_stop(env, context);
 
             env.console.log("Checking Tree 5");
-            pbf_press_button(context, BUTTON_PLUS, 20, 200);
-            pbf_move_left_joystick(context, 200, 0, 100, 20);
+            pbf_press_button(context, BUTTON_PLUS, 160ms, 1600ms);
+            pbf_move_left_joystick(context, {+0.567, +1}, 800ms, 160ms);
             context.wait_for_all_requests();
             enable_shiny_sound(context);
-            pbf_press_button(context, BUTTON_B, 85, 0);
-            pbf_press_button(context, BUTTON_Y, 380, 0);
-            pbf_move_right_joystick(context, 127, 255, 90, 20);
+            pbf_press_button(context, BUTTON_B, 680ms, 0ms);
+            pbf_press_button(context, BUTTON_Y, 3040ms, 0ms);
+            pbf_move_right_joystick(context, {0, -1}, 720ms, 160ms);
         },
         {
             {battle_menu_detector},
@@ -267,7 +268,7 @@ void RamanasCombeeFinder::run_iteration(
             );
         }
         env.console.log("Not on Pokemon selection. Attempting to switch to it...", COLOR_ORANGE);
-        pbf_press_button(context, BUTTON_X, 20, 230);
+        pbf_press_button(context, BUTTON_X, 160ms, 1840ms);
     }
 
     float shiny_coefficient = 1.0;
@@ -310,7 +311,7 @@ void RamanasCombeeFinder::run_iteration(
         env.update_stats();
         if (SAVE_DEBUG_VIDEO){
             // Take a video to know why it blacks out
-            pbf_press_button(context, BUTTON_CAPTURE, 2 * TICKS_PER_SECOND, 2 * TICKS_PER_SECOND);
+            pbf_press_button(context, BUTTON_CAPTURE, 2000ms, 2000ms);
             context.wait_for_all_requests();
         }
         OperationFailedException::fire(
@@ -327,7 +328,7 @@ void RamanasCombeeFinder::program(SingleSwitchProgramEnvironment& env, ProContro
     RamanasCombeeFinder_Descriptor::Stats& stats = env.current_stats<RamanasCombeeFinder_Descriptor::Stats>();
 
     //  Connect the controller.
-    pbf_press_button(context, BUTTON_LCLICK, 5, 5);
+    require_player(env.console, context, BUTTON_LCLICK);
 
     bool fresh_from_reset = false;
     while (true){

@@ -165,7 +165,7 @@ void DaySkipperJPN7p8k::program(SingleSwitchProgramEnvironment& env, ProControll
     uint32_t remaining_skips = SKIPS;
 
     //  Connect
-    pbf_press_button(context, BUTTON_ZL, 5, 5);
+    pbf_press_button(context, BUTTON_ZL, 40ms, 40ms);
 
     DateTime start_date = START_DATE;
 
@@ -212,7 +212,7 @@ void DaySkipperJPN7p8k::program(SingleSwitchProgramEnvironment& env, ProControll
     context.wait_for_all_requests();
     send_program_finished_notification(env, NOTIFICATION_PROGRAM_FINISH);
 
-    pbf_wait(context, 15 * TICKS_PER_SECOND);
+    pbf_wait(context, 15000ms);
     while (true){
         ssf_press_button(context, BUTTON_A, 15000ms);
     }

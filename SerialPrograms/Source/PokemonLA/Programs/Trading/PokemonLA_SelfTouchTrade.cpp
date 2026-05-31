@@ -11,6 +11,7 @@
 #include "CommonFramework/Tools/ErrorDumper.h"
 #include "CommonTools/Images/SolidColorTest.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "Pokemon/Inference/Pokemon_NameReader.h"
 #include "PokemonLA_TradeRoutines.h"
@@ -130,22 +131,22 @@ bool SelfTouchTrade::move_to_next(Logger& logger, ProControllerContext& host, ui
 
     logger.log("Moving to next slot.");
     if (col < 5){
-        pbf_press_dpad(host, DPAD_RIGHT, 20, 140);
+        pbf_press_dpad(host, DPAD_RIGHT, 160ms, 1120ms);
         col++;
         return false;
     }
     if (row < 4){
-        pbf_press_dpad(host, DPAD_RIGHT, 20, 105);
-        pbf_press_dpad(host, DPAD_RIGHT, 20, 105);
-        pbf_press_dpad(host, DPAD_DOWN, 20, 140);
+        pbf_press_dpad(host, DPAD_RIGHT, 160ms, 840ms);
+        pbf_press_dpad(host, DPAD_RIGHT, 160ms, 840ms);
+        pbf_press_dpad(host, DPAD_DOWN, 160ms, 1120ms);
         col = 0;
         row++;
         return false;
     }
-    pbf_press_button(host, BUTTON_R, 20, 230);
-    pbf_press_dpad(host, DPAD_RIGHT, 20, 105);
-    pbf_press_dpad(host, DPAD_RIGHT, 20, 105);
-    pbf_press_dpad(host, DPAD_DOWN, 20, 140);
+    pbf_press_button(host, BUTTON_R, 160ms, 1840ms);
+    pbf_press_dpad(host, DPAD_RIGHT, 160ms, 840ms);
+    pbf_press_dpad(host, DPAD_RIGHT, 160ms, 840ms);
+    pbf_press_dpad(host, DPAD_DOWN, 160ms, 1120ms);
     col = 0;
     row = 0;
     return true;
@@ -161,7 +162,8 @@ void SelfTouchTrade::program(MultiSwitchProgramEnvironment& env, CancellableScop
 
     //  Connect both controllers.
     env.run_in_parallel(scope, [&](ConsoleHandle& console, ProControllerContext& context){
-        pbf_press_button(context, BUTTON_LCLICK, 10, 0);
+        //  Connect the controller.
+        require_player(console, context, BUTTON_LCLICK);
     });
 
     uint8_t row = 0;

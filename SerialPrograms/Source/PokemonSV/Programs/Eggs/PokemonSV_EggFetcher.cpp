@@ -9,6 +9,7 @@
 #include "CommonFramework/ProgramStats/StatsTracking.h"
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSV/Inference/Boxes/PokemonSV_IvJudgeReader.h"
 #include "PokemonSV/Programs/Eggs/PokemonSV_EggRoutines.h"
@@ -90,12 +91,12 @@ void EggFetcher::program(SingleSwitchProgramEnvironment& env, ProControllerConte
     EggFetcher_Descriptor::Stats& stats = env.current_stats<EggFetcher_Descriptor::Stats>();
 
     //  Connect the controller.
-    pbf_press_button(context, BUTTON_L, 10, 100);
+    require_player(env.console, context, BUTTON_L);
 
     size_t num_eggs_collected = 0;
 
     try{
-        for(uint16_t i = 0; i < EGG_SANDWICH.MAX_NUM_SANDWICHES; i++){
+        for (uint16_t i = 0; i < EGG_SANDWICH.MAX_NUM_SANDWICHES; i++){
             send_program_status_notification(env, NOTIFICATION_STATUS_UPDATE);
 
             picnic_at_zero_gate(env.program_info(), env.console, context);
@@ -137,7 +138,7 @@ void EggFetcher::program(SingleSwitchProgramEnvironment& env, ProControllerConte
                 break;
             }
         }
-    } catch(OperationFailedException&){
+    }catch (OperationFailedException&){
         stats.m_errors++;
         env.update_stats();
         throw;

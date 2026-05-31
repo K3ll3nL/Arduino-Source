@@ -14,9 +14,9 @@ namespace PokemonAutomation{
 
 // Store basic stats of a group of pixels
 struct ImageStats{
-    // Average color among the pixels.
+    // Average color among the pixels. Range 0.0 to 255.0.
     FloatPixel average;
-    // Stddev of the color for each color channel.
+    // Stddev of the color for each color channel. Range 0.0 to 255.0.
     // The smaller the stddev on one channel, the closer the pixel values are on this channel.
     FloatPixel stddev;
     // How many pixels in the group.
@@ -31,7 +31,7 @@ FloatPixel image_average(const ImageViewRGB32& image);
 FloatPixel image_stddev(const ImageViewRGB32& image);
 ImageStats image_stats(const ImageViewRGB32& image);
 
-
+// Get stats on the one-pixel-wide border of the image
 ImageStats image_border_stats(const ImageViewRGB32& image);
 
 

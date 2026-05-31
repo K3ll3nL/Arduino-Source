@@ -60,25 +60,25 @@ void auto_heal_from_menu_or_overworld(
             if (healed && return_to_overworld){
                 return;
             }
-            pbf_press_button(context, BUTTON_X, 20, 230);
+            pbf_press_button(context, BUTTON_X, 160ms, 1840ms);
             continue;
         case 1:
             stream.log("Detected main menu.");
             if (!healed){
                 main_menu.move_cursor(info, stream, context, MenuSide::LEFT, party_slot, false);
-                pbf_press_button(context, BUTTON_MINUS, 20, 230);
+                pbf_press_button(context, BUTTON_MINUS, 160ms, 1840ms);
                 healed = true;
                 continue;
             }
             if (!return_to_overworld){
                 return;
             }
-            pbf_press_button(context, BUTTON_B, 20, 105);
+            pbf_press_button(context, BUTTON_B, 160ms, 840ms);
             continue;
         case 2:
             stream.log("Detected dialog.");
             healed = true;
-            pbf_press_button(context, BUTTON_B, 20, 105);
+            pbf_press_button(context, BUTTON_B, 160ms, 840ms);
             continue;
         default:
             OperationFailedException::fire(
@@ -120,9 +120,9 @@ int run_from_battle(
         case 1:
             stream.log("Detected battle menu...");
             battle_menu.move_to_slot(stream, context, 3);
-//            pbf_press_dpad(context, DPAD_DOWN, 250, 0);
-            pbf_press_button(context, BUTTON_A, 20, 105);
-            pbf_press_button(context, BUTTON_B, 20, 1 * TICKS_PER_SECOND);
+//            pbf_press_dpad(context, DPAD_DOWN, 2000ms, 0ms);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
+            pbf_press_button(context, BUTTON_B, 160ms, 1000ms);
             attempts++;
             continue;
         case 2:
@@ -184,9 +184,9 @@ int run_from_battle(
             }
 
             battle_menu.move_to_slot(stream, context, 3);
-//            pbf_press_dpad(context, DPAD_DOWN, 250, 0);
-            pbf_press_button(context, BUTTON_A, 20, 105);
-            pbf_press_button(context, BUTTON_B, 20, 1 * TICKS_PER_SECOND);
+//            pbf_press_dpad(context, DPAD_DOWN, 2000ms, 0ms);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
+            pbf_press_button(context, BUTTON_B, 160ms, 1000ms);
             attempts++;
             continue;
         }
@@ -244,7 +244,7 @@ void process_battle(
         shiny_counter++;
         if (settings.VIDEO_ON_SHINY){
             context.wait_for(std::chrono::seconds(3));
-            pbf_press_button(context, BUTTON_CAPTURE, 2 * TICKS_PER_SECOND, 0);
+            pbf_press_button(context, BUTTON_CAPTURE, 2000ms, 0ms);
         }
     }
     env.update_stats();

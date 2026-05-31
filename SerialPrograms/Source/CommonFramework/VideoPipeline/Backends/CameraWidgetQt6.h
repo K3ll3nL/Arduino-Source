@@ -10,11 +10,11 @@
 #include <QtGlobal>
 #if QT_VERSION_MAJOR == 6
 
-#include <mutex>
 #include <QWidget>
 #include <QCameraDevice>
 #include <QMediaCaptureSession>
 #include <QVideoFrame>
+#include "Common/Cpp/Concurrency/Mutex.h"
 #include "CommonFramework/Tools/StatAccumulator.h"
 #include "CommonFramework/VideoPipeline/VideoSource.h"
 #include "CommonFramework/VideoPipeline/CameraInfo.h"
@@ -32,6 +32,11 @@ namespace CameraQt6QVideoSink{
 
 class CameraBackend : public PokemonAutomation::CameraBackend{
 public:
+    // Get all cameras' info.
+    // Note: to avoid freezing the UI while launching the application, the camera backend when
+    // constructed, use a separate thread to query and load camera info. If you call
+    // `get_all_cameras()` immidiately after the backend is constructed, it may not give you
+    // all cameras' info.
     virtual std::vector<CameraInfo> get_all_cameras() const override;
     virtual std::string get_camera_name(const CameraInfo& info) const override;
 
@@ -87,7 +92,7 @@ private:
     Logger& m_logger;
     Resolution m_resolution;
 
-    std::mutex m_snapshot_lock;
+    Mutex m_snapshot_lock;
 
     std::unique_ptr<QCameraThread> m_camera;
     std::unique_ptr<QVideoSink> m_video_sink;

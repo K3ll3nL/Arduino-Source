@@ -10,6 +10,7 @@
 #include "CommonFramework/ProgramStats/StatsTracking.h"
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSV/Inference/Boxes/PokemonSV_BoxDetection.h"
 #include "PokemonSV/Programs/PokemonSV_MenuNavigation.h"
@@ -97,7 +98,7 @@ EggHatcher::EggHatcher()
 void EggHatcher::hatch_one_box(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     EggHatcher_Descriptor::Stats& stats = env.current_stats<EggHatcher_Descriptor::Stats>();
 
-    for(uint8_t column_index = 0; column_index < 6; column_index++){
+    for (uint8_t column_index = 0; column_index < 6; column_index++){
         uint8_t num_eggs = 0, num_non_egg_pokemon = 0;
         {
             const uint8_t expected_empty_slots_in_party = HAS_CLONE_RIDE_POKEMON ? 4 : 5;
@@ -177,12 +178,13 @@ void EggHatcher::program(SingleSwitchProgramEnvironment& env, ProControllerConte
     assert_16_9_720p_min(env.logger(), env.console);
 
     EggHatcher_Descriptor::Stats& stats = env.current_stats<EggHatcher_Descriptor::Stats>();
+
     //  Connect the controller.
-    pbf_press_button(context, BUTTON_L, 10, 0);
+    require_player(env.console, context, BUTTON_L);
 
     if (START_LOCATION == StartLocation::AnywhereOffRide){
         // Get on ride:
-        pbf_press_button(context, BUTTON_PLUS, 50, 100);
+        pbf_press_button(context, BUTTON_PLUS, 400ms, 800ms);
         context.wait_for_all_requests();
     }
 
@@ -203,7 +205,7 @@ void EggHatcher::program(SingleSwitchProgramEnvironment& env, ProControllerConte
 
             hatch_one_box(env, context);
         }
-    } catch(Exception&){
+    }catch (Exception&){
         stats.m_errors++;
         env.update_stats();
         throw;

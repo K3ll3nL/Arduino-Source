@@ -359,19 +359,19 @@ ItemPrinterPrizeResult ItemPrinterRNG::run_print_at_date(
                 return prize_result;
             }
             env.log("Detected overworld... Starting print.");
-            pbf_press_button(context, BUTTON_A, 20, 30);
+            pbf_press_button(context, BUTTON_A, 160ms, 240ms);
             continue;
 
         case 1:
             env.log("Detected advance dialog.");
-            pbf_press_button(context, BUTTON_B, 20, 30);
+            pbf_press_button(context, BUTTON_B, 160ms, 240ms);
             continue;
 
         case 2:{
             env.log("Detected prompt dialog.");
             go_home(env.console, context);
             home_to_date_time(env.console, context, true);
-            pbf_press_button(context, BUTTON_A, 10, 30);
+            pbf_press_button(context, BUTTON_A, 80ms, 240ms);
             context.wait_for_all_requests();
             next_wait_time = std::chrono::seconds(5);
             continue;
@@ -398,7 +398,7 @@ ItemPrinterPrizeResult ItemPrinterRNG::run_print_at_date(
             date_reader.set_date(env.program_info(), env.console, context, set_date);
 
             //  Commit the date and start the timer.
-            pbf_press_button(context, BUTTON_A, 20, 30);
+            pbf_press_button(context, BUTTON_A, 160ms, 240ms);
             WallClock trigger_time = std::chrono::system_clock::now() + trigger_delay;
             env.log("Will commit in " + tostr_u_commas(trigger_delay.count()) + " milliseconds.");
 
@@ -414,7 +414,7 @@ ItemPrinterPrizeResult ItemPrinterRNG::run_print_at_date(
 //                snapshot->save("noprompt.png");
                 stats.errors++;
                 env.update_stats();
-                pbf_mash_button(context, BUTTON_B, 500);
+                pbf_mash_button(context, BUTTON_B, 4000ms);
                 continue;
             }
 
@@ -429,7 +429,7 @@ ItemPrinterPrizeResult ItemPrinterRNG::run_print_at_date(
                 return prize_result;
             }
             if (!overworld_seen){
-                pbf_press_button(context, BUTTON_B, 20, 30);
+                pbf_press_button(context, BUTTON_B, 160ms, 240ms);
                 continue;
             }
             item_printer_start_print(env.console, context, LANGUAGE, jobs);
@@ -448,7 +448,7 @@ ItemPrinterPrizeResult ItemPrinterRNG::run_print_at_date(
                 adjust_delay(env.logger(), env, print_results, distance_from_target);
             }
 
-//            pbf_press_button(context, BUTTON_B, 20, 30);
+//            pbf_press_button(context, BUTTON_B, 160ms, 240ms);
             continue;
         }
         default:
@@ -615,7 +615,7 @@ void ItemPrinterRNG::print_again(
 
         case 1:
             env.log("Detected advance dialog.");
-            pbf_press_button(context, BUTTON_B, 20, 30);
+            pbf_press_button(context, BUTTON_B, 160ms, 240ms);
             continue;
 
         case 2:{
@@ -981,17 +981,17 @@ uint32_t ItemPrinterRNG::check_num_happiny_dust(
         switch (ret){
         case 0:
             env.log("Detected overworld... Entering item printer.");
-            pbf_press_button(context, BUTTON_A, 20, 30);
+            pbf_press_button(context, BUTTON_A, 160ms, 240ms);
             continue;
 
         case 1:
             env.log("Detected advance dialog.");
-            pbf_press_button(context, BUTTON_B, 20, 30);
+            pbf_press_button(context, BUTTON_B, 160ms, 240ms);
             continue;
 
         case 2:{
             env.log("Detected prompt dialog. Entering item printer.");
-            pbf_press_button(context, BUTTON_A, 10, 30);
+            pbf_press_button(context, BUTTON_A, 80ms, 240ms);
             context.wait_for_all_requests();
             continue;
         }
@@ -1013,7 +1013,7 @@ uint32_t ItemPrinterRNG::check_num_happiny_dust(
                     env.console, snapshot, context,
                     happiny_dust_row_num
                 );
-                pbf_mash_button(context, BUTTON_B, 100);
+                pbf_mash_button(context, BUTTON_B, 800ms);
                 return num_happiny_dust;
             }
             
@@ -1034,6 +1034,10 @@ uint32_t ItemPrinterRNG::check_num_happiny_dust(
 
 void ItemPrinterRNG::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     assert_16_9_720p_min(env.logger(), env.console);
+
+    //  Connect the controller.
+    require_player(env.console, context, BUTTON_LCLICK);
+
     ItemPrinterRNG_Descriptor::Stats& stats = env.current_stats<ItemPrinterRNG_Descriptor::Stats>();
     env.update_stats();
 
@@ -1061,8 +1065,8 @@ void ItemPrinterRNG::program(SingleSwitchProgramEnvironment& env, ProControllerC
     if (FIX_TIME_WHEN_DONE){
         go_home(env.console, context);
         home_to_date_time(env.console, context, false);
-        pbf_press_button(context, BUTTON_A, 20, 105);
-        pbf_press_button(context, BUTTON_A, 20, 105);
+        pbf_press_button(context, BUTTON_A, 160ms, 840ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 840ms);
         pbf_press_button(context, BUTTON_HOME, 160ms, ConsoleSettings::instance().SETTINGS_TO_HOME_DELAY0);
         resume_game_from_home(env.console, context);
     }

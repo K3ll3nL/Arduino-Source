@@ -147,7 +147,8 @@ ImageFloatBox OliveDetector::align_to_olive(
     ProControllerContext& context, 
     double direction_facing, 
     uint8_t rgb_gap,
-    ImageFloatBox area_to_check
+    ImageFloatBox area_to_check,
+    bool throw_if_fail_change_dir
 ){
     size_t MAX_ATTEMPTS = 10;
     // size_t olive_unchanged_count = 0;
@@ -156,8 +157,8 @@ ImageFloatBox OliveDetector::align_to_olive(
     uint16_t scale_factor = 130;
     int16_t prev_push_direction = 0;
     for (size_t i = 0; i < MAX_ATTEMPTS; i++){
-        direction.change_direction(info, stream, context, direction_facing);
-        pbf_move_left_joystick(context, 128, 0, 5, 20);
+        direction.change_direction(info, stream, context, direction_facing, throw_if_fail_change_dir);
+        pbf_move_left_joystick(context, {0, +1}, 40ms, 160ms);
     
         olive_box = get_olive_floatbox(stream, context, rgb_gap, area_to_check);
 
@@ -192,17 +193,19 @@ ImageFloatBox OliveDetector::align_to_olive(
         // }
 
 
-        uint16_t push_duration = std::max(uint16_t((std::abs(diff_from_center) + 0.02) * scale_factor / (olive_y)), uint16_t(15));
-        double push_magnitude = 128; // std::max(double(128 / (i + 1)), double(20)); // push less with each iteration/attempt
-        uint8_t push_x = uint8_t(std::max(std::min(int(128 + (push_direction * push_magnitude)), 255), 0));
+        uint16_t push_duration_ticks = std::max(uint16_t((std::abs(diff_from_center) + 0.02) * scale_factor / (olive_y)), uint16_t(15));
+        Milliseconds push_duration = push_duration_ticks * 8ms;
+        double push_magnitude = 1; // std::max(double(128 / (i + 1)), double(20)); // push less with each iteration/attempt
+        double push_x = std::max(std::min(push_direction * push_magnitude, 1.0), -1.0);
         stream.log("scale_factor: " + std::to_string(scale_factor));
-        stream.log("push x: " + std::to_string(push_x) + ", push duration: " +  std::to_string(push_duration));
-        // pbf_wait(context, 100);
+        stream.log("push x: " + std::to_string(push_x) + ", push duration: " +  std::to_string(push_duration.count()) + "ms");
+        // pbf_wait(context, 800ms);
         uint16_t wait_ticks = 50;
         if (std::abs(diff_from_center) < 0.05){
             wait_ticks = 100;
         }
-        pbf_move_left_joystick(context, push_x, 128, push_duration, wait_ticks);
+        Milliseconds wait_duration = wait_ticks * 8ms;
+        pbf_move_left_joystick(context, {push_x, 0}, push_duration, wait_duration);
         prev_push_direction = push_direction;
         
 
@@ -218,7 +221,7 @@ ImageFloatBox OliveDetector::align_to_olive(
         //     olive_unchanged_count++;
         //     // not moving closer to the olive. either wall/fence is in the way, or we are right next the olive.
         //     console.log("Can't align to Olive. Try moving backwards and try again.");
-        //     pbf_move_left_joystick(context, 128, 255, 75, 100);  // walk backwards
+        //     pbf_move_left_joystick(context, {0, -1}, 600ms, 800ms);  // walk backwards
         //     if (olive_unchanged_count == 2){
         //         throw OliveActionFailedException(
         //             console, ErrorReport::SEND_ERROR_REPORT,
@@ -246,40 +249,44 @@ ImageFloatBox OliveDetector::align_to_olive(
 
 // todo: detect and handle case where olive is stuck.
 // todo: detect and handle case where olive is slightly to the left, and so we need to move on to the next phase
-uint16_t OliveDetector::push_olive_forward(
+Milliseconds OliveDetector::push_olive_forward(
     const ProgramInfo& info, 
     VideoStream& stream,
     ProControllerContext& context, 
     double direction_facing, 
-    uint16_t total_forward_distance,
-    uint16_t push_olive,
+    Milliseconds total_forward_distance,
+    Milliseconds push_olive,
     uint8_t rgb_gap,
-    ImageFloatBox area_to_check
+    ImageFloatBox area_to_check, 
+    bool throw_if_fail_change_dir
 ){
-    stream.log("push_olive_forward(): Total distance: " + std::to_string(total_forward_distance));
+    stream.log("push_olive_forward(): Total distance: " + std::to_string(total_forward_distance.count()) + "ms");
     // uint16_t initial_push_olive = push_olive;
-    uint16_t ticks_walked = 0;
+    Milliseconds walked = 0ms;
     size_t MAX_ATTEMPTS = 10;
     for (size_t i = 0; i < MAX_ATTEMPTS; i++){
-        align_to_olive(info, stream, context, direction_facing, rgb_gap, area_to_check);
-        ticks_walked += walk_up_to_olive(info, stream, context, direction_facing, rgb_gap, area_to_check);
+        align_to_olive(info, stream, context, direction_facing, rgb_gap, area_to_check, throw_if_fail_change_dir);
+        walked += walk_up_to_olive(info, stream, context, direction_facing, rgb_gap, area_to_check);
         
 
-        if (ticks_walked >= total_forward_distance){
-            stream.log("Distance walked: " + std::to_string(ticks_walked) + "/" + std::to_string(total_forward_distance));
-            return ticks_walked;
+        if (walked >= total_forward_distance){
+            stream.log("Distance walked: " + std::to_string(walked.count()) + "/" + std::to_string(total_forward_distance.count()) + " ms");
+            return walked;
         }
 
-        align_to_olive(info, stream, context, direction_facing, rgb_gap, area_to_check);
+        align_to_olive(info, stream, context, direction_facing, rgb_gap, area_to_check, throw_if_fail_change_dir);
         // check location of olive before and after push
         // if olive is approximately in the same location, then the olive is stuck. try moving backward and running forward again.
         ImageFloatBox olive_box_1 = get_olive_floatbox(stream, context, rgb_gap, area_to_check);
         for (size_t j = 0; j < 3; j++){
-            stream.log("Distance walked: " + std::to_string(ticks_walked) + "/" + std::to_string(total_forward_distance));
+            stream.log(
+                "Distance walked: " + std::to_string(walked.count()) +
+                "/" + std::to_string(total_forward_distance.count()) + " ms"
+            );
             stream.log("Push the olive.");
-            pbf_move_left_joystick(context, 128, 0, push_olive, 7 * TICKS_PER_SECOND);
+            pbf_move_left_joystick(context, {0, +1}, push_olive, 7000ms);
             
-            ticks_walked += push_olive;
+            walked += push_olive;
             ImageFloatBox olive_box_2 = get_olive_floatbox(stream, context, rgb_gap, area_to_check);
             double box_1_area = olive_box_1.width * olive_box_1.height;
             double box_2_area = olive_box_2.width * olive_box_2.height;
@@ -291,9 +298,9 @@ uint16_t OliveDetector::push_olive_forward(
                 stream.log("Olive is stuck? Move backwards and try pushing again.");
                 stream.log("Olive 1: area: " + std::to_string(box_1_area) + ", x: " + std::to_string(olive_box_1.x) + ", y: " + std::to_string(olive_box_1.y));
                 stream.log("Olive 2: area: " + std::to_string(box_2_area) + ", x: " + std::to_string(olive_box_2.x) + ", y: " + std::to_string(olive_box_2.y));
-                pbf_move_left_joystick(context, 128, 255, 75, 100);  // walk backwards
-                ticks_walked -= push_olive;
-                push_olive = 200; // run forward more on the next push
+                pbf_move_left_joystick(context, {0, -1}, 600ms, 800ms);  // walk backwards
+                walked -= push_olive;
+                push_olive = 1600ms; // run forward more on the next push
 
                 if (j == 2){
                     throw_and_log<OliveActionFailedException>(
@@ -308,12 +315,18 @@ uint16_t OliveDetector::push_olive_forward(
             }
         }
         
-        if (ticks_walked > total_forward_distance){
-            stream.log("Distance walked: " + std::to_string(ticks_walked) + "/" + std::to_string(total_forward_distance));
-            return ticks_walked;
+        if (walked > total_forward_distance){
+            stream.log(
+                "Distance walked: " + std::to_string(walked.count()) +
+                "/" + std::to_string(total_forward_distance.count()) + " ms"
+            );
+            return walked;
         }
 
-        stream.log("Distance walked: " + std::to_string(ticks_walked) + "/" + std::to_string(total_forward_distance));
+        stream.log(
+            "Distance walked: " + std::to_string(walked.count()) +
+            "/" + std::to_string(total_forward_distance.count()) + " ms"
+        );
         
     }
 
@@ -326,7 +339,7 @@ uint16_t OliveDetector::push_olive_forward(
 
 }
 
-uint16_t OliveDetector::walk_up_to_olive(
+Milliseconds OliveDetector::walk_up_to_olive(
     const ProgramInfo& info, 
     VideoStream& stream,
     ProControllerContext& context, 
@@ -334,7 +347,7 @@ uint16_t OliveDetector::walk_up_to_olive(
     uint8_t rgb_gap,
     ImageFloatBox area_to_check
 ){
-    uint16_t ticks_walked = 0;
+    Milliseconds walked = 0ms;
     size_t MAX_ATTEMPTS = 20;
     for (size_t i = 0; i < MAX_ATTEMPTS; i++){
         ImageFloatBox olive_box = get_olive_floatbox(stream, context, rgb_gap, area_to_check);
@@ -342,34 +355,35 @@ uint16_t OliveDetector::walk_up_to_olive(
         // double olive_x = olive.first;
         double olive_y = olive.second;
 
-        uint16_t scale_factor = 2000;
-        uint16_t push_duration = std::max(uint16_t((0.57 - olive_y)*(0.57 - olive_y) * scale_factor), uint16_t(20));
+        double scale_factor = 16000;
+        Milliseconds push_duration((int64_t)((0.57 - olive_y) * (0.57 - olive_y) * scale_factor));
+        push_duration = std::max(push_duration, 160ms);
         stream.log("walk_up_to_olive(): olive_y: " + std::to_string(olive_y));
         if (olive_y > 0.515){
-            return ticks_walked;
+            return walked;
         }        
-        stream.log("push duration: " +  std::to_string(push_duration));
+        stream.log("push duration: " +  std::to_string(push_duration.count()) + " ms");
         // when push durations are low, the player moves less than expected
         // once above 45, you walk about as much as expected
         double walking_factor = 1;
-        if (push_duration <= 20){
+        if (push_duration <= 160ms){
             walking_factor = 0.40;
-        }else if (push_duration <= 25){
+        }else if (push_duration <= 200ms){
             walking_factor = 0.53;
-        }else if (push_duration <= 30){
+        }else if (push_duration <= 240ms){
             walking_factor = 0.69;
-        }else if (push_duration <= 35){
+        }else if (push_duration <= 280ms){
             walking_factor = 0.83;
-        }else if (push_duration <= 40){
+        }else if (push_duration <= 320ms){
             walking_factor = 0.91;
         }
-        ticks_walked += uint16_t(push_duration * walking_factor);
+        walked += Milliseconds((int64_t)(push_duration.count() * walking_factor));
 
-        uint16_t wait_ticks = 50;
+        Milliseconds wait = 400ms;
         if (olive_y > 0.4){
-            wait_ticks = 100;
+            wait = 800ms;
         }        
-        pbf_move_left_joystick(context, 128, 0, push_duration, wait_ticks);
+        pbf_move_left_joystick(context, {0, +1}, push_duration, wait);
     }    
 
     throw_and_log<OliveActionFailedException>(

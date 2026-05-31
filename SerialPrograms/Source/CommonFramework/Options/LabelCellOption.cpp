@@ -5,9 +5,8 @@
  */
 
 #include "Common/Cpp/Containers/Pimpl.tpp"
-#include "Common/Cpp/Concurrency/SpinLock.h"
 #include "Common/Cpp/Json/JsonValue.h"
-#include "Common/Qt/Options/ConfigWidget.h"
+#include "Common/Cpp/Concurrency/SpinLock.h"
 #include "LabelCellOption.h"
 
 //#include <iostream>
@@ -17,8 +16,9 @@
 namespace PokemonAutomation{
 
 
+
 struct LabelCellOption::Data{
-//    mutable SpinLock m_lock;
+    mutable SpinLock m_lock;
     std::string m_text;
 //    ImageRGB32 m_icon_owner;
     ImageViewRGB32 m_icon;
@@ -60,27 +60,28 @@ LabelCellOption::LabelCellOption(
     LockMode lock_while_running,
     std::string text
 )
-    : ConfigOption(lock_while_running)
+    : ConfigOptionImpl<LabelCellOption>(lock_while_running)
     , m_data(CONSTRUCT_TOKEN, std::move(text))
 {}
 LabelCellOption::LabelCellOption(
     LockMode lock_while_running,
     std::string text, const ImageViewRGB32& icon
 )
-    : ConfigOption(lock_while_running)
+    : ConfigOptionImpl<LabelCellOption>(lock_while_running)
     , m_data(CONSTRUCT_TOKEN, std::move(text), icon)
 {}
 LabelCellOption::LabelCellOption(
     LockMode lock_while_running,
     std::string text, const ImageViewRGB32& icon, size_t icon_size
 )
-    : ConfigOption(lock_while_running)
+    : ConfigOptionImpl<LabelCellOption>(lock_while_running)
     , m_data(CONSTRUCT_TOKEN, std::move(text), icon, icon_size)
 {}
 //LabelCellOption::LabelCellOption(std::string text, ImageRGB32 icon)
 //    : m_data(CONSTRUCT_TOKEN, std::move(text), std::move(icon))
 //{}
 const std::string& LabelCellOption::text() const{
+    ReadSpinLock lg(m_data->m_lock);
     return m_data->m_text;
 }
 const ImageViewRGB32& LabelCellOption::icon() const{
@@ -93,6 +94,18 @@ void LabelCellOption::load_json(const JsonValue&){
 }
 JsonValue LabelCellOption::to_json() const{
     return JsonValue();
+}
+
+void LabelCellOption::set_text(std::string x){
+    // sanitize(x);
+    {
+        WriteSpinLock lg(m_data->m_lock);
+        if (m_data->m_text == x){
+            return;
+        }
+        m_data->m_text = std::move(x);
+    }
+    report_value_changed(this);
 }
 
 

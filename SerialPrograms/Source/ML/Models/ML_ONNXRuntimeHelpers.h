@@ -18,17 +18,18 @@ namespace ML{
 
 // Create an ONNX SessionOptions
 // If on macOS, will use CoreML as the backend.
+// If on Windows, will try CUDA first (NVIDIA GPUs), then DirectML (all GPU vendors).
 // Otherwise, use CPU to run the model.
-// TODO: add Cuda backend for Windows machine.
 //
 // model_cache_path: the path to store model caches. This path is better
 //   to be unique for each model for easier file management.
-Ort::SessionOptions create_session_options(const std::string& model_cache_path);
+Ort::SessionOptions create_session_options(const std::string& model_cache_path, bool use_gpu);
 
 
 // Create an ONNX Session. It will also update the model cache on macOS if necessary.
 // model_cache_path: the path to store model caches. This path must be the same path
 //   used in `create_session_options()` to construct the passed-in session options so.
+// NOTE: it may throw `MLModelSessionCreationError` if failed to create session.
 Ort::Session create_session(const Ort::Env& env, const Ort::SessionOptions& so,
     const std::string& model_path, const std::string& model_cache_path);
 
@@ -53,6 +54,8 @@ std::string to_string(std::vector<T>& vec){
 
 //  Print model input and output types and shapes to cout. Useful for debugging.
 void print_model_input_output_info(const Ort::Session& session);
+
+Ort::Env create_ORT_env();
 
 
 }

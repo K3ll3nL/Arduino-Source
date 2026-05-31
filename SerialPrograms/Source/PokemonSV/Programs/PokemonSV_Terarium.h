@@ -8,7 +8,7 @@
 #define PokemonAutomation_PokemonSV_Terarium_H
 
 #include "CommonFramework/Tools/VideoStream.h"
-#include "NintendoSwitch/Controllers/NintendoSwitch_ProController.h"
+#include "NintendoSwitch/Controllers/Procon/NintendoSwitch_ProController.h"
 
 namespace PokemonAutomation{
     struct ProgramInfo;
@@ -22,8 +22,8 @@ void return_to_plaza(const ProgramInfo& info, VideoStream& stream, ProController
 void map_move_cursor_fly(
     const ProgramInfo& info,
     VideoStream& stream, ProControllerContext& context,
-    uint8_t x, uint8_t y,
-    uint8_t hold, uint8_t release,
+    double x, double y,
+    Milliseconds hold, Milliseconds release,
     std::string location
 );
 
@@ -58,9 +58,9 @@ void central_to_chargestone(const ProgramInfo& info, VideoStream& stream, ProCon
 void jump_glide_fly(
     VideoStream& stream, ProControllerContext& context,
     bool inverted_flight,
-    uint16_t hold_up,
-    uint16_t flight_wait,
-    uint16_t drop_time
+    Milliseconds hold_up,
+    Milliseconds flight_wait,
+    Milliseconds drop_time
 );
 
 

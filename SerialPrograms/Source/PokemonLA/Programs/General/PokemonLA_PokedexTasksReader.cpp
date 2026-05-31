@@ -11,6 +11,7 @@
 #include "CommonTools/Images/ImageFilter.h"
 #include "CommonTools/OCR/OCR_NumberReader.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonLA_PokedexTasksReader.h"
 
@@ -78,7 +79,7 @@ PokedexTasksReader::PokedexTasksReader(){}
 
 void PokedexTasksReader::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     //  Connect the controller.
-    pbf_press_button(context, BUTTON_LCLICK, 5, 5);
+    require_player(env.console, context, BUTTON_LCLICK);
 
     std::ofstream output_file("output.txt");
 
@@ -90,7 +91,7 @@ void PokedexTasksReader::program(SingleSwitchProgramEnvironment& env, ProControl
                 output_file << task << "\n";
             }
         }
-        pbf_press_dpad(context, DPAD_DOWN, 10, TICKS_PER_SECOND);
+        pbf_press_dpad(context, DPAD_DOWN, 80ms, 1000ms);
         context.wait_for_all_requests();
     }
 

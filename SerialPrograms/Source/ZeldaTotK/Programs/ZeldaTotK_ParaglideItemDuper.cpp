@@ -24,8 +24,7 @@ ParaglideItemDuper_Descriptor::ParaglideItemDuper_Descriptor()
         "Use the Paraglide Menu Sort glitch to duplicate items.",
         ProgramControllerClass::StandardController_RequiresPrecision,
         FeedbackType::NONE,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {}
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 
@@ -107,54 +106,54 @@ void ParaglideItemDuper::program(SingleSwitchProgramEnvironment& env, ProControl
         env.log("Current Attempts: " + tostr_u_commas(c));
 
         //Walk forward from teleportation point
-        pbf_move_left_joystick(context, 128, 0, 10, 5);
+        pbf_move_left_joystick(context, {0, +1}, 80ms, 40ms);
 
         //Jump and open paraglider
-        pbf_press_button(context, BUTTON_X, 20, 80);
-        pbf_press_button(context, BUTTON_X, 20, 20);
+        pbf_press_button(context, BUTTON_X, 160ms, 640ms);
+        pbf_press_button(context, BUTTON_X, 160ms, 160ms);
 
         //Open menu
-        pbf_press_button(context, BUTTON_PLUS, 20, 100);
+        pbf_press_button(context, BUTTON_PLUS, 160ms, 800ms);
 
         //Select 5 of the item to dupe - if less than 5 this still works
-        pbf_press_button(context, BUTTON_A, 20, 20);
-        pbf_press_dpad(context, DPAD_DOWN, 20, 20);
-        pbf_press_button(context, BUTTON_A, 20, 20);
-        pbf_press_button(context, BUTTON_A, 20, 20);
-        pbf_press_button(context, BUTTON_A, 20, 20);
-        pbf_press_button(context, BUTTON_A, 20, 20);
-        pbf_press_button(context, BUTTON_A, 20, 20);
+        pbf_press_button(context, BUTTON_A, 160ms, 160ms);
+        pbf_press_dpad(context, DPAD_DOWN, 160ms, 160ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 160ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 160ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 160ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 160ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 160ms);
 
         //Now press Y (sort) and B (exit) at the same time
         ssf_press_button(context, BUTTON_B, 0ms, 80ms);
         pbf_press_button(context, BUTTON_Y, 80ms, 320ms);
 
         //Close paraglider and drop to the ground
-        pbf_press_button(context, BUTTON_B, 20, 50);
+        pbf_press_button(context, BUTTON_B, 160ms, 400ms);
 
         //Pick up duped items - extra presses just in case
-        pbf_press_button(context, BUTTON_A, 20, 10);
-        pbf_press_button(context, BUTTON_A, 20, 10);
-        pbf_press_button(context, BUTTON_A, 20, 10);
-        pbf_press_button(context, BUTTON_A, 20, 10);
-        pbf_press_button(context, BUTTON_A, 20, 10);
-        pbf_press_button(context, BUTTON_A, 20, 10);
-        pbf_press_button(context, BUTTON_A, 20, 10);
+        pbf_press_button(context, BUTTON_A, 160ms, 80ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 80ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 80ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 80ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 80ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 80ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 80ms);
 
         //Turn around and try to pick up items as well
-        pbf_move_left_joystick(context, 128, 255, 10, 5);
-        pbf_press_button(context, BUTTON_A, 20, 10);
-        pbf_press_button(context, BUTTON_A, 20, 10);
-        pbf_press_button(context, BUTTON_A, 20, 10);
-        pbf_press_button(context, BUTTON_A, 20, 10);
-        pbf_press_button(context, BUTTON_A, 20, 10);
-        pbf_press_button(context, BUTTON_A, 20, 10);
+        pbf_move_left_joystick(context, {0, -1}, 80ms, 40ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 80ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 80ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 80ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 80ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 80ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 80ms);
 
         //Open map and teleport back
-        pbf_press_button(context, BUTTON_MINUS, 20, 10);
-        pbf_move_left_joystick(context, 128, 255, 10, 10);
-        pbf_press_button(context, BUTTON_A, 20, 10);
-        pbf_press_button(context, BUTTON_A, 20, 10);
+        pbf_press_button(context, BUTTON_MINUS, 160ms, 80ms);
+        pbf_move_left_joystick(context, {0, -1}, 80ms, 80ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 80ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 80ms);
 
         //Wait for loading screen
         pbf_wait(context, LOAD_DELAY0);

@@ -10,6 +10,8 @@
 #include "CommonFramework/Options/Environment/ThemeSelectorOption.h"
 #include "CommonFramework/Panels/ConsoleSettingsStretch.h"
 #include "CommonFramework/Recording/StreamHistoryOption.h"
+#include "ControllerInput/ControllerInput.h"
+#include "ControllerInput/Keyboard/GlobalKeyboardHidTracker.h"
 #include "NintendoSwitch_CommandRow.h"
 
 //#include <iostream>
@@ -23,6 +25,7 @@ namespace NintendoSwitch{
 
 
 CommandRow::~CommandRow(){
+    global_input_remove_listener(*this);
     m_controller.remove_listener(*this);
     m_session.remove_listener(*this);
 }
@@ -49,7 +52,7 @@ CommandRow::CommandRow(
     layout0->addLayout(layout1, CONSOLE_SETTINGS_STRETCH_L0_RIGHT);
     layout1->setContentsMargins(0, 0, 0, 0);
 
-    ConfigWidget* console_type_box = console_type.make_QtWidget(*this);
+    ConfigWidget* console_type_box = ConfigWidget::make_from_option(console_type, this);
     layout1->addWidget(&console_type_box->widget());
 
 
@@ -147,38 +150,39 @@ CommandRow::CommandRow(
 
     connect(
         m_load_profile_button, &QPushButton::clicked,
-        this, [this](bool) { emit load_profile(); }
+        this, [this](bool){ emit load_profile(); }
     );
     connect(
         m_save_profile_button, &QPushButton::clicked,
-        this, [this](bool) { emit save_profile(); }
+        this, [this](bool){ emit save_profile(); }
     );
     connect(
         m_screenshot_button, &QPushButton::clicked,
         this, [this](bool){ emit screenshot_requested(); }
     );
 
-#if (QT_VERSION_MAJOR == 6) && (QT_VERSION_MINOR >= 8)
-    if (IS_BETA_VERSION || PreloadSettings::instance().DEVELOPER_MODE){
-        m_video_button = new QPushButton("Video Capture", this);
-        layout1->addWidget(m_video_button, 2);
-        if (GlobalSettings::instance().STREAM_HISTORY->enabled()){
-            connect(
-                m_video_button, &QPushButton::clicked,
-                this, [this](bool){ emit video_requested(); }
-            );
-        }else{
-            m_video_button->setEnabled(false);
-            m_video_button->setToolTip("Please turn on Stream History to enable video capture.");
-        }
+    m_video_button = new QPushButton("Video Capture", this);
+    layout1->addWidget(m_video_button, 2);
+    if (GlobalSettings::instance().STREAM_HISTORY->enabled()){
+        connect(
+            m_video_button, &QPushButton::clicked,
+            this, [this](bool){ emit video_requested(); }
+        );
+    }else{
+        m_video_button->setEnabled(false);
+        m_video_button->setToolTip("Please turn on Stream History to enable video capture.");
     }
-#endif
 
     m_session.add_listener(*this);
     m_controller.add_listener(*this);
+//    global_input_add_listener(*this);
 }
 
-void CommandRow::on_key_press(const QKeyEvent& key){
+
+bool CommandRow::allow_controller_input() const{
+    return m_allow_commands_while_running || m_last_known_state == ProgramState::STOPPED;
+}
+void CommandRow::run_controller_input(ControllerInputState& state){
     if (!m_last_known_focus){
         m_controller.logger().log("Keyboard Command Suppressed: Not in focus.", COLOR_RED);
         return;
@@ -188,28 +192,26 @@ void CommandRow::on_key_press(const QKeyEvent& key){
         m_controller.logger().log("Keyboard Command Suppressed: Controller is null.", COLOR_RED);
         return;
     }
-    if (!m_allow_commands_while_running && m_last_known_state != ProgramState::STOPPED){
+    if (!allow_controller_input()){
         m_controller.logger().log("Keyboard Command Suppressed: Program is running.", COLOR_RED);
         return;
     }
-    controller->keyboard_press(key);
+    controller->run_controller_input(state);
 }
-void CommandRow::on_key_release(const QKeyEvent& key){
-    if (!m_last_known_focus){
-        return;
-    }
-    AbstractController* controller = m_controller.controller();
-    if (controller == nullptr){
-        return;
-    }
-    controller->keyboard_release(key);
-}
-
 void CommandRow::set_focus(bool focused){
-    AbstractController* controller = m_controller.controller();
-    if (!focused){
-        if (controller != nullptr){
-            controller->keyboard_release_all();
+    if (focused){
+        global_input_add_listener(*this);
+        if (allow_controller_input()){
+        }
+    }else{
+        global_input_clear_state();
+        global_input_remove_listener(*this);
+
+        AbstractController* controller = m_controller.controller();
+        if (controller != nullptr && allow_controller_input()){
+            try{
+                controller->cancel_all_commands();
+            }catch (...){}
         }
     }
     if (m_last_known_focus == focused){
@@ -270,11 +272,11 @@ void CommandRow::update_ui(){
 
 void CommandRow::on_state_changed(ProgramState state){
     m_last_known_state = state;
-    if (m_allow_commands_while_running || state == ProgramState::STOPPED){
-        AbstractController* controller = m_controller.controller();
-        if (controller != nullptr){
-            controller->keyboard_release_all();
-        }
+    if (allow_controller_input()){
+        global_input_clear_state();
+//        global_input_add_listener(*this);
+    }else{
+//        global_input_remove_listener(*this);
     }
     update_ui();
 }

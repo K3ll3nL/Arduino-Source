@@ -74,26 +74,26 @@ void save_game_from_menu_or_overworld(
             if (saved && return_to_overworld){
                 return;
             }
-            pbf_press_button(context, BUTTON_X, 20, 105);
+            pbf_press_button(context, BUTTON_X, 160ms, 840ms);
             continue;
         case 1:
             if (!saved){
                 stream.log("Detected main menu. Saving game...");
-                pbf_press_button(context, BUTTON_R, 20, 105);
+                pbf_press_button(context, BUTTON_R, 160ms, 840ms);
                 continue;
             }
             if (return_to_overworld){
-                pbf_press_button(context, BUTTON_B, 20, 105);
+                pbf_press_button(context, BUTTON_B, 160ms, 840ms);
                 continue;
             }
             return;
         case 2:
             stream.log("Detected save confirmation prompt.");
-            pbf_press_button(context, BUTTON_A, 20, 105);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             continue;
         case 3:
             stream.log("Detected save finished dialog.");
-            pbf_press_button(context, BUTTON_B, 20, 105);
+            pbf_press_button(context, BUTTON_B, 160ms, 840ms);
             saved = true;
             continue;
         default:
@@ -125,9 +125,9 @@ void save_game_tutorial(
     int ret0 = run_until<ProControllerContext>(
         stream, context,
         [](ProControllerContext& context){
-            pbf_wait(context, 500); // avoiding pressing X if menu already open
+            pbf_wait(context, 4000ms); // avoiding pressing X if menu already open
             for (size_t i = 0; i < 10; i++){
-                pbf_press_button(context, BUTTON_X, 20, 500);
+                pbf_press_button(context, BUTTON_X, 160ms, 4000ms);
             }
         },
         {menu}
@@ -141,7 +141,7 @@ void save_game_tutorial(
     }    
 
     save_game_from_menu(info, stream, context);
-    pbf_mash_button(context, BUTTON_B, 200);
+    pbf_mash_button(context, BUTTON_B, 1600ms);
 
 }
 

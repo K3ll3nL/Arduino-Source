@@ -12,6 +12,7 @@
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSV/Inference/Dialogs/PokemonSV_DialogDetector.h"
 #include "PokemonSV/Inference/Overworld/PokemonSV_OverworldDetector.h"
@@ -159,6 +160,9 @@ void PokemonSV::MassPurchase::program(SingleSwitchProgramEnvironment& env, ProCo
     assert_16_9_720p_min(env.logger(), env.console);
     MassPurchase_Descriptor::Stats& stats = env.current_stats<MassPurchase_Descriptor::Stats>();
 
+    //  Connect the controller.
+    require_player(env.console, context, BUTTON_LCLICK);
+
     send_program_status_notification(env, NOTIFICATION_STATUS_UPDATE);
 
     uint16_t item_val = ITEMS;
@@ -166,49 +170,49 @@ void PokemonSV::MassPurchase::program(SingleSwitchProgramEnvironment& env, ProCo
     bool extra = false;
     while (item_val != 0){
         uint16_t qt_val = QUANTITY;
-        pbf_press_button(context, BUTTON_A, 20, 105);
+        pbf_press_button(context, BUTTON_A, 160ms, 840ms);
 
         skip_item = mass_purchase(env, env.console, context);
 
         if (skip_item){
-            pbf_press_button(context, BUTTON_B, 20, 105);
+            pbf_press_button(context, BUTTON_B, 160ms, 840ms);
         }
 
         if (!skip_item){
             if (qt_val <= 500){
                 uint16_t current = 1;
                 while (current + 10 <= qt_val){
-                    pbf_press_dpad(context, DPAD_RIGHT, 20, 10);
+                    pbf_press_dpad(context, DPAD_RIGHT, 160ms, 80ms);
                     current += 10;
                 }
                 while (current < qt_val){
-                    pbf_press_dpad(context, DPAD_UP, 20, 10);
+                    pbf_press_dpad(context, DPAD_UP, 160ms, 80ms);
                     current++;
                 }
             }else{
                 uint16_t current = 999;
-                pbf_press_dpad(context, DPAD_LEFT, 20, 10);
+                pbf_press_dpad(context, DPAD_LEFT, 160ms, 80ms);
                 while (current >= qt_val + 10){
-                    pbf_press_dpad(context, DPAD_LEFT, 20, 10);
+                    pbf_press_dpad(context, DPAD_LEFT, 160ms, 80ms);
                     current -= 10;
                 }
                 while (current > qt_val){
-                    pbf_press_dpad(context, DPAD_DOWN, 20, 10);
+                    pbf_press_dpad(context, DPAD_DOWN, 160ms, 80ms);
                     current--;
                 }
             }
 
-            pbf_press_button(context, BUTTON_A, 20, 125);
+            pbf_press_button(context, BUTTON_A, 160ms, 1000ms);
 
             if (PAY_LP){
-                pbf_press_dpad(context, DPAD_DOWN, 5, 105);
+                pbf_press_dpad(context, DPAD_DOWN, 40ms, 840ms);
             }
 
-            pbf_press_button(context, BUTTON_A, 20, 230);
-            pbf_press_button(context, BUTTON_A, 20, 105);
+            pbf_press_button(context, BUTTON_A, 160ms, 1840ms);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             extra = extra_items(env, env.console, context);
             if (extra){
-                pbf_press_button(context, BUTTON_A, 20, 105);
+                pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             };
 
             env.log("Item Purchased");
@@ -217,19 +221,19 @@ void PokemonSV::MassPurchase::program(SingleSwitchProgramEnvironment& env, ProCo
             send_program_status_notification(env, NOTIFICATION_STATUS_UPDATE);
         }
         
-        pbf_press_dpad(context, DPAD_DOWN, 20, 105);
+        pbf_press_dpad(context, DPAD_DOWN, 160ms, 840ms);
         
         item_val--;
     }
         
-    pbf_press_button(context, BUTTON_B, 20, 105);
-    pbf_press_button(context, BUTTON_B, 20, 105);
-    pbf_press_button(context, BUTTON_B, 20, 105);
-    pbf_press_button(context, BUTTON_B, 20, 105);
-    pbf_press_button(context, BUTTON_B, 20, 105);
-    pbf_press_button(context, BUTTON_A, 20, 105);
-    pbf_press_button(context, BUTTON_B, 20, 105);
-    pbf_press_button(context, BUTTON_A, 20, 105);
+    pbf_press_button(context, BUTTON_B, 160ms, 840ms);
+    pbf_press_button(context, BUTTON_B, 160ms, 840ms);
+    pbf_press_button(context, BUTTON_B, 160ms, 840ms);
+    pbf_press_button(context, BUTTON_B, 160ms, 840ms);
+    pbf_press_button(context, BUTTON_B, 160ms, 840ms);
+    pbf_press_button(context, BUTTON_A, 160ms, 840ms);
+    pbf_press_button(context, BUTTON_B, 160ms, 840ms);
+    pbf_press_button(context, BUTTON_A, 160ms, 840ms);
 
     GO_HOME_WHEN_DONE.run_end_of_program(context);
     send_program_finished_notification(env, NOTIFICATION_PROGRAM_FINISH);

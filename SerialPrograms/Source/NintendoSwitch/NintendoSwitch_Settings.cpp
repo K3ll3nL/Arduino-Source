@@ -75,8 +75,8 @@ ConsoleSettings::ConsoleSettings()
         LockMode::LOCK_WHILE_RUNNING,
         false
     )
-    , START_GAME_MASH(
-        "<b>1. Start Game Mash:</b><br>Mash A for this long to start the game.",
+    , BLIND_START_GAME_MASH(
+        "<b>Blind Start Game Mash:</b><br>Mash A for this long to start the game when video inference is unavailable.",
         LockMode::LOCK_WHILE_RUNNING,
         "2000 ms"
     )
@@ -123,15 +123,41 @@ ConsoleSettings::ConsoleSettings()
         LockMode::UNLOCK_WHILE_RUNNING,
         false
     )
-    , SWITCH1_DIGIT_ENTRY0(false)
-    , SWITCH1_KEYBOARD_ENTRY0(false)
-    , SWITCH2_DIGIT_ENTRY0(true)
-    , SWITCH2_KEYBOARD_ENTRY0(true)
+    , DATE_MENU_OPEN_SWITCH2_0(
+        "<b>Open Date Menu (Switch 2):</b>",
+        LockMode::LOCK_WHILE_RUNNING,
+        "208 ms"
+    )
+    , DATE_MENU_CLOSE_SWITCH2_0(
+        "<b>Close Date Menu (Switch 2):</b>",
+        LockMode::LOCK_WHILE_RUNNING,
+        "264 ms"
+    )
+    , CODEBOARD_ENTRY_SWITCH1_WIRED(
+        "Fast Code Entry Timings (Switch 1 Wired Controller)",
+        false,
+        ControllerPerformanceClass::SerialPABotBase_Wired
+    )
+    , CODEBOARD_ENTRY_SWITCH1_WIRELESS(
+        "Fast Code Entry Timings (Switch 1 Wireless Controller)",
+        false,
+        ControllerPerformanceClass::SerialPABotBase_Wireless
+    )
+    , CODEBOARD_ENTRY_SWITCH2_WIRED(
+        "Fast Code Entry Timings (Switch 2 Wired Controller)",
+        true,
+        ControllerPerformanceClass::SerialPABotBase_Wired
+    )
+    , CODEBOARD_ENTRY_SWITCH2_WIRELESS(
+        "Fast Code Entry Timings (Switch 2 Wireless Controller)",
+        true,
+        ControllerPerformanceClass::SerialPABotBase_Wireless
+    )
     , KEYBOARD_SECTION("<font size=4><b>Keyboard to Controller Mappings:</b></font>")
 {
     PA_ADD_OPTION(CONTROLLER_SETTINGS);
     PA_ADD_OPTION(TRUST_USER_CONSOLE_SELECTION);
-    PA_ADD_OPTION(START_GAME_MASH);
+    PA_ADD_OPTION(BLIND_START_GAME_MASH);
     PA_ADD_OPTION(SETTINGS_TO_HOME_DELAY0);
     PA_ADD_OPTION(START_GAME_REQUIRES_INTERNET);
     PA_ADD_OPTION(START_GAME_INTERNET_CHECK_DELAY0);
@@ -140,11 +166,13 @@ ConsoleSettings::ConsoleSettings()
     PA_ADD_OPTION(ENABLE_SBB3_PINGS);
     PA_ADD_OPTION(ENABLE_SBB3_LOGGING);
     PA_ADD_OPTION(TIMING_OPTIONS);
+    PA_ADD_OPTION(DATE_MENU_OPEN_SWITCH2_0);
+    PA_ADD_OPTION(DATE_MENU_CLOSE_SWITCH2_0);
     if (PreloadSettings::instance().DEVELOPER_MODE){
-        PA_ADD_OPTION(SWITCH1_DIGIT_ENTRY0);
-        PA_ADD_OPTION(SWITCH1_KEYBOARD_ENTRY0);
-        PA_ADD_OPTION(SWITCH2_DIGIT_ENTRY0);
-        PA_ADD_OPTION(SWITCH2_KEYBOARD_ENTRY0);
+        PA_ADD_OPTION(CODEBOARD_ENTRY_SWITCH1_WIRED);
+        PA_ADD_OPTION(CODEBOARD_ENTRY_SWITCH1_WIRELESS);
+        PA_ADD_OPTION(CODEBOARD_ENTRY_SWITCH2_WIRED);
+        PA_ADD_OPTION(CODEBOARD_ENTRY_SWITCH2_WIRELESS);
         PA_ADD_OPTION(KEYBOARD_CONTROLLER_TIMINGS);
     }
     PA_ADD_STATIC(KEYBOARD_SECTION);

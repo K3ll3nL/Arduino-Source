@@ -12,7 +12,7 @@
 #include "CommonFramework/Notifications/EventNotificationOption.h"
 #include "CommonFramework/Tools/ProgramEnvironment.h"
 #include "CommonFramework/Panels/ProgramDescriptor.h"
-#include "NintendoSwitch/Controllers/NintendoSwitch_ProController.h"
+#include "NintendoSwitch/Controllers/Procon/NintendoSwitch_ProController.h"
 #include "NintendoSwitch/NintendoSwitch_ConsoleHandle.h"
 
 namespace PokemonAutomation{
@@ -26,6 +26,9 @@ class SingleSwitchProgramInstance;
 class SingleSwitchProgramEnvironment : public ProgramEnvironment{
 public:
     ConsoleHandle console;
+
+    // Call console.overlay().add_log(msg, color) to add a log message to overlay display
+    void add_overlay_log(std::string msg, Color color = COLOR_WHITE);
 
 private:
     friend class SingleSwitchProgramSession;
@@ -42,7 +45,7 @@ private:
         : ProgramEnvironment(program_info, session, current_stats, historical_stats)
         , console(0, std::forward<Args>(args)...)
     {
-        console.initialize_inference_threads(scope, realtime_inference_dispatcher());
+        console.initialize_inference_threads(scope);
     }
 };
 
@@ -57,7 +60,8 @@ public:
         ProgramControllerClass color_class,
         FeedbackType feedback,
         AllowCommandsWhenRunning allow_commands_while_running,
-        bool deprecated = false
+        bool deprecated = false,
+        std::vector<std::string> required_resources = {}
     );
 
     ProgramControllerClass color_class() const{ return m_color_class; }
@@ -73,6 +77,7 @@ private:
     const FeedbackType m_feedback;
     const bool m_allow_commands_while_running;
     const bool m_deprecated;
+    const std::vector<std::string> m_required_resources;
 };
 
 

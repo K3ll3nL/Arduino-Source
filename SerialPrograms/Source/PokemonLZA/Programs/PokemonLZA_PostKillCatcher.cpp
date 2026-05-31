@@ -36,7 +36,7 @@ PostKillCatcher::PostKillCatcher()
         "<b>" + STRING_POKEBALL + " Right-Scrolls:</b><br>"
         "Scroll this many balls to the right. Negative will scroll to the left.",
         LockMode::UNLOCK_WHILE_RUNNING,
-        0, -10, 10
+        0, -15, 15
     )
     , SCROLL_HOLD(
         "<b>Scroll Hold:</b><br>"
@@ -65,6 +65,8 @@ PostKillCatcher::PostKillCatcher()
 void PostKillCatcher::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     assert_16_9_720p_min(env.logger(), env.console);
 
+    //  Connect the controller.
+    require_player(env.console, context, BUTTON_L);
 
     while (true){
         int8_t scrolls = RIGHT_SCROLLS;

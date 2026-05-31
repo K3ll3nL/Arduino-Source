@@ -9,7 +9,7 @@
 
 #include <chrono>
 #include <vector>
-#include "Common/Cpp/AbstractLogger.h"
+#include "Common/Cpp/Logging/AbstractLogger.h"
 #include "Common/Cpp/Containers/Pimpl.h"
 #include "Common/Cpp/Options/StaticTableOption.h"
 #include "CommonFramework/Options/ScreenshotFormatOption.h"
@@ -20,10 +20,9 @@ namespace PokemonAutomation{
 class EventNotificationOption;
 
 
-class TestMessageButton : public ConfigOption{
+class TestMessageButton : public ConfigOptionImpl<TestMessageButton>{
 public:
     TestMessageButton(EventNotificationOption& p_option);
-    virtual ConfigWidget* make_QtWidget(QWidget& parent) override;
 
     EventNotificationOption& option;
 };
@@ -77,6 +76,9 @@ private:
 
     TestMessageButton m_test_button;
 };
+
+
+EventNotificationOption& EventNotificationOption_NOOP();
 
 
 

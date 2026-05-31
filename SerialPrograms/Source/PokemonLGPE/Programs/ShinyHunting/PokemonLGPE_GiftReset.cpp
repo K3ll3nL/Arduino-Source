@@ -11,7 +11,7 @@
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
-#include "NintendoSwitch/Controllers/NintendoSwitch_Joycon.h"
+#include "NintendoSwitch/Controllers/Joycon/NintendoSwitch_Joycon.h"
 #include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "CommonTools/VisualDetectors/BlackScreenDetector.h"
@@ -94,7 +94,7 @@ void GiftReset::program(SingleSwitchProgramEnvironment& env, CancellableScope& s
     */
 
     bool shiny_found = false;
-    while (!shiny_found) {
+    while (!shiny_found){
         //Purchase Magikarp
         BlackScreenOverWatcher gift_obtained(COLOR_RED);
         int ret = run_until<JoyconContext>(
@@ -114,8 +114,7 @@ void GiftReset::program(SingleSwitchProgramEnvironment& env, CancellableScope& s
                 "Failed to receive gift Pokemon.",
                 env.console
             );
-        }
-        else {
+        }else{
             env.log("Received gift Pokemon.");
         }
         send_program_status_notification(
@@ -149,14 +148,14 @@ void GiftReset::program(SingleSwitchProgramEnvironment& env, CancellableScope& s
 
         //Press left to go to last (most recent) Pokemon
         env.log("Opening summary of most recent Pokemon.");
-        pbf_move_joystick(context, 0, 128, 100ms, 100ms);
+        pbf_move_joystick(context, {-1, 0}, 100ms, 100ms);
         context.wait_for_all_requests();
 
         //View summary - it takes a moment to load
         env.log("Viewing summary.");
         pbf_press_button(context, BUTTON_A, 200ms, 1000ms);
-        pbf_move_joystick(context, 128, 255, 100ms, 100ms);
-        pbf_move_joystick(context, 128, 255, 100ms, 100ms);
+        pbf_move_joystick(context, {0, -1}, 100ms, 100ms);
+        pbf_move_joystick(context, {0, -1}, 100ms, 100ms);
         pbf_press_button(context, BUTTON_A, 200ms, 100ms);
         context.wait_for_all_requests();
 
@@ -168,14 +167,13 @@ void GiftReset::program(SingleSwitchProgramEnvironment& env, CancellableScope& s
         ShinySymbolDetector shiny_checker(COLOR_YELLOW);
         bool check = shiny_checker.read(env.console.logger(), screen);
 
-        if (check) {
+        if (check){
             env.log("Shiny detected!");
             stats.shinies++;
             env.update_stats();
             send_program_notification(env, NOTIFICATION_SHINY, COLOR_YELLOW, "Shiny found!", {}, "", screen, true);
             shiny_found = true;
-        }
-        else {
+        }else{
             env.log("Not shiny. Resetting game.");
             send_program_status_notification(
                 env, NOTIFICATION_STATUS_UPDATE,
@@ -188,7 +186,7 @@ void GiftReset::program(SingleSwitchProgramEnvironment& env, CancellableScope& s
         }
     }
 
-    if (GO_HOME_WHEN_DONE) {
+    if (GO_HOME_WHEN_DONE){
         pbf_press_button(context, BUTTON_HOME, 200ms, 1000ms);
     }
     send_program_finished_notification(env, NOTIFICATION_PROGRAM_FINISH);

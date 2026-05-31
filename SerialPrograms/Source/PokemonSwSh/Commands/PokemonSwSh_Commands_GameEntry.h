@@ -8,7 +8,7 @@
 #define PokemonAutomation_PokemonSwSh_Commands_GameEntry_H
 
 #include "CommonFramework/Tools/VideoStream.h"
-#include "NintendoSwitch/Controllers/NintendoSwitch_ProController.h"
+#include "NintendoSwitch/Controllers/Procon/NintendoSwitch_ProController.h"
 #include "NintendoSwitch/NintendoSwitch_ConsoleHandle.h"
 
 namespace PokemonAutomation{
@@ -17,7 +17,7 @@ namespace PokemonSwSh{
 
 
 void resume_game_no_interact_old        (ProControllerContext& device, bool tolerate_update_menu);
-void resume_game_back_out_old           (ProControllerContext& device, bool tolerate_update_menu, uint16_t mash_B_time);
+void resume_game_back_out_old           (ProControllerContext& device, bool tolerate_update_menu, Milliseconds mash_B_time);
 void resume_game_front_of_den_nowatts   (ProControllerContext& device, bool tolerate_update_menu);
 void settings_to_enter_game             (ProControllerContext& device, bool fast);
 void settings_to_enter_game_den_lobby(
@@ -41,14 +41,9 @@ void start_game_from_home(
 );
 void fast_reset_game(
     ProControllerContext& device,
-    Milliseconds start_game_mash,
     Milliseconds start_game_wait,
     Milliseconds enter_game_mash,
     Milliseconds enter_game_wait
-);
-void reset_game_from_home(
-    ConsoleHandle& console, ProControllerContext& device,
-    bool tolerate_update_menu
 );
 
 

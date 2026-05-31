@@ -14,6 +14,8 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 #include "3rdParty/ONNX/OnnxToolsPA.h"
+#include "Common/Cpp/Exceptions.h"
+#include "Common/Cpp/Filesystem.h"
 #include "CommonFramework/Globals.h"
 #include "ML/Models/ML_ONNXRuntimeHelpers.h"
 #include "ML_SegmentAnythingModelConstants.h"
@@ -24,8 +26,9 @@ namespace PokemonAutomation{
 namespace ML{
 
 
-SAMEmbedderSession::SAMEmbedderSession(const std::string& model_path)
-    : m_session_options{create_session_options(ML_MODEL_CACHE_PATH() + "SAMEmbedder/")}
+SAMEmbedderSession::SAMEmbedderSession(const std::string& model_path, bool use_gpu)
+    : m_env{create_ORT_env()}
+    , m_session_options{create_session_options(ML_MODEL_CACHE_PATH() + "SAMEmbedder/", use_gpu)}
     , session{create_session(m_env, m_session_options, model_path, ML_MODEL_CACHE_PATH() + "SAMEmbedder/")}
     , memory_info{Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU)}
     , input_names{session.GetInputNames()}
@@ -46,7 +49,7 @@ void SAMEmbedderSession::run(cv::Mat& input_image, std::vector<float>& model_out
     auto output_tensor = create_tensor<float>(memory_info, model_output, output_shape);
 
     for (int row = 0, p_loc=0; row < SAM_EMBEDDER_INPUT_IMAGE_HEIGHT; row++){
-        for(int col = 0; col < SAM_EMBEDDER_INPUT_IMAGE_WIDTH; col++){
+        for (int col = 0; col < SAM_EMBEDDER_INPUT_IMAGE_WIDTH; col++){
             cv::Vec3b p = input_image.at<cv::Vec3b>(row, col);
             model_input[p_loc++] = p[0];
             model_input[p_loc++] = p[1];
@@ -64,8 +67,9 @@ void SAMEmbedderSession::run(cv::Mat& input_image, std::vector<float>& model_out
 }
 
 
-SAMSession::SAMSession(const std::string& model_path)
-    : m_session_options{create_session_options(ML_MODEL_CACHE_PATH() + "SAM/")}
+SAMSession::SAMSession(const std::string& model_path, bool use_gpu)
+    : m_env{create_ORT_env()}
+    , m_session_options{create_session_options(ML_MODEL_CACHE_PATH() + "SAM/", use_gpu)}
     , session{create_session(m_env, m_session_options, model_path, ML_MODEL_CACHE_PATH() + "SAM/")}
     , memory_info{Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU)}
     , input_names{session.GetInputNames()}
@@ -97,8 +101,7 @@ void SAMSession::run(
     size_t num_points = input_points.size() / 2;
     if(input_box.size() > 0){
         num_points += 2; // add the bounding box two corners
-    }
-    else{
+    }else{
         num_points += 1; // add a padding point where there is no bounding box
     }
 
@@ -119,7 +122,7 @@ void SAMSession::run(
     // assign input coordinates and boxes:
     const float scale_x = SAM_EMBEDDER_INPUT_IMAGE_WIDTH / float(original_image_width);
     const float scale_y = SAM_EMBEDDER_INPUT_IMAGE_HEIGHT / float(original_image_height);
-    for(size_t i = 0; i < input_point_labels.size(); i++){
+    for (size_t i = 0; i < input_point_labels.size(); i++){
         input_point_coords_buffer[2*i] = input_points[2*i] * scale_x;
         input_point_coords_buffer[2*i+1] = input_points[2*i+1] * scale_y;
 
@@ -154,11 +157,11 @@ void SAMSession::run(
     output_tensors[2] = create_tensor<float>(memory_info, output_low_res_mask_buffer, output_low_res_mask_shape);
 
     std::array<const char*, SAM_N_INPUT_TENSORS> input_names_c;
-    for(int i = 0; i < SAM_N_INPUT_TENSORS; i++){
+    for (int i = 0; i < SAM_N_INPUT_TENSORS; i++){
         input_names_c[i] = input_names[i].data();
     }
     std::array<const char*, SAM_N_OUTPUT_TENSORS> output_names_c;
-    for(int i = 0; i < SAM_N_OUTPUT_TENSORS; i++){
+    for (int i = 0; i < SAM_N_OUTPUT_TENSORS; i++){
         output_names_c[i] = output_names[i].data();
     }
 
@@ -170,20 +173,20 @@ void SAMSession::run(
     std::cout << "SAM inference time: " << milliseconds << " ms" << std::endl;
 
     output_boolean_mask.resize(original_image_height * original_image_width, false);
-    for(size_t i = 0; i < output_mask_buffer.size(); i++){
+    for (size_t i = 0; i < output_mask_buffer.size(); i++){
         output_boolean_mask[i] = output_mask_buffer[i] > SAM_OUTPUT_MASK_THRESHOLD;
     }
 }
 
 
-void compute_embeddings_for_folder(const std::string& embedding_model_path, const std::string& image_folder_path){
+void compute_embeddings_for_folder(const std::string& embedding_model_path, const std::string& image_folder_path, bool use_gpu_for_embedder_session){
     const bool recursive_search = true;
     std::vector<std::string> all_image_paths = find_images_in_folder(image_folder_path, recursive_search);
     if (all_image_paths.size() == 0){
         return;
     }
     
-    if (!std::filesystem::exists(embedding_model_path)){
+    if (!Filesystem::exists(embedding_model_path)){
         std::cerr << "Error: no such embedding model path " << embedding_model_path << "." << std::endl;
         QMessageBox box;
         box.critical(nullptr, "Embedding Model Does Not Exist",
@@ -192,7 +195,7 @@ void compute_embeddings_for_folder(const std::string& embedding_model_path, cons
     }
     // since the embedding model has too many weights, onnx created a .data file to contain weights.
     auto embedding_model_data_path = embedding_model_path + ".data";
-    if (!std::filesystem::exists(embedding_model_data_path)){
+    if (!Filesystem::exists(embedding_model_data_path)){
         std::cerr << "Error: no such embedding model data path " << embedding_model_data_path << "." << std::endl;
         QMessageBox box;
         box.critical(nullptr, "Embedding Model Data File Does Not Exist",
@@ -200,13 +203,22 @@ void compute_embeddings_for_folder(const std::string& embedding_model_path, cons
         return;
     }
 
-    SAMEmbedderSession embedding_session(embedding_model_path);
+    bool use_gpu = use_gpu_for_embedder_session;
+    std::unique_ptr<SAMEmbedderSession> embedding_session;
+    try{
+        embedding_session = make_unique<SAMEmbedderSession>(embedding_model_path, use_gpu);
+    }catch (MLModelSessionCreationError& e){
+        QMessageBox box;
+        box.warning(nullptr, "Unable To Create Model Session",
+            QString::fromStdString(e.message() + ". Try using CPU?"));
+        return;
+    }
     std::vector<float> output_image_embedding;
     for (size_t i = 0; i < all_image_paths.size(); i++){
         const auto& image_path = all_image_paths[i];
         std::cout << (i+1) << "/" << all_image_paths.size() << ": ";
         const std::string embedding_path = image_path + ".embedding";
-        if (std::filesystem::exists(embedding_path)){
+        if (Filesystem::exists(embedding_path)){
             std::cout << "skip already computed embedding " << embedding_path << "." << std::endl;
             continue;
         }
@@ -224,7 +236,7 @@ void compute_embeddings_for_folder(const std::string& embedding_model_path, cons
             cv::cvtColor(image_bgr, image, cv::COLOR_BGRA2RGB);
         } else if (image_bgr.channels() == 3){
             cv::cvtColor(image_bgr, image, cv::COLOR_BGR2RGB);
-        } else{
+        }else{
             std::cerr << "Error: wrong image channels. Only work with RGB or RGBA images." << std::endl;
             QMessageBox box;
             box.warning(nullptr, "Wrong Image Channels",
@@ -236,7 +248,43 @@ void compute_embeddings_for_folder(const std::string& embedding_model_path, cons
         cv::resize(image, resized_mat, cv::Size(SAM_EMBEDDER_INPUT_IMAGE_WIDTH, SAM_EMBEDDER_INPUT_IMAGE_HEIGHT));
 
         output_image_embedding.clear();
-        embedding_session.run(resized_mat, output_image_embedding);
+
+        // fall back to CPU if fails with GPU.
+        for (size_t j = 0; j < 2; j++){
+            try{
+                // If fails with GPU, fall back to CPU.
+                // throw Ort::Exception("Testing.", ORT_FAIL);  // to simulate GPU/CPU failure
+                embedding_session->run(resized_mat, output_image_embedding);
+                break;
+            }catch (Ort::Exception& e){
+                if (use_gpu){
+                    std::cerr << "Warning: Embedding session failed using the GPU. Will reattempt with the CPU.\n" << e.what() << std::endl;
+                    use_gpu = false;
+                    embedding_session = make_unique<SAMEmbedderSession>(embedding_model_path, use_gpu);
+                }else{
+                    std::cerr << "Error: Embedding session failed even when using the CPU.\n" << e.what() << std::endl;
+                    QMessageBox box;
+                    box.warning(nullptr, "Error:",
+                        QString::fromStdString("Error: Embedding session failed."));
+                    return;
+                }
+            }catch (...){
+                std::cerr << "Error: Unknown error. Embedding session failed." << std::endl;
+                QMessageBox box;
+                box.warning(nullptr, "Error:",
+                    QString::fromStdString("Error: Unknown error. Embedding session failed."));
+                return;
+
+            }
+
+            if (j > 0){
+                std::cerr << "Internal Program Error: This section of code shouldn't be reachable." << std::endl;
+                QMessageBox box;
+                box.warning(nullptr, "Error:",
+                    QString::fromStdString("Internal Program Error: This section of code shouldn't be reachable."));
+                return;
+            }
+        }
         save_image_embedding_to_disk(image_path, output_image_embedding);
     }
     std::cout << "Done computing embeddings for images in folder " << image_folder_path << "." << std::endl;

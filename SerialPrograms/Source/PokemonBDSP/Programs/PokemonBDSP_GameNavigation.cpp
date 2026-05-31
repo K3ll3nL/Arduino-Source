@@ -27,7 +27,7 @@ void save_game(ProControllerContext& context){
 }
 void menu_to_box(ProControllerContext& context){
     Milliseconds MENU_TO_POKEMON_DELAY = GameSettings::instance().MENU_TO_POKEMON_DELAY0;
-    pbf_mash_button(context, BUTTON_ZL, 30);
+    pbf_mash_button(context, BUTTON_ZL, 240ms);
     if (MENU_TO_POKEMON_DELAY > 240ms){
         pbf_wait(context, MENU_TO_POKEMON_DELAY - 240ms);
     }
@@ -53,7 +53,7 @@ void box_to_overworld(ProControllerContext& context){
     //  In state (2):   The 1st B will drop the party pokemon. The 2nd B will
     //                  back out of the box.
 
-    pbf_press_button(context, BUTTON_B, 20, 30);
+    pbf_press_button(context, BUTTON_B, 160ms, 240ms);
     pbf_press_button(context, BUTTON_B, 160ms, GameSettings::instance().BOX_TO_POKEMON_DELAY0);
 
     pbf_press_button(context, BUTTON_B, 160ms, GameSettings::instance().POKEMON_TO_MENU_DELAY0);
@@ -65,7 +65,7 @@ void box_to_overworld(ProControllerContext& context){
 //  Feedback
 
 void overworld_to_menu(VideoStream& stream, ProControllerContext& context){
-    pbf_press_button(context, BUTTON_X, 20, 105);
+    pbf_press_button(context, BUTTON_X, 160ms, 840ms);
     context.wait_for_all_requests();
     {
         MenuWatcher detector;
@@ -87,8 +87,8 @@ void overworld_to_menu(VideoStream& stream, ProControllerContext& context){
 
 void save_game(VideoStream& stream, ProControllerContext& context){
     overworld_to_menu(stream, context);
-    pbf_press_button(context, BUTTON_R, 10, 2 * TICKS_PER_SECOND);
-    pbf_press_button(context, BUTTON_ZL, 10, 5 * TICKS_PER_SECOND);
+    pbf_press_button(context, BUTTON_R, 80ms, 2000ms);
+    pbf_press_button(context, BUTTON_ZL, 80ms, 5000ms);
 }
 
 void overworld_to_box(VideoStream& stream, ProControllerContext& context){
@@ -100,7 +100,7 @@ void overworld_to_box(VideoStream& stream, ProControllerContext& context){
     pbf_press_button(context, BUTTON_ZL, 160ms, MENU_TO_POKEMON_DELAY);
 
     //  Enter box system.
-    pbf_press_button(context, BUTTON_R, 20, 105);
+    pbf_press_button(context, BUTTON_R, 160ms, 840ms);
     context.wait_for_all_requests();
     {
         BoxWatcher detector;
@@ -131,11 +131,11 @@ void box_to_overworld(VideoStream& stream, ProControllerContext& context){
     //                  be swallowed by the animation.
     //  In state (2):   The 1st B will drop the party pokemon. The 2nd B will
     //                  back out of the box.
-    pbf_press_button(context, BUTTON_B, 20, 30);
+    pbf_press_button(context, BUTTON_B, 160ms, 240ms);
     pbf_press_button(context, BUTTON_B, 160ms, GameSettings::instance().BOX_TO_POKEMON_DELAY0);
 
     //  To menu.
-    pbf_press_button(context, BUTTON_B, 20, 105);
+    pbf_press_button(context, BUTTON_B, 160ms, 840ms);
     context.wait_for_all_requests();
     {
         MenuWatcher detector;

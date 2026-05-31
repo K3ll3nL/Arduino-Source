@@ -5,12 +5,13 @@
  */
 
 #include "Common/Cpp/Exceptions.h"
+#include "CommonFramework/Tools/GlobalThreadPools.h"
 #include "CommonFramework/VideoPipeline/VideoFeed.h"
 #include "VisualInferencePivot.h"
 
-#include <iostream>
-using std::cout;
-using std::endl;
+//#include <iostream>
+//using std::cout;
+//using std::endl;
 
 namespace PokemonAutomation{
 
@@ -21,27 +22,28 @@ struct VisualInferencePivot::PeriodicCallback{
     std::atomic<InferenceCallback*>* set_when_triggered;
     VisualInferenceCallback& callback;
     std::chrono::milliseconds period;
-    StatAccumulatorI32 stats;
     WallClock last_timestamp;
+    StatAccumulatorI32 stats;
 
     PeriodicCallback(
         Cancellable& p_scope,
         std::atomic<InferenceCallback*>* p_set_when_triggered,
         VisualInferenceCallback& p_callback,
-        std::chrono::milliseconds p_period
+        std::chrono::milliseconds p_period,
+        WallClock p_start_time
     )
         : scope(p_scope)
         , set_when_triggered(p_set_when_triggered)
         , callback(p_callback)
         , period(p_period)
-        , last_timestamp(WallClock::min())
+        , last_timestamp(p_start_time)
     {}
 };
 
 
 
-VisualInferencePivot::VisualInferencePivot(CancellableScope& scope, VideoFeed& feed, AsyncDispatcher& dispatcher)
-    : PeriodicRunner(dispatcher)
+VisualInferencePivot::VisualInferencePivot(CancellableScope& scope, VideoFeed& feed)
+    : BusyPeriodicRunner(GlobalThreadPools::unlimited_pivot())
     , m_feed(feed)
 {
     attach(scope);
@@ -54,9 +56,10 @@ void VisualInferencePivot::add_callback(
     Cancellable& scope,
     std::atomic<InferenceCallback*>* set_when_triggered,
     VisualInferenceCallback& callback,
-    std::chrono::milliseconds period
+    std::chrono::milliseconds period,
+    WallClock start_time
 ){
-    WriteSpinLock lg(m_lock);
+    WriteSpinLock lg(m_lock, PA_CURRENT_FUNCTION);
     auto iter = m_map.find(&callback);
     if (iter != m_map.end()){
         throw InternalProgramError(nullptr, PA_CURRENT_FUNCTION, "Attempted to add the same callback twice.");
@@ -64,23 +67,23 @@ void VisualInferencePivot::add_callback(
     iter = m_map.emplace(
         std::piecewise_construct,
         std::forward_as_tuple(&callback),
-        std::forward_as_tuple(scope, set_when_triggered, callback, period)
+        std::forward_as_tuple(scope, set_when_triggered, callback, period, start_time)
     ).first;
     try{
-        PeriodicRunner::add_event(&iter->second, period);
+        BusyPeriodicRunner::add_event(&iter->second, period);
     }catch (...){
         m_map.erase(iter);
         throw;
     }
 }
 StatAccumulatorI32 VisualInferencePivot::remove_callback(VisualInferenceCallback& callback){
-    WriteSpinLock lg(m_lock);
+    WriteSpinLock lg(m_lock, PA_CURRENT_FUNCTION);
     auto iter = m_map.find(&callback);
     if (iter == m_map.end()){
         return StatAccumulatorI32();
     }
     StatAccumulatorI32 stats = iter->second.stats;
-    PeriodicRunner::remove_event(&iter->second);
+    BusyPeriodicRunner::remove_event(&iter->second);
     m_map.erase(iter);
     return stats;
 }
@@ -89,15 +92,7 @@ void VisualInferencePivot::run(void* event, bool is_back_to_back) noexcept{
     try{
         //  Reuse the cached screenshot.
         if (!is_back_to_back || callback.last_timestamp == m_last.timestamp){
-//            cout << "back-to-back" << endl;
-//            m_last = m_feed.snapshot();
-
-            WallClock min_time = callback.last_timestamp;
-            if (min_time == WallClock::min()){
-                min_time = current_time() - 2 * callback.period;
-            }
-
-            m_last = m_feed.snapshot_recent_nonblocking(min_time);
+            m_last = m_feed.snapshot_recent_nonblocking(callback.last_timestamp);
         }
 
         if (!m_last){

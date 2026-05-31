@@ -4,9 +4,8 @@
 
 #ifdef PA_DPP
 #include <atomic>
-#include <dpp/dpp.h>
 #include <Integrations/DppIntegration/DppCommandHandler.h>
-#include "Common/Cpp/Concurrency/Thread.h"
+#include "Common/Cpp/Concurrency/AsyncTask.h"
 #include "CommonFramework/Notifications/MessageAttachment.h"
 
 namespace PokemonAutomation{
@@ -21,6 +20,11 @@ public:
     Client() : m_is_connected(false) {}
     ~Client();
     static Client& instance();
+
+    virtual void stop() override{
+        disconnect();
+        Handler::stop();
+    }
 
 public:
     bool is_initialized();
@@ -44,7 +48,7 @@ private:
     std::unique_ptr<dpp::commandhandler> m_handler = nullptr;
     std::atomic<bool> m_is_connected;
     std::mutex m_client_lock;
-    Thread m_start_thread;
+    AsyncTask m_start_thread;
 };
 
 

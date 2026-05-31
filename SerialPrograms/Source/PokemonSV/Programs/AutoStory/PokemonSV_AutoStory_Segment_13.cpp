@@ -77,103 +77,185 @@ void checkpoint_29(
     [&](size_t attempt_number){         
         context.wait_for_all_requests();
 
-        fly_to_overlapping_flypoint(env.program_info(), env.console, context);
+        if (attempt_number > 0 || ENABLE_TEST){
+            env.console.log("Fly to neighbouring Pokecenter, then fly back, to clear any pokemon covering the minimap.");
+            move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::KEEP_ZOOM, -1, +1, 0ms});
+            move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::KEEP_ZOOM, -1, +1, 0ms});
+        }
 
         // align for long stretch 1, part 1
-        realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_NEW_MARKER, 70, 0, 60);
+        realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_NEW_MARKER, -0.453, +1, 480ms);
 
 
-        overworld_navigation(env.program_info(), env.console, context, 
-            NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-            128, 0, 30, 15, false);
+        handle_when_stationary_in_overworld(env.program_info(), env.console, context, 
+            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+                overworld_navigation(env.program_info(), env.console, context, 
+                    NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
+                    0, +1, 30, 15, false);
+            }, 
+            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+                pbf_move_left_joystick(context, {+1, -1}, 320ms, 400ms);
+                realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
+            }
+        );            
 
         // align for long stretch 1, part 2
         realign_player_from_landmark(
             env.program_info(), env.console, context, 
-            {ZoomChange::ZOOM_IN, 128, 255, 40},
-            {ZoomChange::KEEP_ZOOM, 80, 0, 75}
+            {ZoomChange::ZOOM_IN, 0, -1, 320ms},
+            {ZoomChange::KEEP_ZOOM, -0.375, +1, 600ms}
         );        
         
-        overworld_navigation(env.program_info(), env.console, context, 
-            NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-            128, 0, 12, 12, false);            
+        handle_when_stationary_in_overworld(env.program_info(), env.console, context, 
+            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+                overworld_navigation(env.program_info(), env.console, context, 
+                    NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
+                    0, +1, 24, 12, false);
+            }, 
+            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+                pbf_move_left_joystick(context, {+1, -1}, 320ms, 400ms);
+                realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
+            }
+        );         
 
         // align for long stretch 1, part 3
  
         realign_player_from_landmark(
             env.program_info(), env.console, context, 
-            {ZoomChange::ZOOM_IN, 128, 255, 60},
-            {ZoomChange::KEEP_ZOOM, 95, 0, 115}
+            {ZoomChange::ZOOM_IN, 0, -1, 480ms},
+            {ZoomChange::KEEP_ZOOM, -0.258, +1, 920ms}
         );
         
-        overworld_navigation(env.program_info(), env.console, context, 
-            NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-            128, 0, 36, 12, false);
+        handle_when_stationary_in_overworld(env.program_info(), env.console, context, 
+            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+                overworld_navigation(env.program_info(), env.console, context, 
+                    NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
+                    0, +1, 36, 12, false);
+            }, 
+            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+                pbf_move_left_joystick(context, {+1, -1}, 320ms, 400ms);
+                realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
+            }
+        );  
 
         // align for long stretch 2
         realign_player_from_landmark(
             env.program_info(), env.console, context, 
-            {ZoomChange::ZOOM_IN, 128, 255, 100},
-            {ZoomChange::KEEP_ZOOM, 0, 105, 65}
+            {ZoomChange::ZOOM_IN, 0, -1, 800ms},
+            {ZoomChange::KEEP_ZOOM, -1, +0.18, 520ms}
         );              
 
-        overworld_navigation(env.program_info(), env.console, context, 
-            NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-            128, 0, 45, 15, false);
+        handle_when_stationary_in_overworld(env.program_info(), env.console, context, 
+            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+                overworld_navigation(env.program_info(), env.console, context, 
+                    NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
+                    0, +1, 45, 15, false);
+            }, 
+            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+                pbf_move_left_joystick(context, {+1, -1}, 320ms, 400ms);
+                realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
+            }
+        );  
 
         // align for long stretch 3, part 1
         realign_player_from_landmark(
             env.program_info(), env.console, context, 
-            {ZoomChange::ZOOM_IN, 255, 128, 65},
-            {ZoomChange::KEEP_ZOOM, 0, 50, 87}
+            {ZoomChange::ZOOM_IN, +1, 0, 520ms},
+            {ZoomChange::KEEP_ZOOM, -1, +0.609, 696ms}
         ); 
 
         
-        overworld_navigation(env.program_info(), env.console, context, 
-            NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-            128, 0, 20, 10, false);
+        handle_when_stationary_in_overworld(env.program_info(), env.console, context, 
+            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+                overworld_navigation(env.program_info(), env.console, context, 
+                    NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
+                    0, +1, 20, 10, false);
+            }, 
+            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+                pbf_move_left_joystick(context, {+1, -1}, 320ms, 400ms);
+                realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
+            }
+        );  
 
         // align for long stretch 3, part 2
         realign_player_from_landmark(
             env.program_info(), env.console, context, 
-            {ZoomChange::ZOOM_IN, 255, 160, 65},
-            {ZoomChange::KEEP_ZOOM, 20, 0, 110}
+            {ZoomChange::ZOOM_IN, +1, -0.252, 520ms},
+            {ZoomChange::KEEP_ZOOM, -0.844, +1, 880ms}
         ); 
 
         
-        overworld_navigation(env.program_info(), env.console, context, 
-            NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-            128, 0, 30, 10, false);            
+        handle_when_stationary_in_overworld(env.program_info(), env.console, context, 
+            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+                overworld_navigation(env.program_info(), env.console, context, 
+                    NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
+                    0, +1, 30, 10, false);
+            }, 
+            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+                pbf_move_left_joystick(context, {+1, -1}, 320ms, 400ms);
+                realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
+            }
+        );            
 
         // align for long stretch 3, part 3
         realign_player_from_landmark(
             env.program_info(), env.console, context, 
-            {ZoomChange::ZOOM_IN, 0, 60, 110},
-            {ZoomChange::KEEP_ZOOM, 255, 128, 115}
+            {ZoomChange::ZOOM_IN, -1, +0.531, 880ms},
+            {ZoomChange::KEEP_ZOOM, +1, 0, 920ms}
         );
 
 
-        overworld_navigation(env.program_info(), env.console, context, 
-            NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-            128, 0, 30, 10, false);                
+        handle_when_stationary_in_overworld(env.program_info(), env.console, context, 
+            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+                overworld_navigation(env.program_info(), env.console, context, 
+                    NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
+                    0, +1, 30, 10, false);
+            }, 
+            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+                pbf_move_left_joystick(context, {+1, -1}, 320ms, 400ms);
+                realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
+            }
+        );
 
-        // align for long stretch 3, part 4
-        realign_player_from_landmark(
-            env.program_info(), env.console, context, 
-            {ZoomChange::ZOOM_IN, 0, 128, 100},
-            {ZoomChange::KEEP_ZOOM, 255, 67, 85} //{ZoomChange::KEEP_ZOOM, 255, 70, 90}
+        // // align for long stretch 3, part 4
+        // realign_player_from_landmark(
+        //     env.program_info(), env.console, context, 
+        //     {ZoomChange::ZOOM_IN, 0, 128, 100},
+        //     {ZoomChange::KEEP_ZOOM, 255, 67, 85} //{ZoomChange::KEEP_ZOOM, 255, 70, 90}
+        // );
+
+        //align for long stretch 3, part 4.  just prior to bridge. {0.339062, 0.612037}
+        place_marker_offset_from_flypoint(env.program_info(), env.console, context, 
+            {ZoomChange::KEEP_ZOOM, -1, +1, 0ms},
+            FlyPoint::POKECENTER, 
+            {0.339062, 0.612037}
         );
 
 
-        overworld_navigation(env.program_info(), env.console, context, 
-            NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-            128, 0, 36, 12, false);        
+        handle_when_stationary_in_overworld(env.program_info(), env.console, context, 
+            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+                overworld_navigation(env.program_info(), env.console, context, 
+                    NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
+                    0, +1, 36, 12, false);
+            }, 
+            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+                pbf_move_left_joystick(context, {+1, -1}, 320ms, 400ms);
+                realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
+            }
+        );        
 
-        // align to cross bridge
-        realign_player_from_landmark(
-            env.program_info(), env.console, context, 
-            {ZoomChange::ZOOM_IN, 0, 128, 90},
-            {ZoomChange::KEEP_ZOOM, 255, 35, 67}
+        // // align to cross bridge
+        // realign_player_from_landmark(
+        //     env.program_info(), env.console, context, 
+        //     {ZoomChange::ZOOM_IN, 0, 128, 90},
+        //     {ZoomChange::KEEP_ZOOM, 255, 35, 67}
+        // );
+
+        // align to cross bridge   {0.385937, 0.615741}
+        place_marker_offset_from_flypoint(env.program_info(), env.console, context, 
+            {ZoomChange::KEEP_ZOOM, -1, +1, 0ms},
+            FlyPoint::POKECENTER, 
+            {0.385937, 0.615741}
         );
 
 
@@ -188,33 +270,48 @@ void checkpoint_29(
                 );
             }        
 
-            try {
+            try{
                 overworld_navigation(env.program_info(), env.console, context, 
                     NavigationStopCondition::STOP_MARKER, NavigationMovementMode::CLEAR_WITH_LETS_GO, 
-                    128, 0, 20, 20, false);         
+                    0, +1, 20, 20, false);         
 
                 break;
 
-            }catch(OperationFailedException&){ // try again if fall into water
-                pbf_mash_button(context, BUTTON_A, 250);
+            }catch (OperationFailedException&){ // try again if fall into water
+                pbf_mash_button(context, BUTTON_A, 2000ms);
+
+                // // walk back to start position before bridge
+                // realign_player_from_landmark(
+                //     env.program_info(), env.console, context, 
+                //     {ZoomChange::ZOOM_IN, 255, 255, 180},
+                //     {ZoomChange::KEEP_ZOOM, 33, 0, 175}
+                // );
 
                 // walk back to start position before bridge
-                realign_player_from_landmark(
-                    env.program_info(), env.console, context, 
-                    {ZoomChange::ZOOM_IN, 255, 255, 180},
-                    {ZoomChange::KEEP_ZOOM, 33, 0, 175}
+                //  {0.310937, 0.580556}      {0.310937, 0.589815}      {0.310937, 0.584259}
+                place_marker_offset_from_flypoint(env.program_info(), env.console, context, 
+                    {ZoomChange::KEEP_ZOOM, -1, +1, 0ms},
+                    FlyPoint::POKECENTER, 
+                    {0.310937, 0.584259}
                 );
 
                 overworld_navigation(env.program_info(), env.console, context, 
                     NavigationStopCondition::STOP_MARKER, NavigationMovementMode::CLEAR_WITH_LETS_GO, 
-                    128, 0, 20, 20, false);          
+                    0, +1, 20, 20, false);          
 
 
-                // align to cross bridge
-                realign_player_from_landmark(
-                    env.program_info(), env.console, context, 
-                    {ZoomChange::ZOOM_IN, 0, 128, 90},
-                    {ZoomChange::KEEP_ZOOM, 255, 35, 67}
+                // // align to cross bridge
+                // realign_player_from_landmark(
+                //     env.program_info(), env.console, context, 
+                //     {ZoomChange::ZOOM_IN, 0, 128, 90},
+                //     {ZoomChange::KEEP_ZOOM, 255, 35, 67}
+                // );
+
+                // align to cross bridge   {0.385937, 0.615741}
+                place_marker_offset_from_flypoint(env.program_info(), env.console, context, 
+                    {ZoomChange::KEEP_ZOOM, -1, +1, 0ms},
+                    FlyPoint::POKECENTER, 
+                    {0.385937, 0.615741}
                 );
 
 
@@ -222,7 +319,7 @@ void checkpoint_29(
         }
 
         confirm_no_overlapping_flypoint(env.program_info(), env.console, context);
-        pbf_press_button(context, BUTTON_B, 20, 100);
+        pbf_press_button(context, BUTTON_B, 160ms, 800ms);
         handle_unexpected_battles(env.program_info(), env.console, context,
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
             press_Bs_to_back_to_overworld(env.program_info(), env.console, context);
@@ -233,70 +330,111 @@ void checkpoint_29(
         // align for post-bridge section 1
         realign_player_from_landmark(
             env.program_info(), env.console, context, 
-            {ZoomChange::ZOOM_IN, 0, 150, 60},
-            {ZoomChange::KEEP_ZOOM, 255, 60, 50} // {ZoomChange::KEEP_ZOOM, 255, 60, 50}
+            {ZoomChange::ZOOM_IN, -1, -0.173, 480ms},
+            {ZoomChange::KEEP_ZOOM, +1, +0.531, 400ms} // {ZoomChange::KEEP_ZOOM, 255, 60, 50}
         );
 
 
-        overworld_navigation(env.program_info(), env.console, context, 
-            NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-            128, 0, 20, 10, false);   
+        handle_when_stationary_in_overworld(env.program_info(), env.console, context, 
+            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+                overworld_navigation(env.program_info(), env.console, context, 
+                    NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
+                    0, +1, 20, 10, false);
+            }, 
+            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+                pbf_move_left_joystick(context, {+1, -1}, 320ms, 400ms);
+                realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
+            }
+        );
+ 
 
         // align for post-bridge section 2
         realign_player_from_landmark(
             env.program_info(), env.console, context, 
-            {ZoomChange::ZOOM_IN, 0, 150, 60},
-            {ZoomChange::KEEP_ZOOM, 255, 105, 50}
+            {ZoomChange::ZOOM_IN, -1, -0.173, 480ms},
+            {ZoomChange::KEEP_ZOOM, +1, +0.18, 400ms}
         );
 
 
-        overworld_navigation(env.program_info(), env.console, context, 
-            NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-            128, 0, 20, 10, false);        
+        handle_when_stationary_in_overworld(env.program_info(), env.console, context, 
+            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+                overworld_navigation(env.program_info(), env.console, context, 
+                    NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
+                    0, +1, 20, 10, false);
+            }, 
+            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+                pbf_move_left_joystick(context, {+1, -1}, 320ms, 400ms);
+                realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
+            }
+        );       
 
         // align for post-bridge section 3. move up towards tree
         realign_player_from_landmark(
             env.program_info(), env.console, context, 
-            {ZoomChange::ZOOM_IN, 0, 128, 50},
-            {ZoomChange::KEEP_ZOOM, 255, 90, 35}
+            {ZoomChange::ZOOM_IN, -1, 0, 400ms},
+            {ZoomChange::KEEP_ZOOM, +1, +0.297, 280ms}
         );
 
 
-        overworld_navigation(env.program_info(), env.console, context, 
-            NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-            128, 0, 20, 10, false);        
+        handle_when_stationary_in_overworld(env.program_info(), env.console, context, 
+            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+                overworld_navigation(env.program_info(), env.console, context, 
+                    NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
+                    0, +1, 20, 10, false);
+            }, 
+            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+                pbf_move_left_joystick(context, {+1, -1}, 320ms, 400ms);
+                realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
+            }
+        );       
 
         // align for post-bridge section 4
         realign_player_from_landmark(
             env.program_info(), env.console, context, 
-            {ZoomChange::ZOOM_IN, 0, 128, 50},
-            {ZoomChange::KEEP_ZOOM, 255, 55, 25}
+            {ZoomChange::ZOOM_IN, -1, 0, 400ms},
+            {ZoomChange::KEEP_ZOOM, +1, +0.57, 200ms}
         );
 
 
-        overworld_navigation(env.program_info(), env.console, context, 
-            NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-            128, 0, 20, 10, false);     
+        handle_when_stationary_in_overworld(env.program_info(), env.console, context, 
+            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+                overworld_navigation(env.program_info(), env.console, context, 
+                    NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
+                    0, +1, 20, 10, false);
+            }, 
+            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+                pbf_move_left_joystick(context, {+1, -1}, 320ms, 400ms);
+                realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
+            }
+        );    
 
 
 
         // align for post-bridge section 5. set marker to pokecenter.
         realign_player_from_landmark(
             env.program_info(), env.console, context, 
-            {ZoomChange::ZOOM_IN, 0, 128, 50},
-            {ZoomChange::KEEP_ZOOM, 128, 128, 0}
+            {ZoomChange::ZOOM_IN, -1, 0, 400ms},
+            {ZoomChange::KEEP_ZOOM, 0, 0, 0ms}
         );
 
 
-        overworld_navigation(env.program_info(), env.console, context, 
-            NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-            128, 0, 30, 10, false);    
+        handle_when_stationary_in_overworld(env.program_info(), env.console, context, 
+            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+                overworld_navigation(env.program_info(), env.console, context, 
+                    NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
+                    0, +1, 30, 10, false);
+            }, 
+            [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+                pbf_move_left_joystick(context, {+1, -1}, 320ms, 400ms);
+                realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
+            }
+        );   
 
 
         // align for post-bridge section 6. set marker past pokecenter
         handle_unexpected_battles(env.program_info(), env.console, context,
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-            realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_NEW_MARKER, 0, 200, 30);
+            realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_NEW_MARKER, -1, -0.567, 240ms);
         });
                 // realign_player_from_landmark(
                 //     env.program_info(), env.console, context, 
@@ -306,7 +444,7 @@ void checkpoint_29(
 
         overworld_navigation(env.program_info(), env.console, context, 
             NavigationStopCondition::STOP_TIME, NavigationMovementMode::DIRECTIONAL_ONLY, 
-            128, 15, 12, 12, false);    
+            0, +0.883, 12, 12, false);    
 
 
 

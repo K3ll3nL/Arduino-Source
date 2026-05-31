@@ -48,7 +48,7 @@ Xoroshiro128PlusState find_rng_state(
             break;
         }
         stream.overlay().add_log(text, COLOR_BLUE);
-        pbf_wait(context, 180);
+        pbf_wait(context, 1440ms);
 
         if (i < 64){
             last_bits0 += last_bit << (63 - i);
@@ -74,7 +74,7 @@ Xoroshiro128PlusState refind_rng_state(
     size_t max_advances,
     bool save_screenshots,
     bool log_image_values
-) {
+){
     return refind_rng_state_and_animations(stream, context, last_known_state, min_advances, max_advances, save_screenshots, log_image_values).first;
 }
 
@@ -121,7 +121,7 @@ std::pair<Xoroshiro128PlusState, uint64_t> refind_rng_state_and_animations(
             break;
         }
         stream.overlay().add_log(text, COLOR_BLUE);
-        pbf_wait(context, 180);
+        pbf_wait(context, 1440ms);
 
         std::vector<bool>::iterator last_bit_start = std::search(last_bit_sequence.begin(), last_bit_sequence.end(), sequence.begin(), sequence.end());
         possible_indices = 0;
@@ -180,10 +180,10 @@ void do_rng_advances(
     pbf_wait(context, 1000ms);
 }
 
-Xoroshiro128PlusState predict_state_after_menu_close(Xoroshiro128PlusState current_state, uint8_t num_npcs) {
+Xoroshiro128PlusState predict_state_after_menu_close(Xoroshiro128PlusState current_state, uint8_t num_npcs){
     Xoroshiro128Plus rng(current_state);
 
-    for (size_t i = 0; i < num_npcs; i++) {
+    for (size_t i = 0; i < num_npcs; i++){
         rng.nextInt(91);
     }
     rng.next();

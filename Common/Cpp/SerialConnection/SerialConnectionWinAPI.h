@@ -13,11 +13,16 @@
 #include "Common/Compiler.h"
 #include "Common/Cpp/Time.h"
 #include "Common/Cpp/Exceptions.h"
-#include "Common/Cpp/Unicode.h"
 #include "Common/Cpp/PanicDump.h"
+#include "Common/Cpp/Strings/Unicode.h"
 #include "Common/Cpp/Concurrency/SpinLock.h"
-#include "Common/Cpp/Concurrency/Thread.h"
-#include "StreamInterface.h"
+#include "Common/Cpp/Concurrency/AsyncTask.h"
+#include "Common/Cpp/Concurrency/ThreadPool.h"
+#include "Common/Cpp/StreamConnections/PushingStreamConnections.h"
+
+//#include <iostream>
+//using std::cout;
+//using std::endl;
 
 namespace PokemonAutomation{
 
@@ -25,14 +30,24 @@ void serial_debug_log(const std::string& msg);
 
 
 
-class SerialConnection : public StreamConnection{
+class SerialConnection : public UnreliableStreamConnectionPushing{
 public:
     //  UTF-8
-    SerialConnection(const std::string& name, uint32_t baud_rate)
-        : SerialConnection(name, utf8_to_wstr(name), baud_rate)
+    SerialConnection(
+        ThreadPool& thread_pool,
+        const std::string& name,
+        uint32_t baud_rate
+    )
+        : SerialConnection(thread_pool, name, utf8_to_wstr(name), baud_rate)
     {}
-    SerialConnection(const std::string& name, const std::wstring& wname, uint32_t baud_rate)
+    SerialConnection(
+        ThreadPool& thread_pool,
+        const std::string& name,
+        const std::wstring& wname,
+        uint32_t baud_rate
+    )
         : m_exit(false)
+        , m_consecutive_errors(0)
     {
         m_handle = CreateFileW(
             (L"\\\\.\\" + wname).c_str(),
@@ -47,27 +62,7 @@ public:
             throw ConnectionException(nullptr, "Unable to open serial connection (" + name + "). Error = " + std::to_string(error));
         }
 
-        DCB serial_params{};
-        serial_params.DCBlength = sizeof(serial_params);
-
-        if (!GetCommState(m_handle, &serial_params)){
-            DWORD error = GetLastError();
-            CloseHandle(m_handle);
-            throw ConnectionException(nullptr, "GetCommState() failed. Error = " + std::to_string(error));
-        }
-//        cout << "BaudRate = " << (int)serial_params.BaudRate << endl;
-//        cout << "ByteSize = " << (int)serial_params.ByteSize << endl;
-//        cout << "StopBits = " << (int)serial_params.StopBits << "0 means 1 bit" << endl;
-//        cout << "Parity   = " << (int)serial_params.Parity << endl;
-        serial_params.BaudRate = baud_rate;
-        serial_params.ByteSize = 8;
-        serial_params.StopBits = 0;
-        serial_params.Parity = 0;
-        if (!SetCommState(m_handle, &serial_params)){
-            DWORD error = GetLastError();
-            CloseHandle(m_handle);
-            throw ConnectionException(nullptr, "SetCommState() failed. Error = " + std::to_string(error));
-        }
+        set_baud_rate(baud_rate);
 
 #if 1
         COMMTIMEOUTS timeouts{};
@@ -102,7 +97,7 @@ public:
 
         //  Start receiver thread.
         try{
-            m_listener = Thread([this]{
+            m_listener = thread_pool.dispatch_now_blocking([this]{
                 run_with_catch(
                     "SerialConnection::SerialConnection()",
                     [this]{ recv_loop(); }
@@ -119,18 +114,68 @@ public:
         }
     }
 
-    virtual void stop() final{
+    virtual void stop() noexcept final{
         m_exit.store(true, std::memory_order_release);
         CloseHandle(m_handle);
-        m_listener.join();
+        m_listener.wait_and_ignore_exceptions();
     }
+
+    void set_baud_rate(uint32_t baud_rate){
+        DCB serial_params{};
+        serial_params.DCBlength = sizeof(serial_params);
+
+        if (!GetCommState(m_handle, &serial_params)){
+            DWORD error = GetLastError();
+            CloseHandle(m_handle);
+            throw ConnectionException(nullptr, "GetCommState() failed. Error = " + std::to_string(error));
+        }
+//        cout << "BaudRate = " << (int)serial_params.BaudRate << endl;
+//        cout << "ByteSize = " << (int)serial_params.ByteSize << endl;
+//        cout << "StopBits = " << (int)serial_params.StopBits << "0 means 1 bit" << endl;
+//        cout << "Parity   = " << (int)serial_params.Parity << endl;
+        serial_params.BaudRate = baud_rate;
+        serial_params.ByteSize = 8;
+        serial_params.StopBits = 0;
+        serial_params.Parity = 0;
+        if (!SetCommState(m_handle, &serial_params)){
+            DWORD error = GetLastError();
+            CloseHandle(m_handle);
+            throw ConnectionException(nullptr, "SetCommState() failed. Error = " + std::to_string(error));
+        }
+    }
+
+    void get_control_state(bool& dtr, bool& rts){
+        DCB serial_params{};
+        serial_params.DCBlength = sizeof(serial_params);
+        if (!GetCommState(m_handle, &serial_params)){
+            DWORD error = GetLastError();
+            CloseHandle(m_handle);
+            throw ConnectionException(nullptr, "GetCommState() failed. Error = " + std::to_string(error));
+        }
+
+        dtr = serial_params.fDtrControl != DTR_CONTROL_DISABLE;
+        rts = serial_params.fRtsControl != RTS_CONTROL_DISABLE;
+    }
+    void set_control_state(bool dtr, bool rts){
+#if 1
+        DCB serial_params{};
+        serial_params.DCBlength = sizeof(serial_params);
+        if (GetCommState(m_handle, &serial_params)){
+            serial_params.fDtrControl = dtr ? DTR_CONTROL_ENABLE : DTR_CONTROL_DISABLE;
+            serial_params.fRtsControl = rts ? RTS_CONTROL_ENABLE : RTS_CONTROL_DISABLE;
+            SetCommState(m_handle, &serial_params);
+        }
+#endif
+    }
+
 
 private:
     void process_error(const std::string& message){
-        m_errors++;
-        if (m_errors < 100 || m_errors % 1000 == 0){
-            serial_debug_log(message);
-        }
+        WriteSpinLock lg(m_error_lock);
+
+        size_t consecutive_errors = m_consecutive_errors.fetch_add(1);
+
+        serial_debug_log(message);
 
         std::string clear_error;
         DWORD comm_error;
@@ -141,13 +186,16 @@ private:
             clear_error = "ClearCommError error flag = " + std::to_string(comm_error);
         }
 
-        if (m_errors < 100 || m_errors % 1000 == 0){
-            serial_debug_log(clear_error);
+        if (consecutive_errors <= 100){
+            serial_debug_log(message);
+        }
+        if (consecutive_errors == 100){
+            serial_debug_log("Further error messages will be suppressed.");
         }
     }
 
 
-    virtual void send(const void* data, size_t bytes){
+    virtual size_t unreliable_send(const void* data, size_t bytes) noexcept override{
         WriteSpinLock lg(m_send_lock, "SerialConnection::send()");
 #if 0
         for (size_t c = 0; c < bytes; c++){
@@ -158,22 +206,29 @@ private:
 //        std::cout << "start write" << std::endl;
 //        auto start = current_time();
         DWORD written;
-        if (WriteFile(m_handle, data, (DWORD)bytes, &written, nullptr) == 0 || bytes != written){
-            DWORD error = GetLastError();
+        if (WriteFile(m_handle, data, (DWORD)bytes, &written, nullptr) != 0 && bytes == written){
+            m_consecutive_errors.store(0, std::memory_order_release);
+            return written;
+        }
+
+        DWORD error = GetLastError();
+        try{
             process_error(
                 "Failed to write: " + std::to_string(written) +
                 " / " + std::to_string(bytes) +
                 ", error = " + std::to_string(error)
             );
-        }
+        }catch (...){}
 //        auto stop = current_time();
 //        cout << "WriteFile() : " << std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count() << endl;
 
 //        std::cout << "end send()" << std::endl;
+
+        return written;
     }
 
     void recv_loop(){
-//        std::lock_guard<std::mutex> lg(m_send_lock);
+//        std::lock_guard<Mutex> lg(m_send_lock);
         char buffer[32];
         auto last_recv = current_time();
         while (!m_exit.load(std::memory_order_acquire)){
@@ -194,7 +249,8 @@ private:
             }
 #endif
             if (read != 0){
-                on_recv(buffer, read);
+                m_consecutive_errors.store(0, std::memory_order_release);
+                on_unreliable_recv(buffer, read);
                 last_recv = current_time();
                 continue;
             }
@@ -219,9 +275,10 @@ private:
 private:
     HANDLE m_handle;
     std::atomic<bool> m_exit;
-    uint64_t m_errors = 0;
+    std::atomic<size_t> m_consecutive_errors;
     SpinLock m_send_lock;
-    Thread m_listener;
+    SpinLock m_error_lock;
+    AsyncTask m_listener;
 };
 
 

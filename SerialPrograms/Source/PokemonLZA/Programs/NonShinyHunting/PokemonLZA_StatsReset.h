@@ -14,6 +14,8 @@
 #include "NintendoSwitch/Options/NintendoSwitch_StartInGripMenuOption.h"
 #include "NintendoSwitch/NintendoSwitch_SingleSwitchProgram.h"
 #include "Pokemon/Options/Pokemon_IvJudgeOption.h"
+#include "Common/Cpp/Options/TimeDurationOption.h"
+#include "Common/Cpp/Options/SimpleIntegerOption.h"
 
 namespace PokemonAutomation{
 namespace NintendoSwitch{
@@ -32,12 +34,17 @@ public:
 
 
 
-class StatsReset : public SingleSwitchProgramInstance{
+class StatsReset : public SingleSwitchProgramInstance, public ConfigOption::Listener{
 public:
+    ~StatsReset();
     StatsReset();
     virtual void program(SingleSwitchProgramEnvironment& env, ProControllerContext& context) override;
 
 private:
+    virtual void enter_portal(SingleSwitchProgramEnvironment& env, ProControllerContext& context);
+    virtual void run_battle(SingleSwitchProgramEnvironment& env, ProControllerContext& context, bool attempt_move = false, bool use_plus_move = false);
+    virtual void run_catch(SingleSwitchProgramEnvironment& env, ProControllerContext& context);
+    virtual void on_config_value_changed(void* object) override;
     StartInGripOrGameOption START_LOCATION;
     GoHomeWhenDoneOption GO_HOME_WHEN_DONE;
 
@@ -45,8 +52,20 @@ private:
 
     enum class GiftPokemon{
         FLOETTE,
+        GENESECT,
+        MAGEARNA,
+        MELTAN,
+        MELMETAL,
+        VOLCANION,
     };
     EnumDropdownOption<GiftPokemon> POKEMON;
+
+    SimpleIntegerOption<int8_t> RIGHT_SCROLLS;
+    MillisecondsOption SCROLL_HOLD;
+    MillisecondsOption SCROLL_RELEASE;
+    MillisecondsOption POST_THROW_WAIT;
+
+    SimpleIntegerOption<int8_t> DOWN_SCROLLS;
 
     IVJudgeFilterOption HP;
     IVJudgeFilterOption ATTACK;

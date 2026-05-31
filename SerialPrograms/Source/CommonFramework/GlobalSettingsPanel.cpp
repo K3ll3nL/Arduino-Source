@@ -15,6 +15,7 @@
 #include "Common/Cpp/Json/JsonValue.h"
 #include "Common/Cpp/Json/JsonArray.h"
 #include "Common/Cpp/Json/JsonObject.h"
+#include "Common/Cpp/Options/KeyboardLayoutOption.h"
 #include "CommonFramework/Globals.h"
 #include "CommonFramework/Options/CheckForUpdatesOption.h"
 #include "CommonFramework/Options/ResolutionOption.h"
@@ -47,6 +48,7 @@ const std::set<std::string> TOKENS{
     "e8d168bc482e96553ea9f9ecaea5a817474dbccc2a6a228a6bde67f2b2aa2889", //  James' token.
     "7555b7c63481cad42306718c67e7f9def5bfd1da8f6cd299ccd3d7dc95f307ae", //  Kuro's token.
     "3d475b46d121fc24559d100de2426feaa53cd6578aac2817c4857a610ccde2dd", //  kichi's token.
+    "9b41db8175b5f248a78e738c7bd63a36e33b57953cb4e80ccdd13c2a7e892eec", //  Dalton's token.
 };
 
 
@@ -89,6 +91,9 @@ void PreloadSettings::load(const JsonValue& json){
         debug_obj->read_boolean(DEBUG.COLOR_CHECK, "COLOR_CHECK");
         debug_obj->read_boolean(DEBUG.IMAGE_TEMPLATE_MATCHING, "IMAGE_TEMPLATE_MATCHING");
         debug_obj->read_boolean(DEBUG.IMAGE_DICTIONARY_MATCHING, "IMAGE_DICTIONARY_MATCHING");
+        debug_obj->read_integer(DEBUG.BOX_SYSTEM_CELL_ROW, "BOX_SYSTEM_CELL_ROW");
+        debug_obj->read_integer(DEBUG.BOX_SYSTEM_CELL_COL, "BOX_SYSTEM_CELL_COL");
+        debug_obj->read_boolean(DEBUG.GENERATE_TEST_GOLDEN_FILES, "GENERATE_TEST_GOLDEN_FILES");
     }
 }
 
@@ -135,6 +140,12 @@ GlobalSettings::GlobalSettings()
 #endif
     )
     , THEME(CONSTRUCT_TOKEN)
+    , USE_PADDLE_OCR(
+        "<b>Enable PaddleOCR:</b><br>"
+        "Use PaddleOCR instead of Tesseract for OCR.",
+        LockMode::UNLOCK_WHILE_RUNNING,
+        false
+    )
     , WINDOW_SIZE(
         CONSTRUCT_TOKEN,
         "Window Size/Position:",
@@ -154,6 +165,14 @@ GlobalSettings::GlobalSettings()
         "<b>Open Output Window at startup:</b>",
         LockMode::UNLOCK_WHILE_RUNNING,
         false
+    )
+    , KEYBOARD_CONTROLS_LAYOUT(
+        CONSTRUCT_TOKEN,
+        "<b>System Keyboard Layout:</b><br>"
+        "This is the keyboard layout of your system. "
+        "This is needed for the HID keyboard controller to work correctly.",
+        LockMode::UNLOCK_WHILE_RUNNING,
+        KeyboardLayout::QWERTY
     )
     , STREAM_HISTORY(CONSTRUCT_TOKEN)
     , SLEEP_SUPPRESS(CONSTRUCT_TOKEN)
@@ -208,6 +227,18 @@ GlobalSettings::GlobalSettings()
     , PERFORMANCE(CONSTRUCT_TOKEN)
     , AUDIO_PIPELINE(CONSTRUCT_TOKEN)
     , VIDEO_PIPELINE(CONSTRUCT_TOKEN)
+    , COMMAND_QUEUE_LIMIT(
+        "<b>Maximum Command Queue Size:</b><br>"
+        "Do not queue more than this many commands to the controller at once. "
+        "Larger values will tolerate longer connection interrupts, but may increase cancellation latency after a burst of commands.",
+        LockMode::LOCK_WHILE_RUNNING,
+        64, 4, 255
+    )
+    , DEVICE_LOGGING_FLAG(
+        "<b>Configure Device-Specific Debug Logging:</b>",
+        LockMode::LOCK_WHILE_RUNNING,
+        0
+    )
     , ENABLE_LIFETIME_SANITIZER0(
         "<b>Enable Lifetime Sanitizer: (for debugging)</b><br>"
         "Check for C++ object lifetime violations. Terminate program with stack dump if violations are found. "
@@ -229,16 +260,14 @@ GlobalSettings::GlobalSettings()
     PA_ADD_OPTION(STATS_FILE);
     PA_ADD_OPTION(TEMP_FOLDER);
     PA_ADD_OPTION(THEME);
+    PA_ADD_OPTION(USE_PADDLE_OCR);
     PA_ADD_OPTION(WINDOW_SIZE);
     PA_ADD_OPTION(LOG_WINDOW_SIZE);
     PA_ADD_OPTION(LOG_WINDOW_STARTUP);
-#if (QT_VERSION_MAJOR == 6) && (QT_VERSION_MINOR >= 8)
-    if (IS_BETA_VERSION || PreloadSettings::instance().DEVELOPER_MODE){
-        PA_ADD_OPTION(STREAM_HISTORY);
-    }
-#else
-    STREAM_HISTORY->set_enabled(false);
-#endif
+
+    PA_ADD_OPTION(KEYBOARD_CONTROLS_LAYOUT);
+    PA_ADD_OPTION(STREAM_HISTORY);
+
 #ifdef PA_ENABLE_SLEEP_SUPPRESS
     PA_ADD_OPTION(SLEEP_SUPPRESS);
 #endif
@@ -261,6 +290,8 @@ GlobalSettings::GlobalSettings()
 
     PA_ADD_OPTION(AUDIO_PIPELINE);
     PA_ADD_OPTION(VIDEO_PIPELINE);
+    PA_ADD_OPTION(COMMAND_QUEUE_LIMIT);
+    PA_ADD_OPTION(DEVICE_LOGGING_FLAG);
 
     PA_ADD_OPTION(ENABLE_LIFETIME_SANITIZER0);
 
@@ -285,7 +316,12 @@ void GlobalSettings::load_json(const JsonValue& json){
     const bool developer_mode = PreloadSettings::instance().DEVELOPER_MODE;
     BatchOption::load_json(json);
 
-    SAVE_DEBUG_VIDEOS_ON_SWITCH.set_visibility(developer_mode ? ConfigOptionState::ENABLED : ConfigOptionState::HIDDEN);
+    ConfigOptionState devmode_visibility = developer_mode
+        ? ConfigOptionState::ENABLED
+        : ConfigOptionState::HIDDEN;
+    USE_PADDLE_OCR.set_visibility(devmode_visibility);
+    SAVE_DEBUG_VIDEOS_ON_SWITCH.set_visibility(devmode_visibility);
+    DEVICE_LOGGING_FLAG.set_visibility(devmode_visibility);
 
     //  Remake this to update the color.
     m_discord_settings.set_text(
@@ -335,14 +371,14 @@ void GlobalSettings::load_json(const JsonValue& json){
             std::cout << "Enter command line test mode:" << std::endl;
             if (COMMAND_LINE_TEST_LIST.size() > 0){
                 std::cout << "Run following tests: " << std::endl;
-                for(const auto& name : COMMAND_LINE_TEST_LIST){
+                for (const auto& name : COMMAND_LINE_TEST_LIST){
                     std::cout << "- " << name << std::endl;
                 }
             }
             if (COMMAND_LINE_IGNORE_LIST.size() > 0){
                 std::cout << "Ignore following " << COMMAND_LINE_IGNORE_LIST.size() << " paths: " << std::endl;
                 const size_t MAX_LINES = 5;
-                for(size_t i = 0; i < COMMAND_LINE_IGNORE_LIST.size() && i < MAX_LINES; i++){
+                for (size_t i = 0; i < COMMAND_LINE_IGNORE_LIST.size() && i < MAX_LINES; i++){
                     std::cout << "- " << COMMAND_LINE_IGNORE_LIST[i] << std::endl;
                 }
                 if (COMMAND_LINE_IGNORE_LIST.size() > MAX_LINES){
@@ -364,7 +400,7 @@ JsonValue GlobalSettings::to_json() const{
 
     {
         JsonArray test_list;
-        for(const auto& name : COMMAND_LINE_TEST_LIST){
+        for (const auto& name : COMMAND_LINE_TEST_LIST){
             test_list.push_back(name);
         }
         command_line_test_obj["TEST_LIST"] = std::move(test_list);
@@ -372,7 +408,7 @@ JsonValue GlobalSettings::to_json() const{
 
     {
         JsonArray ignore_list;
-        for(const auto& name : COMMAND_LINE_IGNORE_LIST){
+        for (const auto& name : COMMAND_LINE_IGNORE_LIST){
             ignore_list.push_back(name);
         }
         command_line_test_obj["IGNORE_LIST"] = std::move(ignore_list);
@@ -385,6 +421,9 @@ JsonValue GlobalSettings::to_json() const{
     debug_obj["COLOR_CHECK"] = debug_settings.COLOR_CHECK;
     debug_obj["IMAGE_TEMPLATE_MATCHING"] = debug_settings.IMAGE_TEMPLATE_MATCHING;
     debug_obj["IMAGE_DICTIONARY_MATCHING"] = debug_settings.IMAGE_DICTIONARY_MATCHING;
+    debug_obj["BOX_SYSTEM_CELL_ROW"] = debug_settings.BOX_SYSTEM_CELL_ROW;
+    debug_obj["BOX_SYSTEM_CELL_COL"] = debug_settings.BOX_SYSTEM_CELL_COL;
+    debug_obj["GENERATE_TEST_GOLDEN_FILES"] = debug_settings.GENERATE_TEST_GOLDEN_FILES;
     obj["DEBUG"] = std::move(debug_obj);
 
     return obj;
@@ -409,8 +448,6 @@ void GlobalSettings::on_press(){
 
 
 
-
-PanelDescriptorWrapper<GlobalSettings_Descriptor, GlobalSettingsPanel> GlobalSettings_Descriptor::INSTANCE;
 
 GlobalSettings_Descriptor::GlobalSettings_Descriptor()
     : PanelDescriptor(

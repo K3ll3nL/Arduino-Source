@@ -15,6 +15,7 @@
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSV/PokemonSV_Settings.h"
 #include "PokemonSV/Inference/Overworld/PokemonSV_LetsGoHpReader.h"
@@ -383,7 +384,7 @@ void ShinyHuntAreaZeroPlatform::run_state(
         }
 
         picnic_at_zero_gate(info, stream, context);
-        pbf_move_left_joystick(context, 128, 0, 70, 0);
+        pbf_move_left_joystick(context, {0, +1}, 560ms, 0ms);
         enter_sandwich_recipe_list(info, stream, context);
         make_sandwich_option(env, stream, context, SANDWICH_OPTIONS);
 
@@ -485,6 +486,9 @@ void ShinyHuntAreaZeroPlatform::program(SingleSwitchProgramEnvironment& env, Pro
 
     assert_16_9_720p_min(env.logger(), env.console);
 
+    //  Connect the controller.
+    require_player(env.console, context, BUTTON_LCLICK);
+
     m_iterations = 0;
 
     OverworldSensors sensors(
@@ -576,7 +580,7 @@ void ShinyHuntAreaZeroPlatform::program(SingleSwitchProgramEnvironment& env, Pro
             }
         }catch (ResetException&){
             pbf_press_button(context, BUTTON_HOME, 160ms, GameSettings::instance().GAME_TO_HOME_DELAY1);
-            reset_game_from_home_zoom_out(env.program_info(), env.console, context, 5 * TICKS_PER_SECOND);
+            reset_game_from_home_zoom_out(env.program_info(), env.console, context, 5000ms);
             m_current_location = m_saved_location;
             stats.m_game_resets++;
             m_env->update_stats();

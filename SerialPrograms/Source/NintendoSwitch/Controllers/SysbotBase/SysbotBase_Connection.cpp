@@ -9,6 +9,7 @@
 //#include "CommonFramework/Logging/Logger.h"
 #include "CommonFramework/GlobalSettingsPanel.h"
 #include "CommonFramework/Options/Environment/ThemeSelectorOption.h"
+#include "CommonFramework/Tools/GlobalThreadPools.h"
 #include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "SysbotBase_Connection.h"
 
@@ -50,12 +51,12 @@ TcpSysbotBase_Connection::TcpSysbotBase_Connection(
     const std::string& url
 )
     : m_logger(logger)
-    , m_supports_command_queue(false)
+    , m_socket(GlobalThreadPools::unlimited_realtime())
     , m_last_ping_send(WallClock::min())
     , m_last_ping_receive(WallClock::min())
 {
-    m_controller_list.emplace_back(ControllerType::NintendoSwitch_WiredProController);
-    m_current_controller = ControllerType::NintendoSwitch_WiredProController;
+    m_controller_list.emplace_back(ControllerType::NintendoSwitch_WiredController);
+    m_current_controller = ControllerType::NintendoSwitch_WiredController;
 
     QHostAddress address;
     int port;
@@ -90,10 +91,10 @@ TcpSysbotBase_Connection::~TcpSysbotBase_Connection(){
     m_socket.remove_listener(*this);
     m_socket.close();
     {
-        std::lock_guard<std::mutex> lg(m_lock);
+        std::lock_guard<Mutex> lg(m_lock);
         m_cv.notify_all();
     }
-    m_thread.join();
+    m_thread.wait_and_ignore_exceptions();
 }
 
 
@@ -114,7 +115,7 @@ std::string pretty_print(uint64_t x){
 
 
 void TcpSysbotBase_Connection::thread_loop(){
-    std::unique_lock<std::mutex> lg(m_lock);
+    std::unique_lock<Mutex> lg(m_lock);
     m_last_ping_send = current_time();
     while (true){
         ClientSocket::State state = m_socket.state();
@@ -131,7 +132,7 @@ void TcpSysbotBase_Connection::thread_loop(){
         }
 
         m_last_ping_send = current_time();
-        if (supports_command_queue() && NintendoSwitch::ConsoleSettings::instance().ENABLE_SBB3_PINGS){
+        if (NintendoSwitch::ConsoleSettings::instance().ENABLE_SBB3_PINGS){
             //  If we're more than 60 pings behind, just start clearing them.
             while (m_active_pings.size() > 60){
                 m_active_pings.erase(m_active_pings.begin());
@@ -189,7 +190,7 @@ void TcpSysbotBase_Connection::on_receive_data(const void* data, size_t bytes){
             m_receive_buffer.clear();
         }
 
-//        m_listeners.run_method_unique(&Listener::on_receive_data, data, bytes);
+//        m_listeners.run_method(&Listener::on_receive_data, data, bytes);
 
     }catch (...){}
 }
@@ -198,7 +199,7 @@ void TcpSysbotBase_Connection::process_message(const std::string& message, WallC
         m_logger.log("Received: " + message, COLOR_DARKGREEN);
     }
 
-    m_listeners.run_method_unique(&Listener::on_message, message);
+    m_listeners.run_method(&Listener::on_message, message);
 
     //  Version #
     std::string str = message;
@@ -208,7 +209,7 @@ void TcpSysbotBase_Connection::process_message(const std::string& message, WallC
         }
         set_status_line0("sys-botbase: Version " + str, COLOR_BLUE);
 
-        std::lock_guard<std::mutex> lg(m_lock);
+        std::lock_guard<Mutex> lg(m_lock);
         m_last_ping_receive = timestamp;
 
         if (m_last_ping_send != WallClock::min()){
@@ -241,7 +242,7 @@ void TcpSysbotBase_Connection::process_message(const std::string& message, WallC
         }
         size_t ping_seqnum = atoll(ptr);
 
-        std::lock_guard<std::mutex> lg(m_lock);
+        std::lock_guard<Mutex> lg(m_lock);
         m_last_ping_receive = timestamp;
         auto iter = m_active_pings.find(ping_seqnum);
         if (iter == m_active_pings.end()){
@@ -265,22 +266,22 @@ void TcpSysbotBase_Connection::process_message(const std::string& message, WallC
 }
 void TcpSysbotBase_Connection::set_mode(const std::string& sbb_version){
     if (sbb_version.rfind("2.", 0) == 0){
-        m_logger.log("Detected sbb2. Using old (slow) command set.", COLOR_ORANGE);
-        write_data("configure mainLoopSleepTime 0\r\n");
-        m_supports_command_queue.store(false, std::memory_order_relaxed);
+        set_status_line1("sbb2 is no longer supported. Please upgrade to sbb3.", COLOR_RED);
+        return;
     }else if (sbb_version.rfind("3.", 0) == 0){
         m_logger.log("Detected sbb3. Using CC command queue.", COLOR_BLUE);
         if (NintendoSwitch::ConsoleSettings::instance().ENABLE_SBB3_LOGGING){
             write_data("configure enableLogs 1\r\n");
         }
         write_data("configure enablePA 1\r\n");
-        m_supports_command_queue.store(true, std::memory_order_relaxed);
     }else{
         m_logger.log("Unrecognized sbb version: " + sbb_version, COLOR_RED);
         return;
     }
 
-    m_thread = Thread([this]{ thread_loop(); });
+    m_thread = GlobalThreadPools::unlimited_realtime().dispatch_now_blocking(
+        [this]{ thread_loop(); }
+    );
     declare_ready();
 }
 

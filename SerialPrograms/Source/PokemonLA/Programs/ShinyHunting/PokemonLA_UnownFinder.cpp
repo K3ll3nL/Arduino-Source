@@ -9,6 +9,7 @@
 #include "CommonFramework/ProgramStats/StatsTracking.h"
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonLA/PokemonLA_Settings.h"
 #include "PokemonLA/PokemonLA_TravelLocations.h"
@@ -92,23 +93,23 @@ UnownFinder::UnownFinder()
 
 
 void ruins_entrance_route(ProControllerContext& context){
-    pbf_wait(context, (uint16_t)(0.5 * TICKS_PER_SECOND));
-    pbf_move_left_joystick(context, 139, 120, 10, 10);
-    pbf_wait(context, (uint16_t)(1.3 * TICKS_PER_SECOND));
+    pbf_wait(context, 500ms);
+    pbf_move_left_joystick(context, {+0.087, +0.062}, 80ms, 80ms);
+    pbf_wait(context, 1300ms);
 
-    pbf_press_button(context, BUTTON_B, (uint16_t)(9.5 * TICKS_PER_SECOND), 10);
-    pbf_wait(context, (uint16_t)(0.8 * TICKS_PER_SECOND));
-    pbf_move_left_joystick(context, 110, 90, 20, 10);
+    pbf_press_button(context, BUTTON_B, 9500ms, 80ms);
+    pbf_wait(context, 800ms);
+    pbf_move_left_joystick(context, {-0.141, +0.297}, 160ms, 80ms);
 
-    pbf_press_dpad(context, DPAD_LEFT, 10, 10);
-    pbf_press_button(context, BUTTON_PLUS, 10, 10);
+    pbf_press_dpad(context, DPAD_LEFT, 80ms, 80ms);
+    pbf_press_button(context, BUTTON_PLUS, 80ms, 80ms);
 }
 
 void enter_ruins(ProControllerContext& context){
-    pbf_press_button(context, BUTTON_B, (uint16_t)(4 * TICKS_PER_SECOND), 10);
-    pbf_wait(context, (uint16_t)(1.5 * TICKS_PER_SECOND));
-    pbf_move_left_joystick(context, 128, 255, 10, 0);
-    pbf_press_button(context, BUTTON_B, (uint16_t)(2 * TICKS_PER_SECOND), 10);
+    pbf_press_button(context, BUTTON_B, 4000ms, 80ms);
+    pbf_wait(context, 1500ms);
+    pbf_move_left_joystick(context, {0, -1}, 80ms, 0ms);
+    pbf_press_button(context, BUTTON_B, 2000ms, 80ms);
 }
 
 
@@ -165,7 +166,7 @@ void UnownFinder::run_iteration(
 
     env.console.log("No shiny detected, returning to Jubilife!");
     goto_camp_from_overworld(env, env.console, context);
-    pbf_press_dpad(context, DPAD_RIGHT, 10, 10);
+    pbf_press_dpad(context, DPAD_RIGHT, 80ms, 80ms);
     goto_professor(env.console, context, Camp::MIRELANDS_MIRELANDS);
     from_professor_return_to_jubilife(env, env.console, context);
 }
@@ -175,7 +176,7 @@ void UnownFinder::program(SingleSwitchProgramEnvironment& env, ProControllerCont
     UnownFinder_Descriptor::Stats& stats = env.current_stats<UnownFinder_Descriptor::Stats>();
 
     //  Connect the controller.
-    pbf_press_button(context, BUTTON_LCLICK, 5, 5);
+    require_player(env.console, context, BUTTON_LCLICK);
 
 
     bool fresh_from_reset = false;

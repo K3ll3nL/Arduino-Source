@@ -18,6 +18,7 @@
 #include "PokemonLZA/Inference/PokemonLZA_ButtonDetector.h"
 #include "PokemonLZA/Inference/PokemonLZA_SelectionArrowDetector.h"
 #include "PokemonLZA/Inference/PokemonLZA_DialogDetector.h"
+#include "PokemonLZA/Programs/PokemonLZA_BasicNavigation.h"
 #include "PokemonLZA/Programs/PokemonLZA_GameEntry.h"
 #include "PokemonLZA/Programs/PokemonLZA_MenuNavigation.h"
 #include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
@@ -50,8 +51,7 @@ AutoFossil_Descriptor::AutoFossil_Descriptor()
         "Automatically revive fossils.",
         ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {}
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 
@@ -96,6 +96,12 @@ AutoFossil::AutoFossil()
         LockMode::LOCK_WHILE_RUNNING,
         0
     )
+    , CONTINUE_AFTER_FIND(
+        "<b>Continue after finding a match:</b><br>"
+        "After finding a match, the program will go to the next box, save and continue hunting. Beware, it will use a lot of fossils so start the program with a lot of them and enough empty boxes.",
+        LockMode::LOCK_WHILE_RUNNING,
+        false
+    )
     , TAKE_VIDEO(
         "Take a video When Found:",
         LockMode::UNLOCK_WHILE_RUNNING,
@@ -108,7 +114,7 @@ AutoFossil::AutoFossil()
         ImageAttachmentMode::JPG,
         {"Notifs", "Showcase"}
     )
-    , NOTIFICATION_STATUS("Status Update", true, false, std::chrono::seconds(3600))
+    , NOTIFICATION_STATUS("Status Update", true, false, Seconds(3600))
     , NOTIFICATIONS({
         &NOTIFICATION_STATUS,
         &FOUND_SHINY_OR_ALPHA,
@@ -121,6 +127,7 @@ AutoFossil::AutoFossil()
     PA_ADD_OPTION(NUM_FOSSILS);
     PA_ADD_OPTION(WHICH_FOSSIL);
     PA_ADD_OPTION(STOP_ON);
+    PA_ADD_OPTION(CONTINUE_AFTER_FIND);
     PA_ADD_OPTION(TAKE_VIDEO);
     PA_ADD_OPTION(GO_HOME_WHEN_DONE);
     PA_ADD_OPTION(NOTIFICATIONS);
@@ -130,6 +137,9 @@ AutoFossil::AutoFossil()
 void AutoFossil::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     assert_16_9_720p_min(env.logger(), env.console);
 
+    //  Connect the controller.
+    require_player(env.console, context, BUTTON_L);
+
     DeferredStopButtonOption::ResetOnExit reset_on_exit(STOP_AFTER_CURRENT);
 
     const size_t num_fossils_to_revive = NUM_FOSSILS; // at least 1
@@ -138,7 +148,7 @@ void AutoFossil::program(SingleSwitchProgramEnvironment& env, ProControllerConte
         if (STOP_AFTER_CURRENT.should_stop()){
             break;
         }
-        for(size_t i = 0; i < num_fossils_to_revive; i++){
+        for (size_t i = 0; i < num_fossils_to_revive; i++){
             revive_one_fossil(env, context);
             std::ostringstream os;
             os << "Got Fossil " << i + 1 << "/" << num_fossils_to_revive;
@@ -148,22 +158,28 @@ void AutoFossil::program(SingleSwitchProgramEnvironment& env, ProControllerConte
         }
 
         overworld_to_box_system(env.console, context);
-        for(uint8_t i = 0; i < num_boxes; i++){
+        bool found_match = false;
+        for (uint8_t i = 0; i < num_boxes; i++){
             size_t num_fossils_in_box = (i == num_boxes - 1 ? num_fossils_to_revive - i*30 : 30);
-            bool found_match = check_fossils_in_one_box(env, context, i*30, num_fossils_in_box);
-            if (found_match){
+            found_match = check_fossils_in_one_box(env, context, i*30, num_fossils_in_box);
+            if (found_match && !CONTINUE_AFTER_FIND){
                 send_program_finished_notification(env, NOTIFICATION_STATUS);
                 return;
             }
-            if (i != num_boxes - 1){
-                // go to next page
-                pbf_press_button(context, BUTTON_R, 200ms, 200ms);
-            }
+            // go to next page
+            pbf_press_button(context, BUTTON_R, 200ms, 200ms);
         }
-        // checked all boxes, no match
-        go_home(env.console, context);
-        reset_game_from_home(env, env.console, context);
-        
+        if (found_match){
+            // We didn't return early so we must be continuing after finding a match
+            box_system_to_overworld(env.console, context);
+            save_game_to_menu(env.console, context);
+            pbf_mash_button(context, BUTTON_B, 2000ms);
+        }else{
+            // checked all boxes, no match
+            go_home(env.console, context);
+            reset_game_from_home(env, env.console, context);
+        }
+
         send_program_status_notification(env, NOTIFICATION_STATUS);
     }
 }
@@ -216,7 +232,7 @@ void AutoFossil::revive_one_fossil(SingleSwitchProgramEnvironment& env, ProContr
         case 1:
             env.log("Detected selection arrow.");
             // This is when the Reg asks you which fossil to revive
-            for(size_t i = 0; i < WHICH_FOSSIL.current_value(); i++){
+            for (size_t i = 0; i < WHICH_FOSSIL.current_value(); i++){
                 pbf_press_dpad(context, DPAD_DOWN, 40ms, 40ms);
             }
             pbf_press_button(context, BUTTON_A, 80ms, 40ms);
@@ -259,18 +275,19 @@ bool AutoFossil::check_fossils_in_one_box(
 
     uint8_t box_row = 1, box_col = 0;
     bool next_cell_right = true;
+    bool found_match = false;
     BoxDetector box_detector(COLOR_RED, &env.console.overlay());
     BoxPageInfoWatcher info_watcher(&env.console.overlay());
-    for(size_t i = 0; i < num_fossils_in_box; i++){
+    for (size_t i = 0; i < num_fossils_in_box; i++){
         env.console.overlay().add_log("To cell: (" + std::to_string(box_row) + ", " + std::to_string(box_col) + ")");
         box_detector.move_cursor(env.program_info(), env.console, context, box_row, box_col);
 
         info_watcher.reset_state();
-        const int ret = wait_until(env.console, context, std::chrono::seconds(10), {info_watcher});
-        if (ret < 0) {
+        const int ret = wait_until(env.console, context, Seconds(5), {info_watcher});
+        if (ret < 0){
             OperationFailedException::fire(
                 ErrorReport::SEND_ERROR_REPORT,
-                "Failed to detect box info at cell idx " + std::to_string(i) + " after 30 seconds",
+                "Failed to detect box info at cell idx " + std::to_string(i) + " after 5 seconds",
                 env.console
             );
         }
@@ -315,14 +332,17 @@ bool AutoFossil::check_fossils_in_one_box(
             );
 
             if (TAKE_VIDEO){
-                pbf_press_button(context, BUTTON_CAPTURE, 2 * TICKS_PER_SECOND, 0);
+                pbf_press_button(context, BUTTON_CAPTURE, 2000ms, 0ms);
                 context.wait_for_all_requests();
             }
-            GO_HOME_WHEN_DONE.run_end_of_program(context);
-            return true;
+            if (CONTINUE_AFTER_FIND){
+                found_match = true;
+            }else{
+                GO_HOME_WHEN_DONE.run_end_of_program(context);
+                return true;
+            }
         }
 
-        
         if (next_cell_right){
             if (box_col == 5){
                 box_row++;
@@ -332,22 +352,22 @@ bool AutoFossil::check_fossils_in_one_box(
                     // from left to right
                     box_col = 0;
                     next_cell_right = true;
-                } else{
+                }else{
                     next_cell_right = false;
                 }
-            } else{
+            }else{
                 box_col++;
             }
-        } else{
+        }else{
             if (box_col == 0){
                 box_row++;
                 next_cell_right = true;
-            } else{
+            }else{
                 box_col--;
             }
         }
     }
-    return false;
+    return found_match;
 }
 
 }

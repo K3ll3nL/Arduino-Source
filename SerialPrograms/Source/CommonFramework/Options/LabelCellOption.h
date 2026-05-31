@@ -17,7 +17,7 @@ namespace PokemonAutomation{
 
 
 
-class LabelCellOption : public ConfigOption{
+class LabelCellOption : public ConfigOptionImpl<LabelCellOption>{
 public:
     ~LabelCellOption();
 
@@ -45,12 +45,13 @@ public:
     const ImageViewRGB32& icon() const;
     Resolution resolution() const;
 
+    void set_text(std::string x);
+
     virtual void load_json(const JsonValue& json) override;
     virtual JsonValue to_json() const override;
 
     virtual void restore_defaults() override{}
 
-    virtual ConfigWidget* make_QtWidget(QWidget& parent) override;
 
 private:
     struct Data;

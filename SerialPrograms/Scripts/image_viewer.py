@@ -23,13 +23,22 @@ You can draw multiple boxes on the screen.
 """
 
 
+import argparse
 import cv2
 import numpy as np
 
 class ImageViewer:
-	def __init__(self, image, highlight_list = []):
-		self.image = image
-		self.hsv_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+	def __init__(self, image: np.ndarray, highlight_list = []):
+		if image.ndim == 2:
+			# convert gray scale image to RGB image
+			image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+		self.image = image  # bgr or bgra channel order
+		self.nc = image.shape[2]  # num_channel
+		if self.nc == 4:
+			alpha_free_image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
+		else:
+			alpha_free_image = image
+		self.hsv_image = cv2.cvtColor(alpha_free_image, cv2.COLOR_BGR2HSV)
 		self.selected_pixel = (-1, -1)
 		self.buffer = image.copy()
 		self.window_name = 'image'
@@ -41,7 +50,6 @@ class ImageViewer:
 		self.cur_rect_index = -1
 		self.mouse_down = False
 		self.mouse_move_counter = 0
-		self.nc = image.shape[2]  # num_channel
 		# The size of the cross used to highlight a selected pixel
 		self.cross_size = max(1, min(self.width, self.height) // 200)
 
@@ -53,7 +61,7 @@ class ImageViewer:
 		if x >= 0 and x < self.width and y >= 0 and y < self.height:
 			self.buffer[y, x] = self._solid_color(color)
 
-	def _render(self):
+	def update_buffer(self) -> None:
 		self.buffer = self.image.copy()
 		if self.selected_pixel[0] >= 0 and self.selected_pixel[1] >= 0:
 			p = self.selected_pixel
@@ -76,6 +84,8 @@ class ImageViewer:
 			color = (0, 0, 255) if i == self.cur_rect_index else (255, 0, 0)
 			self.buffer = cv2.rectangle(self.buffer, (rect[0], rect[1]), (rect[2], rect[3]), color, width)
 
+	def _render(self) -> None:
+		self.update_buffer()
 		cv2.imshow(self.window_name, self.buffer)
 		# self.fullscreen = False
 
@@ -95,7 +105,7 @@ class ImageViewer:
 			if i == 0 or dist < min_dist:
 				min_dist = dist
 				self.cur_rect_index = i
-		print(f"Selected rect No.{self.cur_rect_index}/{len(self.rects)}: {rect}.")
+		print(f"Selected rect No.{self.cur_rect_index}/{len(self.rects)}: {self.rects[self.cur_rect_index]}.")
 
 	def _print_pixel(self, coord):
 		p = self.image[coord[1], coord[0]]
@@ -103,13 +113,13 @@ class ImageViewer:
 		if self.nc == 4:
 			msg += f"argb=[{p[3]}, {p[2]}, {p[1]}, {p[0]}], {hex(((int(p[3])*256+int(p[2]))*256+int(p[1]))*256+int(p[0]))}"
 		else:
-			mgs += f"rgb=[{p[2]}, {p[1]}, {p[0]}]"
+			msg += f"rgb=[{p[2]}, {p[1]}, {p[0]}]"
 		p = self.hsv_image[coord[1], coord[0]]
-		msg += f", hsv=[{p[2]}, {p[1]}, {p[0]}]"
+		msg += f", hsv=[{p[0]}, {p[1]}, {p[2]}]"
 		print(msg)
 
 	def _print_rect(self, i, rect):
-		crop = self.image[rect[1]:rect[3], rect[0]:rect[2]].astype(float) / 255.0
+		crop = self.image[rect[1]:rect[3], rect[0]:rect[2]].astype(float)
 		num_pixels = crop.shape[0] * crop.shape[1]
 		# crop_sum shape: (4), 4 is channel count
 		crop_sum = np.sum(crop, (0, 1))
@@ -118,9 +128,10 @@ class ImageViewer:
 		# crop_sqr_sum shape: (4), 4 is channel count
 		crop_sqr_sum = np.sum(np.square(crop), (0, 1))
 		
-		crop_stddev = np.sqrt(  np.clip(crop_sqr_sum - (np.square(crop_sum) / num_pixels), 0, None) / (num_pixels-1))
+		crop_stddev = np.sqrt(np.clip(crop_sqr_sum - (np.square(crop_sum) / num_pixels), 0, None) / (num_pixels-1))
 
-		avg_sum = np.sum(crop_avg)
+		# [0:3] to remove alpha channel
+		avg_sum = np.sum(crop_avg[0:3])
 		avg_ratio = [1/3., 1/3., 1/3.] if avg_sum == 0. else crop_avg / avg_sum
 		avg_ratio = np.array([avg_ratio[2], avg_ratio[1], avg_ratio[0]])
 		x = rect[0] / self.width
@@ -130,14 +141,6 @@ class ImageViewer:
 
 		stddev_sum = np.sum(crop_stddev)
 		print(f"Rect No.{i}, ({x:.3f}, {y:.3f}, {w:.3f}, {h:.3f}) rgb ratio: {avg_ratio[0]:.3f}:{avg_ratio[1]:.3f}:{avg_ratio[2]:.3f}, stddev sum: {stddev_sum:.3g}")
-
-	def _move_crop(self, o0, o1, o2, o3):
-		if self.cur_crop_index >= 0 and self.cur_crop_index < len(self.crops):
-			self.crops[self.cur_crop_index][0] += o0
-			self.crops[self.cur_crop_index][1] += o1
-			self.crops[self.cur_crop_index][2] += o2
-			self.crops[self.cur_crop_index][3] += o3
-			self._render()
 
 	def _mouse_callback(self, event, x, y, flags, param):
 		redraw = False
@@ -191,7 +194,6 @@ class ImageViewer:
 			self._render()
 
 	def run(self):
-		
 		cv2.imshow(self.window_name, self.buffer)
 		cv2.setWindowProperty(self.window_name, cv2.WND_PROP_TOPMOST, 1)
 		cv2.setMouseCallback(self.window_name, self._mouse_callback)
@@ -231,7 +233,7 @@ class ImageViewer:
 				mouse_move_counter = 0
 				if len(self.rects) > 0:
 					if self.cur_rect_index < 0:
-						self.cur_rect_index = len(self.crops) - 1
+						self.cur_rect_index = len(self.rects) - 1
 					del self.rects[self.cur_rect_index]
 					if len(self.rects) == 0:
 						self.cur_rect_index = -1
@@ -244,16 +246,89 @@ class ImageViewer:
 				print(f"Pressed key {key}")
 			self._render()
 
+
+def parse_box(box_str: str):
+	"""
+	Parse a box string in the format "start_x,start_y,width,height".
+	All values should be floats between 0.0 and 1.0 (inclusive).
+	Returns a tuple of (start_x, start_y, width, height).
+	"""
+	try:
+		parts = box_str.split(',')
+		if len(parts) != 4:
+			raise ValueError(f"Box must have exactly 4 values, got {len(parts)}")
+
+		values = [float(v) for v in parts]
+		for i, v in enumerate(values):
+			if not (0.0 <= v <= 1.0):
+				raise ValueError(f"Value at position {i} ({v}) is not between 0.0 and 1.0")
+
+		return tuple(values)
+	except ValueError as e:
+		raise argparse.ArgumentTypeError(f"Invalid box format '{box_str}': {e}")
+
+
 if __name__ == '__main__':
-	import sys
-	assert len(sys.argv) == 2
+	parser = argparse.ArgumentParser(
+		description='Interactive image viewer with pixel inspection and box drawing capabilities.',
+		epilog="""
+Controls:
+  Left click: Select pixel and show info
+  Left drag: Draw a box
+  Right click: Select existing box
+  w/s/a/d: Move selected pixel
+  i: Print info for all boxes
+  Backspace/Delete: Delete selected box (or last box if none selected)
+  ESC: Exit
 
-	filename = sys.argv[1]
+Box format:
+  Each box is specified as "start_x,start_y,width,height" where all values
+  are floats between 0.0 and 1.0 (inclusive), representing normalized coordinates.
+		""",
+		formatter_class=argparse.RawDescriptionHelpFormatter
+	)
 
-	image = cv2.imread(filename, cv2.IMREAD_UNCHANGED)
+	parser.add_argument(
+		'image',
+		help='Path to the image file to view'
+	)
+
+	parser.add_argument(
+		'--box',
+		action='append',
+		type=parse_box,
+		metavar='START_X,START_Y,WIDTH,HEIGHT',
+		help='Add a box to render on the image. Format: "start_x,start_y,width,height" '
+		     'where each value is a float between 0.0 and 1.0. Can be specified multiple times.'
+	)
+
+	args = parser.parse_args()
+
+	# bgr or bgra channel order
+	image = cv2.imread(args.image, cv2.IMREAD_UNCHANGED)
+	if image is None:
+		parser.error(f"Could not load image from '{args.image}'")
 
 	height = image.shape[0]
 	width = image.shape[1]
-	print(f"Load image from {filename}, size: {width} x {height}")
+	print(f"Load image from {args.image}, size: {width} x {height}")
+
 	viewer = ImageViewer(image)
+
+	# Add boxes from command line arguments
+	if args.box:
+		for box in args.box:
+			start_x, start_y, box_width, box_height = box
+			# Convert normalized coordinates to absolute pixel coordinates
+			abs_start_x = int(start_x * width)
+			abs_start_y = int(start_y * height)
+			abs_end_x = int((start_x + box_width) * width)
+			abs_end_y = int((start_y + box_height) * height)
+
+			# Add to viewer's rect list in the format [start_x, start_y, end_x, end_y]
+			viewer.rects.append([abs_start_x, abs_start_y, abs_end_x, abs_end_y])
+			print(f"Added box: ({start_x:.3f}, {start_y:.3f}, {box_width:.3f}, {box_height:.3f}) -> "
+			      f"pixels ({abs_start_x}, {abs_start_y}, {abs_end_x}, {abs_end_y})")
+		viewer.update_buffer()
+
 	viewer.run()

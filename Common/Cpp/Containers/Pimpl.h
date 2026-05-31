@@ -36,6 +36,12 @@ public:
     template <class... Args>
     void reset(Args&&... args);
 
+    Type* release(){
+        Type* ret = m_ptr;
+        m_ptr = nullptr;
+        return ret;
+    }
+
 
 public:
     operator bool() const{ return m_ptr != nullptr; }
@@ -63,15 +69,6 @@ template <typename Type>
 Pimpl<Type>::Pimpl(Pimpl&& x) noexcept
     : m_ptr(x.m_ptr)
 {
-    x.m_ptr = nullptr;
-}
-template <typename Type>
-void Pimpl<Type>::operator=(Pimpl&& x) noexcept{
-    if (this == &x){
-        return;
-    }
-    delete m_ptr;
-    m_ptr = x.m_ptr;
     x.m_ptr = nullptr;
 }
 

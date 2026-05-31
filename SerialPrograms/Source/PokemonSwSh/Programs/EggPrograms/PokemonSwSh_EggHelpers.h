@@ -16,9 +16,9 @@ namespace PokemonAutomation{
 namespace NintendoSwitch{
 namespace PokemonSwSh{
 
-#define GO_TO_LADY_DURATION         (51 * 8ms)
-#define TRAVEL_RIGHT_DURATION       (300 * 8ms)
-#define END_BATCH_MASH_B_DURATION   (20 * TICKS_PER_SECOND * 8ms)
+#define GO_TO_LADY_DURATION         (508ms)
+#define TRAVEL_RIGHT_DURATION       (2400ms)
+#define END_BATCH_MASH_B_DURATION   (20000ms)
 
 
 //  Collect egg.
@@ -48,8 +48,8 @@ static void fly_home(ProControllerContext& context, char from_overworld){
         ssf_press_button(context, BUTTON_X, GameSettings::instance().OVERWORLD_TO_MENU_DELAY0, 160ms);
     }
     ssf_press_button(context, BUTTON_A, 3200ms, 160ms);
-    ssf_press_right_joystick(context, 160, 96, 160ms, 160ms);
-    pbf_mash_button(context, BUTTON_A, 480);
+    ssf_press_right_joystick(context, {0.25, 0.25}, 160ms, 160ms);
+    pbf_mash_button(context, BUTTON_A, 3840ms);
 }
 
 //  Assume the selected app in the menu is Twon Map.
@@ -58,8 +58,8 @@ static void fly_home_goto_lady(ProControllerContext& context, char from_overworl
 
     //  Go to lady.
     //  If you change this, you MUST update "GO_TO_LADY_DURATION".
-    ssf_press_left_joystick(context, STICK_MIN, STICK_CENTER, 20, 10);
-    ssf_press_left_joystick(context, STICK_CENTER, STICK_MIN, 90, 45);
+    ssf_press_left_joystick(context, {-1, 0}, 160ms, 80ms);
+    ssf_press_left_joystick(context, {0, +1}, 720ms, 360ms);
 }
 
 //  Assume the selected app in the menu is Twon Map.

@@ -40,6 +40,7 @@ public:
     virtual void options_locked(bool locked) override;
 
 private:
+    void update_interface_dropdown(ControllerInterface interface_type);
     void refresh_selection(ControllerInterface interface_type);
     void refresh_controllers(
         ControllerType controller_type,
@@ -61,12 +62,13 @@ private:
 
     QHBoxLayout* m_dropdowns;
     QWidget* m_selector = nullptr;
-    QComboBox* interface_dropdown = nullptr;
+    QComboBox* m_interface_dropdown = nullptr;
     QComboBox* m_controllers_dropdown = nullptr;
     QLabel* m_status_text = nullptr;
     QPushButton* m_reset_button = nullptr;
 
 //    bool m_shift_held = false;
+    std::vector<ControllerInterface> m_interface_list;
 
     std::vector<std::shared_ptr<const ControllerDescriptor>> m_device_list;
 };

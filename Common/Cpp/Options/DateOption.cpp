@@ -15,7 +15,6 @@ namespace PokemonAutomation{
 
 
 
-
 bool DateTimeCell::is_valid(const DateTime& date) const{
     if (date.year < 0){
         return false;
@@ -55,7 +54,7 @@ DateTimeCell::DateTimeCell(
     const DateTime& min_value, const DateTime& max_value,
     const DateTime& default_value
 )
-    : ConfigOption(lock_while_running)
+    : ConfigOptionImpl<DateTimeCell>(lock_while_running)
     , m_level(level)
     , m_min_value(min_value)
     , m_max_value(max_value)
@@ -74,11 +73,11 @@ DateTimeCell::DateTimeCell(
 }
 
 DateTimeCell::operator DateTime() const{
-    ReadSpinLock lg(m_lock);
+    ReadSpinLock lg(m_lock, PA_CURRENT_FUNCTION);
     return m_current;
 }
 DateTime DateTimeCell::get() const{
-    ReadSpinLock lg(m_lock);
+    ReadSpinLock lg(m_lock, PA_CURRENT_FUNCTION);
     return m_current;
 }
 std::string DateTimeCell::set(const DateTime& x){
@@ -87,7 +86,7 @@ std::string DateTimeCell::set(const DateTime& x){
         return err;
     }
     {
-        WriteSpinLock lg(m_lock);
+        WriteSpinLock lg(m_lock, PA_CURRENT_FUNCTION);
         if (x == m_current){
             return std::string();
         }
@@ -104,7 +103,7 @@ std::string DateTimeCell::check_validity(const DateTime& x) const{
     return std::string();
 }
 std::string DateTimeCell::check_validity() const{
-    ReadSpinLock lg(m_lock);
+    ReadSpinLock lg(m_lock, PA_CURRENT_FUNCTION);
     return check_validity(m_current);
 }
 void DateTimeCell::restore_defaults(){
@@ -144,7 +143,7 @@ void DateTimeCell::load_json(const JsonValue& json){
         return;
     }
     {
-        WriteSpinLock lg(m_lock);
+        WriteSpinLock lg(m_lock, PA_CURRENT_FUNCTION);
         m_current = date;
     }
     report_value_changed(this);
@@ -152,7 +151,7 @@ void DateTimeCell::load_json(const JsonValue& json){
 JsonValue DateTimeCell::to_json() const{
     DateTime current;
     {
-        ReadSpinLock lg(m_lock);
+        ReadSpinLock lg(m_lock, PA_CURRENT_FUNCTION);
         current = m_current;
     }
     return to_json(current);
@@ -168,7 +167,13 @@ DateTimeOption::DateTimeOption(
     const DateTime& min_value, const DateTime& max_value,
     const DateTime& default_value
 )
-    : DateTimeCell(lock_while_running, level, min_value, max_value, default_value)
+    : ConfigOptionImpl<DateTimeOption, DateTimeCell>(
+        lock_while_running,
+        level,
+        min_value,
+        max_value,
+        default_value
+    )
     , m_label(std::move(label))
 {}
 

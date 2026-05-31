@@ -6,8 +6,9 @@
 
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonTools/Async/InferenceRoutines.h"
-#include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/NintendoSwitch_Settings.h"
+#include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "PokemonSwSh/PokemonSwSh_Settings.h"
 #include "PokemonSwSh/Commands/PokemonSwSh_Commands_DateSpam.h"
 #include "PokemonSwSh/Inference/Battles/PokemonSwSh_StartBattleDetector.h"
@@ -86,9 +87,15 @@ ShinyHuntAutonomousWhistling::ShinyHuntAutonomousWhistling()
 void ShinyHuntAutonomousWhistling::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     if (START_LOCATION.start_in_grip_menu()){
         grip_menu_connect_go_home(context);
-        resume_game_back_out(env.console, context, ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST, 200);
+        resume_game_back_out(
+            env.console,
+            context,
+            ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST,
+            1600ms
+        );
     }else{
-        pbf_press_button(context, BUTTON_B, 5, 5);
+        //  Connect the controller.
+        require_player(env.console, context, BUTTON_B);
     }
 
     WallDuration PERIOD = std::chrono::hours(TIME_ROLLBACK_HOURS);
@@ -123,7 +130,7 @@ void ShinyHuntAutonomousWhistling::program(SingleSwitchProgramEnvironment& env, 
                 [](ProControllerContext& context){
                     while (true){
                         pbf_mash_button(context, BUTTON_LCLICK, 1000ms);
-                        pbf_move_right_joystick(context, 192, 128, 1000ms, 0ms);
+                        pbf_move_right_joystick(context, {+0.5, 0}, 1000ms, 0ms);
                     }
                 },
                 {

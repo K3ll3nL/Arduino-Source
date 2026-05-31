@@ -7,13 +7,15 @@
 #include <QKeyEvent>
 #include <QHBoxLayout>
 #include "Common/Qt/NoWheelComboBox.h"
-//#include "CommonFramework/GlobalSettingsPanel.h"
+#include "CommonFramework/Globals.h"
+#include "CommonFramework/GlobalSettingsPanel.h"
 #include "CommonFramework/Panels/ConsoleSettingsStretch.h"
 #include "Controllers/ControllerTypeStrings.h"
 #include "ControllerSelectorWidget.h"
 //#include "NintendoSwitch/NintendoSwitch_Settings.h"
 
 #include "SerialPABotBase/SerialPABotBase_SelectorWidget.h"
+#include "PABotBase2/SerialPABotBase2_SelectorWidget.h"
 #include "NintendoSwitch/Controllers/SysbotBase/SysbotBase_SelectorWidget.h"
 
 #include <QGuiApplication>
@@ -46,27 +48,37 @@ ControllerSelectorWidget::ControllerSelectorWidget(QWidget& parent, ControllerSe
     layout1->addLayout(m_dropdowns, CONSOLE_SETTINGS_STRETCH_L1_BODY);
     layout1->addSpacing(5);
 
-    interface_dropdown = new NoWheelComboBox(this);
-    m_dropdowns->addWidget(interface_dropdown);
+    m_interface_dropdown = new NoWheelCompactComboBox(this);
+    m_dropdowns->addWidget(m_interface_dropdown);
 
-    interface_dropdown->addItem(QString::fromStdString(CONTROLLER_INTERFACE_STRINGS.get_string(ControllerInterface::SerialPABotBase)));
-    interface_dropdown->addItem(QString::fromStdString(CONTROLLER_INTERFACE_STRINGS.get_string(ControllerInterface::TcpSysbotBase)));
-//    interface_dropdown->addItem(QString::fromStdString(CONTROLLER_INTERFACE_STRINGS.get_string(ControllerInterface::UsbSysbotBase)));
 
-//    interface_dropdown->setHidden(true);
+    //  Add all the supported interfaces.
+    {
+        m_interface_list.emplace_back(ControllerInterface::SerialPABotBase);
+        m_interface_list.emplace_back(ControllerInterface::SerialPABotBase2);
+        m_interface_list.emplace_back(ControllerInterface::TcpSysbotBase);
+//        m_interface_list.emplace_back(ControllerInterface::UsbSysbotBase);
+    }
+
+
+    for (ControllerInterface item : m_interface_list){
+        m_interface_dropdown->addItem(QString::fromStdString(CONTROLLER_INTERFACE_STRINGS.get_string(item)));
+    }
+
+//    m_interface_dropdown->setHidden(true);
 
     auto current = session.descriptor();
     if (current == nullptr || current->interface_type == ControllerInterface::None){
-        current.reset(new SerialPABotBase::SerialPABotBase_Descriptor());
+        current.reset(new SerialPABotBase::SerialPABotBase2_Descriptor());
         session.set_device(std::move(current));
     }
-    interface_dropdown->setCurrentIndex((int)current->interface_type - 1);
+    update_interface_dropdown(current->interface_type);
     m_selector = current->make_selector_QtWidget(*this);
     m_dropdowns->addWidget(m_selector, 1);
 
 
     m_dropdowns->addSpacing(5);
-    m_controllers_dropdown = new NoWheelComboBox(this);
+    m_controllers_dropdown = new NoWheelCompactComboBox(this);
     m_controllers_dropdown->setSizeAdjustPolicy(QComboBox::AdjustToContents);
     m_dropdowns->addWidget(m_controllers_dropdown);
     refresh_controllers(session.controller_type(), session.available_controllers());
@@ -76,6 +88,9 @@ ControllerSelectorWidget::ControllerSelectorWidget(QWidget& parent, ControllerSe
     layout1->addSpacing(5);
 
     m_status_text->setText(QString::fromStdString(session.status_text()));
+    m_status_text->setTextFormat(Qt::RichText);
+    m_status_text->setTextInteractionFlags(Qt::TextBrowserInteraction);
+    m_status_text->setOpenExternalLinks(true);
 
     m_reset_button = new QPushButton("Reset Ctrl.", this);
 #if 1
@@ -96,12 +111,12 @@ ControllerSelectorWidget::ControllerSelectorWidget(QWidget& parent, ControllerSe
     setFocusPolicy(Qt::StrongFocus);
 
     connect(
-        interface_dropdown, static_cast<void(QComboBox::*)(int)>(&QComboBox::activated),
+        m_interface_dropdown, static_cast<void(QComboBox::*)(int)>(&QComboBox::activated),
         this, [this](int index){
             index = std::max(index, 0);
 //            index = std::min(index, (int)m_device_list.size() - 1);
 
-            ControllerInterface incoming = (ControllerInterface)(index + 1);
+            ControllerInterface incoming = m_interface_list[index];
             ControllerInterface existing = m_session.descriptor()->interface_type;
 //            cout << "incoming = " << (int)incoming << endl;
 //            cout << "existing = " << (int)existing << endl;
@@ -139,14 +154,21 @@ ControllerSelectorWidget::ControllerSelectorWidget(QWidget& parent, ControllerSe
 
 
 
-
-void ControllerSelectorWidget::refresh_selection(ControllerInterface interface_type){
-//    cout << "refresh_selection(): "<< endl;
-
+void ControllerSelectorWidget::update_interface_dropdown(ControllerInterface interface_type){
     if (interface_type == ControllerInterface::None){
         interface_type = ControllerInterface::SerialPABotBase;
     }
-    interface_dropdown->setCurrentIndex((int)interface_type - 1);
+    for (size_t index = 0; index < m_interface_list.size(); index++){
+        if (interface_type == m_interface_list[index]){
+            m_interface_dropdown->setCurrentIndex((int)index);
+            break;
+        }
+    }
+
+}
+void ControllerSelectorWidget::refresh_selection(ControllerInterface interface_type){
+//    cout << "refresh_selection(): "<< endl;
+    update_interface_dropdown(interface_type);
 
     delete m_selector;
     m_selector = nullptr;
@@ -156,6 +178,11 @@ void ControllerSelectorWidget::refresh_selection(ControllerInterface interface_t
     switch (interface_type){
     case ControllerInterface::SerialPABotBase:
         m_selector = new SerialPABotBase::SerialPABotBase_SelectorWidget(*this, m_session.descriptor().get());
+        m_dropdowns->insertWidget(1, m_selector, 1);
+        break;
+
+    case ControllerInterface::SerialPABotBase2:
+        m_selector = new SerialPABotBase::SerialPABotBase2_SelectorWidget(*this, m_session.descriptor().get());
         m_dropdowns->insertWidget(1, m_selector, 1);
         break;
 
@@ -221,7 +248,7 @@ void ControllerSelectorWidget::post_status_text_changed(const std::string& text)
 void ControllerSelectorWidget::options_locked(bool locked){
     QMetaObject::invokeMethod(this, [this, locked]{
         m_selector->setEnabled(!locked);
-        interface_dropdown->setEnabled(!locked);
+        m_interface_dropdown->setEnabled(!locked);
         m_controllers_dropdown->setEnabled(!locked);
         m_reset_button->setEnabled(!locked);
     });

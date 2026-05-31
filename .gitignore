@@ -1,9 +1,14 @@
 SerialPrograms/bin/
 
 .vscode
+.qtcreator
 
 discord_social_sdk_win/
 discord_partner_sdk.dll
+3rdPartyBinaries/discord_social_sdk_mac/
+3rdPartyBinaries/onnxruntime-osx-arm64-*/
+3rdPartyBinaries/onnxruntime-osx-x86_64-*/
+
 
 # macOS hidden system file
 .DS_Store
@@ -13,6 +18,7 @@ build/
 
 # Qt config file on a user basis
 *.pro.user
+*.txt.user
 
 # all other common C++ ignorables
 # Prerequisites
@@ -61,4 +67,11 @@ __pycache__
 # Jupyter Notebooks
 *.ipynb
 
+vcpkg/
+
+CLAUDE.md
+
+build_*/
+.cache/*
+Packages/*
 

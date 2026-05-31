@@ -15,7 +15,7 @@
 #include "CommonFramework/VideoPipeline/VideoFeed.h"
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
-#include "NintendoSwitch/NintendoSwitch_Settings.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "Pokemon/Resources/Pokemon_PokemonNames.h"
 #include "Pokemon/Inference/Pokemon_NameReader.h"
@@ -232,7 +232,7 @@ std::set<std::string> OutbreakFinder::read_travel_map_outbreaks(
     if (current_region != MapRegion::JUBILIFE && current_region != MapRegion::RETREAT){
         // MapRegion starts with None and JUBILIFE. Skip those two, so -2.
         size_t current_wild_area_index = (int)current_region - 2;
-        pbf_press_dpad(context, DPAD_RIGHT, 20, 40);
+        pbf_press_dpad(context, DPAD_RIGHT, 160ms, 320ms);
         context.wait_for_all_requests();
         auto new_mmo_read = question_mark_detector.detect_MMO_on_hisui_map(env.console.video().snapshot());
         mmo_appears[current_wild_area_index] = new_mmo_read[current_wild_area_index];
@@ -295,7 +295,7 @@ std::set<std::string> OutbreakFinder::read_travel_map_outbreaks(
             }
         }
 
-        pbf_press_dpad(context, DPAD_RIGHT, 20, 40);
+        pbf_press_dpad(context, DPAD_RIGHT, 160ms, 320ms);
         context.wait_for_all_requests();
     }
 
@@ -329,13 +329,13 @@ void OutbreakFinder::goto_region_and_return(
 
         if (current_region == MapRegion::JUBILIFE){
             // Move to fieldlands
-            pbf_press_dpad(context, DPAD_RIGHT, 20, 40);
+            pbf_press_dpad(context, DPAD_RIGHT, 160ms, 320ms);
         }else if (current_region == MapRegion::RETREAT){
             // Move to icelands
-            pbf_press_dpad(context, DPAD_LEFT, 20, 40);
+            pbf_press_dpad(context, DPAD_LEFT, 160ms, 320ms);
         }else{
             // Cannot read current region. Try move to another region
-            pbf_press_dpad(context, DPAD_RIGHT, 20, 40);
+            pbf_press_dpad(context, DPAD_RIGHT, 160ms, 320ms);
         }
         context.wait_for_all_requests();
     }
@@ -383,18 +383,18 @@ void OutbreakFinder::goto_region_and_return(
             env.console, context,
             [](ProControllerContext& context){
                 for (size_t c = 0; c < 10; c++){
-                    pbf_press_button(context, BUTTON_A, 20, 125);
+                    pbf_press_button(context, BUTTON_A, 160ms, 1000ms);
                 }
             },
             {{button_detector}}
         );
         if (ret >= 0){
             context.wait_for(std::chrono::milliseconds(500));
-            pbf_press_dpad(context, DPAD_DOWN, 20, 105);
+            pbf_press_dpad(context, DPAD_DOWN, 160ms, 840ms);
             break;
         }
         env.console.log("Did not detect option to return to Jubilife.", COLOR_RED);
-        pbf_mash_button(context, BUTTON_B, 5 * TICKS_PER_SECOND);
+        pbf_mash_button(context, BUTTON_B, 5000ms);
         stats.errors++;
     }
 
@@ -430,7 +430,7 @@ std::vector<std::string> OutbreakFinder::run_iteration(
         // Check if we found any Massive Outbreak pokemon (including MMO symbol targets)
         {
             std::vector<std::string> desired_outbreaks_found;
-            for(const auto& found : found_hisui_map_events){
+            for (const auto& found : found_hisui_map_events){
                 if (desired_outbreaks.find(found) != desired_outbreaks.end()){
                     desired_outbreaks_found.push_back(found);
                 }
@@ -439,7 +439,7 @@ std::vector<std::string> OutbreakFinder::run_iteration(
                 stats.matches += desired_outbreaks_found.size();
                 std::ostringstream os;
                 os << "Found following desired outbreak" << (desired_outbreaks_found.size() > 1 ? "s: " : ": ");
-                for(const auto& outbreak: desired_outbreaks_found){
+                for (const auto& outbreak: desired_outbreaks_found){
                     os << outbreak << ", ";
                     env.console.overlay().add_log("Found " + outbreak, COLOR_GREEN);
                 }
@@ -456,9 +456,9 @@ std::vector<std::string> OutbreakFinder::run_iteration(
 
         // Cancel map view
         inside_travel_map = false;
-        pbf_press_button(context, BUTTON_B, 50, 50);
+        pbf_press_button(context, BUTTON_B, 400ms, 400ms);
         // Leave the guard.
-        pbf_move_left_joystick(context, 128, 0, 100, 50);
+        pbf_move_left_joystick(context, {0, +1}, 800ms, 400ms);
         // Checking MMO costs Aguav Berries.
         // To not waste them, save here so that we can reset to get berries back.
         save_game_from_overworld(env, env.console, context);
@@ -518,8 +518,8 @@ std::set<std::string> OutbreakFinder::to_set(const StringSelectTableOption& opti
 }
 
 void OutbreakFinder::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
-    // press a random button to let Switch register the wired controller
-    pbf_press_button(context, BUTTON_ZL, 10ms, 30ms);
+    //  Connect the controller.
+    require_player(env.console, context, BUTTON_ZL);
 
     bool fresh_from_reset = false;
     if (RESET_GAME_AND_CONTINUE_SEARCHING){
@@ -563,8 +563,8 @@ void OutbreakFinder::program(SingleSwitchProgramEnvironment& env, ProControllerC
     // MMO_targets: MMO map event slug (e.g. "fieldlands-mmo") -> how many desired MMO pokemon can spawn on this map
     std::map<std::string, int> MMO_targets;
     // Check if each MMO map event may spawn desired MMO pokemon:
-    for(size_t i = 0; i < 5; i++){
-        for(const std::string& sprite_slug: MMO_FIRST_WAVE_REGION_SPRITE_SLUGS()[i]){
+    for (size_t i = 0; i < 5; i++){
+        for (const std::string& sprite_slug: MMO_FIRST_WAVE_REGION_SPRITE_SLUGS()[i]){
             if (desired_MMO_pokemon.find(sprite_slug) != desired_MMO_pokemon.end()
                 || desired_star_MMO_pokemon.find(sprite_slug) != desired_star_MMO_pokemon.end()
             ){
@@ -575,14 +575,14 @@ void OutbreakFinder::program(SingleSwitchProgramEnvironment& env, ProControllerC
 
     std::ostringstream os;
     os << "User requires MMO pokemon. Need to visit (\"map MMO name\", \"how many desired MMO pokemon on the map\"): ";
-    for(const auto& p : MMO_targets){
+    for (const auto& p : MMO_targets){
         os << "(" << p.first << ", " << p.second << ") ";
     }
     env.log(os.str());
 
     // Add MMO map event targets (e.g. "fieldlands-mmo") derived from user selected MMO pokemon to 
     // `desired_hisui_map_events`.
-    for(const auto& p : MMO_targets){
+    for (const auto& p : MMO_targets){
         desired_hisui_map_events.insert(p.first);
     }
 

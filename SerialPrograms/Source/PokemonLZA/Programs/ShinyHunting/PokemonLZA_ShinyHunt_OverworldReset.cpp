@@ -33,8 +33,7 @@ ShinyHunt_OverworldReset_Descriptor::ShinyHunt_OverworldReset_Descriptor()
         "Shiny hunt by soft-resetting a " + STRING_POKEMON + " that spawns next to you.",
         ProgramControllerClass::StandardController_NoRestrictions,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {}
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 class ShinyHunt_OverworldReset_Descriptor::Stats : public StatsTracker{
@@ -96,6 +95,9 @@ ShinyHunt_OverworldReset::ShinyHunt_OverworldReset()
 void ShinyHunt_OverworldReset::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     assert_16_9_720p_min(env.logger(), env.console);
 
+    //  Connect the controller.
+    require_player(env.console, context, BUTTON_L);
+
     ShinyHunt_OverworldReset_Descriptor::Stats& stats = env.current_stats<ShinyHunt_OverworldReset_Descriptor::Stats>();
 
     uint8_t shiny_count = 0;
@@ -121,7 +123,7 @@ void ShinyHunt_OverworldReset::program(SingleSwitchProgramEnvironment& env, ProC
                 reset_game_from_home(env, env.console, context);
 
                 if (ROTATE_CAMERA){
-                    pbf_move_right_joystick(context, 255, 128, RESET_DELAY, 0ms);
+                    pbf_move_right_joystick(context, {+1, 0}, RESET_DELAY, 0ms);
                 }else{
                     pbf_wait(context, RESET_DELAY);
                 }

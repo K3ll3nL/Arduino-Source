@@ -16,8 +16,8 @@ namespace Pokemon{
 
 StringSelectDatabase make_all_home_sprites_database(){
     StringSelectDatabase ret;
-    for(const auto& slug: ALL_POKEMON_FORMS()){
-    // for(const auto& p: ALL_POKEMON_HOME_SPRITES().get()){
+    for (const auto& slug: ALL_POKEMON_FORMS()){
+    // for (const auto& p: ALL_POKEMON_HOME_SPRITES().get()){
         const SpriteDatabase::Sprite* sprite = ALL_POKEMON_HOME_SPRITES().get_nothrow(slug);
         const PokemonForm* form_ptr = get_pokemon_form(slug);
         if (form_ptr == nullptr){
@@ -27,7 +27,7 @@ StringSelectDatabase make_all_home_sprites_database(){
             // we don't have the sprite. Use a replacement sprite instead:
             const auto& no_show_sprite = ALL_POKEMON_HOME_SPRITES().get_throw("floette-eternal-flower");
             ret.add_entry(StringSelectEntry(slug, form_ptr->display_name(), no_show_sprite.icon));
-        } else{
+        }else{
             ret.add_entry(StringSelectEntry(slug, form_ptr->display_name(), sprite->icon));
         }
     }

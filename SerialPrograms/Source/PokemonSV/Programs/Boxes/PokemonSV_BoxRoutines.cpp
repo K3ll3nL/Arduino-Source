@@ -66,9 +66,9 @@ bool change_view_to_stats_or_judge(
 //        //  land on the IV checker. Otherwise, it will land us back to nothing.
 //        //  Then the next press will be a single which will put us on the stats
 //        //  with no IV checker.
-        pbf_press_button(context, BUTTON_PLUS, 20, 105);
+        pbf_press_button(context, BUTTON_PLUS, 160ms, 840ms);
 //        if (attempts % 2 == 0){
-//            pbf_press_button(context, BUTTON_PLUS, 20, 230);
+//            pbf_press_button(context, BUTTON_PLUS, 160ms, 1840ms);
 //        }
     }
     return true;
@@ -106,7 +106,7 @@ void change_view_to_judge(
         //  Check if we're even on a stats screen.
         if (stats.stddev.sum() < 50){
             stream.log("Unable to detect stats menu. Attempting to correct.", COLOR_RED);
-            pbf_press_button(context, BUTTON_PLUS, 20, 105);
+            pbf_press_button(context, BUTTON_PLUS, 160ms, 840ms);
             continue;
         }
 
@@ -123,7 +123,7 @@ void change_view_to_judge(
 
         //  If less than 4 of the IVs are read, assume we're not on the judge screen.
         if (detected < 4){
-            pbf_press_button(context, BUTTON_PLUS, 20, 230);
+            pbf_press_button(context, BUTTON_PLUS, 160ms, 1840ms);
         }else{
             break;
         }
@@ -135,10 +135,10 @@ void change_view_to_judge(
 // Moving to left/right box is blind sequence. To prevent game dropping button inputs,
 // press the button longer.
 void move_to_left_box(ProControllerContext& context){
-    pbf_press_button(context, BUTTON_L, 60, 100);
+    pbf_press_button(context, BUTTON_L, 480ms, 800ms);
 }
 void move_to_right_box(ProControllerContext& context){
-    pbf_press_button(context, BUTTON_R, 60, 100);
+    pbf_press_button(context, BUTTON_R, 480ms, 800ms);
 }
 
 namespace{
@@ -193,22 +193,22 @@ void hold_one_column(const ProgramInfo& info, VideoStream& stream, ProController
     const bool to_enter_selection = true;
     change_held_mode(
         info, stream, context,
-        [&context](){ pbf_press_button(context, BUTTON_MINUS, 50, 40); },
+        [&context](){ pbf_press_button(context, BUTTON_MINUS, 400ms, 320ms); },
         to_enter_selection,
         "TimeoutHoldingColumn", "Failed to enter box selection mode after 1 minute of Button Minus pressing."
     );
 
     // Select rest of the pary
     // Press down multiple times to make sure we select full party in case the game drops some presses
-    for(int i = 0; i < 15; i++){
+    for (int i = 0; i < 15; i++){
         ssf_press_dpad(context, DPAD_DOWN, 32ms);
-        ssf_press_left_joystick(context, 128, 255, 4, 5, 3);
+        ssf_press_left_joystick(context, {0, -1}, 32ms, 40ms, 24ms);
     }
     // Hold rest of the party
-    pbf_wait(context, 60);
+    pbf_wait(context, 480ms);
     // We cannot detect whether this Button A will be dropped or not.
     // So we have to go blind here.
-    pbf_press_button(context, BUTTON_A, 50, 40);
+    pbf_press_button(context, BUTTON_A, 400ms, 320ms);
     context.wait_for_all_requests();
 }
 
@@ -219,7 +219,7 @@ void drop_held_pokemon(const ProgramInfo& info, VideoStream& stream, ProControll
     const bool to_enter_selection = false;
     change_held_mode(
         info, stream, context,
-        [&context](){ pbf_press_button(context, BUTTON_A, 60, 60); },
+        [&context](){ pbf_press_button(context, BUTTON_A, 480ms, 480ms); },
         to_enter_selection,
         "TimeoutDroppingPokemon", "Failed to drop pokemon after 1 minute of Button A pressing."
     );
@@ -232,7 +232,7 @@ void cancel_held_pokemon(const ProgramInfo& info, VideoStream& stream, ProContro
     const bool to_enter_selection = false;
     change_held_mode(
         info, stream, context,
-        [&context](){ pbf_press_button(context, BUTTON_B, 60, 60); },
+        [&context](){ pbf_press_button(context, BUTTON_B, 480ms, 480ms); },
         to_enter_selection,
         "TimeoutCancellingHolding", "Failed to cancel holding pokemon after 1 minute of Button B pressing."
     );
@@ -245,7 +245,7 @@ void press_y_to_hold_pokemon(const ProgramInfo& info, VideoStream& stream, ProCo
     const bool to_enter_selection = true;
     change_held_mode(
         info, stream, context,
-        [&context](){ pbf_press_button(context, BUTTON_Y, 60, 60); },
+        [&context](){ pbf_press_button(context, BUTTON_Y, 480ms, 480ms); },
         to_enter_selection,
         "TimeoutHoldingPokemonByButtonY", "Failed to hold a pokemon by button Y after 1 minute of trying."
     );

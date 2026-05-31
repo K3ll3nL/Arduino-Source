@@ -12,8 +12,8 @@
 
 #include <set>
 #include "Common/Cpp/CancellableScope.h"
+#include "ControllerInput/Keyboard/KeyboardHidButtons.h"
 #include "Controllers/Schedulers/ControllerWithScheduler.h"
-#include "StandardHid_Keyboard_ControllerButtons.h"
 
 namespace PokemonAutomation{
 namespace StandardHid{
@@ -52,12 +52,12 @@ public:
     //  Superscalar Commands (the "ssf" framework)
 
     void issue_key(
-        const Cancellable* cancellable,
+        Cancellable* cancellable,
         Milliseconds delay, Milliseconds hold, Milliseconds cooldown,
         KeyboardKey key
     );
     void issue_keys(
-        const Cancellable* cancellable,
+        Cancellable* cancellable,
         Milliseconds delay, Milliseconds hold, Milliseconds cooldown,
         const std::vector<KeyboardKey>& keys
     );

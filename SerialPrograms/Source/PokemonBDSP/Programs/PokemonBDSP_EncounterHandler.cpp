@@ -26,8 +26,8 @@ namespace PokemonBDSP{
 
 
 void take_video(ProControllerContext& context){
-    pbf_wait(context, 5 * TICKS_PER_SECOND);
-    pbf_press_button(context, BUTTON_CAPTURE, 2 * TICKS_PER_SECOND, 5 * TICKS_PER_SECOND);
+    pbf_wait(context, 5000ms);
+    pbf_press_button(context, BUTTON_CAPTURE, 2000ms, 5000ms);
 //    context->wait_for_all_requests();
 }
 
@@ -135,7 +135,7 @@ bool StandardEncounterHandler::handle_standard_encounter(const DoublesShinyDetec
     m_env.update_stats();
 
     if (result.shiny_type == ShinyType::UNKNOWN){
-        pbf_mash_button(m_context, BUTTON_B, TICKS_PER_SECOND);
+        pbf_mash_button(m_context, BUTTON_B, 1000ms);
         return false;
     }
 
@@ -207,7 +207,7 @@ bool StandardEncounterHandler::handle_standard_encounter_end_battle(
     if (encounter_results.size() > 0){
         os << "Pokemon: (";
         bool first_slug = true;
-        for(const auto& name: encounter_results[0].slug_candidates){
+        for (const auto& name: encounter_results[0].slug_candidates){
             if (first_slug == false){
                 os << ",";
             }
@@ -219,7 +219,7 @@ bool StandardEncounterHandler::handle_standard_encounter_end_battle(
     if (encounter_results.size() > 1){
         os << "(";
         bool first_slug = true;
-        for(const auto& name: encounter_results[1].slug_candidates){
+        for (const auto& name: encounter_results[1].slug_candidates){
             if (first_slug == false){
                 os << ",";
             }
@@ -247,7 +247,7 @@ bool StandardEncounterHandler::handle_standard_encounter_end_battle(
         return true;
     case EncounterAction::RunAway:
         //  Fast run-away sequence to save time.
-        pbf_press_dpad(m_context, DPAD_UP, 20, 0);
+        pbf_press_dpad(m_context, DPAD_UP, 160ms, 0ms);
         m_context.wait_for_all_requests();
 
         run_from_battle(m_stream, m_context, exit_battle_time);
@@ -280,7 +280,7 @@ bool StandardEncounterHandler::handle_standard_encounter_end_battle(
             }
             break;
         case CatchResult::POKEMON_FAINTED:
-            pbf_mash_button(m_context, BUTTON_B, 2 * TICKS_PER_SECOND);
+            pbf_mash_button(m_context, BUTTON_B, 2000ms);
             break;
         default:
             throw_and_log<FatalProgramException>(

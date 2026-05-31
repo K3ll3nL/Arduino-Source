@@ -35,7 +35,7 @@ void hatch_egg(VideoStream& stream, ProControllerContext& context){
         int ret = run_until<ProControllerContext>(
             stream, context,
             [](ProControllerContext& context){
-                egg_spin(context, 8min);
+                egg_spin(context, false, 8min);
             },
             {
                 {dialog},
@@ -66,7 +66,7 @@ void hatch_egg(VideoStream& stream, ProControllerContext& context){
     VideoSnapshot overworld = stream.video().snapshot();
 //    overworld.save("test-0.png");
     {
-        pbf_mash_button(context, BUTTON_B, 10 * TICKS_PER_SECOND);
+        pbf_mash_button(context, BUTTON_B, 10000ms);
         context.wait_for_all_requests();
 
         ShortDialogWatcher dialog;
@@ -82,7 +82,7 @@ void hatch_egg(VideoStream& stream, ProControllerContext& context){
             );
         }
         stream.log("Egg finished hatching.");
-        pbf_mash_button(context, BUTTON_B, 1 * TICKS_PER_SECOND);
+        pbf_mash_button(context, BUTTON_B, 1000ms);
     }
 
     //  Return to overworld.
@@ -108,7 +108,7 @@ void hatch_egg(VideoStream& stream, ProControllerContext& context){
             throw UserSetupError(stream.logger(), "Detected prompt. Please turn off nicknaming.");
         default:
             stream.log("Failed to detect overworld after 30 seconds. Did day/night change?", COLOR_RED);
-//            pbf_mash_button(context, BUTTON_ZL, 30 * TICKS_PER_SECOND);
+//            pbf_mash_button(context, BUTTON_ZL, 30000ms);
             return;
         }
     }
@@ -123,11 +123,11 @@ void withdraw_1st_column_from_overworld(VideoStream& stream, ProControllerContex
     const Milliseconds BOX_SCROLL_DELAY = GameSettings::instance().BOX_SCROLL_DELAY0;
     const Milliseconds BOX_PICKUP_DROP_DELAY = GameSettings::instance().BOX_PICKUP_DROP_DELAY0;
     overworld_to_box(stream, context);
-    pbf_press_button(context, BUTTON_Y, 20, 50);
-    pbf_press_button(context, BUTTON_Y, 20, 50);
+    pbf_press_button(context, BUTTON_Y, 160ms, 400ms);
+    pbf_press_button(context, BUTTON_Y, 160ms, 400ms);
     pickup_column(context);
-    pbf_move_right_joystick(context, 0, 128, 160ms, BOX_SCROLL_DELAY);
-    pbf_move_right_joystick(context, 128, 255, 160ms, BOX_SCROLL_DELAY);
+    pbf_move_right_joystick(context, {-1, 0}, 160ms, BOX_SCROLL_DELAY);
+    pbf_move_right_joystick(context, {0, -1}, 160ms, BOX_SCROLL_DELAY);
     pbf_press_button(context, BUTTON_ZL, 160ms, BOX_PICKUP_DROP_DELAY);
     box_to_overworld(stream, context);
 }
@@ -135,11 +135,11 @@ void withdraw_1st_column_from_overworld(VideoStream& stream, ProControllerContex
 
 
 void release(VideoStream& stream, ProControllerContext& context){
-    pbf_press_button(context, BUTTON_ZL, 20, 50);
-    pbf_move_right_joystick(context, 128, 0, 20, 30);
-    pbf_move_right_joystick(context, 128, 0, 20, 30);
-    pbf_press_button(context, BUTTON_ZL, 20, 105);
-    pbf_move_right_joystick(context, 128, 255, 20, 30);
+    pbf_press_button(context, BUTTON_ZL, 160ms, 400ms);
+    pbf_move_right_joystick(context, {0, +1}, 160ms, 240ms);
+    pbf_move_right_joystick(context, {0, +1}, 160ms, 240ms);
+    pbf_press_button(context, BUTTON_ZL, 160ms, 840ms);
+    pbf_move_right_joystick(context, {0, -1}, 160ms, 240ms);
 
     ShortDialogDetector detector;
     for (size_t c = 0; c < 3; c++){
@@ -147,7 +147,7 @@ void release(VideoStream& stream, ProControllerContext& context){
         if (!detector.detect(stream.video().snapshot())){
             return;
         }
-        pbf_press_button(context, BUTTON_ZL, 20, 105);
+        pbf_press_button(context, BUTTON_ZL, 160ms, 840ms);
     }
     OperationFailedException::fire(
         ErrorReport::SEND_ERROR_REPORT,

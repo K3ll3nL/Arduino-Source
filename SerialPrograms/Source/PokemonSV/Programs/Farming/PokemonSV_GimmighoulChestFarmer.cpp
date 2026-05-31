@@ -105,26 +105,26 @@ GimmighoulChestFarmer::GimmighoulChestFarmer()
     PA_ADD_OPTION(NOTIFICATIONS);
 }
 
-void GimmighoulChestFarmer::navigate_to_gimmi(SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
+void GimmighoulChestFarmer::navigate_to_gimmi(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     //Cursor is already in position
     fly_to_overworld_from_map(env.program_info(), env.console, context);
-    pbf_move_left_joystick(context, 0, 0, 158, 0);
-    pbf_press_button(context, BUTTON_L, 50, 40);
-    pbf_move_left_joystick(context, 128, 0, 100, 0);
+    pbf_move_left_joystick(context, {-1, +1}, 1264ms, 0ms);
+    pbf_press_button(context, BUTTON_L, 400ms, 320ms);
+    pbf_move_left_joystick(context, {0, +1}, 800ms, 0ms);
     //Climb ladder
-    pbf_press_button(context, BUTTON_L, 50, 40);
-    pbf_move_left_joystick(context, 128, 0, 2350, 0);
-    pbf_press_button(context, BUTTON_L, 50, 40);
-    pbf_wait(context, 100);
+    pbf_press_button(context, BUTTON_L, 400ms, 320ms);
+    pbf_move_left_joystick(context, {0, +1}, 18800ms, 0ms);
+    pbf_press_button(context, BUTTON_L, 400ms, 320ms);
+    pbf_wait(context, 800ms);
     context.wait_for_all_requests();
     //Walk into the wall
-    pbf_move_left_joystick(context, 128, 0, 200, 100);
+    pbf_move_left_joystick(context, {0, +1}, 1600ms, 800ms);
     context.wait_for_all_requests();
     //Turn back
-    pbf_move_left_joystick(context, 128, 255, 60, 100);
+    pbf_move_left_joystick(context, {0, -1}, 480ms, 800ms);
     context.wait_for_all_requests();
     //Position toward chest
-    pbf_move_left_joystick(context, 128, 0, 30, 0);
+    pbf_move_left_joystick(context, {0, +1}, 240ms, 0ms);
     context.wait_for_all_requests();
 }
 
@@ -132,32 +132,35 @@ void GimmighoulChestFarmer::program(SingleSwitchProgramEnvironment& env, ProCont
     StartProgramChecks::check_performance_class_wired_or_wireless(context);
     assert_16_9_720p_min(env.logger(), env.console);
 
+    //  Connect the controller.
+    require_player(env.console, context, BUTTON_LCLICK);
+
     GimmighoulChestFarmer_Descriptor::Stats& stats = env.current_stats<GimmighoulChestFarmer_Descriptor::Stats>();
 
     if (START_LOCATION == StartLocation::FlyPoint){
         //Set starting position by flying - must fly to East Province (Area One) Watchtower, do not move from fly point
         open_map_from_overworld(env.program_info(), env.console, context);
         fly_to_overworld_from_map(env.program_info(), env.console, context);
-        pbf_move_left_joystick(context, 0, 0, 158, 0);
-        pbf_press_button(context, BUTTON_L, 50, 40);
-        pbf_move_left_joystick(context, 128, 0, 100, 0);
+        pbf_move_left_joystick(context, {-1, +1}, 1264ms, 0ms);
+        pbf_press_button(context, BUTTON_L, 400ms, 320ms);
+        pbf_move_left_joystick(context, {0, +1}, 800ms, 0ms);
         //Climb ladder
-        pbf_press_button(context, BUTTON_L, 50, 40);
-        pbf_move_left_joystick(context, 128, 0, 2350, 0);
-        pbf_press_button(context, BUTTON_L, 50, 40);
-        pbf_wait(context, 100);
+        pbf_press_button(context, BUTTON_L, 400ms, 320ms);
+        pbf_move_left_joystick(context, {0, +1}, 18800ms, 0ms);
+        pbf_press_button(context, BUTTON_L, 400ms, 320ms);
+        pbf_wait(context, 800ms);
         context.wait_for_all_requests();
         //Walk into the wall
-        pbf_move_left_joystick(context, 128, 0, 200, 100);
+        pbf_move_left_joystick(context, {0, +1}, 1600ms, 800ms);
         context.wait_for_all_requests();
         //Press A in case there's already a chest
         //The remaining commands will run harmlessly during the battle intro if there is a chest
-        pbf_press_button(context, BUTTON_A, 50, 40);
+        pbf_press_button(context, BUTTON_A, 400ms, 320ms);
         //Turn back
-        pbf_move_left_joystick(context, 128, 255, 60, 100);
+        pbf_move_left_joystick(context, {0, -1}, 480ms, 800ms);
         context.wait_for_all_requests();
         //Position toward chest
-        pbf_move_left_joystick(context, 128, 0, 30, 0);
+        pbf_move_left_joystick(context, {0, +1}, 240ms, 0ms);
         context.wait_for_all_requests();
     }
     //else assuming player is positioned correctly in front of the chest
@@ -166,8 +169,8 @@ void GimmighoulChestFarmer::program(SingleSwitchProgramEnvironment& env, ProCont
     while(c < PP){
         //  Press A to enter battle, assuming there is a chest
         env.log("Fetch Attempts: " + tostr_u_commas(c));
-        pbf_mash_button(context, BUTTON_A, 125);
-        pbf_wait(context, 125); //Wait extra to make sure the overworld map vanishes
+        pbf_mash_button(context, BUTTON_A, 1000ms);
+        pbf_wait(context, 1000ms); //Wait extra to make sure the overworld map vanishes
         context.wait_for_all_requests();
 
         OverworldWatcher battleStarting(env.console, COLOR_RED);
@@ -177,7 +180,7 @@ void GimmighoulChestFarmer::program(SingleSwitchProgramEnvironment& env, ProCont
             std::chrono::seconds(5),
             {battleStarting, battle_detected}
         );
-        if (retOverworld != 0) {
+        if (retOverworld != 0){
             //Wait for the battle to load then check for battle menu, if there isn't a battle menu then no chest
             NormalBattleMenuWatcher battle_menu(COLOR_YELLOW);
             int ret = wait_until(
@@ -188,7 +191,7 @@ void GimmighoulChestFarmer::program(SingleSwitchProgramEnvironment& env, ProCont
 
             if (ret == 0){
                 //  Attack using your first move
-                pbf_mash_button(context, BUTTON_A, 90);
+                pbf_mash_button(context, BUTTON_A, 720ms);
                 c++;
                 context.wait_for_all_requests();
                 OverworldWatcher overworld(env.console, COLOR_RED);
@@ -212,8 +215,8 @@ void GimmighoulChestFarmer::program(SingleSwitchProgramEnvironment& env, ProCont
 
                 //Set starting position by flying - move map cursor
                 open_map_from_overworld(env.program_info(), env.console, context);
-                pbf_press_button(context, BUTTON_ZR, 50, 40);
-                pbf_move_left_joystick(context, 48, 192, 10, 0);
+                pbf_press_button(context, BUTTON_ZR, 400ms, 320ms);
+                pbf_move_left_joystick(context, {-0.625, -0.5}, 80ms, 0ms);
                 navigate_to_gimmi(env, context);
 
                 //Check for tauros interrupt before pressing A - reset position if there was one
@@ -223,7 +226,7 @@ void GimmighoulChestFarmer::program(SingleSwitchProgramEnvironment& env, ProCont
                     { battle_menu }
                 );
                 if (ret == 0){
-                    pbf_mash_button(context, BUTTON_A, 90);
+                    pbf_mash_button(context, BUTTON_A, 720ms);
                     c++;
                     context.wait_for_all_requests();
                     ret2 = wait_until(
@@ -274,14 +277,14 @@ void GimmighoulChestFarmer::program(SingleSwitchProgramEnvironment& env, ProCont
         stats.resets++;
         env.update_stats();
         send_program_status_notification(env, NOTIFICATION_STATUS_UPDATE);
-        reset_game_from_home(env.program_info(), env.console, context, 5 * TICKS_PER_SECOND);
+        reset_game_from_home(env.program_info(), env.console, context, 5000ms);
     }
 
     if (FIX_TIME_WHEN_DONE){
         go_home(env.console, context);
         home_to_date_time(env.console, context, false);
-        pbf_press_button(context, BUTTON_A, 20, 105);
-        pbf_press_button(context, BUTTON_A, 20, 105);
+        pbf_press_button(context, BUTTON_A, 160ms, 840ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 840ms);
         pbf_press_button(context, BUTTON_HOME, 160ms, ConsoleSettings::instance().SETTINGS_TO_HOME_DELAY0);
         resume_game_from_home(env.console, context);
     }

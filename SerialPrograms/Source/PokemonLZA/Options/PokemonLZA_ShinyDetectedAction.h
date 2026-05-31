@@ -7,15 +7,15 @@
 #ifndef PokemonAutomation_PokemonLZA_ShinyDetectedAction_H
 #define PokemonAutomation_PokemonLZA_ShinyDetectedAction_H
 
+#include <atomic>
 #include "Common/Cpp/Options/GroupOption.h"
 #include "Common/Cpp/Options/StaticTextOption.h"
 #include "Common/Cpp/Options/BooleanCheckBoxOption.h"
-#include "Common/Cpp/Options//TimeDurationOption.h"
 //#include "Common/Cpp/Options/SimpleIntegerOption.h"
+#include "Common/Cpp/Options//TimeDurationOption.h"
 #include "CommonFramework/Notifications/EventNotificationOption.h"
 #include "CommonFramework/Tools/VideoStream.h"
-#include "NintendoSwitch/Controllers/NintendoSwitch_ProController.h"
-#include <atomic>
+#include "NintendoSwitch/Controllers/Procon/NintendoSwitch_ProController.h"
 
 namespace PokemonAutomation{
     class ProgramEnvironment;
@@ -27,6 +27,7 @@ enum class ShinySoundDetectedAction{
     STOP_PROGRAM,         // stop program at first detected shiny sound
     NOTIFY_ON_FIRST_ONLY, // notify user only on the first shiny sound, keep running the program
     NOTIFY_ON_ALL,        // notify on all shiny sounds, keep running the program
+    NO_NOTIFICATIONS      // no notifications, still track shiny sounds
 };
 
 
@@ -36,6 +37,22 @@ public:
         std::string label, std::string description,
         std::string default_delay,
         ShinySoundDetectedAction default_action
+    );
+
+    // Handle shiny sighting according to ACTION.
+    // May log the sighting, take a video on Switch and send notification.
+    // Return whether to stop the program according to ACTION.
+    // Since this function may file button presses to record a video on Switch, it must be
+    // in the program thread that allows sending button presses.
+    bool on_shiny_sighted(
+        ProgramEnvironment& env, VideoStream& stream, ProControllerContext& context,
+        size_t current_count
+    );
+
+    // Assuming a shiny is sighted, this function logs and sends a notification.
+    // This function is called by `on_shiny_sighted()`.
+    void send_shiny_sighted_notification(
+        ProgramEnvironment& env, VideoStream& stream
     );
 
     // Handle shiny sound according to ACTION.

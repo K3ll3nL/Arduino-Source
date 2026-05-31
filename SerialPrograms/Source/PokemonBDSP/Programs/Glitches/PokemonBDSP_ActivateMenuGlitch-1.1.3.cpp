@@ -9,6 +9,7 @@
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "CommonTools/StartupChecks/StartProgramChecks.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonBDSP/PokemonBDSP_Settings.h"
 #include "PokemonBDSP/Inference/PokemonBDSP_MapDetector.h"
@@ -53,14 +54,17 @@ void ActivateMenuGlitch113::program(SingleSwitchProgramEnvironment& env, ProCont
 
     VideoStream& stream = env.console;
 
+    //  Connect the controller.
+    require_player(env.console, context, BUTTON_ZL);
+
     //  Enable Strength
-    pbf_mash_button(context, BUTTON_ZL, 2 * TICKS_PER_SECOND);
-    pbf_mash_button(context, BUTTON_B, 5 * TICKS_PER_SECOND);
+    pbf_mash_button(context, BUTTON_ZL, 2000ms);
+    pbf_mash_button(context, BUTTON_B, 5000ms);
 
 
-    pbf_press_button(context, BUTTON_R, 5, 0);
-    pbf_press_dpad(context, DPAD_RIGHT, 10, 115);
-    pbf_press_button(context, BUTTON_ZL, 10, 0);
+    pbf_press_button(context, BUTTON_R, 40ms, 0ms);
+    pbf_press_dpad(context, DPAD_RIGHT, 80ms, 920ms);
+    pbf_press_button(context, BUTTON_ZL, 80ms, 0ms);
     context.wait_for_all_requests();
     MapWatcher detector;
     int ret = wait_until(
@@ -80,14 +84,14 @@ void ActivateMenuGlitch113::program(SingleSwitchProgramEnvironment& env, ProCont
     context.wait_for(std::chrono::seconds(1));
 
     //  Move bolder and cursor to Celestial town.
-    pbf_press_dpad(context, DPAD_RIGHT, 30, 95);
+    pbf_press_dpad(context, DPAD_RIGHT, 240ms, 760ms);
 
     //  Bring up menu
     pbf_press_button(context, BUTTON_ZL, 160ms, FLY_A_TO_X_DELAY0.get() - 160ms);
     pbf_press_button(context, BUTTON_X, 160ms, GameSettings::instance().OVERWORLD_TO_MENU_DELAY0);
 
     //  Fly
-    pbf_press_button(context, BUTTON_ZL, 20, 10 * TICKS_PER_SECOND);
+    pbf_press_button(context, BUTTON_ZL, 160ms, 10000ms);
 }
 
 

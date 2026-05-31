@@ -187,11 +187,11 @@ void AuctionFarmer::reset_auctions(SingleSwitchProgramEnvironment& env, ProContr
             go_home(env.console, context);
             PokemonSwSh::home_roll_date_enter_game_autorollback(env.console, context, year);
         }
-        pbf_wait(context, 1 * TICKS_PER_SECOND);
+        pbf_wait(context, 1000ms);
 
         go_home(env.console, context);
         context.wait_for_all_requests();
-        reset_game_from_home(env.program_info(), env.console, context, TICKS_PER_SECOND);
+        reset_game_from_home(env.program_info(), env.console, context, 1000ms);
     }catch (OperationFailedException& e){
         AuctionFarmer_Descriptor::Stats& stats = env.current_stats<AuctionFarmer_Descriptor::Stats>();
         stats.m_errors++;
@@ -203,7 +203,7 @@ void AuctionFarmer::reset_auctions(SingleSwitchProgramEnvironment& env, ProContr
 std::vector<std::pair<AuctionOffer, ImageFloatBox>> AuctionFarmer::check_offers(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     AuctionFarmer_Descriptor::Stats& stats = env.current_stats<AuctionFarmer_Descriptor::Stats>();
 
-    pbf_wait(context, 2 * TICKS_PER_SECOND);
+    pbf_wait(context, 2000ms);
     context.wait_for_all_requests();
     
     VideoSnapshot screen = env.console.video().snapshot();
@@ -221,12 +221,12 @@ std::vector<std::pair<AuctionOffer, ImageFloatBox>> AuctionFarmer::check_offers(
     ImageFloatBox top_offer_box(0.05, 0.02, 0.90, 0.49);
     ImageFloatBox bottom_offer_box(0.05, 0.49, 0.90, 0.49);
     std::vector<ImageFloatBox> offer_boxes = {top_offer_box};
-    if (LANGUAGE == Language::Spanish || LANGUAGE == Language::ChineseTraditional) {
+    if (LANGUAGE == Language::Spanish || LANGUAGE == Language::ChineseTraditional){
         offer_boxes.emplace_back(bottom_offer_box);
     }
 
     for (ImagePixelBox dialog_box : dialog_boxes){
-        for (ImageFloatBox offer_box : offer_boxes) {
+        for (ImageFloatBox offer_box : offer_boxes){
             //        std::cout << "dialog_box: ["
             //                << dialog_box.min_x << "," << dialog_box.min_y << "] - ["
             //                << dialog_box.max_x << "," << dialog_box.max_y << "]" << std::endl;
@@ -264,9 +264,9 @@ std::vector<std::pair<AuctionOffer, ImageFloatBox>> AuctionFarmer::check_offers(
             );
 
             result.clear_beyond_log10p(LOG10P_THRESHOLD);
-            if (best_item.empty() && !result.results.empty()) {
+            if (best_item.empty() && !result.results.empty()){
                 auto iter = result.results.begin();
-                if (iter->first < LOG10P_THRESHOLD) {
+                if (iter->first < LOG10P_THRESHOLD){
                     best_item = iter->second.token;
 
                     AuctionOffer offer{ best_item };
@@ -299,10 +299,10 @@ void AuctionFarmer::move_to_auctioneer(SingleSwitchProgramEnvironment& env, ProC
     while (tries < 10){
         if (!ONE_NPC){
             move_dialog_to_center(env, context, offer);
-            pbf_move_left_joystick(context, 128, 0, 60, 10);
+            pbf_move_left_joystick(context, {0, +1}, 480ms, 80ms);
         }
 
-        pbf_press_button(context, BUTTON_A, 20, 100);
+        pbf_press_button(context, BUTTON_A, 160ms, 800ms);
         int ret = wait_until(env.console, context, Milliseconds(4000), { advance_detector });
 
         if (ret == 0){
@@ -328,7 +328,7 @@ void AuctionFarmer::move_dialog_to_center(SingleSwitchProgramEnvironment& env, P
         context.wait_for_all_requests();
         std::vector<std::pair<AuctionOffer, ImageFloatBox>> offers = check_offers(env, context);
 
-        for (std::pair<AuctionOffer, ImageFloatBox> offer : offers){
+        for (const std::pair<AuctionOffer, ImageFloatBox>& offer : offers){
             if (offer.first.item != wanted.item){
                 continue;
             }
@@ -343,12 +343,12 @@ void AuctionFarmer::move_dialog_to_center(SingleSwitchProgramEnvironment& env, P
                 break;
             }
 
-            uint8_t distance_x = (uint8_t)(center_x * 255);
-            uint8_t distance_y = (uint8_t)(center_y * 255);
-            env.console.log(std::to_string(distance_x));
-            env.console.log(std::to_string(distance_y));
+            double distance_x_float = center_x * 2 - 1;
+            double distance_y_float = center_y * 2 - 1;
+            env.console.log(std::to_string(distance_x_float));
+            env.console.log(std::to_string(distance_y_float));
 
-            pbf_move_right_joystick(context, distance_x, distance_y, 20, 20);
+            pbf_move_right_joystick(context, {distance_x_float, -distance_y_float}, 160ms, 160ms);
 
             break;
         }
@@ -370,7 +370,7 @@ void AuctionFarmer::reset_position(SingleSwitchProgramEnvironment& env, ProContr
     }
 
     // move backwards, TODO: check position(?) and orientation
-    pbf_move_left_joystick(context, 128, 255, 50, 20);
+    pbf_move_left_joystick(context, {0, -1}, 400ms, 160ms);
     return;
 }
 
@@ -432,7 +432,7 @@ uint64_t read_next_bid(VideoStream& stream, ProControllerContext& context, Langu
         ImageViewRGB32 raw_bid_image = extract_box_reference(screen, box);
         ImagePixelBox bid_bounding_box = ImageMatch::enclosing_rectangle_with_pixel_filter(
             raw_bid_image,
-            [](Color pixel) {
+            [](Color pixel){
                 return (uint32_t)pixel.red() + pixel.green() + pixel.blue() < 250;
             });
 
@@ -488,18 +488,18 @@ void AuctionFarmer::bid_on_item(SingleSwitchProgramEnvironment& env, ProControll
 
         switch (ret){
         case 0:
-            pbf_press_button(context, BUTTON_A, 20, TICKS_PER_SECOND);
+            pbf_press_button(context, BUTTON_A, 160ms, 1000ms);
             break;
         case 1:
             current_bid = read_next_bid(env.console, context, LANGUAGE, true);
-            pbf_press_button(context, BUTTON_A, 20, TICKS_PER_SECOND);
+            pbf_press_button(context, BUTTON_A, 160ms, 1000ms);
             break;
         case 2:
             current_bid = read_next_bid(env.console, context, LANGUAGE, false);
-            pbf_press_button(context, BUTTON_A, 20, TICKS_PER_SECOND);
+            pbf_press_button(context, BUTTON_A, 160ms, 1000ms);
             break;
         case 3:
-            pbf_press_button(context, BUTTON_A, 20, TICKS_PER_SECOND);
+            pbf_press_button(context, BUTTON_A, 160ms, 1000ms);
             break;
         case 4:
             auction_ongoing = false;
@@ -540,8 +540,9 @@ void AuctionFarmer::program(SingleSwitchProgramEnvironment& env, ProControllerCo
     AuctionFarmer_Descriptor::Stats& stats = env.current_stats<AuctionFarmer_Descriptor::Stats>();
 
     //  Connect the controller.
-    pbf_press_button(context, BUTTON_LCLICK, 10, 0);
-    pbf_wait(context, TICKS_PER_SECOND);
+    require_player(env.console, context, BUTTON_LCLICK);
+
+    pbf_wait(context, 1000ms);
     context.wait_for_all_requests();
 
     uint8_t year = MAX_YEAR;
@@ -558,7 +559,7 @@ void AuctionFarmer::program(SingleSwitchProgramEnvironment& env, ProControllerCo
         while (!good_offer){
             size_t npc_tries = 0;
             if (!ONE_NPC){
-                pbf_move_right_joystick(context, 128, 255, 2 * TICKS_PER_SECOND, 20);
+                pbf_move_right_joystick(context, {0, -1}, 2000ms, 160ms);
             }
 
             std::vector<std::pair<AuctionOffer, ImageFloatBox>> offers = check_offers(env, context);
@@ -601,7 +602,7 @@ void AuctionFarmer::program(SingleSwitchProgramEnvironment& env, ProControllerCo
             }
 
             env.update_stats();
-            pbf_wait(context, 125);
+            pbf_wait(context, 1000ms);
             context.wait_for_all_requests();
         }
     }

@@ -9,6 +9,7 @@
 #include "Controllers/ControllerTypes.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSwSh/PokemonSwSh_Settings.h"
 #include "PokemonSwSh/Commands/PokemonSwSh_Commands_DateSpam.h"
@@ -59,7 +60,8 @@ void StowOnSideFarmer::program(SingleSwitchProgramEnvironment& env, ProControlle
     if (START_LOCATION.start_in_grip_menu()){
         grip_menu_connect_go_home(context);
     }else{
-        pbf_press_button(context, BUTTON_B, 5, 5);
+        //  Connect the controller.
+        require_player(env.console, context, BUTTON_B);
         ssf_press_button(context, BUTTON_HOME, GameSettings::instance().GAME_TO_HOME_DELAY_FAST0, 160ms);
     }
 
@@ -69,14 +71,14 @@ void StowOnSideFarmer::program(SingleSwitchProgramEnvironment& env, ProControlle
         env.log("Fetch Attempts: " + tostr_u_commas(c));
         home_roll_date_enter_game_autorollback(env.console, context, year);
         if (context->performance_class() == ControllerPerformanceClass::SysbotBase){
-            pbf_wait(context, 90);
+            pbf_wait(context, 720ms);
         }else{
-            pbf_mash_button(context, BUTTON_B, 90);
+            pbf_mash_button(context, BUTTON_B, 720ms);
         }
 
         ssf_press_button_ptv(context, BUTTON_A, 160ms);
-        pbf_mash_button(context, BUTTON_ZL, 385);
-        pbf_mash_button(context, BUTTON_B, 700);
+        pbf_mash_button(context, BUTTON_ZL, 3080ms);
+        pbf_mash_button(context, BUTTON_B, 5600ms);
 
         if (SAVE_ITERATIONS0 != 0){
             save_count++;

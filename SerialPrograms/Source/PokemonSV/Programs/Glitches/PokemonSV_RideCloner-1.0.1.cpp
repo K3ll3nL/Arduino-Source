@@ -202,8 +202,8 @@ void RideCloner101::setup(const ProgramInfo& info, VideoStream& stream, ProContr
             if (in_party){
                 return;
             }
-//            pbf_press_button(context, BUTTON_PLUS, 20, 230);
-            pbf_press_button(context, BUTTON_X, 20, 105);
+//            pbf_press_button(context, BUTTON_PLUS, 160ms, 1840ms);
+            pbf_press_button(context, BUTTON_X, 160ms, 840ms);
             continue;
         case 1:
             stream.log("Detected main menu.");
@@ -211,16 +211,16 @@ void RideCloner101::setup(const ProgramInfo& info, VideoStream& stream, ProContr
                 //  If we detect both the dialog and the main menu, it means we
                 //  are selecting who in the party to replace with the ride legendary.
                 main_menu.move_cursor(info, stream, context, MenuSide::LEFT, 5, false);
-                pbf_press_button(context, BUTTON_A, 20, 105);
+                pbf_press_button(context, BUTTON_A, 160ms, 840ms);
                 in_party = true;
             }else{
                 //  Otherwise we try to move the ride legendary to the party.
                 if (main_menu.move_cursor(info, stream, context, MenuSide::LEFT, 6, false)){
                     //  Success, continue.
-                    pbf_press_button(context, BUTTON_A, 20, 105);
+                    pbf_press_button(context, BUTTON_A, 160ms, 840ms);
                 }else{
                     //  Failed. It's already in our party.
-                    pbf_press_button(context, BUTTON_B, 20, 105);
+                    pbf_press_button(context, BUTTON_B, 160ms, 840ms);
                     in_party = true;
                 }
             }
@@ -231,15 +231,15 @@ void RideCloner101::setup(const ProgramInfo& info, VideoStream& stream, ProContr
                 //  If we detect both the dialog and the main menu, it means we
                 //  are selecting who in the party to replace with the ride legendary.
                 main_menu.move_cursor(info, stream, context, MenuSide::LEFT, 5, false);
-                pbf_press_button(context, BUTTON_A, 20, 105);
+                pbf_press_button(context, BUTTON_A, 160ms, 840ms);
                 in_party = true;
             }else{
-                pbf_press_button(context, BUTTON_A, 20, 105);
+                pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             }
             continue;
         case 3:
             stream.log("Detected prompt.");
-            pbf_press_button(context, BUTTON_A, 20, 105);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             continue;
         default:
             dump_image_and_throw_recoverable_exception(info, stream, "RideCloneSetupFailed",
@@ -259,8 +259,8 @@ bool RideCloner101::run_post_win(
     if (FIX_TIME_ON_CATCH){
         go_home(console, context);
         home_to_date_time(console, context, false);
-        pbf_press_button(context, BUTTON_A, 20, 105);
-        pbf_press_button(context, BUTTON_A, 20, 105);
+        pbf_press_button(context, BUTTON_A, 160ms, 840ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 840ms);
         pbf_press_button(context, BUTTON_HOME, 160ms, ConsoleSettings::instance().SETTINGS_TO_HOME_DELAY0);
         resume_game_from_home(console, context);
     }
@@ -316,7 +316,7 @@ bool RideCloner101::run_post_win(
             console.log("Detected catch prompt.");
             screenshot = console.video().snapshot();
 
-            pbf_press_button(context, BUTTON_A, 20, 150);
+            pbf_press_button(context, BUTTON_A, 160ms, 1200ms);
             context.wait_for_all_requests();
 
             BattleBallReader reader(console, LANGUAGE);
@@ -331,25 +331,25 @@ bool RideCloner101::run_post_win(
             if (quantity < 0){
                 console.log("Unable to read ball quantity.", COLOR_RED);
             }
-            pbf_mash_button(context, BUTTON_A, 125);
+            pbf_mash_button(context, BUTTON_A, 1000ms);
 
             continue;
         }
         case 2:
             console.log("Detected dialog.");
-            pbf_press_button(context, BUTTON_B, 20, 105);
+            pbf_press_button(context, BUTTON_B, 160ms, 840ms);
             continue;
         case 3:
             console.log("Detected add-to-party prompt.");
             add_to_party_menu = true;
             if (result == TeraResult::NO_DETECTION){
-                pbf_press_dpad(context, DPAD_DOWN, 20, 60);
+                pbf_press_dpad(context, DPAD_DOWN, 160ms, 480ms);
             }
-            pbf_press_button(context, BUTTON_A, 20, 105);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             continue;
         case 4:
             console.log("Detected prompt.");
-            pbf_press_button(context, BUTTON_B, 20, 105);
+            pbf_press_button(context, BUTTON_B, 160ms, 840ms);
             if (add_to_party_menu){
                 success = true;
             }
@@ -359,8 +359,8 @@ bool RideCloner101::run_post_win(
             //  open. If so, fall-through to that.
             if (!summary.detect(console.video().snapshot())){
                 console.log("Detected possible (A) Next button.");
-                pbf_press_button(context, BUTTON_A, 20, 105);
-                pbf_press_button(context, BUTTON_B, 20, 105);
+                pbf_press_button(context, BUTTON_A, 160ms, 840ms);
+                pbf_press_button(context, BUTTON_B, 160ms, 840ms);
                 continue;
             }
             console.log("Detected false positive (A) Next button.", COLOR_RED);
@@ -376,7 +376,7 @@ bool RideCloner101::run_post_win(
                     &stats.m_shinies
                 );
             }
-            pbf_press_button(context, BUTTON_B, 20, 105);
+            pbf_press_button(context, BUTTON_B, 160ms, 840ms);
             continue;
         case 6:
             console.log("Detected party swap.");
@@ -384,7 +384,7 @@ bool RideCloner101::run_post_win(
             try{
                 if (main_menu.move_cursor(env.program_info(), console, context, MenuSide::LEFT, 5, false)){
                     ssf_press_button(context, BUTTON_A, A_TO_B_DELAY0, 160ms);
-                    pbf_press_button(context, BUTTON_B, 20, 230);
+                    pbf_press_button(context, BUTTON_B, 160ms, 1840ms);
                 }
             }catch (OperationFailedException& e){
                 e.send_notification(env, NOTIFICATION_ERROR_RECOVERABLE);
@@ -423,6 +423,9 @@ bool RideCloner101::run_post_win(
 void RideCloner101::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     StartProgramChecks::check_performance_class_wired_or_wireless(context);
     assert_16_9_720p_min(env.logger(), env.console);
+
+    //  Connect the controller.
+    require_player(env.console, context, BUTTON_LCLICK);
 
     RideCloner101_Descriptor::Stats& stats = env.current_stats<RideCloner101_Descriptor::Stats>();
 
@@ -478,8 +481,8 @@ void RideCloner101::program(SingleSwitchProgramEnvironment& env, ProControllerCo
 
                 //  Fix our position.
                 if (fix_position){
-                    pbf_move_left_joystick(context, 128, 255, 150, 0);
-                    pbf_move_left_joystick(context, 128, 0, 200, 0);
+                    pbf_move_left_joystick(context, {0, -1}, 1200ms, 0ms);
+                    pbf_move_left_joystick(context, {0, +1}, 1600ms, 0ms);
                 }
 
                 context.wait_for_all_requests();
@@ -491,8 +494,8 @@ void RideCloner101::program(SingleSwitchProgramEnvironment& env, ProControllerCo
                 }
             }
 
-            pbf_press_dpad(context, DPAD_DOWN, 10, 10);
-            pbf_mash_button(context, BUTTON_A, 250);
+            pbf_press_dpad(context, DPAD_DOWN, 80ms, 80ms);
+            pbf_mash_button(context, BUTTON_A, 2000ms);
 
             bool win = run_tera_battle(env, env.console, context, BATTLE_AI);
 
@@ -510,7 +513,7 @@ void RideCloner101::program(SingleSwitchProgramEnvironment& env, ProControllerCo
         if (run_post_win(env, env.console, context)){
             items++;
             stats.m_cloned++;
-            pbf_press_button(context, BUTTON_PLUS, 20, 230);
+            pbf_press_button(context, BUTTON_PLUS, 160ms, 1840ms);
         }else{
             stats.m_failed++;
         }

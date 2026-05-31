@@ -61,10 +61,10 @@ public:
 
 
 // start: At Glaseado Mountain Pokecenter
-// end: At Casseroya Watchtower 3
+// end: At Glaseado Mountain Pokecenter
 void checkpoint_64(SingleSwitchProgramEnvironment& env, ProControllerContext& context, EventNotificationOption& notif_status_update, AutoStoryStats& stats);
 
-// start: At Casseroya Watchtower 3
+// start: At Glaseado Mountain Pokecenter
 // end: Defeat Dondozo Titan phase 1.
 void checkpoint_65(SingleSwitchProgramEnvironment& env, ProControllerContext& context, EventNotificationOption& notif_status_update, AutoStoryStats& stats);
 
@@ -80,7 +80,7 @@ void checkpoint_67(SingleSwitchProgramEnvironment& env, ProControllerContext& co
 
 
 // moves player from Glaseado Mountain Pokecenter to Casseroya Watchtower 3
-void move_from_glaseado_mountain_to_casseroya_watchtower3(SingleSwitchProgramEnvironment& env, ProControllerContext& context);
+void move_from_glaseado_mountain_to_casseroya_watchtower3(SingleSwitchProgramEnvironment& env, ProControllerContext& context, size_t attempt_number);
 
 // moves player from Casseroya Watchtower 3 to Dondozo Titan. Defeat Dondozo Titan phase 1.
 void move_from_casseroya_watchtower3_to_dondozo_titan(SingleSwitchProgramEnvironment& env, ProControllerContext& context);

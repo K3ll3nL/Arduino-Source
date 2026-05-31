@@ -9,6 +9,7 @@
 
 #include <functional>
 #include "ML/Inference/ML_YOLOv5Detector.h"
+#include "ML/Inference/ML_YOLONavigation.h"
 #include "CommonFramework/Language.h"
 #include "CommonFramework/ImageTools/ImageBoxes.h"
 #include "CommonFramework/ProgramStats/StatsTracking.h"
@@ -20,6 +21,8 @@ namespace NintendoSwitch{
 namespace PokemonSV{
 
 using namespace ML;
+
+static constexpr bool ENABLE_TEST  = false;
 
 struct AutoStoryStats : public StatsTracker{
     AutoStoryStats()
@@ -44,6 +47,8 @@ enum class ClearDialogMode{
     STOP_WHITEBUTTON,
     STOP_TIMEOUT,
     STOP_BATTLE,
+    STOP_TUTORIAL,
+    STOP_BATTLE_DIALOG_ARROW,
 };
 
 
@@ -122,9 +127,11 @@ void clear_tutorial(VideoStream& stream, ProControllerContext& context, uint16_t
 // stop depending on ClearDialogMode: stop when detect overworld, or dialog prompt, or A button prompt. Or if times out
 // throw exception if times out, unless this is the intended stop condition.
 // also throw exception if dialog is never detected.
+// NOTE: seconds_timeout is rounded up to a multiple of 25, unless press_A is false or ClearDialogMode == STOP_TIMEOUT
 void clear_dialog(VideoStream& stream, ProControllerContext& context,
-    ClearDialogMode mode, uint16_t seconds_timeout = 60,
-    std::vector<CallbackEnum> optional_callbacks = {}
+    ClearDialogMode mode, uint16_t seconds_timeout = 75,
+    std::vector<CallbackEnum> optional_callbacks = {},
+    bool press_A = true
 );
 
 
@@ -153,7 +160,7 @@ void realign_player(
     const ProgramInfo& info,
     VideoStream& stream, ProControllerContext& context,
     PlayerRealignMode realign_mode,
-    uint8_t move_x = 0, uint8_t move_y = 0, uint16_t move_duration = 0
+    double move_x = 0, double move_y = 0, Milliseconds move_duration = Milliseconds(0)
 );
 
 
@@ -163,7 +170,7 @@ void realign_player(
 void overworld_navigation(const ProgramInfo& info, VideoStream& stream, ProControllerContext& context,
     NavigationStopCondition stop_condition,
     NavigationMovementMode movement_mode,
-    uint8_t x, uint8_t y,
+    double x, double y,
     uint16_t seconds_timeout = 60, uint16_t seconds_realign = 60,
     bool auto_heal = false,
     bool detect_wipeout = false
@@ -173,6 +180,12 @@ void config_option(ProControllerContext& context, int change_option_value);
 
 // enter menu and swap the first and third moves for your starter
 void swap_starter_moves(SingleSwitchProgramEnvironment& env, ProControllerContext& context, Language language);
+
+// confirm the moves for the Lead pokemon: Moonblast, Mystical Fire, Psychic, Misty Terrain
+// start and end in the overworld
+void confirm_lead_pokemon_moves(SingleSwitchProgramEnvironment& env, ProControllerContext& context, Language language);
+
+void confirm_minimap_unlocked(SingleSwitchProgramEnvironment& env, ProControllerContext& context);
 
 // run the given `action`. if detect a battle, stop the action, and throw exception
 void do_action_and_monitor_for_battles(
@@ -363,7 +376,8 @@ void checkpoint_reattempt_loop(
     ProControllerContext& context, 
     EventNotificationOption& notif_status_update,
     AutoStoryStats& stats,
-    std::function<void(size_t attempt_number)>&& action
+    std::function<void(size_t attempt_number)>&& action,
+    bool day_skip = true
 );
 
 void checkpoint_reattempt_loop_tutorial(
@@ -377,26 +391,18 @@ void checkpoint_reattempt_loop_tutorial(
 
 // walk forward forward_ticks. repeat this for num_rounds.
 // if detect battle, kill the Pokemon. then continue. If we run into a battle, this round is considered to be done and will not be repeated.
+// NOTE: mashing A and Let's go aren't compatible. you end up talking to your Let's go pokemon if you mash A.
 void move_player_forward(
     SingleSwitchProgramEnvironment& env, 
     ProControllerContext& context, 
     uint8_t num_rounds, 
     std::function<void()>&& recovery_action,
     bool use_lets_go = false,
-    uint16_t forward_ticks = 100, 
-    uint8_t y = 0, 
-    uint16_t delay_after_forward_move = 50, 
-    uint16_t delay_after_lets_go = 105
-);
-
-// get the box of the target object
-// return ImageFloatBox{-1, -1, -1, -1} if target object not found
-ImageFloatBox get_yolo_box(
-    SingleSwitchProgramEnvironment& env, 
-    ProControllerContext& context, 
-    VideoOverlaySet& overlays,
-    YOLOv5Detector& yolo_detector, 
-    const std::string& target_label
+    bool mash_A = false,
+    Milliseconds forward_duration = Milliseconds(800), 
+    double y = +1, 
+    Milliseconds delay_after_forward_move = Milliseconds(400), 
+    Milliseconds delay_after_lets_go = Milliseconds(840)
 );
 
 // move forward until detected object is a certain width and height on screen (min_size)
@@ -411,27 +417,28 @@ void move_forward_until_yolo_object_above_min_size(
     const std::string& target_label,
     double min_width, double min_height,
     std::function<void()>&& recovery_action, 
-    uint16_t forward_ticks = 100, 
-    uint8_t y = 0, 
-    uint16_t delay_after_forward_move = 50, 
-    uint16_t delay_after_lets_go = 105
+    Milliseconds forward_duration = Milliseconds(800), 
+    double y = +1, 
+    Milliseconds delay_after_forward_move = Milliseconds(400), 
+    Milliseconds delay_after_lets_go = Milliseconds(840)
 );
 
 // walk forward forward_ticks each time
 // walk until we find the target object.
 // if caught in battle, run recovery_action
 // throw exception if exceed max_rounds.
-void move_forward_until_yolo_object_detected(
+void move_player_until_yolo_object_detected(
     SingleSwitchProgramEnvironment& env, 
     ProControllerContext& context, 
     YOLOv5Detector& yolo_detector, 
     const std::string& target_label,
     std::function<void()>&& recovery_action, 
     uint16_t max_rounds, 
-    uint16_t forward_ticks = 100, 
-    uint8_t y = 0, 
-    uint16_t delay_after_forward_move = 50, 
-    uint16_t delay_after_lets_go = 105
+    Milliseconds forward_duration = Milliseconds(800),
+    double x = 0, 
+    double y = +1, 
+    Milliseconds delay_after_forward_move = Milliseconds(400), 
+    Milliseconds delay_after_lets_go = Milliseconds(840)
 );
 
 // walk forward forward_ticks each time
@@ -445,29 +452,12 @@ void move_forward_until_yolo_object_not_detected(
     const std::string& target_label,
     size_t times_not_seen_threshold,
     std::function<void()>&& recovery_action, 
-    uint16_t forward_ticks = 100, 
-    uint8_t y = 0, 
-    uint16_t delay_after_forward_move = 50, 
-    uint16_t delay_after_lets_go = 105
+    Milliseconds forward_duration = Milliseconds(800), 
+    double y = +1, 
+    Milliseconds delay_after_forward_move = Milliseconds(400), 
+    Milliseconds delay_after_lets_go = Milliseconds(840)
 );
 
-enum class CameraAxis{
-    X,
-    Y,
-};
-
-// move the camera along `axis` until the target object is aligned with target_line
-// if caught in battle, run recovery_action
-// throw exception if never detected yolo object
-void move_camera_yolo(
-    SingleSwitchProgramEnvironment& env, 
-    ProControllerContext& context, 
-    CameraAxis axis,
-    YOLOv5Detector& yolo_detector, 
-    const std::string& target_label,
-    double target_line,
-    std::function<void()>&& recovery_action
-);
 
 // move the player sideways until the target object is aligned with x_target
 // throw exception if never detected yolo object
@@ -499,11 +489,13 @@ void move_camera_until_yolo_object_detected(
     ProControllerContext& context, 
     YOLOv5Detector& yolo_detector, 
     const std::string& target_label,
-    uint8_t initial_x_move, 
-    uint16_t initial_hold_ticks, 
+    double initial_x_move,
+    Milliseconds initial_hold,
     uint16_t max_rounds = 50
 );
 
+
+void confirm_titan_battle(SingleSwitchProgramEnvironment& env, ProControllerContext& context);
 
 }
 }

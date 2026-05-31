@@ -8,28 +8,20 @@
 #define PokemonAutomation_Controllers_Controller_H
 
 #include "Common/Compiler.h"
-#include "Common/Cpp/AbstractLogger.h"
+#include "Common/Cpp/Logging/AbstractLogger.h"
 #include "Common/Cpp/Time.h"
-#include "Controllers/KeyboardInput/KeyboardEventHandler.h"
+#include "Common/Cpp/Containers/Pimpl.h"
 #include "Common/Cpp/CancellableScope.h"
-
-class QKeyEvent;
 
 namespace PokemonAutomation{
 
 class RecursiveThrottler;
+enum class ControllerInputType;
+class ControllerInputState;
+class ControllerState;
 enum class ControllerType;
 enum class ControllerPerformanceClass;
 enum class ControllerClass;
-
-
-
-inline Milliseconds round_up_to_ticksize(Milliseconds ticksize, Milliseconds duration){
-    if (ticksize == Milliseconds::zero()){
-        return duration;
-    }
-    return (duration + ticksize - Milliseconds(1)) / ticksize * ticksize;
-}
 
 
 
@@ -38,7 +30,8 @@ class AbstractController{
 public:
     static const char NAME[];
 
-    virtual ~AbstractController() = default;
+    AbstractController();
+    virtual ~AbstractController();
 
     virtual Logger& logger() = 0;
     virtual RecursiveThrottler& logging_throttler() = 0;
@@ -65,8 +58,9 @@ public:
     //  Static Information
 
     virtual const char* name() = 0;
-    virtual ControllerType controller_type() const = 0;
     virtual ControllerClass controller_class() const = 0;
+
+    //  Performance Metrics
     virtual ControllerPerformanceClass performance_class() const = 0;
 
     //  If the controller is polled at a fixed interval, this is that interval.
@@ -188,27 +182,35 @@ public:
     //  empty out rather than entering itself into the queue.
     //  If a cancellation happens inside this function, it will immediately
     //  throw an OperationCancelledException.
-    virtual void wait_for_all(const Cancellable* cancellable) = 0;
+    virtual void wait_for_all(Cancellable* cancellable) = 0;
 
     //  Tell the scheduler to wait for all pending commands to finish
     //  (including cooldowns) before executing further instructions.
     //  This is used to prevent hanging commands from overlapping with new
     //  commands issued after this barrier.
-    virtual void issue_barrier(const Cancellable* cancellable) = 0;
+    virtual void issue_barrier(Cancellable* cancellable) = 0;
 
     //  Do nothing for this much time.
-    virtual void issue_nop(const Cancellable* cancellable, Milliseconds duration) = 0;
+    virtual void issue_nop(Cancellable* cancellable, Milliseconds duration) = 0;
 
 
 public:
-    //  Keyboard Controls
+    //  Controller Input
 
-    virtual void keyboard_release_all(){}
-    virtual void keyboard_press(const QKeyEvent& event){}
-    virtual void keyboard_release(const QKeyEvent& event){}
+    virtual void run_controller_input(const ControllerInputState& state){}
 
-    virtual void add_keyboard_listener(KeyboardEventHandler::KeyboardListener& keyboard_listener){};
-    virtual void remove_keyboard_listener(KeyboardEventHandler::KeyboardListener& keyboard_listener){};
+    struct InputSniffer{
+        virtual void on_command_input(WallClock timestamp, const ControllerState& state) = 0;
+    };
+    void add_input_sniffer(InputSniffer& listener);
+    void remove_input_sniffer(InputSniffer& listener);
+protected:
+    void on_command_input(WallClock timestamp, const ControllerState& state);
+
+
+private:
+    struct Data;
+    Pimpl<Data> m_data;
 };
 
 
@@ -256,7 +258,7 @@ public:
 
 
 public:
-    void wait_for_all_requests() const{
+    void wait_for_all_requests(){
         auto scope = m_lifetime_sanitizer.check_scope();
         m_controller.wait_for_all(this);
     }
@@ -302,7 +304,7 @@ private:
 
 using AbstractControllerContext = ControllerContext<AbstractController>;
 
-using AbstractControllerContext = ControllerContext<AbstractController>;
+
 
 
 

@@ -14,6 +14,7 @@
 #include "Common/Cpp/Options/DateOption.h"
 #include "Common/Cpp/Options/TimeDurationOption.h"
 #include "Common/Cpp/Options/BoxFloatOption.h"
+#include "Common/Cpp/Options/FloatingPointOption.h"
 #include "CommonFramework/Notifications/EventNotificationsTable.h"
 #include "CommonFramework/ProgramStats/StatsTracking.h"
 #include "CommonTools/Options/LanguageOCROption.h"
@@ -26,6 +27,8 @@
 #include "Common/Cpp/Options/ColorOption.h"
 #include "NintendoSwitch/Controllers/NintendoSwitch_ControllerSettings.h"
 #include "NintendoSwitch/Options/NintendoSwitch_ModelType.h"
+#include "Common/Cpp/Options/CheckboxDropdownOption.h"
+#include "Controllers/ControllerStateTable.h"
 
 namespace PokemonAutomation{
 namespace NintendoSwitch{
@@ -64,6 +67,11 @@ private:
         std::atomic<uint64_t>& m_resets;
     };
 
+    virtual void start_program_border_check(
+        VideoStream& stream, size_t console_index,
+        FeedbackType feedback_type
+    ) override{}
+
 private:
     ButtonCell BUTTON0;
     ButtonOption BUTTON1;
@@ -71,9 +79,14 @@ private:
     OCR::LanguageOCROption LANGUAGE;
 
     StringOption IMAGE_PATH;
+    FloatingPointOption FLOAT;
 
     StaticTextOption STATIC_TEXT;
     BoxFloatOption BOX;
+
+    CheckboxDropdownCell<Button> BUTTONS;
+    EnumDropdownCell<DpadPosition> DPAD;
+    ControllerCommandTables COMMANDS;
 
 
 //    PokemonSV::SinglesAIOption battle_AI;

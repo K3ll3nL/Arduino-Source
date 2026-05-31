@@ -42,31 +42,49 @@ SerialPABotBase_Controller::SerialPABotBase_Controller(
 }
 
 
+void SerialPABotBase_Controller::stop_with_error(std::string error_message) noexcept{
+    try{
+        WriteSpinLock lg(m_error_lock);
+        m_error_string = error_message;
+    }catch (...){}
+    m_serial->stop(std::move(error_message));
+}
 
+bool SerialPABotBase_Controller::is_ready() const{
+    return m_serial
+        && m_serial->state() == BotBaseController::State::RUNNING
+        && m_handle.is_ready();
+}
+std::string SerialPABotBase_Controller::error_string() const{
+    ReadSpinLock lg(m_error_lock);
+    return m_error_string;
+}
 
 void SerialPABotBase_Controller::cancel_all_commands(){
-    std::lock_guard<std::mutex> lg(m_state_lock);
+    std::lock_guard<Mutex> lg(m_state_lock);
     if (!is_ready()){
         throw InvalidConnectionStateException(error_string());
     }
     m_serial->stop_all_commands();
     m_scheduler.clear_on_next();
+    m_logger.log("cancel_all_commands()", COLOR_DARKGREEN);
 }
 void SerialPABotBase_Controller::replace_on_next_command(){
-    std::lock_guard<std::mutex> lg(m_state_lock);
+    std::lock_guard<Mutex> lg(m_state_lock);
     if (!is_ready()){
         throw InvalidConnectionStateException(error_string());
     }
     m_serial->next_command_interrupt();
     m_scheduler.clear_on_next();
+    m_logger.log("replace_on_next_command()", COLOR_DARKGREEN);
 }
 
 
-void SerialPABotBase_Controller::wait_for_all(const Cancellable* cancellable){
+void SerialPABotBase_Controller::wait_for_all(Cancellable* cancellable){
     SuperscalarScheduler::Schedule schedule;
-    std::lock_guard<std::mutex> lg0(m_issue_lock);
+    std::lock_guard<Mutex> lg0(m_issue_lock);
     {
-        std::lock_guard<std::mutex> lg1(m_state_lock);
+        std::lock_guard<Mutex> lg1(m_state_lock);
 
         ThrottleScope scope(m_logging_throttler);
         if (scope){

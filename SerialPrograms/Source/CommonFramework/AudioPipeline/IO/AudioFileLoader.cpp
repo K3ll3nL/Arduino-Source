@@ -13,6 +13,7 @@
 #include <QEventLoop>
 #include "3rdParty/QtWavFile/WavFile.h"
 #include "Common/Qt/StringToolsQt.h"
+#include "Common/Qt/GlobalThreadPoolsQt.h"
 #include "CommonFramework/AudioPipeline/Tools/AudioFormatUtils.h"
 #include "AudioFileLoader.h"
 
@@ -23,7 +24,11 @@
 
 namespace PokemonAutomation{
 
-AudioFileLoader::AudioFileLoader(QObject* parent, const std::string& filename, const QAudioFormat& audioFormat):
+AudioFileLoader::AudioFileLoader(
+    QObject* parent,
+    const std::string& filename,
+    const QAudioFormat& audioFormat
+):
     QObject(parent), m_filename(filename), m_audioFormat(audioFormat) {}
 
 AudioFileLoader::~AudioFileLoader(){
@@ -31,13 +36,14 @@ AudioFileLoader::~AudioFileLoader(){
         m_audioDecoderWorker->stop();
     }
 
-    m_audioDecoderThread.quit();
-    m_audioDecoderThread.wait();
+    GlobalThreadPools::qt_event_threadpool().remove_object(m_audioDecoderWorker);
+//    m_audioDecoderThread.quit();
+//    m_audioDecoderThread.wait();
 
-    if (m_audioDecoderWorker){
-        delete m_audioDecoderWorker;
+//    if (m_audioDecoderWorker){
+//        delete m_audioDecoderWorker;
         m_audioDecoderWorker = nullptr;
-    }
+//    }
 
     if (m_wavFile){
         m_wavFile->close();
@@ -71,7 +77,11 @@ bool AudioFileLoader::start(){
     }
 
     // Use QAudioDecoder to decode compressed audio file:
-    m_audioDecoderWorker = new AudioDecoderWorker(this, m_filename, m_audioFormat, m_rawBuffer);
+    m_audioDecoderWorker = static_cast<AudioDecoderWorker*>(
+        GlobalThreadPools::qt_event_threadpool().add_object([this]{
+            return std::make_unique<AudioDecoderWorker>(nullptr, m_filename, m_audioFormat, m_rawBuffer);
+        })
+    );
 
     // When the decoder finishes decoding the entire file, launch a timer to send decoded audio
     // frames to outside at desired frame rate.
@@ -84,7 +94,7 @@ bool AudioFileLoader::start(){
         connect(m_timer, &QTimer::timeout, this, &AudioFileLoader::sendDecodedBufferOnTimer);
     });
 
-    m_audioDecoderWorker->start();
+    emit m_audioDecoderWorker->start();
 
     return m_audioDecoderWorker->startSucceeded();
 }
@@ -112,11 +122,16 @@ std::tuple<const char*, size_t> AudioFileLoader::loadFullAudio(){
     }
 
     // Use QAudioDecoder to decode compressed audio file:
-    m_audioDecoderWorker = new AudioDecoderWorker(nullptr, m_filename, m_audioFormat, m_rawBuffer);
-    m_audioDecoderWorker->moveToThread(&m_audioDecoderThread);
+    m_audioDecoderWorker = static_cast<AudioDecoderWorker*>(
+        GlobalThreadPools::qt_event_threadpool().add_object([this]{
+            return std::make_unique<AudioDecoderWorker>(nullptr, m_filename, m_audioFormat, m_rawBuffer);
+        })
+    );
+//    m_audioDecoderWorker = new AudioDecoderWorker(nullptr, m_filename, m_audioFormat, m_rawBuffer);
+//    m_audioDecoderWorker->moveToThread(&m_audioDecoderThread);
 
     connect(this, &AudioFileLoader::runAudioDecoderAsync, m_audioDecoderWorker, &AudioDecoderWorker::start);
-    connect(&m_audioDecoderThread, &QThread::finished, m_audioDecoderWorker, &QObject::deleteLater);
+//    connect(&m_audioDecoderThread, &QThread::finished, m_audioDecoderWorker, &QObject::deleteLater);
 
     QEventLoop loop;
     connect(m_audioDecoderWorker, &AudioDecoderWorker::errored, &loop, &QEventLoop::quit);
@@ -126,14 +141,15 @@ std::tuple<const char*, size_t> AudioFileLoader::loadFullAudio(){
     // So we don't hold the pointer m_audioDecoderWorker anymore.
     m_audioDecoderWorker = nullptr;
 
-    m_audioDecoderThread.start();
+//    m_audioDecoderThread.start();
     emit runAudioDecoderAsync();
 
     // Block the current thread until the m_audioDecoderWorker errored or finished.
     loop.exec();
     
-    m_audioDecoderThread.quit();
-    m_audioDecoderThread.wait();
+//    m_audioDecoderThread.quit();
+//    m_audioDecoderThread.wait();
+    GlobalThreadPools::qt_event_threadpool().remove_object(m_audioDecoderWorker);
     return std::make_tuple<const char*, size_t>(m_rawBuffer.data(), m_rawBuffer.size());
 }
 
@@ -145,7 +161,7 @@ bool AudioFileLoader::initWavFile(){
         return false;
     }
 
-    std::cout << "Wav file audio format: " << dumpAudioFormat(m_wavFile->audioFormat());
+    std::cout << "Wav file audio format: " << dump_audio_format(m_wavFile->audioFormat());
 
     if (m_audioFormat.sampleRate() != m_wavFile->audioFormat().sampleRate()){
         std::cout << "Error: WavFile sample rate " << m_wavFile->audioFormat().sampleRate() <<
@@ -222,7 +238,7 @@ std::pair<const char*, size_t> AudioFileLoader::convertRawWavSamples(){
     // m_floatBuffer holds the converted float-type samples
     // TODO: design a general format conversion method
     m_floatBuffer.resize(samplesRead);
-    convertSamplesToFloat(wavAudioFormat, m_rawBuffer.data(), wavBytesRead, m_floatBuffer.data());
+    convert_samples_to_float(wavAudioFormat, m_rawBuffer.data(), wavBytesRead, m_floatBuffer.data());
     
     if (m_audioFormat.channelCount() == wavAudioFormat.channelCount()){
         return {
@@ -234,7 +250,7 @@ std::pair<const char*, size_t> AudioFileLoader::convertRawWavSamples(){
     if(m_audioFormat.channelCount() == 1){
         // Input wav file has stereo or more channels, but output format is mono,
         // average L and R channel samples per frame:
-        for(size_t i = 0; i < framesRead; i++){
+        for (size_t i = 0; i < framesRead; i++){
             m_floatBuffer[i] = (m_floatBuffer[2*i] + m_floatBuffer[2*i+1]) / 2.0f;
         }
         return {reinterpret_cast<const char*>(m_floatBuffer.data()), framesRead * sizeof(float)};
@@ -244,9 +260,9 @@ std::pair<const char*, size_t> AudioFileLoader::convertRawWavSamples(){
         // Input wav is mono but output format is stereo,
         // Duplicate samples for each channel:
         m_floatBuffer.resize(samplesRead * m_audioFormat.channelCount());
-        for(size_t i = samplesRead; i-- > 0;){
+        for (size_t i = samplesRead; i-- > 0;){
             const float v = m_floatBuffer[i];
-            for(int j = m_audioFormat.channelCount()-1; j >= 0; j--){
+            for (int j = m_audioFormat.channelCount()-1; j >= 0; j--){
                 m_floatBuffer[m_audioFormat.channelCount()*i+j] = v;
             }
         }
@@ -257,8 +273,8 @@ std::pair<const char*, size_t> AudioFileLoader::convertRawWavSamples(){
     }
     
     std::cout << "Error format conversion" << std::endl;
-    std::cout << "Wav file format: " << dumpAudioFormat(wavAudioFormat);
-    std::cout << "Audio format to convert to: " << dumpAudioFormat(m_audioFormat);
+    std::cout << "Wav file format: " << dump_audio_format(wavAudioFormat);
+    std::cout << "Audio format to convert to: " << dump_audio_format(m_audioFormat);
     return {reinterpret_cast<const char*>(m_floatBuffer.data()), 0};
 }
 
@@ -272,7 +288,7 @@ AudioDecoderWorker::AudioDecoderWorker(
     QObject(parent), m_filename(filename), m_audioFormat(audioFormat), m_decodedBuffer(decodedBuffer){}
 
 
-void AudioDecoderWorker::start(){
+void AudioDecoderWorker::internal_start(){
     m_audioDecoder = new QAudioDecoder(this);
 
 #if 0
@@ -337,7 +353,7 @@ AudioDecoderWorker::~AudioDecoderWorker(){
     stop();
 }
 
-void AudioDecoderWorker::stop(){
+void AudioDecoderWorker::internal_stop(){
     if (m_audioDecoder){
         m_audioDecoder->stop();
     }

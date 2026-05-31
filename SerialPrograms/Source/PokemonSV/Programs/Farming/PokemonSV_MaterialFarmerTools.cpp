@@ -10,6 +10,7 @@
 #include "CommonFramework/GlobalSettingsPanel.h"
 #include "CommonFramework/Exceptions/ProgramFinishedException.h"
 #include "CommonFramework/Exceptions/OperationFailedException.h"
+#include "CommonFramework/Exceptions/UnexpectedBattleException.h"
 #include "CommonFramework/Exceptions/FatalProgramException.h"
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonTools/Async/InferenceRoutines.h"
@@ -26,6 +27,7 @@
 #include "PokemonSV/Programs/Battles/PokemonSV_Battles.h"
 #include "PokemonSV/Programs/Sandwiches/PokemonSV_SandwichRoutines.h"
 #include "PokemonSV/Programs/ShinyHunting/PokemonSV_LetsGoTools.h"
+#include "PokemonSV/Programs/AutoStory/PokemonSV_AutoStoryTools.h"
 #include "PokemonSV_MaterialFarmerTools.h"
 
 // #include <iostream>
@@ -301,7 +303,7 @@ void run_material_farmer(
 
         if (options.SAVE_DEBUG_VIDEO){
             // Take a video to give more context for debugging
-            pbf_press_button(context, BUTTON_CAPTURE, 2 * TICKS_PER_SECOND, 2 * TICKS_PER_SECOND);
+            pbf_press_button(context, BUTTON_CAPTURE, 2000ms, 2000ms);
             context.wait_for_all_requests();
         }
 
@@ -370,20 +372,20 @@ WallClock make_sandwich_material_farm(
                 // Orient camera to look at same direction as player character
                 // - This is needed because when save-load the game, 
                 // the camera angle is different than when just flying to pokecenter
-                pbf_press_button(context, BUTTON_L, 50, 40);
+                pbf_press_button(context, BUTTON_L, 400ms, 320ms);
 
-                // move up towards pokecenter counter        
-                pbf_move_left_joystick(context, 128, 255, 180, 10);
+                // move up towards pokecenter counter
+                pbf_move_left_joystick(context, {0, -1}, 1440ms, 80ms);
                 // Orient camera to look at same direction as player character
-                pbf_press_button(context, BUTTON_L, 50, 40);
+                pbf_press_button(context, BUTTON_L, 400ms, 320ms);
                 // look left
-                pbf_move_right_joystick(context, 0, 128, 120, 0);
+                pbf_move_right_joystick(context, {-1, 0}, 960ms, 0ms);
                 // move toward clearing besides the pokecenter
-                pbf_move_left_joystick(context, 128, 0, 300, 0);
+                pbf_move_left_joystick(context, {0, +1}, 2400ms, 0ms);
 
                 // make sandwich
                 picnic_from_overworld(env.program_info(), stream, context);
-                pbf_move_left_joystick(context, 128, 0, 100, 40);  // walk forward to picnic table
+                pbf_move_left_joystick(context, {0, +1}, 800ms, 320ms);  // walk forward to picnic table
                 enter_sandwich_recipe_list(env.program_info(), stream, context);
                 make_sandwich_option(env, stream, context, options.SANDWICH_OPTIONS);
                 last_sandwich_time = current_time();
@@ -418,48 +420,75 @@ void move_to_start_position_for_letsgo0(
     // Orient camera to look at same direction as player character
     // - This is needed because when save-load the game, 
     // the camera angle is different than when just flying to pokecenter
-    pbf_press_button(context, BUTTON_L, 50, 40);
+    pbf_press_button(context, BUTTON_L, 400ms, 320ms);
 
     // move up towards pokecenter counter        
-    pbf_move_left_joystick(context, 128, 255, 180, 10);
+    pbf_move_left_joystick(context, {0, -1}, 1440ms, 80ms);
     // Orient camera to look at same direction as player character
-    pbf_press_button(context, BUTTON_L, 50, 40);
+    pbf_press_button(context, BUTTON_L, 400ms, 320ms);
     // look left
-    pbf_move_right_joystick(context, 0, 128, 120, 10);
+    pbf_move_right_joystick(context, {-1, 0}, 960ms, 80ms);
     // move toward clearing besides the pokecenter
-    pbf_move_left_joystick(context, 128, 0, 300, 10);
+    pbf_move_left_joystick(context, {0, +1}, 2400ms, 80ms);
 
     // look right, towards the start position
-    pbf_move_right_joystick(context, 255, 128, 120, 10);
-    pbf_move_left_joystick(context, 128, 0, 10, 10);
+    pbf_move_right_joystick(context, {+1, 0}, 960ms, 80ms);
+    pbf_move_left_joystick(context, {0, +1}, 80ms, 80ms);
 
     // get on ride
-    pbf_press_button(context, BUTTON_PLUS, 50, 50);
+    pbf_press_button(context, BUTTON_PLUS, 400ms, 400ms);
 
     // Jump
-    pbf_press_button(context, BUTTON_B, 125, 100);
+    pbf_press_button(context, BUTTON_B, 1000ms, 800ms);
 
     // Fly 
-    pbf_press_button(context, BUTTON_B, 50, 10); //  Double up this press 
-    pbf_press_button(context, BUTTON_B, 50, 10);     //  in case one is dropped.
-    pbf_press_button(context, BUTTON_LCLICK, 50, 0);
+    pbf_press_button(context, BUTTON_B, 400ms, 80ms); //  Double up this press
+    pbf_press_button(context, BUTTON_B, 400ms, 80ms);     //  in case one is dropped.
+    pbf_press_button(context, BUTTON_LCLICK, 400ms, 0ms);
     // you automatically move forward without pressing any buttons. so just wait
-    pbf_wait(context, 1400);
+    pbf_wait(context, 11200ms);
 
     // Glide forward
-    // pbf_move_left_joystick(context, 128, 0, 2500, 10);
+    // pbf_move_left_joystick(context, {0, +1}, 20000ms, 80ms);
 
     // arrived at start position. stop flying
-    pbf_press_button(context, BUTTON_B, 50, 400);
+    pbf_press_button(context, BUTTON_B, 400ms, 3200ms);
     // get off ride
-    pbf_press_button(context, BUTTON_PLUS, 50, 50);
+    pbf_press_button(context, BUTTON_PLUS, 400ms, 400ms);
 
     // look right
-    pbf_move_right_joystick(context, 255, 128, 30, 10);
-    pbf_move_left_joystick(context, 128, 0, 50, 10);
+    pbf_move_right_joystick(context, {+1, 0}, 240ms, 80ms);
+    pbf_move_left_joystick(context, {0, +1}, 400ms, 80ms);
 
     stream.log("Arrived at Let's go start position", COLOR_PURPLE);
     
+
+}
+
+void do_action_and_run_from_battle(
+    const ProgramInfo& info, 
+    VideoStream& stream,
+    ProControllerContext& context,
+    std::function<
+        void(const ProgramInfo& info, 
+        VideoStream& stream,
+        ProControllerContext& context)
+    >&& action
+){
+    size_t max_attempts = 5;
+    for (size_t i = 0; i < max_attempts; i++){
+        try{
+            do_action_and_monitor_for_battles_early(info, stream, context,
+                [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
+                    action(info, stream, context);
+                }
+            );
+            break;
+        }catch (UnexpectedBattleException&){
+            stream.log("Detected battle. Now running away.", COLOR_PURPLE);
+            run_from_battle(stream, context);
+        }
+    }
 
 }
 
@@ -472,55 +501,76 @@ void move_to_start_position_for_letsgo1(
     // Orient camera to look at same direction as player character
     // - This is needed because when save-load the game, 
     // the camera angle is different than when just flying to pokecenter
-    pbf_press_button(context, BUTTON_L, 50, 40);
+    pbf_press_button(context, BUTTON_L, 400ms, 320ms);
 
     // move up towards pokecenter counter        
-    pbf_move_left_joystick(context, 128, 255, 180, 10);
+    pbf_move_left_joystick(context, {0, -1}, 1440ms, 80ms);
     // Orient camera to look at same direction as player character
-    pbf_press_button(context, BUTTON_L, 50, 40);
+    pbf_press_button(context, BUTTON_L, 400ms, 320ms);
     // look left
-    pbf_move_right_joystick(context, 0, 128, 120, 10);
+    pbf_move_right_joystick(context, {-1, 0}, 960ms, 80ms);
     // move toward clearing besides the pokecenter
-    pbf_move_left_joystick(context, 128, 0, 300, 10);
+    pbf_move_left_joystick(context, {0, +1}, 2400ms, 80ms);
 
-    // look right, towards the start position
+    // look right, towards the start position. handle unexpected battles
     DirectionDetector direction;
-    direction.change_direction(info, stream, context, 5.76);
-    // pbf_move_right_joystick(context, 255, 128, 130, 10);
-    pbf_move_left_joystick(context, 128, 0, 10, 10);
+    do_action_and_run_from_battle(
+        info, stream, context,
+        [&](const ProgramInfo& info, VideoStream& stream,ProControllerContext& context){
+            try{
+                direction.change_direction(info, stream, context, 5.76);
+            }catch (OperationFailedException&){
+                context.wait_for(Seconds(5));
+            }
+        }
+    );
+
+    
+
+    // pbf_move_right_joystick(context, {+1, 0}, 1040ms, 80ms);
+    pbf_move_left_joystick(context, {0, +1}, 80ms, 80ms);
 
     // get on ride
-    pbf_press_button(context, BUTTON_PLUS, 50, 50);
+    pbf_press_button(context, BUTTON_PLUS, 400ms, 400ms);
 
     // Jump
-    pbf_press_button(context, BUTTON_B, 125, 30);
+    pbf_press_button(context, BUTTON_B, 1000ms, 240ms);
 
     // Fly 
-    pbf_press_button(context, BUTTON_B, 50, 10);
-    pbf_press_button(context, BUTTON_B, 50, 50); // Double click in case of drop
-    pbf_press_button(context, BUTTON_LCLICK, 50, 0);
+    pbf_press_button(context, BUTTON_B, 400ms, 80ms);
+    pbf_press_button(context, BUTTON_B, 400ms, 400ms); // Double click in case of drop
+    pbf_press_button(context, BUTTON_LCLICK, 400ms, 0ms);
 
     // you automatically move forward  when flying without pressing any buttons. 
     // so, just wait.
-    pbf_wait(context, 2200);
+    pbf_wait(context, 17600ms);
 
     // arrived at start position. stop flying
-    pbf_press_button(context, BUTTON_B, 50, 400);
+    pbf_press_button(context, BUTTON_B, 400ms, 3200ms);
     // get off ride
-    pbf_press_button(context, BUTTON_PLUS, 50, 50);
+    pbf_press_button(context, BUTTON_PLUS, 400ms, 400ms);
 
     // extra B presses to ensure we stop flying, in case the previous B press
     // was dropped. This way, you eventually reset back to Pokecenter, instead
     // of flying until an exception is thrown.
-    pbf_press_button(context, BUTTON_B, 50, 10);
-    pbf_press_button(context, BUTTON_B, 50, 10);
+    pbf_press_button(context, BUTTON_B, 400ms, 80ms);
+    pbf_press_button(context, BUTTON_B, 400ms, 80ms);
 
-    // look right
-    // pbf_move_right_joystick(context, 255, 128, 20, 10);
-    direction.change_direction(info, stream, context, 5.3);
+    // look right. handle unexpected battles
+    // pbf_move_right_joystick(context, {+1, 0}, 160ms, 80ms);
+    do_action_and_run_from_battle(
+        info, stream, context,
+        [&](const ProgramInfo& info, VideoStream& stream,ProControllerContext& context){
+            try{
+                direction.change_direction(info, stream, context, 5.3);
+            }catch (OperationFailedException&){
+                context.wait_for(Seconds(5));
+            }
+        }
+    );
 
     // move forward slightly
-    pbf_move_left_joystick(context, 128, 0, 50, 10);
+    pbf_move_left_joystick(context, {0, +1}, 400ms, 80ms);
 
     stream.log("Arrived at Let's go start position", COLOR_PURPLE);
 }
@@ -528,15 +578,15 @@ void move_to_start_position_for_letsgo1(
 
 // wait, then move forward quickly
 void lets_go_movement0(ProControllerContext& context){
-    pbf_wait(context, 500);
-    pbf_move_left_joystick(context, 128, 0, 200, 10);
+    pbf_wait(context, 4000ms);
+    pbf_move_left_joystick(context, {0, +1}, 1600ms, 80ms);
 }
 
 // wait, then move forward quickly, then wait some more.
 void lets_go_movement1(ProControllerContext& context){
-    pbf_wait(context, 500);
-    pbf_move_left_joystick(context, 128, 0, 100, 10);
-    pbf_wait(context, 100);
+    pbf_wait(context, 4000ms);
+    pbf_move_left_joystick(context, {0, +1}, 800ms, 80ms);
+    pbf_wait(context, 800ms);
 }
 
 
@@ -556,16 +606,16 @@ void run_lets_go_iteration(
     // - This is needed because when save-load the game, the camera points
     // in the same direction as the player.
     // - But when warping to pokecenter, the camera is facing the player.
-    pbf_press_button(context, BUTTON_L, 50, 40);
+    pbf_press_button(context, BUTTON_L, 400ms, 320ms);
 
     // zoom out camera
-    pbf_move_right_joystick(context, 128, 255, 45, 10);
+    pbf_move_right_joystick(context, {0, -1}, 360ms, 80ms);
 
     const bool throw_ball_if_bubble = false;
     const int total_iterations = num_forward_moves_per_lets_go_iteration;
 
     context.wait_for_all_requests();
-    for(int i = 0; i < total_iterations; i++){
+    for (int i = 0; i < total_iterations; i++){
         use_lets_go_to_clear_in_front(stream, context, encounter_tracker, throw_ball_if_bubble, [&](ProControllerContext& context){
             // Do the following movement while the Let's Go pokemon clearing wild pokemon.
             stream.log("Move-forward iteration number: " + std::to_string(i + 1) + "/" + std::to_string(total_iterations), COLOR_PURPLE);
@@ -655,25 +705,29 @@ void fly_from_paldea_to_blueberry_entrance(const ProgramInfo& info, VideoStream&
     // the push magnitude can range from 69 to 85 (range of 16). 
     // On each failure, try increasing/decreasing the push by 1/4 of the max range,
     // then 1/2 of the range, then the full range, then back to re-attempts with no adjustment
-    const std::array<int, maxAttempts + 1> adjustment_table =  {0, 0, 0, 4, -4, 8, -8, 16, -16, 0, 0, 0};
+    const std::array<Milliseconds, maxAttempts + 1> adjustment_table = {
+        0ms, 0ms, 0ms, 32ms, -32ms, 64ms, -64ms, 128ms, -128ms, 0ms, 0ms, 0ms
+    };
     while (!isFlySuccessful && numAttempts < maxAttempts){
         // close all menus
-        pbf_mash_button(context, BUTTON_B, 100);
+        pbf_mash_button(context, BUTTON_B, 800ms);
 
         numAttempts++;
 
         open_map_from_overworld(info, stream, context);
 
         // change from Paldea map to Blueberry map
-        pbf_press_button(context, BUTTON_L, 50, 300);
+        pbf_press_button(context, BUTTON_L, 400ms, 2400ms);
 
         // move cursor to bottom right corner
-        pbf_move_left_joystick(context, 255, 255, TICKS_PER_SECOND*5, 50);
+        pbf_move_left_joystick(context, {+1, -1}, 5000ms, 400ms);
 
         // move cursor to Blueberry academy fast travel point (up-left)
         // try different magnitudes of cursor push with each failure.
-        int push_magnitude = 105 + adjustment_table[numAttempts];
-        pbf_move_left_joystick(context, 64, 64, (uint16_t)push_magnitude, 50);
+//        int push_magnitude_ticks = 105 + adjustment_table[numAttempts];
+//        Milliseconds push_magnitude = push_magnitude_ticks * 8ms;
+        Milliseconds push_magnitude = 840ms + adjustment_table[numAttempts];
+        pbf_move_left_joystick(context, {-0.5, +0.5}, push_magnitude, 400ms);
 
         // press A to fly to Blueberry academy
         isFlySuccessful = fly_to_overworld_from_map(info, stream, context, true);
@@ -700,7 +754,7 @@ void move_from_blueberry_entrance_to_league_club(const ProgramInfo& info, VideoS
 
     while (!isSuccessful && numAttempts < maxAttempts){
         if (numAttempts > 0){ // failed at least once
-            pbf_mash_button(context, BUTTON_B, 100);
+            pbf_mash_button(context, BUTTON_B, 800ms);
             open_map_from_overworld(info, stream, context);
             fly_to_overworld_from_map(info, stream, context, false);
         }
@@ -708,7 +762,7 @@ void move_from_blueberry_entrance_to_league_club(const ProgramInfo& info, VideoS
         numAttempts++;
 
         // move toward entrance gates
-        pbf_move_left_joystick(context, 190, 0, 200, 50);
+        pbf_move_left_joystick(context, {+0.488, +1}, 1600ms, 400ms);
 
         context.wait_for_all_requests();
 
@@ -724,7 +778,7 @@ void move_from_blueberry_entrance_to_league_club(const ProgramInfo& info, VideoS
         }
 
         // Move selector to League club room
-        pbf_press_dpad(context, DPAD_UP, 20, 50);
+        pbf_press_dpad(context, DPAD_UP, 160ms, 400ms);
 
         // Confirm to League club room is selected
         ImageFloatBox select_league_club_box(0.038, 0.785, 0.043, 0.081);
@@ -737,7 +791,7 @@ void move_from_blueberry_entrance_to_league_club(const ProgramInfo& info, VideoS
             continue;            
         }
         // press A
-        pbf_mash_button(context, BUTTON_A, 100);
+        pbf_mash_button(context, BUTTON_A, 800ms);
 
         // check for overworld
         OverworldWatcher overworld(stream.logger(), COLOR_CYAN);
@@ -766,10 +820,10 @@ void move_from_league_club_entrance_to_item_printer(const ProgramInfo& info, Vid
     context.wait_for_all_requests();
 
     // move forwards towards table next to item printer
-    pbf_move_left_joystick(context, 120, 0, 200, 50);
+    pbf_move_left_joystick(context, {-0.062, +1}, 1600ms, 400ms);
 
     // look left towards item printer
-    pbf_move_left_joystick(context, 0, 128, 10, 50);
+    pbf_move_left_joystick(context, {-1, 0}, 80ms, 400ms);
 }
 
 void move_from_item_printer_to_material_farming(const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
@@ -783,13 +837,13 @@ void move_from_item_printer_to_blueberry_entrance(const ProgramInfo& info, Video
     context.wait_for_all_requests();
 
     // look left towards door
-    pbf_move_left_joystick(context, 0, 128, 10, 50);
+    pbf_move_left_joystick(context, {-1, 0}, 80ms, 400ms);
 
     // re-orient camera to look same direction as player
-    pbf_press_button(context, BUTTON_L, 50, 50);
+    pbf_press_button(context, BUTTON_L, 400ms, 400ms);
 
     // move forward towards door
-    pbf_move_left_joystick(context, 128, 0, 700, 50);
+    pbf_move_left_joystick(context, {0, +1}, 5600ms, 400ms);
 
     context.wait_for_all_requests();
 
@@ -811,7 +865,7 @@ void move_from_item_printer_to_blueberry_entrance(const ProgramInfo& info, Video
     }
 
     // press A
-    pbf_mash_button(context, BUTTON_A, 100);    
+    pbf_mash_button(context, BUTTON_A, 800ms);
 
     // check for overworld
     OverworldWatcher overworld(stream.logger(), COLOR_CYAN);
@@ -842,20 +896,21 @@ void fly_from_blueberry_to_north_province_3(const ProgramInfo& info, VideoStream
         numAttempts++;
 
         // close all menus
-        pbf_mash_button(context, BUTTON_B, 100);
+        pbf_mash_button(context, BUTTON_B, 800ms);
 
         open_map_from_overworld(info, stream, context);
 
         // change from Blueberry map to Paldea map
-        pbf_press_button(context, BUTTON_R, 50, 300);
+        pbf_press_button(context, BUTTON_R, 400ms, 2400ms);
 
         // zoom out
-        pbf_press_button(context, BUTTON_ZL, 25, 200);
+        pbf_press_button(context, BUTTON_ZL, 200ms, 1600ms);
 
         // move cursor up-left
         // try different magnitudes of cursor push with each failure.
-        int push_magnitude = 168 + adjustment_table[numAttempts];
-        pbf_move_left_joystick(context, 112, 0, (uint16_t)push_magnitude, 50);
+        int push_magnitude_ticks = 168 + adjustment_table[numAttempts];
+        Milliseconds push_magnitude = push_magnitude_ticks * 8ms;
+        pbf_move_left_joystick(context, {-0.125, +1}, push_magnitude, 400ms);
 
         // press A to fly to North province area 3
         isFlySuccessful = fly_to_overworld_from_map(info, stream, context, true);

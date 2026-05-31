@@ -4,14 +4,18 @@
  *
  */
 
-#include "Common/Compiler.h"
-#include "Common/Cpp/Json/JsonValue.h"
-#include "Common/Cpp/Json/JsonArray.h"
-#include "Common/Cpp/Json/JsonObject.h"
-#include "CommonFramework/Globals.h"
+#include <vector>
+#include <memory>
+//#include "Common/Compiler.h"
+//#include "Common/Cpp/Json/JsonValue.h"
+//#include "Common/Cpp/Json/JsonArray.h"
+//#include "Common/Cpp/Json/JsonObject.h"
+#include "Common/Cpp/Options/BooleanCheckBoxOption.h"
+#include "Common/Cpp/Options/ConfigOption.h"
+//#include "CommonFramework/Globals.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "Pokemon/Resources/Pokemon_PokemonNames.h"
-#include "Pokemon/Resources/Pokemon_PokeballNames.h"
+//#include "Pokemon/Resources/Pokemon_PokeballNames.h"
 #include "PokemonSwSh/Resources/PokemonSwSh_PokemonSprites.h"
 #include "PokemonSwSh/Resources/PokemonSwSh_MaxLairDatabase.h"
 #include "PokemonSwSh_MaxLair_Options_BossAction.h"
@@ -38,18 +42,44 @@ const EnumDropdownDatabase<BossAction>& BossAction_Database(){
 
 BossActionRow::BossActionRow(std::string slug, const std::string& name_slug, const std::string& sprite_slug)
     : StaticTableRow(std::move(slug))
-    , pokemon(LockMode::LOCK_WHILE_RUNNING, get_pokemon_name(name_slug).display_name(), ALL_POKEMON_SPRITES().get_throw(sprite_slug).icon)
-    , action(BossAction_Database(), LockMode::LOCK_WHILE_RUNNING, BossAction::CATCH_AND_STOP_IF_SHINY)
-    , ball("poke-ball")
+    , pokemon(
+        LockMode::UNLOCK_WHILE_RUNNING,
+        get_pokemon_name(name_slug).display_name(),
+        ALL_POKEMON_SPRITES().get_throw(sprite_slug).icon
+    )
+    , action(
+        BossAction_Database(),
+        LockMode::UNLOCK_WHILE_RUNNING,
+        BossAction::CATCH_AND_STOP_IF_SHINY
+    )
+    , ball(LockMode::UNLOCK_WHILE_RUNNING, "poke-ball")
+    , save_on_the_go(LockMode::UNLOCK_WHILE_RUNNING, false)
 {
     PA_ADD_STATIC(pokemon);
     add_option(action, "Action");
     add_option(ball, "Ball");
+    add_option(save_on_the_go, "Save Path");
+    
+    BossActionRow::on_config_value_changed(nullptr);
+    
+    action.add_listener(*this);
+}
+
+void BossActionRow::on_config_value_changed(void* object){
+    switch (action){
+    case BossAction::CATCH_AND_STOP_PROGRAM:
+        save_on_the_go = false;
+        save_on_the_go.set_visibility(ConfigOptionState::DISABLED);
+        break;
+    case BossAction::CATCH_AND_STOP_IF_SHINY:
+        save_on_the_go.set_visibility(ConfigOptionState::ENABLED);
+        break;
+    }
 }
 
 
 BossActionTable::BossActionTable()
-    : StaticTableOption("<b>Boss Actions:</b>", LockMode::LOCK_WHILE_RUNNING)
+    : StaticTableOption("<b>Boss Actions:</b>", LockMode::UNLOCK_WHILE_RUNNING)
 {
     for (const auto& item : all_bosses_by_dex()){
 //        cout << item.second << endl;
@@ -64,7 +94,8 @@ std::vector<std::string> BossActionTable::make_header() const{
     std::vector<std::string> ret{
         STRING_POKEMON,
         "Action",
-        STRING_POKEBALL
+        STRING_POKEBALL,
+        "Save Path"
     };
     return ret;
 }

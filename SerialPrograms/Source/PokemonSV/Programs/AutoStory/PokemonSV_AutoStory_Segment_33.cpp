@@ -59,11 +59,11 @@ void AutoStory_Segment_33::run_segment(
     context.wait_for_all_requests();
     env.console.log("Start Segment " + name(), COLOR_ORANGE);
 
-	AutoStory_Checkpoint_85().run_checkpoint(env, context, options, stats);
-	AutoStory_Checkpoint_86().run_checkpoint(env, context, options, stats);
-	AutoStory_Checkpoint_87().run_checkpoint(env, context, options, stats);
-	AutoStory_Checkpoint_88().run_checkpoint(env, context, options, stats);
-	AutoStory_Checkpoint_89().run_checkpoint(env, context, options, stats);
+    AutoStory_Checkpoint_85().run_checkpoint(env, context, options, stats);
+    AutoStory_Checkpoint_86().run_checkpoint(env, context, options, stats);
+    AutoStory_Checkpoint_87().run_checkpoint(env, context, options, stats);
+    AutoStory_Checkpoint_88().run_checkpoint(env, context, options, stats);
+    AutoStory_Checkpoint_89().run_checkpoint(env, context, options, stats);
 
     context.wait_for_all_requests();
     env.console.log("End Segment " + name(), COLOR_GREEN);
@@ -116,10 +116,10 @@ void AutoStory_Checkpoint_89::run_checkpoint(SingleSwitchProgramEnvironment& env
 void checkpoint_85(SingleSwitchProgramEnvironment& env, ProControllerContext& context, EventNotificationOption& notif_status_update, AutoStoryStats& stats){
     checkpoint_reattempt_loop(env, context, notif_status_update, stats,
     [&](size_t attempt_number){
-        move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::KEEP_ZOOM, 255, 50, 320}, FlyPoint::FAST_TRAVEL);
+        move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::KEEP_ZOOM, +1, +0.609, 2560ms}, FlyPoint::FAST_TRAVEL);
 
-        realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_NEW_MARKER, 128, 0, 80);
-        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_ONLY, 30);
+        realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_NEW_MARKER, 0, +1, 640ms);
+        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_ONLY, 30000ms);
 
         clear_dialog(env.console, context, ClearDialogMode::STOP_BATTLE, 60, {CallbackEnum::PROMPT_DIALOG, CallbackEnum::BATTLE, CallbackEnum:: DIALOG_ARROW});
 
@@ -127,7 +127,7 @@ void checkpoint_85(SingleSwitchProgramEnvironment& env, ProControllerContext& co
         run_trainer_battle_press_A(env.console, context, BattleStopCondition::STOP_DIALOG);
         mash_button_till_overworld(env.console, context, BUTTON_A);
 
-        move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::ZOOM_IN, 0, 0, 0}, FlyPoint::FAST_TRAVEL);
+        move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::ZOOM_IN, -1, +1, 0ms}, FlyPoint::FAST_TRAVEL);
     });  
 }
 
@@ -136,25 +136,26 @@ void checkpoint_86(SingleSwitchProgramEnvironment& env, ProControllerContext& co
     checkpoint_reattempt_loop(env, context, notif_status_update, stats,
     [&](size_t attempt_number){
 
-        realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_NEW_MARKER, 0, 128, 50);
+        realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_NEW_MARKER, -1, 0, 400ms);
         DirectionDetector direction;
+        // minimap should be clear of Pokemon within Mesagoza
         direction.change_direction(env.program_info(), env.console, context, 1.222127);
-        pbf_move_left_joystick(context, 128, 0, 1100, 50);
+        pbf_move_left_joystick(context, {0, +1}, 8800ms, 400ms);
 
         get_on_ride(env.program_info(), env.console, context);
         direction.change_direction(env.program_info(), env.console, context, 1.484555);
 
-        pbf_move_left_joystick(context, 128, 0, 1506ms, 0ms);
-        pbf_controller_state(context, BUTTON_B, DPAD_NONE, 128, 0, 128, 128, 703ms);
-        pbf_move_left_joystick(context, 128, 0, 233ms, 0ms);
-        pbf_controller_state(context, BUTTON_B, DPAD_NONE, 128, 0, 128, 128, 5098ms);
-        pbf_move_left_joystick(context, 128, 0, 1000ms, 0ms);
+        pbf_move_left_joystick(context, {0, +1}, 1506ms, 0ms);
+        pbf_controller_state(context, BUTTON_B, DPAD_NONE, {0, +1}, {0, 0}, 703ms);
+        pbf_move_left_joystick(context, {0, +1}, 233ms, 0ms);
+        pbf_controller_state(context, BUTTON_B, DPAD_NONE, {0, +1}, {0, 0}, 5098ms);
+        pbf_move_left_joystick(context, {0, +1}, 1000ms, 0ms);
 
         wait_for_overworld(env.program_info(), env.console, context);
 
         // marker 1    {0.429688, 0.299074}
         place_marker_offset_from_flypoint(env.program_info(), env.console, context, 
-            {ZoomChange::KEEP_ZOOM, 0, 0, 0}, 
+            {ZoomChange::KEEP_ZOOM, -1, +1, 0ms}, 
             FlyPoint::POKECENTER, 
             {0.429688, 0.299074}
         );
@@ -162,10 +163,10 @@ void checkpoint_86(SingleSwitchProgramEnvironment& env, ProControllerContext& co
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
                 overworld_navigation(env.program_info(), env.console, context, 
                     NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-                    128, 0, 30, 10, false);
+                    0, +1, 30, 10, false);
             }, 
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                pbf_move_left_joystick(context, 0, 255, 40, 50);
+                pbf_move_left_joystick(context, {-1, -1}, 320ms, 400ms);
                 realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
             }
         );
@@ -173,7 +174,7 @@ void checkpoint_86(SingleSwitchProgramEnvironment& env, ProControllerContext& co
 
         // marker 2    {0.482812, 0.378704}
         place_marker_offset_from_flypoint(env.program_info(), env.console, context, 
-            {ZoomChange::ZOOM_IN, 0, 0, 50}, 
+            {ZoomChange::ZOOM_IN, -1, +1, 400ms},
             FlyPoint::POKECENTER, 
             {0.482812, 0.378704}
         );
@@ -181,10 +182,10 @@ void checkpoint_86(SingleSwitchProgramEnvironment& env, ProControllerContext& co
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
                 overworld_navigation(env.program_info(), env.console, context, 
                     NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-                    128, 0, 40, 10, false);
+                    0, +1, 40, 10, false);
             }, 
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                pbf_move_left_joystick(context, 0, 255, 40, 50);
+                pbf_move_left_joystick(context, {-1, -1}, 320ms, 400ms);
                 realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
             }
         );
@@ -192,7 +193,7 @@ void checkpoint_86(SingleSwitchProgramEnvironment& env, ProControllerContext& co
 
         // marker 3    {0.638021, 0.676852}
         place_marker_offset_from_flypoint(env.program_info(), env.console, context, 
-            {ZoomChange::KEEP_ZOOM, 0, 0, 50}, 
+            {ZoomChange::KEEP_ZOOM, -1, +1, 400ms},
             FlyPoint::POKECENTER, 
             {0.638021, 0.676852}
         );
@@ -200,10 +201,10 @@ void checkpoint_86(SingleSwitchProgramEnvironment& env, ProControllerContext& co
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
                 overworld_navigation(env.program_info(), env.console, context, 
                     NavigationStopCondition::STOP_DIALOG, NavigationMovementMode::DIRECTIONAL_ONLY, 
-                    128, 0, 60, 30, false);
+                    0, +1, 60, 30, false);
             }, 
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                pbf_move_left_joystick(context, 0, 255, 40, 50);
+                pbf_move_left_joystick(context, {-1, -1}, 320ms, 400ms);
                 realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
             }
         );
@@ -227,7 +228,7 @@ void checkpoint_87(SingleSwitchProgramEnvironment& env, ProControllerContext& co
 
         do_action_and_monitor_for_battles(env.program_info(), env.console, context,
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                walk_forward_while_clear_front_path(env.program_info(), env.console, context, 100);
+                walk_forward_while_clear_front_path(env.program_info(), env.console, context, 800ms);
                 walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_SPAM_A);
             }
         );
@@ -238,7 +239,7 @@ void checkpoint_87(SingleSwitchProgramEnvironment& env, ProControllerContext& co
         do_action_and_monitor_for_overworld(env.program_info(), env.console, context,
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
             // move left to sit down
-            pbf_move_left_joystick(context, 0, 128, 100, 50);
+            pbf_move_left_joystick(context, {-1, 0}, 800ms, 400ms);
 
             // talk to Rika 1. Choose first option. Walked here.
             clear_dialog(env.console, context, ClearDialogMode::STOP_PROMPT, 60, {CallbackEnum::PROMPT_DIALOG});
@@ -249,11 +250,11 @@ void checkpoint_87(SingleSwitchProgramEnvironment& env, ProControllerContext& co
 
             switch(game_title){
             case GameTitle::SCARLET:
-                pbf_press_dpad(context, DPAD_DOWN, 13, 20);
+                pbf_press_dpad(context, DPAD_DOWN, 104ms, 160ms);
                 break;
             case GameTitle::VIOLET:
-                pbf_press_dpad(context, DPAD_DOWN, 13, 20);
-                pbf_press_dpad(context, DPAD_DOWN, 13, 20);
+                pbf_press_dpad(context, DPAD_DOWN, 104ms, 160ms);
+                pbf_press_dpad(context, DPAD_DOWN, 104ms, 160ms);
                 break;
             default:
                 throw InternalProgramError(nullptr, PA_CURRENT_FUNCTION, "We don't know what game we are playing. We should know at this point.");
@@ -263,7 +264,7 @@ void checkpoint_87(SingleSwitchProgramEnvironment& env, ProControllerContext& co
             
             // talk to Rika 3. Came to become a Champion
             clear_dialog(env.console, context, ClearDialogMode::STOP_PROMPT, 60, {CallbackEnum::PROMPT_DIALOG});
-            pbf_press_dpad(context, DPAD_DOWN, 13, 20);
+            pbf_press_dpad(context, DPAD_DOWN, 104ms, 160ms);
             pbf_mash_button(context, BUTTON_A, 1000ms);
 
             // talk to Rika 4. Become stronger
@@ -272,18 +273,18 @@ void checkpoint_87(SingleSwitchProgramEnvironment& env, ProControllerContext& co
 
             // talk to Rika 5. Difficult gym: Alfornada
             clear_dialog(env.console, context, ClearDialogMode::STOP_PROMPT, 60, {CallbackEnum::PROMPT_DIALOG});
-            pbf_press_dpad(context, DPAD_UP, 13, 20);
+            pbf_press_dpad(context, DPAD_UP, 104ms, 160ms);
             pbf_mash_button(context, BUTTON_A, 1000ms);
 
             // talk to Rika 6. Difficult gym leader name: Tulip
             clear_dialog(env.console, context, ClearDialogMode::STOP_PROMPT, 60, {CallbackEnum::PROMPT_DIALOG});
-            pbf_press_dpad(context, DPAD_UP, 13, 20);
+            pbf_press_dpad(context, DPAD_UP, 104ms, 160ms);
             pbf_mash_button(context, BUTTON_A, 1000ms);
 
             // talk to Rika 7. Difficult gym leader type: Psychic
             clear_dialog(env.console, context, ClearDialogMode::STOP_PROMPT, 60, {CallbackEnum::PROMPT_DIALOG});
-            pbf_press_dpad(context, DPAD_UP, 13, 20);
-            pbf_press_dpad(context, DPAD_UP, 13, 20);
+            pbf_press_dpad(context, DPAD_UP, 104ms, 160ms);
+            pbf_press_dpad(context, DPAD_UP, 104ms, 160ms);
             pbf_mash_button(context, BUTTON_A, 1000ms);
 
             // talk to Rika 8. Starter pokemon: Grass/Fire/Water
@@ -292,11 +293,11 @@ void checkpoint_87(SingleSwitchProgramEnvironment& env, ProControllerContext& co
             case StarterChoice::SPRIGATITO:
                 break;
             case StarterChoice::FUECOCO:
-                pbf_press_dpad(context, DPAD_DOWN, 13, 20);
+                pbf_press_dpad(context, DPAD_DOWN, 104ms, 160ms);
                 break;
             case StarterChoice::QUAXLY:
-                pbf_press_dpad(context, DPAD_DOWN, 13, 20);
-                pbf_press_dpad(context, DPAD_DOWN, 13, 20);
+                pbf_press_dpad(context, DPAD_DOWN, 104ms, 160ms);
+                pbf_press_dpad(context, DPAD_DOWN, 104ms, 160ms);
                 break;
             default:
                 throw InternalProgramError(nullptr, PA_CURRENT_FUNCTION, "Invalid starter pokemon type. This shouldn't happen.");
@@ -304,7 +305,7 @@ void checkpoint_87(SingleSwitchProgramEnvironment& env, ProControllerContext& co
             }
             size_t num_extra_clicks = attempt_number % 3;  // we add extra clicks when attempt_number > 0, to account for the fact that the user might not be enterint the correct starter.
             for (size_t i = 0; i < num_extra_clicks; i++){
-                pbf_press_dpad(context, DPAD_DOWN, 13, 20);
+                pbf_press_dpad(context, DPAD_DOWN, 104ms, 160ms);
             }
 
             pbf_mash_button(context, BUTTON_A, 1000ms);
@@ -315,7 +316,7 @@ void checkpoint_87(SingleSwitchProgramEnvironment& env, ProControllerContext& co
 
         });
 
-        pbf_move_left_joystick(context, 128, 0, 100, 50); // stand up
+        pbf_move_left_joystick(context, {0, +1}, 800ms, 400ms); // stand up
 
 
     }); 
@@ -328,17 +329,17 @@ void checkpoint_88(SingleSwitchProgramEnvironment& env, ProControllerContext& co
         // standing in front of Rika
         // now done talking to Rika. walk around Rika's desk.
 
-        pbf_move_left_joystick(context, 0, 128, 50, 50); // go left
-        pbf_move_left_joystick(context, 128, 0, 200, 50); // straight
-        pbf_move_left_joystick(context, 255, 128, 50, 50); // right
+        pbf_move_left_joystick(context, {-1, 0}, 400ms, 400ms); // go left
+        pbf_move_left_joystick(context, {0, +1}, 1600ms, 400ms); // straight
+        pbf_move_left_joystick(context, {+1, 0}, 400ms, 400ms); // right
         
-        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_ONLY, 60);
+        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_ONLY, 60000ms);
         clear_dialog(env.console, context, ClearDialogMode::STOP_BATTLE, 60, {CallbackEnum::BATTLE, CallbackEnum::DIALOG_ARROW});
 
 
         env.console.log("Battle Elite Four 1.");
         SinglesMoveEntry move1{SinglesMoveType::Move1, false};  // Moonblast
-        SinglesMoveEntry move3{SinglesMoveType::Move3, false}; // Mystical Fire
+        SinglesMoveEntry move2{SinglesMoveType::Move2, false}; // Mystical Fire
         SinglesMoveEntry move4{SinglesMoveType::Move4, false}; // Misty Terrain
         std::vector<SinglesMoveEntry> move_table1 = {move1, move4, move1};
         bool terastallized = false;
@@ -363,11 +364,11 @@ void checkpoint_88(SingleSwitchProgramEnvironment& env, ProControllerContext& co
         auto_heal_from_menu_or_overworld(env.program_info(), env.console, context, 0, true);
 
         // engage next battle
-        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_ONLY, 60);
+        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_ONLY, 60000ms);
         clear_dialog(env.console, context, ClearDialogMode::STOP_BATTLE, 60, {CallbackEnum::BATTLE, CallbackEnum::DIALOG_ARROW, CallbackEnum::PROMPT_DIALOG});
 
-        env.console.log("Battle Elite Four 2.");  // select move 3, which should be a fire move. to battle the steel trainer
-        std::vector<SinglesMoveEntry> move_table2 = {move3};
+        env.console.log("Battle Elite Four 2.");  // select move 2, which should be a fire move. to battle the steel trainer
+        std::vector<SinglesMoveEntry> move_table2 = {move2};
         is_won = run_pokemon(env.console, context, move_table2, true, terastallized);
         if (!is_won){// throw exception if we lose
             OperationFailedException::fire(
@@ -384,7 +385,7 @@ void checkpoint_88(SingleSwitchProgramEnvironment& env, ProControllerContext& co
         auto_heal_from_menu_or_overworld(env.program_info(), env.console, context, 0, true);
 
         // engage next battle
-        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_ONLY, 60);
+        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_ONLY, 60000ms);
         clear_dialog(env.console, context, ClearDialogMode::STOP_BATTLE, 60, {CallbackEnum::BATTLE, CallbackEnum::DIALOG_ARROW, CallbackEnum::PROMPT_DIALOG});
 
         env.console.log("Battle Elite Four 3.");
@@ -394,7 +395,7 @@ void checkpoint_88(SingleSwitchProgramEnvironment& env, ProControllerContext& co
         mash_button_till_overworld(env.console, context, BUTTON_A);
 
         // engage next battle
-        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_ONLY, 60);
+        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_ONLY, 60000ms);
         clear_dialog(env.console, context, ClearDialogMode::STOP_BATTLE, 60, {CallbackEnum::BATTLE, CallbackEnum::DIALOG_ARROW, CallbackEnum::PROMPT_DIALOG});
 
         env.console.log("Battle Elite Four 4.");
@@ -409,10 +410,10 @@ void checkpoint_88(SingleSwitchProgramEnvironment& env, ProControllerContext& co
 void checkpoint_89(SingleSwitchProgramEnvironment& env, ProControllerContext& context, EventNotificationOption& notif_status_update, AutoStoryStats& stats){
     checkpoint_reattempt_loop(env, context, notif_status_update, stats,
     [&](size_t attempt_number){
-        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_ONLY, 60);
+        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_ONLY, 60000ms);
         clear_dialog(env.console, context, ClearDialogMode::STOP_BATTLE, 60, {CallbackEnum::BATTLE, CallbackEnum::DIALOG_ARROW, CallbackEnum::PROMPT_DIALOG});
 
-        env.console.log("Battle Elite Four 4.");
+        env.console.log("Battle Geeta.");
         run_trainer_battle_press_A(env.console, context, BattleStopCondition::STOP_DIALOG);
 
         // finished battle
@@ -421,11 +422,11 @@ void checkpoint_89(SingleSwitchProgramEnvironment& env, ProControllerContext& co
         // move to Pokecenter
         handle_unexpected_battles(env.program_info(), env.console, context,
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-            realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_NEW_MARKER, 255, 50, 50);
+            realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_NEW_MARKER, +1, +0.609, 400ms);
         });      
         overworld_navigation(env.program_info(), env.console, context, 
             NavigationStopCondition::STOP_TIME, NavigationMovementMode::DIRECTIONAL_ONLY, 
-            128, 15, 12, 12, false);           // can't wrap in handle_when_stationary_in_overworld(), since we expect to be stationary when walking into the pokecenter
+            0, +0.883, 12, 12, false);           // can't wrap in handle_when_stationary_in_overworld(), since we expect to be stationary when walking into the pokecenter
             
 
         fly_to_overlapping_flypoint(env.program_info(), env.console, context); 
@@ -440,20 +441,32 @@ GameTitle get_game_title(SingleSwitchProgramEnvironment& env, ProControllerConte
     enter_menu_from_overworld(env.program_info(), env.console, context, 0, MenuSide::RIGHT);
     context.wait_for_all_requests();
 
-    VideoSnapshot screen = env.console.video().snapshot();
-    ImageFloatBox box = {0.03, 0.94, 0.40, 0.04};
-    ImageStats bottom_stats = image_stats(extract_box_reference(screen, box));
+    for (size_t i = 0; i < 10; i++){
+        VideoSnapshot screen = env.console.video().snapshot();
+        ImageFloatBox box = {0.03, 0.94, 0.40, 0.04};
+        ImageStats bottom_stats = image_stats(extract_box_reference(screen, box));
 
-    if (is_solid(bottom_stats, {0.648549, 0.2861580, 0.0652928}, 0.15, 25)){
-        game_title = GameTitle::SCARLET;
-        env.console.log("Game title detected: Scarlet");
-    } else if (is_solid(bottom_stats, {0.367816, 0.0746615, 0.5575230}, 0.15, 25)){
-        game_title = GameTitle::VIOLET;
-        env.console.log("Game title detected: Violet");
+        if (is_solid(bottom_stats, {0.648549, 0.2861580, 0.0652928}, 0.15, 25)){
+            game_title = GameTitle::SCARLET;
+            env.console.log("Game title detected: Scarlet");
+            break;
+        } else if (is_solid(bottom_stats, {0.367816, 0.0746615, 0.5575230}, 0.15, 25)){
+            game_title = GameTitle::VIOLET;
+            env.console.log("Game title detected: Violet");
+            break;
+        }
+
+        env.console.log("Unable to detect game title. Wait some time.");
+        context.wait_for(Seconds(2));
     }
 
     if (game_title == GameTitle::UNKNOWN){
-        throw InternalProgramError(nullptr, PA_CURRENT_FUNCTION, "Unable to determine what game we are playing. The color of the bottom bar in the Pokemon Summary page doesn't match of the expected colors.");
+        OperationFailedException::fire(
+            ErrorReport::SEND_ERROR_REPORT,
+            "get_game_title(): Unable to determine what game we are playing. "
+            "The color of the bottom bar in the Pokemon Summary page doesn't match any of the expected colors.",
+            env.console
+        );  
     }
 
     return game_title;

@@ -7,10 +7,11 @@
 #ifndef PokemonAutomation_CommonTools_InterruptableCommands_H
 #define PokemonAutomation_CommonTools_InterruptableCommands_H
 
-#include <mutex>
-#include <condition_variable>
+#include <functional>
+#include "Common/Cpp/Concurrency/Mutex.h"
+#include "Common/Cpp/Concurrency/ConditionVariable.h"
+#include "Common/Cpp/Concurrency/AsyncTask.h"
 #include "Common/Cpp/CancellableScope.h"
-#include "Common/Cpp/Concurrency/AsyncDispatcher.h"
 
 
 namespace PokemonAutomation{
@@ -25,12 +26,29 @@ class AsyncCommandSession final : private Cancellable{
 
 public:
     AsyncCommandSession(
-        CancellableScope& scope, Logger& logger, AsyncDispatcher& dispatcher,
+        CancellableScope& scope, Logger& logger,
         ControllerType& controller
     );
     virtual ~AsyncCommandSession();
 
     bool command_is_running();
+
+    //  Stop the currently running command.
+    void stop_command();
+
+    //  Dispath a controller command function `lambda` asynchronously.
+    //
+    //  If some commands are already running (via a previous `dispatch()` call), they
+    //  will be stopped and atomically replaced with the new one.
+    //
+    //  This replacement maintains button states: if button A is being pressed from a
+    //  previous `dispatch()` while a new `dispatch()` presses button A and button B
+    //  at the same time, button A is not released during the transition.
+    //  You can use it to adjust button state continuously without interruption.
+    void dispatch(std::function<void(ControllerContextType&)>&& lambda);
+
+    //  Wait for currently running command to finish.
+    void wait();
 
     //  Stop the entire session. If an exception was thrown from the command
     //  thread, it will be rethrown here.
@@ -45,19 +63,6 @@ public:
     //  unwind.
     void stop_session_and_rethrow();
 
-
-public:
-    //  Stop the currently running command.
-    void stop_command();
-
-    //  Dispath the following lambda. If something is already running, it will be
-    //  stopped and replaced with this one.
-    void dispatch(std::function<void(ControllerContextType&)>&& lambda);
-
-    //  Wait for currently running command to finish.
-    void wait();
-
-
 private:
     virtual bool cancel(std::exception_ptr exception) noexcept override;
     void thread_loop();
@@ -70,9 +75,9 @@ private:
     ControllerType& m_controller;
     std::unique_ptr<CommandSet> m_current;
 
-    std::mutex m_lock;
-    std::condition_variable m_cv;
-    std::unique_ptr<AsyncTask> m_thread;
+    Mutex m_lock;
+    ConditionVariable m_cv;
+    AsyncTask m_thread;
 
     LifetimeSanitizer m_sanitizer;
 };

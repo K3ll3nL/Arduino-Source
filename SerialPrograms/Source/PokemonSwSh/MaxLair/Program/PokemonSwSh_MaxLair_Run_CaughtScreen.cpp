@@ -50,8 +50,8 @@ StateMachineAction mash_A_to_entrance(
 
         EntranceDetector entrance_detector(entrance);
         SelectionArrowFinder prompt(stream.overlay(), {0.362689, 0.282828, 0.625000, 0.580808});
-        DialogTriangleDetector triangle(stream.logger(), stream.overlay(), true);
-        BlackDialogBoxDetector dialog(true);
+        WhiteDialogBoxWatcher white_dialog;
+        BlackDialogBoxDetector black_dialog(true);
         ReceivePokemonWatcher receive(COLOR_RED);
 
         context.wait_for_all_requests();
@@ -61,8 +61,8 @@ StateMachineAction mash_A_to_entrance(
             {
                 entrance_detector,
                 prompt,
-                triangle,
-                dialog,
+                white_dialog,
+                black_dialog,
                 receive,
             },
             INFERENCE_RATE
@@ -140,7 +140,7 @@ StateMachineAction run_caught_screen(
 ){
     bool is_host = console_index == runtime.host_index;
 
-    pbf_wait(context, TICKS_PER_SECOND);
+    pbf_wait(context, 1000ms);
     context.wait_for_all_requests();
 
     CaughtPokemonScreen tracker(console, context);
@@ -176,7 +176,7 @@ StateMachineAction run_caught_screen(
         tracker.scroll_to(shinies.back());
         tracker.leave_summary();
         context.wait_for(std::chrono::seconds(1));
-        pbf_press_button(context, BUTTON_CAPTURE, 2 * TICKS_PER_SECOND, 5 * TICKS_PER_SECOND);
+        pbf_press_button(context, BUTTON_CAPTURE, 2000ms, 5000ms);
         context.wait_for_all_requests();
     }
 
@@ -221,9 +221,9 @@ StateMachineAction run_caught_screen(
             console.log("Quitting back to entrance.", COLOR_PURPLE);
             tracker.leave_summary();
             synchronize_caught_screen(console_index, console, context, state_tracker);
-            pbf_press_dpad(context, DPAD_DOWN, 10, 50);
-            pbf_press_button(context, BUTTON_B, 10, TICKS_PER_SECOND);
-            pbf_press_button(context, BUTTON_A, 10, 115);
+            pbf_press_dpad(context, DPAD_DOWN, 80ms, 400ms);
+            pbf_press_button(context, BUTTON_B, 80ms, 1000ms);
+            pbf_press_button(context, BUTTON_A, 80ms, 920ms);
             return mash_A_to_entrance(runtime, console, context, entrance);
         }else{
             console.log("Taking non-shiny boss and returning to entrance...", COLOR_BLUE);

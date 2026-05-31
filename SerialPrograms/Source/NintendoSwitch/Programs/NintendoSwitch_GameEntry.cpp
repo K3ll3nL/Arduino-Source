@@ -4,6 +4,7 @@
  *
  */
 
+#include "Common/Cpp/Exceptions.h"
 #include "CommonFramework/Exceptions/OperationFailedException.h"
 #include "CommonFramework/VideoPipeline/VideoFeed.h"
 #include "CommonFramework/VideoPipeline/VideoOverlayScopes.h"
@@ -12,11 +13,11 @@
 #include "CommonTools/InferenceCallbacks/VisualInferenceCallback.h"
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "CommonTools/VisualDetectors/BlackScreenDetector.h"
-#include "Controllers/ControllerTypes.h"
 #include "NintendoSwitch/NintendoSwitch_Settings.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
-#include "NintendoSwitch/Inference/NintendoSwitch_DetectHome.h"
+#include "NintendoSwitch/Inference/NintendoSwitch_CheckOnlineDetector.h"
+#include "NintendoSwitch/Inference/NintendoSwitch_FailedToConnectDetector.h"
 #include "NintendoSwitch/Inference/NintendoSwitch_HomeMenuDetector.h"
 #include "NintendoSwitch/Inference/NintendoSwitch_CloseGameDetector.h"
 #include "NintendoSwitch/Inference/NintendoSwitch_StartGameUserSelectDetector.h"
@@ -29,6 +30,83 @@
 
 namespace PokemonAutomation{
 namespace NintendoSwitch{
+
+
+
+void require_player(
+    Logger& logger,
+    ProControllerContext& context,
+    Button connect_button,
+    ControllerPlayerNumber required
+){
+    logger.log("Connecting controller...");
+
+    const std::string& required_str = player_number_to_string(required);
+
+    ControllerPlayerNumber current = context->get_player_number(context);
+    const std::string* current_str = &player_number_to_string(current);
+    logger.log("Current Player Number: " + *current_str);
+    if (current == ControllerPlayerNumber::UNKNOWN){
+        if (connect_button != Button::BUTTON_NONE){
+            pbf_press_button(context, connect_button, 40ms, 24ms);
+            context.wait_for_all_requests();
+        }
+        return;
+    }
+
+    for (int retries = 0;; retries++){
+        if (current == required){
+            logger.log("Controller player matches required (" + *current_str + "). Continuing...", COLOR_BLUE);
+            return;
+        }
+
+        if (connect_button == Button::BUTTON_NONE){
+            throw UserSetupError(
+                logger,
+                "Please connect your controller to the console."
+            );
+        }
+
+        if (current != ControllerPlayerNumber::DISCONNECTED){
+            if (required == ControllerPlayerNumber::PLAYER1){
+                throw UserSetupError(
+                    logger,
+                    "Controller is connected as the wrong player. Please disconnect all other controllers."
+                );
+            }else{
+                throw UserSetupError(
+                    logger,
+                    "Controller is connected as the wrong player. Please reconnect to: " + required_str
+                );
+            }
+        }
+
+        if (retries >= 5){
+            if (required == ControllerPlayerNumber::PLAYER1){
+                throw UserSetupError(
+                    logger,
+                    "Failed to connect controller after 5 tries. Please disconnect all other controllers."
+                );
+            }else{
+                throw UserSetupError(
+                    logger,
+                    "Failed to connect controller after 5 tries."
+                );
+            }
+        }
+
+        logger.log("Attempt to connect controller...", COLOR_ORANGE);
+        pbf_press_button(context, connect_button, 40ms, 360ms);
+        context.wait_for_all_requests();
+
+        current = context->get_player_number(context);
+        current_str = &player_number_to_string(current);
+
+        logger.log("Current Player Number: " + *current_str);
+    }
+
+}
+
 
 
 
@@ -115,15 +193,15 @@ void close_game_from_home_blind(ConsoleHandle& console, ProControllerContext& co
     // regardless of whether the game is initially open or closed.
 
                                                     // if game initially open.  |  if game initially closed
-    pbf_mash_button(context, BUTTON_X, 100);        // - Close game.            |  - does nothing
+    pbf_mash_button(context, BUTTON_X, 800ms);      // - Close game.            |  - does nothing
     ssf_press_dpad_ptv(context, DPAD_DOWN);         // - Does nothing.          |  - moves selector away from the closed game to avoid opening it.
     ssf_press_dpad_ptv(context, DPAD_DOWN);         // - Does nothing.          |  - Press Down a second time in case we drop one.
-    pbf_mash_button(context, BUTTON_A, 50);         // - Confirm close game.    |  - opens an app on the home screen (e.g. Online)
+    pbf_mash_button(context, BUTTON_A, 400ms);      // - Confirm close game.    |  - opens an app on the home screen (e.g. Online)
     go_home(console, context);                      // - Does nothing.          |  - goes back to home screen.
 
     // fail-safe against button drops and unexpected error messages.
-    pbf_mash_button(context, BUTTON_X, 50);
-    pbf_mash_button(context, BUTTON_B, 350);
+    pbf_mash_button(context, BUTTON_X, 400ms);
+    pbf_mash_button(context, BUTTON_B, 2800ms);
 }
 
 void close_game_from_home_blind(ConsoleHandle& console, JoyconContext& context){
@@ -137,8 +215,8 @@ void close_game_from_home_blind(ConsoleHandle& console, JoyconContext& context){
 
                                                         // if game initially open.  |  if game initially closed
     pbf_mash_button(context, BUTTON_X, 800ms);          // - Close game.            |  - does nothing
-    pbf_move_joystick(context, 128, 255, 100ms, 10ms);  // - Does nothing.          |  - moves selector away from the closed game to avoid opening it.
-    pbf_move_joystick(context, 128, 255, 100ms, 10ms);  // - Does nothing.          |  - Press Down a second time in case we drop one.
+    pbf_move_joystick(context, {0, -1}, 100ms, 10ms);   // - Does nothing.          |  - moves selector away from the closed game to avoid opening it.
+    pbf_move_joystick(context, {0, -1}, 100ms, 10ms);   // - Does nothing.          |  - Press Down a second time in case we drop one.
     pbf_mash_button(context, BUTTON_A, 400ms);          // - Confirm close game.    |  - opens an app on the home screen (e.g. Online)
     go_home(console, context);                          // - Does nothing.          |  - goes back to home screen.
 
@@ -166,16 +244,21 @@ void close_game_from_home(ConsoleHandle& console, ControllerContext& context){
 
         CloseGameWatcher close_game(console);
         HomeMenuWatcher home(console);
+        StartGameUserSelectWatcher user_select(console, COLOR_GREEN);
         int ret = wait_until(
             console, context,
             Seconds(10), 
-            {close_game, home}
+            {
+                close_game,
+                home,
+                user_select,
+            }
         );
 
         switch(ret){
         case 0: // close_game
             console.log("Detected close game menu.");
-            pbf_mash_button(context, BUTTON_A, 400ms);
+            pbf_mash_button(context, BUTTON_A, 100ms);
             seen_close_game = true;
             continue;
         case 1: // home
@@ -210,11 +293,17 @@ void close_game_from_home(ConsoleHandle& console, ControllerContext& context){
 
             throw InternalProgramError(nullptr, PA_CURRENT_FUNCTION, "close_game_from_home: Unexpected state.");  
 
+        case 2:
+            console.log("Detected user select. (unexpected)", COLOR_RED);
+            pbf_mash_button(context, BUTTON_B, 500ms);
+            seen_close_game = true;
+            continue;
+
         default:
-            OperationFailedException::fire(
-                ErrorReport::SEND_ERROR_REPORT,
+            pbf_press_button(context, BUTTON_HOME, 160ms, 500ms);
+            console.log(
                 "close_game_from_home(): Failed to detect either the Home screen or the Close game menu after 10 seconds.",
-                console
+                COLOR_RED
             );
         }
     }
@@ -239,7 +328,7 @@ void resume_game_from_home(
     bool skip_home_press
 ){
     if (!skip_home_press){
-        pbf_press_button(context, BUTTON_HOME, 10, 10);
+        pbf_press_button(context, BUTTON_HOME, 80ms, 80ms);
     }
     context.wait_for_all_requests();
 
@@ -254,8 +343,8 @@ void resume_game_from_home(
             if (ret == 0){
                 console.log("Detected update window.", COLOR_RED);
 
-                pbf_press_dpad(context, DPAD_UP, 5, 0);
-                pbf_press_button(context, BUTTON_A, 10, 500);
+                pbf_press_dpad(context, DPAD_UP, 40ms, 0ms);
+                pbf_press_button(context, BUTTON_A, 80ms, 4000ms);
                 context.wait_for_all_requests();
                 continue;
             }
@@ -263,9 +352,10 @@ void resume_game_from_home(
 
         //  In case we failed to enter the game.
         HomeMenuWatcher home_detector(console);
-        if (home_detector.detect(console.video().snapshot())){
+        auto snapshot = console.video().snapshot();
+        if (home_detector.detect(snapshot)){
             console.log("Failed to re-enter game. Trying again...", COLOR_RED);
-            pbf_press_button(context, BUTTON_HOME, 10, 10);
+            pbf_press_button(context, BUTTON_HOME, 80ms, 80ms);
             continue;
         }else{
             break;
@@ -292,7 +382,7 @@ void resume_game_from_home(
             if (ret == 0){
                 console.log("Detected update window.", COLOR_RED);
 
-                pbf_move_joystick(context, 128, 0, 10ms, 0ms);
+                pbf_move_joystick(context, {0, +1}, 10ms, 0ms);
                 pbf_press_button(context, BUTTON_A, 10ms, 500ms);
                 context.wait_for_all_requests();
                 continue;
@@ -332,10 +422,10 @@ void move_to_user(JoyconContext& context, uint8_t user_slot){
     if (user_slot != 0){
         //  Move to correct user.
         for (uint8_t c = 0; c < 9; c++){    //  Extra iteration in case one gets dropped.
-            pbf_move_joystick(context, 0, 128, 160ms, 160ms);
+            pbf_move_joystick(context, {-1, 0}, 160ms, 160ms);
         }
         for (uint8_t c = 1; c < user_slot; c++){
-            pbf_move_joystick(context, 0, 128, 160ms, 160ms);
+            pbf_move_joystick(context, {+1, 0}, 160ms, 160ms);
         }
     }
 }
@@ -350,8 +440,7 @@ void start_game_from_home_blind(
     Logger& logger, ProControllerContext& context,
     bool tolerate_update_menu,
     uint8_t game_slot,
-    uint8_t user_slot,
-    Milliseconds start_game_mash
+    uint8_t user_slot
 ){
     if (game_slot != 0){
         ssf_press_button(context, BUTTON_HOME, ConsoleSettings::instance().SETTINGS_TO_HOME_DELAY0, 160ms);
@@ -370,17 +459,19 @@ void start_game_from_home_blind(
 
         //  If the update menu isn't there, these will get swallowed by the opening
         //  animation for the select user menu.
-        pbf_press_button(context, BUTTON_A, 10, 175);    //  Choose game
-        pbf_press_dpad(context, DPAD_UP, 10, 0);         //  Skip the update window.
+        pbf_press_button(context, BUTTON_A, 80ms, 1400ms);   //  Choose game
+        pbf_press_dpad(context, DPAD_UP, 80ms, 0ms);    //  Skip the update window.
         move_to_user(context, user_slot);
     }
+
+    Milliseconds start_game_mash = ConsoleSettings::instance().BLIND_START_GAME_MASH;
 
 //    cout << "START_GAME_REQUIRES_INTERNET = " << ConsoleSettings::instance().START_GAME_REQUIRES_INTERNET << endl;
     if (!ConsoleSettings::instance().START_GAME_REQUIRES_INTERNET && user_slot == 0){
         //  Mash your way into the game.
         pbf_mash_button(context, BUTTON_A, start_game_mash);
     }else{
-        pbf_press_button(context, BUTTON_A, 10, 175);   //  Enter select user menu.
+        pbf_press_button(context, BUTTON_A, 80ms, 1400ms);   //  Enter select user menu.
         move_to_user(context, user_slot);
         ssf_press_button_ptv(context, BUTTON_A, 160ms); //  Enter game
 
@@ -406,8 +497,7 @@ void start_game_from_home_blind(
 void start_game_from_home_with_inference(
     ConsoleHandle& console, ProControllerContext& context,
     uint8_t game_slot,
-    uint8_t user_slot,
-    Milliseconds start_game_wait
+    uint8_t user_slot
 ){
     context.wait_for_all_requests();
     {
@@ -415,7 +505,13 @@ void start_game_from_home_with_inference(
         int ret = run_until<ProControllerContext>(
             console, context,
             [](ProControllerContext& context){
-                pbf_mash_button(context, BUTTON_B, 10 * TICKS_PER_SECOND);
+                if (context.controller().performance_class() == ControllerPerformanceClass::SerialPABotBase_Wired){
+                    pbf_mash_button(context, BUTTON_B, 10000ms);
+                }else{
+                    for (int c = 0; c < 10; c++){
+                        pbf_press_button(context, BUTTON_B, 200ms, 800ms);
+                    }
+                }
             },
             { detector }
         );
@@ -439,13 +535,15 @@ void start_game_from_home_with_inference(
         context.wait_for_all_requests();
     }
 
-    pbf_press_button(context, BUTTON_A, 20, 105);
+    pbf_press_button(context, BUTTON_A, 160ms, 840ms);
 
-    while (true){
+    WallClock deadline = current_time() + std::chrono::minutes(5);
+    while (current_time() < deadline){
         HomeMenuWatcher home(console, std::chrono::milliseconds(2000));
         StartGameUserSelectWatcher user_select(console, COLOR_GREEN);
         UpdateMenuWatcher update_menu(console, COLOR_PURPLE);
         CheckOnlineWatcher check_online(COLOR_CYAN);
+        FailedToConnectWatcher failed_to_connect(COLOR_YELLOW);
         BlackScreenWatcher black_screen(COLOR_BLUE, {0.1, 0.15, 0.8, 0.7});
         context.wait_for_all_requests();
         int ret = wait_until(
@@ -456,6 +554,7 @@ void start_game_from_home_with_inference(
                 user_select,
                 update_menu,
                 check_online,
+                failed_to_connect,
                 black_screen,
             }
         );
@@ -465,40 +564,46 @@ void start_game_from_home_with_inference(
 
         switch (ret){
         case 0:
-            console.log("Detected home screen (again).", COLOR_RED);
-            pbf_press_button(context, BUTTON_A, 20, 105);
+            console.log("Detected home screen (again).", COLOR_BLUE);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             break;
         case 1:
             console.log("Detected user-select screen.");
             move_to_user(context, user_slot);
-            pbf_press_button(context, BUTTON_A, 80ms, start_game_wait);
+            pbf_press_button(context, BUTTON_A, 160ms, 320ms);
             break;
         case 2:
-            console.log("Detected update menu.", COLOR_RED);
-            pbf_press_dpad(context, DPAD_UP, 5, 0);
-            pbf_press_button(context, BUTTON_A, 20, 105);
+            console.log("Detected update menu.", COLOR_BLUE);
+            pbf_press_dpad(context, DPAD_UP, 40ms, 0ms);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             break;
         case 3:
-            console.log("Detected check online.", COLOR_RED);
+            console.log("Detected check online.", COLOR_BLUE);
             context.wait_for(std::chrono::seconds(1));
             break;
         case 4:
+            console.log("Detected failed to connect.", COLOR_BLUE);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
+            break;
+        case 5:
             console.log("Detected black screen. Game started...");
             return;
         default:
-            OperationFailedException::fire(
-                ErrorReport::SEND_ERROR_REPORT,
-                "start_game_from_home_with_inference(): No recognizable state after 30 seconds.",
-                console
-            );
+            console.log("start_game_from_home_with_inference(): No recognizable state after 30 seconds.", COLOR_RED);
+            pbf_press_button(context, BUTTON_HOME, 160ms, 840ms);
         }
     }
+
+    OperationFailedException::fire(
+        ErrorReport::SEND_ERROR_REPORT,
+        "start_game_from_home_with_inference(): Failed to start game after 5 minutes.",
+        console
+    );
 }
 void start_game_from_home_with_inference(
     ConsoleHandle& console, JoyconContext& context,
     uint8_t game_slot,
-    uint8_t user_slot,
-    Milliseconds start_game_wait
+    uint8_t user_slot
 ){
     context.wait_for_all_requests();
 
@@ -516,7 +621,13 @@ void start_game_from_home_with_inference(
         int ret = run_until<JoyconContext>(
             console, context,
             [](JoyconContext& context){
-                pbf_mash_button(context, BUTTON_B, 10000ms);
+                if (context.controller().performance_class() == ControllerPerformanceClass::SerialPABotBase_Wired){
+                    pbf_mash_button(context, BUTTON_B, 10000ms);
+                }else{
+                    for (int c = 0; c < 10; c++){
+                        pbf_press_button(context, BUTTON_B, 200ms, 800ms);
+                    }
+                }
             },
             { detector }
         );
@@ -535,7 +646,7 @@ void start_game_from_home_with_inference(
     if (game_slot != 0){
         ssf_press_button(context, BUTTON_HOME, ConsoleSettings::instance().SETTINGS_TO_HOME_DELAY0, 160ms);
         for (uint8_t c = 1; c < game_slot; c++){
-            pbf_move_joystick(context, 255, 128, 160ms, 0ms);
+            pbf_move_joystick(context, {+1, 0}, 160ms, 0ms);
         }
         context.wait_for_all_requests();
     }
@@ -547,6 +658,7 @@ void start_game_from_home_with_inference(
         StartGameUserSelectWatcher user_select(console, COLOR_GREEN);
         UpdateMenuWatcher update_menu(console, COLOR_PURPLE);
         CheckOnlineWatcher check_online(COLOR_CYAN);
+        FailedToConnectWatcher failed_to_connect(COLOR_YELLOW);
         BlackScreenWatcher black_screen(COLOR_BLUE);
         context.wait_for_all_requests();
         int ret = wait_until(
@@ -557,6 +669,7 @@ void start_game_from_home_with_inference(
                 user_select,
                 update_menu,
                 check_online,
+                failed_to_connect,
                 black_screen,
             }
         );
@@ -566,24 +679,28 @@ void start_game_from_home_with_inference(
 
         switch (ret){
         case 0:
-            console.log("Detected home screen (again).", COLOR_RED);
+            console.log("Detected home screen (again).", COLOR_BLUE);
             pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             break;
         case 1:
             console.log("Detected user-select screen.");
             move_to_user(context, user_slot);
-            pbf_press_button(context, BUTTON_A, 80ms, start_game_wait);
+            pbf_press_button(context, BUTTON_A, 160ms, 320ms);
             break;
         case 2:
-            console.log("Detected update menu.", COLOR_RED);
-            pbf_move_joystick(context, 128, 0, 50ms, 0ms);
+            console.log("Detected update menu.", COLOR_BLUE);
+            pbf_move_joystick(context, {0, +1}, 50ms, 0ms);
             pbf_press_button(context, BUTTON_A, 160ms, 840ms);
             break;
         case 3:
-            console.log("Detected check online.", COLOR_RED);
+            console.log("Detected check online.", COLOR_BLUE);
             context.wait_for(std::chrono::seconds(1));
             break;
         case 4:
+            console.log("Detected failed to connect.", COLOR_BLUE);
+            pbf_press_button(context, BUTTON_A, 160ms, 840ms);
+            break;
+        case 5:
             console.log("Detected black screen. Game started...");
             return;
         default:
@@ -606,38 +723,33 @@ void start_game_from_home(
     ConsoleHandle& console, ProControllerContext& context,
     bool tolerate_update_menu,
     uint8_t game_slot,
-    uint8_t user_slot,
-    Milliseconds start_game_mash
+    uint8_t user_slot
 ){
     context.wait_for_all_requests();
     if (console.video().snapshot()){
         console.log("start_game_from_home(): Video capture available. Using inference...");
         start_game_from_home_with_inference(
             console, context,
-            game_slot, user_slot,
-            start_game_mash
+            game_slot, user_slot
         );
     }else{
         console.log("start_game_from_home(): Video capture not available.", COLOR_RED);
         start_game_from_home_blind(
             console, context,
             tolerate_update_menu,
-            game_slot, user_slot,
-            start_game_mash
+            game_slot, user_slot
         );
     }
 }
 void start_game_from_home(
     ConsoleHandle& console, JoyconContext& context,
     uint8_t game_slot,
-    uint8_t user_slot,
-    Milliseconds start_game_wait
+    uint8_t user_slot
 ){
     //  Inference is required.
     start_game_from_home_with_inference(
         console, context,
-        game_slot, user_slot,
-        start_game_wait
+        game_slot, user_slot
     );
 }
 
@@ -651,8 +763,6 @@ void from_home_close_and_reopen_game(
     ConsoleHandle& console, ProControllerContext& context,
     bool tolerate_update_menu
 ){
-    Milliseconds start_game_mash = ConsoleSettings::instance().START_GAME_MASH;
-
 #if 1
     bool video_available = (bool)console.video().snapshot();
     if (video_available ||
@@ -664,15 +774,16 @@ void from_home_close_and_reopen_game(
             console,
             context,
             tolerate_update_menu,
-            0, 0,
-            start_game_mash
+            0, 0
         );
         return;
     }
 #endif
 
     //  Fastest setting. No internet needed and no update menu.
-    ssf_mash1_button(context, BUTTON_X, 50);
+    ssf_mash1_button(context, BUTTON_X, 400ms);
+
+    Milliseconds start_game_mash = ConsoleSettings::instance().BLIND_START_GAME_MASH;
 
     //  Use mashing to ensure that the X press succeeds. If it fails, the SR
     //  will fail and can kill a den for the autohosts.

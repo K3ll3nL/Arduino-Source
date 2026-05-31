@@ -5,6 +5,8 @@
  */
 #include "PokemonSV/Inference/Dialogs/PokemonSV_DialogDetector.h"
 #include "PokemonSV/Inference/Overworld/PokemonSV_DirectionDetector.h"
+#include "CommonFramework/VideoPipeline/VideoFeed.h"
+#include "PokemonSV/Inference/Overworld/PokemonSV_NoMinimapDetector.h"
 
 #include "CommonFramework/Exceptions/OperationFailedException.h"
 #include "CommonTools/Async/InferenceRoutines.h"
@@ -54,9 +56,9 @@ void AutoStory_Segment_28::run_segment(
     context.wait_for_all_requests();
     env.console.log("Start Segment " + name(), COLOR_ORANGE);
 
-	AutoStory_Checkpoint_68().run_checkpoint(env, context, options, stats);
-	AutoStory_Checkpoint_69().run_checkpoint(env, context, options, stats);
-	AutoStory_Checkpoint_70().run_checkpoint(env, context, options, stats);    
+    AutoStory_Checkpoint_68().run_checkpoint(env, context, options, stats);
+    AutoStory_Checkpoint_69().run_checkpoint(env, context, options, stats);
+    AutoStory_Checkpoint_70().run_checkpoint(env, context, options, stats);    
 
     context.wait_for_all_requests();
     env.console.log("End Segment " + name(), COLOR_GREEN);
@@ -66,7 +68,7 @@ void AutoStory_Segment_28::run_segment(
 
 std::string AutoStory_Checkpoint_68::name() const{ return "068 - " + AutoStory_Segment_28().name(); }
 std::string AutoStory_Checkpoint_68::start_text() const{ return "At North Province Area Three Pokecenter";}
-std::string AutoStory_Checkpoint_68::end_text() const{ return "Beat team star grunt. At gate of Team Star (Fairy) base.";}
+std::string AutoStory_Checkpoint_68::end_text() const{ return "At North Province Area Three Pokecenter";}
 void AutoStory_Checkpoint_68::run_checkpoint(SingleSwitchProgramEnvironment& env, ProControllerContext& context, AutoStoryOptions options, AutoStoryStats& stats) const{
     checkpoint_68(env, context, options.notif_status_update, stats);
 }
@@ -91,24 +93,43 @@ void AutoStory_Checkpoint_70::run_checkpoint(SingleSwitchProgramEnvironment& env
 void checkpoint_68(SingleSwitchProgramEnvironment& env, ProControllerContext& context, EventNotificationOption& notif_status_update, AutoStoryStats& stats){
     checkpoint_reattempt_loop(env, context, notif_status_update, stats,
     [&](size_t attempt_number){
+        // empty checkpoint, to preserve ordering
+        
+    
+    }, false);
+    
+}
+
+void checkpoint_69(SingleSwitchProgramEnvironment& env, ProControllerContext& context, EventNotificationOption& notif_status_update, AutoStoryStats& stats){
+    checkpoint_reattempt_loop(env, context, notif_status_update, stats,
+    [&](size_t attempt_number){
+
         context.wait_for_all_requests();
         // move the marker elsewhere, away from North
-        realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_NEW_MARKER, 128, 255, 50);
+        realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_NEW_MARKER, 0, -1, 400ms);
 
         DirectionDetector direction;
+        if (attempt_number > 0 || ENABLE_TEST){
+            env.console.log("Fly to neighbouring Pokecenter, then fly back, to clear any pokemon covering the minimap.");
+            move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::KEEP_ZOOM, 0, -1, 400ms});
+            // fly_to_overworld_from_map() may fail since the snowy background on the map will false positive the destinationMenuItemWatcher (MapDestinationMenuDetector at box {0.523000, 0.680000, 0.080000, 0.010000}), which causes the fly to fail
+            // we can get around this by either placing down a marker, or by zooming out so that that section isn't white snow.
+            move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::ZOOM_OUT, 0, +1, 100ms});
+        }
+
         direction.change_direction(env.program_info(), env.console, context, 0.696613);
 
-        pbf_move_left_joystick(context, 128, 0, 200, 50);
+        pbf_move_left_joystick(context, {0, +1}, 1600ms, 400ms);
 
-        realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_NEW_MARKER, 150, 0, 120);
+        realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_NEW_MARKER, +0.173, +1, 960ms);
         handle_when_stationary_in_overworld(env.program_info(), env.console, context, 
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
                 overworld_navigation(env.program_info(), env.console, context, 
                     NavigationStopCondition::STOP_DIALOG, NavigationMovementMode::DIRECTIONAL_ONLY, 
-                    128, 0, 40, 20, false);
+                    0, +1, 40, 20, false);
             }, 
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                pbf_move_left_joystick(context, 255, 255, 40, 50);
+                pbf_move_left_joystick(context, {+1, -1}, 320ms, 400ms);
                 realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
             }
         ); 
@@ -116,15 +137,15 @@ void checkpoint_68(SingleSwitchProgramEnvironment& env, ProControllerContext& co
         // talk to Clavell
         clear_dialog(env.console, context, ClearDialogMode::STOP_OVERWORLD, 60, {CallbackEnum::OVERWORLD, CallbackEnum::PROMPT_DIALOG});
 
-        realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_NEW_MARKER, 0, 0, 100);
+        realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_NEW_MARKER, -1, +1, 800ms);
         handle_when_stationary_in_overworld(env.program_info(), env.console, context, 
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
                 overworld_navigation(env.program_info(), env.console, context, 
                     NavigationStopCondition::STOP_DIALOG, NavigationMovementMode::DIRECTIONAL_ONLY, 
-                    128, 0, 40, 20, false);
+                    0, +1, 40, 20, false);
             }, 
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                pbf_move_left_joystick(context, 255, 255, 40, 50);
+                pbf_move_left_joystick(context, {+1, -1}, 320ms, 400ms);
                 realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
             }
         ); 
@@ -135,14 +156,7 @@ void checkpoint_68(SingleSwitchProgramEnvironment& env, ProControllerContext& co
         env.console.log("Battle Mr. Harrington.");
         run_trainer_battle_press_A(env.console, context, BattleStopCondition::STOP_DIALOG);
         mash_button_till_overworld(env.console, context, BUTTON_A);
-    
-    });
-    
-}
 
-void checkpoint_69(SingleSwitchProgramEnvironment& env, ProControllerContext& context, EventNotificationOption& notif_status_update, AutoStoryStats& stats){
-    checkpoint_reattempt_loop(env, context, notif_status_update, stats,
-    [&](size_t attempt_number){
 
         context.wait_for_all_requests();
         do_action_and_monitor_for_battles(env.program_info(), env.console, context,
@@ -151,132 +165,137 @@ void checkpoint_69(SingleSwitchProgramEnvironment& env, ProControllerContext& co
                 DirectionDetector direction;
 
                 direction.change_direction(env.program_info(), env.console, context, 0.261697);
-                pbf_move_left_joystick(context, 128, 0, 10, 50);
+                pbf_move_left_joystick(context, {0, +1}, 80ms, 400ms);
                 
-                walk_forward_while_clear_front_path(env.program_info(), env.console, context, 100);
+                walk_forward_while_clear_front_path(env.program_info(), env.console, context, 800ms);
                 walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_SPAM_A);
             }
         );
         clear_dialog(env.console, context, ClearDialogMode::STOP_OVERWORLD, 60, {CallbackEnum::OVERWORLD, CallbackEnum::PROMPT_DIALOG});
 
-        AdvanceDialogWatcher    dialog(COLOR_RED);
+        NoMinimapWatcher no_minimap(env.console.logger(), COLOR_RED, Milliseconds(250));
         int ret = run_until<ProControllerContext>(
             env.console, context,
             [&](ProControllerContext& context){
                 
-                uint16_t seconds_wait = 6;
+                Milliseconds wait = 6000ms;
  
                 DirectionDetector direction;
 
                 direction.change_direction(env.program_info(), env.console, context, 0.611062);
-                pbf_move_left_joystick(context, 128, 0, 200, 50);
-                pbf_press_button(context, BUTTON_R, 20, 20);
-                pbf_wait(context, seconds_wait * TICKS_PER_SECOND);
+                pbf_move_left_joystick(context, {0, +1}, 1600ms, 400ms);
+                pbf_press_button(context, BUTTON_R, 160ms, 160ms);
+                pbf_wait(context, wait);
 
 
                 direction.change_direction(env.program_info(), env.console, context, 5.550472);
-                pbf_move_left_joystick(context, 128, 0, 300, 50);
-                pbf_press_button(context, BUTTON_R, 20, 20);
-                pbf_wait(context, seconds_wait * TICKS_PER_SECOND);
+                pbf_move_left_joystick(context, {0, +1}, 2400ms, 400ms);
+                pbf_press_button(context, BUTTON_R, 160ms, 160ms);
+                pbf_wait(context, wait);
 
                 direction.change_direction(env.program_info(), env.console, context, 5.860926);
-                pbf_move_left_joystick(context, 128, 0, 400, 50);
+                pbf_move_left_joystick(context, {0, +1}, 3200ms, 400ms);
 
                 direction.change_direction(env.program_info(), env.console, context, 4.920249);
-                pbf_move_left_joystick(context, 128, 0, 100, 50);
-                pbf_press_button(context, BUTTON_R, 20, 20);
-                pbf_wait(context, seconds_wait * TICKS_PER_SECOND);
+                pbf_move_left_joystick(context, {0, +1}, 800ms, 400ms);
+                pbf_press_button(context, BUTTON_R, 160ms, 160ms);
+                pbf_wait(context, wait);
 
                 direction.change_direction(env.program_info(), env.console, context, 0.402877);
-                pbf_move_left_joystick(context, 128, 0, 300, 50);
-                pbf_press_button(context, BUTTON_R, 20, 20);
-                pbf_wait(context, seconds_wait * TICKS_PER_SECOND);
+                pbf_move_left_joystick(context, {0, +1}, 2400ms, 400ms);
+                pbf_press_button(context, BUTTON_R, 160ms, 160ms);
+                pbf_wait(context, wait);
 
                 direction.change_direction(env.program_info(), env.console, context, 5.707655);
-                pbf_move_left_joystick(context, 128, 0, 400, 50);
-                pbf_press_button(context, BUTTON_R, 20, 20);
-                pbf_wait(context, seconds_wait * TICKS_PER_SECOND);
+                pbf_move_left_joystick(context, {0, +1}, 3200ms, 400ms);
+                pbf_press_button(context, BUTTON_R, 160ms, 160ms);
+                pbf_wait(context, wait);
 
                 direction.change_direction(env.program_info(), env.console, context, 5.394366);
-                pbf_move_left_joystick(context, 128, 0, 400, 50);
-                pbf_press_button(context, BUTTON_R, 20, 20);
-                pbf_wait(context, seconds_wait * TICKS_PER_SECOND);
+                pbf_move_left_joystick(context, {0, +1}, 3200ms, 400ms);
+                pbf_press_button(context, BUTTON_R, 160ms, 160ms);
+                pbf_wait(context, wait);
 
                 direction.change_direction(env.program_info(), env.console, context, 0.979935);
-                pbf_move_left_joystick(context, 128, 0, 500, 50);
-                pbf_press_button(context, BUTTON_R, 20, 20);
-                pbf_wait(context, seconds_wait * TICKS_PER_SECOND);
+                pbf_move_left_joystick(context, {0, +1}, 4000ms, 400ms);
+                pbf_press_button(context, BUTTON_R, 160ms, 160ms);
+                pbf_wait(context, wait);
 
                 direction.change_direction(env.program_info(), env.console, context,  1.552260);
-                pbf_move_left_joystick(context, 128, 0, 300, 50);
-                pbf_press_button(context, BUTTON_R, 20, 20);
-                pbf_wait(context, seconds_wait * TICKS_PER_SECOND);
+                pbf_move_left_joystick(context, {0, +1}, 2400ms, 400ms);
+                pbf_press_button(context, BUTTON_R, 160ms, 160ms);
+                pbf_wait(context, wait);
 
                 direction.change_direction(env.program_info(), env.console, context, 1.869166);
-                pbf_move_left_joystick(context, 128, 0, 200, 50);
-                pbf_press_button(context, BUTTON_R, 20, 20);
-                pbf_wait(context, seconds_wait * TICKS_PER_SECOND);
+                pbf_move_left_joystick(context, {0, +1}, 1600ms, 400ms);
+                pbf_press_button(context, BUTTON_R, 160ms, 160ms);
+                pbf_wait(context, wait);
 
 
                 direction.change_direction(env.program_info(), env.console, context, 0.769966);
-                pbf_move_left_joystick(context, 128, 0, 300, 50);
-                pbf_press_button(context, BUTTON_R, 20, 20);
-                pbf_wait(context, seconds_wait * TICKS_PER_SECOND);
+                pbf_move_left_joystick(context, {0, +1}, 2400ms, 400ms);
+                pbf_press_button(context, BUTTON_R, 160ms, 160ms);
+                pbf_wait(context, wait);
 
                 
 
                 direction.change_direction(env.program_info(), env.console, context, 6.127338);
-                pbf_move_left_joystick(context, 128, 0, 300, 50);
-                pbf_press_button(context, BUTTON_R, 20, 20);
-                pbf_wait(context, seconds_wait * TICKS_PER_SECOND);
+                pbf_move_left_joystick(context, {0, +1}, 2400ms, 400ms);
+                pbf_press_button(context, BUTTON_R, 160ms, 160ms);
+                pbf_wait(context, wait);
 
 
-                direction.change_direction(env.program_info(), env.console, context, 1.451616);
-                pbf_move_left_joystick(context, 128, 0, 500, 50);
-                pbf_press_button(context, BUTTON_R, 20, 20);
-                pbf_wait(context, seconds_wait * TICKS_PER_SECOND);
-                
+                try{
+                    direction.change_direction(env.program_info(), env.console, context, 1.451616);
+                    pbf_move_left_joystick(context, {0, +1}, 4000ms, 400ms);
+                    pbf_press_button(context, BUTTON_R, 160ms, 160ms);
+                    pbf_wait(context, wait);
+                    
 
-                direction.change_direction(env.program_info(), env.console, context, 2.023052);
-                pbf_move_left_joystick(context, 128, 0, 500, 50);
-                pbf_press_button(context, BUTTON_R, 20, 20);
-                pbf_wait(context, seconds_wait * TICKS_PER_SECOND);
-                
+                    direction.change_direction(env.program_info(), env.console, context, 2.023052);
+                    pbf_move_left_joystick(context, {0, +1}, 4000ms, 400ms);
+                    pbf_press_button(context, BUTTON_R, 160ms, 160ms);
+                    pbf_wait(context, wait);
+                    
 
-                direction.change_direction(env.program_info(), env.console, context, 1.13517);
-                pbf_move_left_joystick(context, 128, 0, 1000, 50);
-                pbf_press_button(context, BUTTON_R, 20, 20);
-                pbf_wait(context, seconds_wait * TICKS_PER_SECOND);     
-                
-                direction.change_direction(env.program_info(), env.console, context, 0.609735);
-                pbf_move_left_joystick(context, 128, 0, 200, 50);
-                pbf_press_button(context, BUTTON_R, 20, 20);
-                pbf_wait(context, seconds_wait * TICKS_PER_SECOND);
+                    direction.change_direction(env.program_info(), env.console, context, 1.13517);
+                    pbf_move_left_joystick(context, {0, +1}, 8000ms, 400ms);
+                    pbf_press_button(context, BUTTON_R, 160ms, 160ms);
+                    pbf_wait(context, wait);
+                    
+                    direction.change_direction(env.program_info(), env.console, context, 0.609735);
+                    pbf_move_left_joystick(context, {0, +1}, 1600ms, 400ms);
+                    pbf_press_button(context, BUTTON_R, 160ms, 160ms);
+                    pbf_wait(context, wait);
+                }catch (OperationFailedException&){
+                    env.console.log("Failed to change direction, but it's possibly due to clearing the challenge.");
+                    pbf_wait(context, 20000ms);
+                }
 
                 // ///////////////////////
                 
 
                 // direction.change_direction(env.program_info(), env.console, context, 0);
                 // pbf_move_left_joystick(context, 128, 0, 00, 50);
-                // pbf_press_button(context, BUTTON_R, 20, 20);
-                // pbf_wait(context, seconds_wait * TICKS_PER_SECOND);
+                // pbf_press_button(context, BUTTON_R, 160ms, 160ms);
+                // pbf_wait(context, wait);
 
 
-                pbf_wait(context, 20 * TICKS_PER_SECOND);
+                pbf_wait(context, 20000ms);
                 
             },
-            {dialog}
+            {no_minimap}
         );
         context.wait_for(std::chrono::milliseconds(100));
         if (ret < 0){
             OperationFailedException::fire(
                 ErrorReport::SEND_ERROR_REPORT,
-                "Team Star Poison: Failed to kill 30 pokemon with Let's go.",
+                "Team Star Fairy: Failed to kill 30 pokemon with Let's go.",
                 env.console
             );            
         }
         clear_dialog(env.console, context, ClearDialogMode::STOP_BATTLE, 60, {CallbackEnum::BATTLE, CallbackEnum::DIALOG_ARROW});
-        env.console.log("Battle the Team Star (Poison) boss.");
+        env.console.log("Battle the Team Star (Fairy) boss.");
         run_trainer_battle_press_A(env.console, context, BattleStopCondition::STOP_DIALOG);
         mash_button_till_overworld(env.console, context, BUTTON_A, 360);
 
@@ -288,10 +307,13 @@ void checkpoint_70(SingleSwitchProgramEnvironment& env, ProControllerContext& co
     [&](size_t attempt_number){
         context.wait_for_all_requests();
         // fly back to North Province Area Three
-        move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::KEEP_ZOOM, 0, 0, 0}, FlyPoint::POKECENTER);
+        // fly_to_overworld_from_map() may fail since the snowy background on the map will false positive the destinationMenuItemWatcher (MapDestinationMenuDetector at box {0.523000, 0.680000, 0.080000, 0.010000}), which causes the fly to fail
+        // we can get around this by either placing down a marker, or by zooming out so that that section isn't white snow.
+        move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::ZOOM_OUT, -1, +1, 0ms}, FlyPoint::POKECENTER);
 
         // fly back to Glaseado Mountain Pokecenter
-        move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::ZOOM_OUT, 0, 0, 0}, FlyPoint::POKECENTER);
+        // this clears Pokemon in minimap
+        move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::ZOOM_OUT, -1, +1, 0ms}, FlyPoint::POKECENTER);
 
         move_from_glaseado_mountain_to_montenevera(env, context);
 
@@ -305,7 +327,7 @@ void move_from_glaseado_mountain_to_montenevera(SingleSwitchProgramEnvironment& 
 
     // marker 1         {0.745313, 0.637037}
     place_marker_offset_from_flypoint(env.program_info(), env.console, context, 
-        {ZoomChange::KEEP_ZOOM, 0, 0, 0}, 
+        {ZoomChange::KEEP_ZOOM, -1, +1, 0ms}, 
         FlyPoint::POKECENTER, 
         {0.745313, 0.637037}
     );
@@ -313,17 +335,17 @@ void move_from_glaseado_mountain_to_montenevera(SingleSwitchProgramEnvironment& 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
             overworld_navigation(env.program_info(), env.console, context, 
                 NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-                128, 0, 30, 10, false);
+                0, +1, 30, 10, false);
         }, 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-            pbf_move_left_joystick(context, 0, 255, 40, 50);
+            pbf_move_left_joystick(context, {-1, -1}, 320ms, 400ms);
             realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
         }
     );
     
     // marker 2       x=0.225521, y=0.380556. {0.229687, 0.37037}
     place_marker_offset_from_flypoint(env.program_info(), env.console, context, 
-        {ZoomChange::KEEP_ZOOM, 255, 0, 50}, 
+        {ZoomChange::KEEP_ZOOM, +1, +1, 400ms},
         FlyPoint::POKECENTER, 
         {0.229687, 0.37037}
     );
@@ -331,17 +353,17 @@ void move_from_glaseado_mountain_to_montenevera(SingleSwitchProgramEnvironment& 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
             overworld_navigation(env.program_info(), env.console, context, 
                 NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-                128, 0, 60, 10, false);
+                0, +1, 60, 10, false);
         }, 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-            pbf_move_left_joystick(context, 0, 255, 40, 50);
+            pbf_move_left_joystick(context, {-1, -1}, 320ms, 400ms);
             realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
         }
     );
 
     // marker 3       x=0.396354, y=0.69537.  x=0.396875, y=0.725926
     place_marker_offset_from_flypoint(env.program_info(), env.console, context, 
-        {ZoomChange::KEEP_ZOOM, 255, 200, 50}, 
+        {ZoomChange::KEEP_ZOOM, +1, -0.567, 400ms},
         FlyPoint::POKECENTER, 
         {0.396875, 0.725926}
     );
@@ -349,17 +371,17 @@ void move_from_glaseado_mountain_to_montenevera(SingleSwitchProgramEnvironment& 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
             overworld_navigation(env.program_info(), env.console, context, 
                 NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-                128, 0, 50, 10, false);
+                0, +1, 50, 10, false);
         }, 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-            pbf_move_left_joystick(context, 255, 255, 40, 50);
+            pbf_move_left_joystick(context, {+1, -1}, 320ms, 400ms);
             realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
         }
     );
 
     // marker 4       (0.409896, 0.65)
     place_marker_offset_from_flypoint(env.program_info(), env.console, context, 
-        {ZoomChange::KEEP_ZOOM, 0, 0, 0}, 
+        {ZoomChange::KEEP_ZOOM, -1, +1, 0ms}, 
         FlyPoint::POKECENTER, 
         {0.409896, 0.65}
     );
@@ -367,10 +389,10 @@ void move_from_glaseado_mountain_to_montenevera(SingleSwitchProgramEnvironment& 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
             overworld_navigation(env.program_info(), env.console, context, 
                 NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-                128, 0, 20, 10, false);
+                0, +1, 20, 10, false);
         }, 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-            pbf_move_left_joystick(context, 255, 255, 40, 50);
+            pbf_move_left_joystick(context, {+1, -1}, 320ms, 400ms);
             realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
         }
     );
@@ -378,7 +400,7 @@ void move_from_glaseado_mountain_to_montenevera(SingleSwitchProgramEnvironment& 
     
     // marker 5        {0.509896, 0.639815}
     place_marker_offset_from_flypoint(env.program_info(), env.console, context, 
-        {ZoomChange::KEEP_ZOOM, 0, 0, 0}, 
+        {ZoomChange::KEEP_ZOOM, -1, +1, 0ms}, 
         FlyPoint::POKECENTER, 
         {0.509896, 0.639815}
     );
@@ -386,17 +408,17 @@ void move_from_glaseado_mountain_to_montenevera(SingleSwitchProgramEnvironment& 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
             overworld_navigation(env.program_info(), env.console, context, 
                 NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-                128, 0, 30, 10, false);
+                0, +1, 30, 10, false);
         }, 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-            pbf_move_left_joystick(context, 255, 255, 40, 50);
+            pbf_move_left_joystick(context, {+1, -1}, 320ms, 400ms);
             realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
         }
     );
 
     // marker 6         {0.508333, 0.566667}   {0.521875, 0.483333}
     place_marker_offset_from_flypoint(env.program_info(), env.console, context, 
-        {ZoomChange::ZOOM_IN, 128, 255, 20}, 
+        {ZoomChange::ZOOM_IN, 0, -1, 160ms},
         FlyPoint::POKECENTER, 
         {0.508333, 0.566667}
     );
@@ -404,17 +426,17 @@ void move_from_glaseado_mountain_to_montenevera(SingleSwitchProgramEnvironment& 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
             overworld_navigation(env.program_info(), env.console, context, 
                 NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-                128, 0, 30, 10, false);
+                0, +1, 30, 10, false);
         }, 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-            pbf_move_left_joystick(context, 255, 255, 40, 50);
+            pbf_move_left_joystick(context, {+1, -1}, 320ms, 400ms);
             realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
         }
     );
 
     // marker 7         {0.508333, 0.566667}   {0.521875, 0.483333}  {0.529687, 0.483333}
     place_marker_offset_from_flypoint(env.program_info(), env.console, context, 
-        {ZoomChange::ZOOM_IN, 0, 0, 0}, 
+        {ZoomChange::ZOOM_IN, -1, +1, 0ms}, 
         FlyPoint::POKECENTER, 
         {0.529687, 0.483333}
     );
@@ -425,12 +447,12 @@ void move_from_glaseado_mountain_to_montenevera(SingleSwitchProgramEnvironment& 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
             overworld_navigation(env.program_info(), env.console, context, 
                 NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-                128, 0, 30, 10, false);
+                0, +1, 30, 10, false);
         }, 
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-            pbf_move_left_joystick(context, 128, 0, 500ms, 0ms);
-            pbf_controller_state(context, BUTTON_B, DPAD_NONE, 128, 0, 128, 128, 1000ms);
-            pbf_move_left_joystick(context, 128, 0, 500ms, 0ms);
+            pbf_move_left_joystick(context, {0, +1}, 500ms, 0ms);
+            pbf_controller_state(context, BUTTON_B, DPAD_NONE, {0, +1}, {0, 0}, 1000ms);
+            pbf_move_left_joystick(context, {0, +1}, 500ms, 0ms);
             realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_OLD_MARKER);
         }
     );

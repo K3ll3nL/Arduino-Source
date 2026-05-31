@@ -57,30 +57,33 @@ class DummyBotBase : public BotBaseController{
 public:
     DummyBotBase(Logger& logger) : m_logger(logger) {}
 
-    virtual void stop(std::string error_message) override{}
+    virtual void stop(std::string error_message) noexcept override{}
     
     virtual Logger& logger() override { return m_logger; }
 
     virtual State state() const override { return State::RUNNING; }
     virtual size_t queue_limit() const override { return PABB_DEVICE_MINIMUM_QUEUE_SIZE; }
 
-    virtual void notify_all() override{}
+    virtual void on_cancellable_cancel(
+        Cancellable& cancellable,
+        std::exception_ptr reason
+    ) override{}
 
-    virtual void wait_for_all_requests(const Cancellable* cancelled = nullptr) override {}
+    virtual void wait_for_all_requests(Cancellable* cancelled = nullptr) override {}
     virtual void stop_all_commands() override {}
     virtual void next_command_interrupt() override {};
 
     virtual bool try_issue_request(
         const BotBaseRequest& request,
-        const Cancellable* cancelled = nullptr
+        Cancellable* cancelled = nullptr
     ) override { return true; }
     virtual void issue_request(
         const BotBaseRequest& request,
-        const Cancellable* cancelled = nullptr
+        Cancellable* cancelled = nullptr
     ) override {}
     virtual BotBaseMessage issue_request_and_wait(
         const BotBaseRequest& request,
-        const Cancellable* cancelled = nullptr
+        Cancellable* cancelled = nullptr
     ) override { return BotBaseMessage(0, ""); }
 
     Logger& m_logger;
@@ -90,7 +93,7 @@ public:
 // the video inference code that relies on a VideoFeed.
 class DummyVideoFeed: public VideoFeed{
 public:
-    DummyVideoFeed() {}
+    DummyVideoFeed(){}
 
     virtual void add_frame_listener(VideoFrameListener& listener) override{}
     virtual void remove_frame_listener(VideoFrameListener& listener) override{}
@@ -109,7 +112,7 @@ public:
 // the video inference code that relies on a VideoOverlay.
 class DummyVideoOverlay: public VideoOverlay{
 public:
-    DummyVideoOverlay() {}
+    DummyVideoOverlay(){}
 
     virtual void add_box(const OverlayBox& box) override{}
     virtual void remove_box(const OverlayBox& box) override{}
@@ -131,7 +134,7 @@ public:
 // the audio inference code that relies on an AudioFeed.
 class DummyAudioFeed: public AudioFeed{
 public:
-    DummyAudioFeed() {}
+    DummyAudioFeed(){}
     virtual void reset() override {}
 
     virtual std::vector<AudioSpectrum> spectrums_since(uint64_t starting_seqnum) override { return std::vector<AudioSpectrum>(); }
@@ -146,7 +149,7 @@ public:
 
 #define TEST_RESULT_EQUAL(result, target) \
     do { \
-        if ((result) != (target)) {\
+        if ((result) != (target)){\
             std::cerr << "Error: " << __func__ << ":" << __LINE__ << " result is " << (result) << " but should be " << (target) << "." << std::endl; \
             return 1; \
         } \
@@ -155,7 +158,7 @@ public:
 
 #define TEST_RESULT_COMPONENT_EQUAL(result, target, component_name) \
     do { \
-        if ((result) != (target)) {\
+        if ((result) != (target)){\
             std::cerr << "Error: " << __func__ << ":" << __LINE__ << " " << component_name << " result is " << (result) << " but should be " << \
                 (target) << "." << std::endl; \
             return 1; \
@@ -164,7 +167,7 @@ public:
 
 #define TEST_RESULT_COMPONENT_EQUAL_WITH_PRINT_FUNC(result, target, component_name, print_func) \
     do { \
-        if ((result) != (target)) {\
+        if ((result) != (target)){\
             std::cerr << "Error: " << __func__ << ":" << __LINE__ << " " << component_name << " result is " << print_func(result) << " but should be " << \
                 print_func(target) << "." << std::endl; \
             return 1; \
@@ -173,7 +176,7 @@ public:
 
 #define TEST_RESULT_APPROXIMATE(result, target, threshold) \
     do { \
-        if (std::fabs((result) - (target)) > (threshold)) {\
+        if (std::fabs((result) - (target)) > (threshold)){\
             std::cerr << "Error: " << __func__ << ":" << __LINE__ << " result is " << (result) << " but should be close to " << (target) << \
                 " with threshold: " << (threshold) << "." << std::endl; \
             return 1; \

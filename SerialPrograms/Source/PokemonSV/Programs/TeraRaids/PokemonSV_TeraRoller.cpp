@@ -13,6 +13,7 @@
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "Pokemon/Pokemon_Notification.h"
 #include "PokemonSV/PokemonSV_Settings.h"
@@ -115,8 +116,8 @@ void TeraRoller::program(SingleSwitchProgramEnvironment& env, ProControllerConte
 
     TeraRoller_Descriptor::Stats& stats = env.current_stats<TeraRoller_Descriptor::Stats>();
 
-    //  Connect the controller
-    pbf_press_button(context, BUTTON_L, 10, 10);
+    //  Connect the controller.
+    require_player(env.console, context, BUTTON_L);
 
     bool first = true;
     uint32_t skip_counter = 0;
@@ -175,8 +176,8 @@ void TeraRoller::program(SingleSwitchProgramEnvironment& env, ProControllerConte
 
 
         // Enter tera raid battle alone
-        pbf_press_dpad(context, DPAD_DOWN, 10, 10);
-        pbf_mash_button(context, BUTTON_A, 250);
+        pbf_press_dpad(context, DPAD_DOWN, 80ms, 80ms);
+        pbf_mash_button(context, BUTTON_A, 2000ms);
         context.wait_for_all_requests();
 //        overlay_set.clear();
         env.console.log("Entering tera raid...");
@@ -208,7 +209,7 @@ void TeraRoller::program(SingleSwitchProgramEnvironment& env, ProControllerConte
                 env.console.overlay().add_log("Shiny!", COLOR_GREEN);
                 stats.m_shinies += 1;
 
-                pbf_wait(context, 500); // Wait enough time for the Pokemon sprite to load
+                pbf_wait(context, 4000ms); // Wait enough time for the Pokemon sprite to load
                 context.wait_for_all_requests();
                 send_encounter_notification(
                     env,
@@ -224,10 +225,10 @@ void TeraRoller::program(SingleSwitchProgramEnvironment& env, ProControllerConte
                 throw ProgramFinishedException();
             }
 
-            if (CHECK_ONLY_FIRST) { // Check only the first Pokédex page
+            if (CHECK_ONLY_FIRST){ // Check only the first Pokédex page
                 break;
             }else if (i < 4){ // Check the remaining four Pokédex pages
-                pbf_press_dpad(context, DPAD_RIGHT, 10, 20);
+                pbf_press_dpad(context, DPAD_RIGHT, 80ms, 160ms);
             }
         }
 
@@ -235,7 +236,7 @@ void TeraRoller::program(SingleSwitchProgramEnvironment& env, ProControllerConte
         env.console.overlay().add_log("Not shiny", COLOR_WHITE);
         leave_phone_to_overworld(env.program_info(), env.console, context);
 
-        pbf_wait(context, 50);
+        pbf_wait(context, 400ms);
     }
 
     env.update_stats();

@@ -190,8 +190,8 @@ bool TeraSelfFarmer::run_raid(SingleSwitchProgramEnvironment& env, ProController
     if (CATCH_ON_WIN.FIX_TIME_ON_CATCH){
         go_home(env.console, context);
         home_to_date_time(env.console, context, false);
-        pbf_press_button(context, BUTTON_A, 20, 105);
-        pbf_press_button(context, BUTTON_A, 20, 105);
+        pbf_press_button(context, BUTTON_A, 160ms, 840ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 840ms);
         pbf_press_button(context, BUTTON_HOME, 160ms, ConsoleSettings::instance().SETTINGS_TO_HOME_DELAY0);
         resume_game_from_home(env.console, context);
     }
@@ -216,6 +216,9 @@ bool TeraSelfFarmer::run_raid(SingleSwitchProgramEnvironment& env, ProController
 void TeraSelfFarmer::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     assert_16_9_720p_min(env.logger(), env.console);
 
+    //  Connect the controller.
+    require_player(env.console, context, BUTTON_LCLICK);
+
     TeraSelfFarmer_Descriptor::Stats& stats = env.current_stats<TeraSelfFarmer_Descriptor::Stats>();
 
     if (FILTER.MIN_STARS > FILTER.MAX_STARS){
@@ -229,7 +232,7 @@ void TeraSelfFarmer::program(SingleSwitchProgramEnvironment& env, ProControllerC
     m_number_caught = 0;
 
     //  Connect the controller.
-    pbf_press_button(context, BUTTON_L, 10, 10);
+    pbf_press_button(context, BUTTON_L, 80ms, 80ms);
 
     bool first = true;
     uint32_t skip_counter = 0;
@@ -290,8 +293,8 @@ void TeraSelfFarmer::program(SingleSwitchProgramEnvironment& env, ProControllerC
             continue;
         }
 
-        pbf_press_dpad(context, DPAD_DOWN, 10, 10);
-        pbf_mash_button(context, BUTTON_A, 250);
+        pbf_press_dpad(context, DPAD_DOWN, 80ms, 80ms);
+        pbf_mash_button(context, BUTTON_A, 2000ms);
         bool raid_won = run_raid(env, context);
         {
             std::stringstream ss;

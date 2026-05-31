@@ -10,6 +10,7 @@
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "CommonTools/StartupChecks/StartProgramChecks.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonBDSP/PokemonBDSP_Settings.h"
 #include "PokemonBDSP/Programs/PokemonBDSP_GlobalRoomHeal.h"
@@ -88,6 +89,20 @@ MoneyFarmerRoute210::MoneyFarmerRoute210()
     , MON1_MOVE2_PP("<b>2nd " + STRING_POKEMON + " Move 2 PP:</b><br>Set to zero to not use this move.", LockMode::LOCK_WHILE_RUNNING, 5, 0, 64)
     , MON1_MOVE3_PP("<b>2nd " + STRING_POKEMON + " Move 3 PP:</b><br>Set to zero to not use this move.", LockMode::LOCK_WHILE_RUNNING, 5, 0, 64)
     , MON1_MOVE4_PP("<b>2nd " + STRING_POKEMON + " Move 4 PP:</b><br>Set to zero to not use this move.", LockMode::LOCK_WHILE_RUNNING, 5, 0, 64)
+    , PICKUP_SLOT1(
+        "<b>" + STRING_POKEMON + " in slot 1 has the Pickup ability</b>", LockMode::LOCK_WHILE_RUNNING, false)
+    , PICKUP_SLOT2(
+        "<b>" + STRING_POKEMON + " in slot 2 has the Pickup ability</b>", LockMode::LOCK_WHILE_RUNNING, false)
+    , PICKUP_SLOT3(
+        "<b>" + STRING_POKEMON + " in slot 3 has the Pickup ability</b>", LockMode::LOCK_WHILE_RUNNING, false)
+    , PICKUP_SLOT4(
+        "<b>" + STRING_POKEMON + " in slot 4 has the Pickup ability</b>", LockMode::LOCK_WHILE_RUNNING, false)
+    , PICKUP_SLOT5(
+        "<b>" + STRING_POKEMON + " in slot 5 has the Pickup ability</b>", LockMode::LOCK_WHILE_RUNNING, false)
+    , PICKUP_SLOT6(
+        "<b>" + STRING_POKEMON + " in slot 6 has the Pickup ability</b>", LockMode::LOCK_WHILE_RUNNING, false)
+    , CHECK_PICKUP_FREQ (
+        "<b>Check " + STRING_POKEMON + " with the Pickup ability every this many battles</b>", LockMode::LOCK_WHILE_RUNNING, 10, 1, 100)
     , NOTIFICATION_STATUS_UPDATE("Status Update", true, false, std::chrono::seconds(3600))
     , NOTIFICATIONS({
         &NOTIFICATION_STATUS_UPDATE,
@@ -106,6 +121,13 @@ MoneyFarmerRoute210::MoneyFarmerRoute210()
     PA_ADD_OPTION(MON1_MOVE2_PP);
     PA_ADD_OPTION(MON1_MOVE3_PP);
     PA_ADD_OPTION(MON1_MOVE4_PP);
+    PA_ADD_OPTION(PICKUP_SLOT1);
+    PA_ADD_OPTION(PICKUP_SLOT2);
+    PA_ADD_OPTION(PICKUP_SLOT3);
+    PA_ADD_OPTION(PICKUP_SLOT4);
+    PA_ADD_OPTION(PICKUP_SLOT5);
+    PA_ADD_OPTION(PICKUP_SLOT6);
+    PA_ADD_OPTION(CHECK_PICKUP_FREQ);
     PA_ADD_OPTION(NOTIFICATIONS);
 }
 
@@ -122,12 +144,12 @@ bool MoneyFarmerRoute210::battle(SingleSwitchProgramEnvironment& env, ProControl
         int ret = run_until<ProControllerContext>(
             env.console, context,
             [](ProControllerContext& context){
-                pbf_press_button(context, BUTTON_ZL, 10, 10);
+                pbf_press_button(context, BUTTON_ZL, 80ms, 80ms);
                 for (size_t c = 0; c < 17; c++){
-                    pbf_press_dpad(context, DPAD_UP, 5, 10);
-                    pbf_press_button(context, BUTTON_ZL, 10, 10);
-                    pbf_press_dpad(context, DPAD_RIGHT, 20, 10);
-                    pbf_press_button(context, BUTTON_ZL, 10, 10);
+                    pbf_press_dpad(context, DPAD_UP, 40ms, 80ms);
+                    pbf_press_button(context, BUTTON_ZL, 80ms, 80ms);
+                    pbf_press_dpad(context, DPAD_RIGHT, 160ms, 80ms);
+                    pbf_press_button(context, BUTTON_ZL, 80ms, 80ms);
                 }
             },
             {{detector}}
@@ -135,16 +157,17 @@ bool MoneyFarmerRoute210::battle(SingleSwitchProgramEnvironment& env, ProControl
         if (ret < 0){
             stats.m_errors++;
             env.log("Failed to detect start of battle after 20 seconds.", COLOR_RED);
-            pbf_mash_button(context, BUTTON_B, TICKS_PER_SECOND);
+            pbf_mash_button(context, BUTTON_B, 1000ms);
             return false;
         }
     }
-    pbf_wait(context, 5 * TICKS_PER_SECOND);
+    pbf_wait(context, 5000ms);
 
     bool battle_menu_seen = false;
 
     //  State Machine
     //  We need lots of loops in case the party pokemon need to learn lots of moves.
+    
     while (true){
         context.wait_for_all_requests();
 
@@ -154,7 +177,7 @@ bool MoneyFarmerRoute210::battle(SingleSwitchProgramEnvironment& env, ProControl
         int ret = run_until<ProControllerContext>(
             env.console, context,
             [](ProControllerContext& context){
-                pbf_mash_button(context, BUTTON_B, 120 * TICKS_PER_SECOND);
+                pbf_mash_button(context, BUTTON_B, 120000ms);
             },
             {
                 {battle_menu},
@@ -162,13 +185,15 @@ bool MoneyFarmerRoute210::battle(SingleSwitchProgramEnvironment& env, ProControl
                 {learn_move},
             }
         );
+        
+        
         switch (ret){
-        case 0:        
+        case 0:
             env.log("Battle menu detected!", COLOR_BLUE);
             battle_menu_seen = true;
 
             {
-                pbf_press_button(context, BUTTON_ZL, 10, 125);
+                pbf_press_button(context, BUTTON_ZL, 80ms, 1000ms);
                 uint8_t slot = 0;
                 for (; slot < 4; slot++){
                     if (pp0[slot] != 0){
@@ -184,15 +209,15 @@ bool MoneyFarmerRoute210::battle(SingleSwitchProgramEnvironment& env, ProControl
                 }
 
                 for (uint8_t move_slot = 0; move_slot < slot; move_slot++){
-                    pbf_press_dpad(context, DPAD_DOWN, 10, 50);
+                    pbf_press_dpad(context, DPAD_DOWN, 80ms, 400ms);
                 }
-                pbf_press_button(context, BUTTON_ZL, 10, 125);
-                pbf_press_button(context, BUTTON_ZL, 10, 375);
+                pbf_press_button(context, BUTTON_ZL, 80ms, 1000ms);
+                pbf_press_button(context, BUTTON_ZL, 80ms, 3000ms);
                 pp0[slot]--;
             }
 
             {
-                pbf_press_button(context, BUTTON_ZL, 10, 125);
+                pbf_press_button(context, BUTTON_ZL, 80ms, 1000ms);
                 uint8_t slot = 0;
                 for (; slot < 4; slot++){
                     if (pp1[slot] != 0){
@@ -208,23 +233,23 @@ bool MoneyFarmerRoute210::battle(SingleSwitchProgramEnvironment& env, ProControl
                 }
 
                 for (uint8_t move_slot = 0; move_slot < slot; move_slot++){
-                    pbf_press_dpad(context, DPAD_DOWN, 10, 50);
+                    pbf_press_dpad(context, DPAD_DOWN, 80ms, 400ms);
                 }
-                pbf_press_button(context, BUTTON_ZL, 10, 125);
-                pbf_press_button(context, BUTTON_ZL, 10, 375);
+                pbf_press_button(context, BUTTON_ZL, 80ms, 1000ms);
+                pbf_press_button(context, BUTTON_ZL, 80ms, 3000ms);
                 pp1[slot]--;
             }
 
             break;
         case 1:
             env.log("Battle finished!", COLOR_BLUE);
-            pbf_mash_button(context, BUTTON_B, 250);
+            pbf_mash_button(context, BUTTON_B, 2000ms);
             return false;
         case 2:
             env.log("Detected move learn!", COLOR_BLUE);
             if (ON_LEARN_MOVE == OnLearnMove::DONT_LEARN){
-                pbf_move_right_joystick(context, 128, 255, 20, 105);
-                pbf_press_button(context, BUTTON_ZL, 20, 105);
+                pbf_move_right_joystick(context, {0, -1}, 160ms, 840ms);
+                pbf_press_button(context, BUTTON_ZL, 160ms, 840ms);
                 break;
             }
             return true;
@@ -245,37 +270,82 @@ bool MoneyFarmerRoute210::battle(SingleSwitchProgramEnvironment& env, ProControl
     );
 }
 
+void MoneyFarmerRoute210::check_pickup_items(
+    ProControllerContext& context, const bool pickup_slots[6]
+){
+
+    // Open menu
+    pbf_press_button(context, BUTTON_X, 80ms, 1000ms);
+    
+    // Open Pokemon menu
+    pbf_press_button(context, BUTTON_A, 80ms, 1000ms);
+    
+    // Loop over each pokemon that has Pickup according to the settings
+    int current_slot = 0;
+    
+    for (int slot = 0; slot < 6; slot++){
+        if (pickup_slots[slot]){
+            int presses = slot - current_slot;
+            for (int i = 0; i < presses; i++){
+                pbf_wait(context, 50ms);
+                pbf_press_dpad(context, DPAD_DOWN, 80ms, 50ms);
+            }
+            
+            // Select mon, go to held items, go to put into bag (or back if the mon has no item), then exit with B
+            pbf_press_button(context, BUTTON_A, 160ms, 200ms);
+            
+            pbf_press_dpad(context, DPAD_UP, 160ms, 50ms);
+            pbf_press_dpad(context, DPAD_UP, 160ms, 50ms);
+            pbf_press_button(context, BUTTON_A, 160ms, 200ms);
+            
+            pbf_press_dpad(context, DPAD_UP, 160ms, 50ms);
+            pbf_press_dpad(context, DPAD_UP, 160ms, 50ms);
+            pbf_press_dpad(context, DPAD_UP, 160ms, 50ms);
+            pbf_press_button(context, BUTTON_A, 160ms, 200ms);
+            pbf_wait(context, 1000ms);
+            
+            pbf_press_button(context, BUTTON_B, 160ms, 100ms);
+            
+            current_slot = slot;
+            pbf_wait(context, 150ms);
+        }
+    };
+    
+    // Exit the screen
+    pbf_mash_button(context, BUTTON_B, 2000ms);
+}
+
 void MoneyFarmerRoute210::heal_at_center_and_return(
     Logger& logger, ProControllerContext& context,
     uint8_t pp0[4], uint8_t pp1[4]
 ){
     logger.log("Healing " + STRING_POKEMON + " Celestic Town " + STRING_POKEMON + " Center.");
-    pbf_move_left_joystick(context, 125, 0, 6 * TICKS_PER_SECOND, 0);
-    pbf_mash_button(context, BUTTON_ZL, 3 * TICKS_PER_SECOND);
-    pbf_mash_button(context, BUTTON_B, 10 * TICKS_PER_SECOND);
+    pbf_move_left_joystick(context, {0, +1}, 6000ms, 0ms);
+    pbf_mash_button(context, BUTTON_ZL, 3000ms);
+    pbf_mash_button(context, BUTTON_B, 10000ms);
 
     logger.log("Returning to trainers...");
-    pbf_move_left_joystick(context, 128, 255, 6 * TICKS_PER_SECOND, 0);
-    pbf_move_left_joystick(context, 255, 128, 60, 0);
-    pbf_move_left_joystick(context, 128, 0, 200, 0);
-    pbf_move_left_joystick(context, 255, 128, 750, 0);
+    pbf_move_left_joystick(context, {0, -1}, 6000ms, 0ms);
+    pbf_move_left_joystick(context, {+1, 0}, 480ms, 0ms);
+    pbf_move_left_joystick(context, {0, +1}, 1600ms, 0ms);
+    pbf_move_left_joystick(context, {+1, 0}, 6000ms, 0ms);
 
-    pbf_press_button(context, BUTTON_R, 10, 150);
-    pbf_mash_button(context, BUTTON_ZL, 6 * TICKS_PER_SECOND);
+    pbf_press_button(context, BUTTON_R, 80ms, 1200ms);
+    pbf_mash_button(context, BUTTON_ZL, 6000ms);
 
-    pbf_move_left_joystick(context, 128, 255, 30, 0);
-    pbf_move_left_joystick(context,   0, 128, 30, 0);
-    pbf_move_left_joystick(context, 128, 255, 80, 0);
-    pbf_move_left_joystick(context, 255, 128, 110, 0);
-    pbf_move_left_joystick(context, 128, 255, 125, 0);
-    pbf_move_left_joystick(context, 255, 128, 105, 0);
-    pbf_move_left_joystick(context, 128,   0, 375, 0);
-    pbf_move_left_joystick(context, 255, 128, 300, 0);
-    pbf_move_left_joystick(context, 128, 255, 375, 0);
+    pbf_move_left_joystick(context, {0, -1}, 240ms, 0ms);
+    pbf_move_left_joystick(context, {-1, 0}, 240ms, 0ms);
+    pbf_move_left_joystick(context, {0, -1}, 640ms, 0ms);
+    pbf_move_left_joystick(context, {+1, 0}, 880ms, 0ms);
+    pbf_move_left_joystick(context, {0, -1}, 1000ms, 0ms);
+    pbf_move_left_joystick(context, {+1, 0}, 840ms, 0ms);
+    pbf_move_left_joystick(context, {0, +1}, 3000ms, 0ms);
+    pbf_move_left_joystick(context, {+1, 0}, 2400ms, 0ms);
+    pbf_move_left_joystick(context, {0, -1}, 3000ms, 0ms);
 
-    pbf_press_dpad(context, DPAD_RIGHT, 375, 0);
-    pbf_press_dpad(context, DPAD_LEFT, 375, 0);
-    pbf_press_dpad(context, DPAD_DOWN, 125, 0);
+    pbf_press_dpad(context, DPAD_RIGHT, 3000ms, 0ms);
+    pbf_press_dpad(context, DPAD_LEFT, 3000ms, 0ms);
+    pbf_press_dpad(context, DPAD_DOWN, 1000ms, 0ms);
 
     pp0[0] = MON0_MOVE1_PP;
     pp0[1] = MON0_MOVE2_PP;
@@ -292,10 +362,10 @@ void MoneyFarmerRoute210::fly_to_center_heal_and_return(
 ){
     logger.log("Flying back to Hearthome City to heal.");
     pbf_press_button(context, BUTTON_X, 80ms, GameSettings::instance().OVERWORLD_TO_MENU_DELAY0);
-    pbf_press_button(context, BUTTON_PLUS, 10, 240);
-    pbf_press_dpad(context, DPAD_LEFT, 10, 60);
-    pbf_press_dpad(context, DPAD_LEFT, 10, 60);
-    pbf_mash_button(context, BUTTON_ZL, 12 * TICKS_PER_SECOND);
+    pbf_press_button(context, BUTTON_PLUS, 80ms, 1920ms);
+    pbf_press_dpad(context, DPAD_LEFT, 80ms, 480ms);
+    pbf_press_dpad(context, DPAD_LEFT, 80ms, 480ms);
+    pbf_mash_button(context, BUTTON_ZL, 12000ms);
     heal_at_center_and_return(logger, context, pp0, pp1);
 }
 
@@ -354,9 +424,24 @@ void MoneyFarmerRoute210::program(SingleSwitchProgramEnvironment& env, ProContro
         MON1_MOVE3_PP,
         MON1_MOVE4_PP,
     };
+    
+    // Transform the slots selected as having mons with the Pickup ability into an array
+    bool pickup_slots_selected[6] = {
+        PICKUP_SLOT1,
+        PICKUP_SLOT2,
+        PICKUP_SLOT3,
+        PICKUP_SLOT4,
+        PICKUP_SLOT5,
+        PICKUP_SLOT6,
+    };
+    
+    bool has_pickup_mons = PICKUP_SLOT1 || PICKUP_SLOT2 || PICKUP_SLOT3 || PICKUP_SLOT4 || PICKUP_SLOT5 || PICKUP_SLOT6;
+    
+    uint32_t pickup_counter = 0;
+    uint32_t total_pickup_checks = 0;
 
     //  Connect the controller.
-    pbf_press_button(context, BUTTON_B, 5, 5);
+    require_player(env.console, context, BUTTON_B);
 
     bool need_to_charge = true;
     if (START_LOCATION == StartLocation::CelesticTown){
@@ -366,24 +451,29 @@ void MoneyFarmerRoute210::program(SingleSwitchProgramEnvironment& env, ProContro
         if (HEALING_METHOD == HealMethod::GlobalRoom){
             heal_by_global_room(env.console, context);
         }
-        pbf_move_left_joystick(context, 255, 128, 140, 0);
+        pbf_move_left_joystick(context, {+1, 0}, 1120ms, 0ms);
     }
 
     while (true){
         env.update_stats();
 
         send_program_status_notification(env, NOTIFICATION_STATUS_UPDATE);
+        
+        if (has_pickup_mons && pickup_counter % CHECK_PICKUP_FREQ.current_value() == 0 && pickup_counter != total_pickup_checks){
+            check_pickup_items(context, pickup_slots_selected);
+            total_pickup_checks = pickup_counter;
+        }
 
         if (need_to_charge){
-            pbf_move_left_joystick(context, 255, 128, 140, 0);
-            pbf_press_dpad(context, DPAD_UP, 85, 0);
+            pbf_move_left_joystick(context, {+1, 0}, 1120ms, 0ms);
+            pbf_press_dpad(context, DPAD_UP, 680ms, 0ms);
             for (size_t c = 0; c < 7; c++){
-                pbf_move_left_joystick(context, 0, 128, 140, 0);
-                pbf_move_left_joystick(context, 255, 128, 140, 0);
+                pbf_move_left_joystick(context, {-1, 0},  1120ms, 0ms);
+                pbf_move_left_joystick(context, {+1, 0}, 1120ms, 0ms);
             }
-            pbf_press_dpad(context, DPAD_DOWN, 75, 0);
+            pbf_press_dpad(context, DPAD_DOWN, 600ms, 0ms);
         }
-        pbf_press_dpad(context, DPAD_LEFT, 200, 0);
+        pbf_press_dpad(context, DPAD_LEFT, 1600ms, 0ms);
 
         context.wait_for_all_requests();
         stats.m_searches++;
@@ -394,12 +484,12 @@ void MoneyFarmerRoute210::program(SingleSwitchProgramEnvironment& env, ProContro
             run_until<ProControllerContext>(
                 env.console, context,
                 [this](ProControllerContext& context){
-                    SHORTCUT.run(context, TICKS_PER_SECOND);
+                    SHORTCUT.run(context, 1000ms);
                 },
                 {{tracker}}
             );
             need_to_charge = true;
-            pbf_mash_button(context, BUTTON_B, 250);
+            pbf_mash_button(context, BUTTON_B, 2000ms);
 
             bubbles = tracker.reactions();
             if (bubbles.empty()){
@@ -416,6 +506,8 @@ void MoneyFarmerRoute210::program(SingleSwitchProgramEnvironment& env, ProContro
         if (this->battle(env, context, pp0, pp1)){
             return;
         }
+        pickup_counter++;
+        
         if (!has_pp(pp0, pp1)){
             need_to_charge = heal_after_battle_and_return(env, env.console, context, pp0, pp1);
             continue;

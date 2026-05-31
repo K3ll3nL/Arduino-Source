@@ -11,7 +11,7 @@
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
-#include "NintendoSwitch/Controllers/NintendoSwitch_Joycon.h"
+#include "NintendoSwitch/Controllers/Joycon/NintendoSwitch_Joycon.h"
 #include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "CommonTools/VisualDetectors/BlackScreenDetector.h"
@@ -101,8 +101,7 @@ void AlolanTrade::run_trade(SingleSwitchProgramEnvironment& env, JoyconContext& 
             "Failed to start trade.",
             env.console
         );
-    }
-    else {
+    }else{
         env.log("Trade started.");
     }
 
@@ -123,8 +122,7 @@ void AlolanTrade::run_trade(SingleSwitchProgramEnvironment& env, JoyconContext& 
             "Did not detect end of trade.",
             env.console
         );
-    }
-    else {
+    }else{
         env.log("Trade completed.");
     }
 
@@ -168,9 +166,9 @@ void AlolanTrade::program(SingleSwitchProgramEnvironment& env, CancellableScope&
     */
 
     bool shiny_found = false;
-    while (!shiny_found) {
+    while (!shiny_found){
         //Run trades
-        for (uint16_t i = 0; i < NUM_TRADES; i++) {
+        for (uint16_t i = 0; i < NUM_TRADES; i++){
             env.log("Running trade.");
             run_trade(env, context);
 
@@ -215,13 +213,13 @@ void AlolanTrade::program(SingleSwitchProgramEnvironment& env, CancellableScope&
 
         //Press left to go to last (most recent) Pokemon
         env.log("Opening summary of most recent Pokemon.");
-        pbf_move_joystick(context, 0, 128, 100ms, 100ms);
+        pbf_move_joystick(context, {-1, 0}, 100ms, 100ms);
         context.wait_for_all_requests();
 
         //View summary - it takes a moment to load
         pbf_press_button(context, BUTTON_A, 200ms, 1000ms);
-        pbf_move_joystick(context, 128, 255, 100ms, 100ms);
-        pbf_move_joystick(context, 128, 255, 100ms, 100ms);
+        pbf_move_joystick(context, {0, -1}, 100ms, 100ms);
+        pbf_move_joystick(context, {0, -1}, 100ms, 100ms);
         pbf_press_button(context, BUTTON_A, 200ms, 100ms);
         context.wait_for_all_requests();
 
@@ -230,12 +228,12 @@ void AlolanTrade::program(SingleSwitchProgramEnvironment& env, CancellableScope&
 
         //Now check for shinies. Check everything that was traded.
         env.log("Checking received Pokemon.");
-        for (uint16_t i = 0; i < NUM_TRADES; i++) {
+        for (uint16_t i = 0; i < NUM_TRADES; i++){
             VideoSnapshot screen = env.console.video().snapshot();
             ShinySymbolDetector shiny_checker(COLOR_YELLOW);
             bool check = shiny_checker.read(env.console.logger(), screen);
 
-            if (check) {
+            if (check){
                 env.log("Shiny detected!");
                 stats.shinies++;
                 env.update_stats();
@@ -246,9 +244,9 @@ void AlolanTrade::program(SingleSwitchProgramEnvironment& env, CancellableScope&
                 env.log("Favoriting shiny.");
                 pbf_press_button(context, BUTTON_B, 200ms, 5000ms);
                 pbf_press_button(context, BUTTON_A, 200ms, 1000ms);
-                pbf_move_joystick(context, 128, 0, 100ms, 100ms);
-                pbf_move_joystick(context, 128, 0, 100ms, 100ms);
-                pbf_move_joystick(context, 128, 0, 100ms, 200ms);
+                pbf_move_joystick(context, {0, +1}, 100ms, 100ms);
+                pbf_move_joystick(context, {0, +1}, 100ms, 100ms);
+                pbf_move_joystick(context, {0, +1}, 100ms, 200ms);
                 pbf_press_button(context, BUTTON_A, 200ms, 800ms);
                 pbf_press_button(context, BUTTON_A, 200ms, 800ms);
                 pbf_press_button(context, BUTTON_B, 200ms, 800ms);
@@ -256,24 +254,23 @@ void AlolanTrade::program(SingleSwitchProgramEnvironment& env, CancellableScope&
                 //Go into summary again
                 env.log("Navigating back into summary.");
                 pbf_press_button(context, BUTTON_A, 200ms, 1000ms);
-                pbf_move_joystick(context, 128, 255, 100ms, 100ms);
-                pbf_move_joystick(context, 128, 255, 100ms, 100ms);
+                pbf_move_joystick(context, {0, -1}, 100ms, 100ms);
+                pbf_move_joystick(context, {0, -1}, 100ms, 100ms);
                 pbf_press_button(context, BUTTON_A, 200ms, 100ms);
                 context.wait_for_all_requests();
                 pbf_wait(context, 5000ms);
                 context.wait_for_all_requests();
-            }
-            else {
+            }else{
                 env.log("Not shiny.");
             }
 
             //Move left, check next.
-            pbf_move_joystick(context, 0, 128, 100ms, 100ms);
+            pbf_move_joystick(context, {-1, 0}, 100ms, 100ms);
             pbf_press_button(context, BUTTON_X, 0ms, 1000ms);
             context.wait_for_all_requests();
         }
         
-        if (!shiny_found) {
+        if (!shiny_found){
             env.log("Out of Pokemon to trade and no shiny found. Resetting game.");
             send_program_status_notification(
                 env, NOTIFICATION_STATUS_UPDATE,
@@ -287,7 +284,7 @@ void AlolanTrade::program(SingleSwitchProgramEnvironment& env, CancellableScope&
         }
     }
 
-    if (GO_HOME_WHEN_DONE) {
+    if (GO_HOME_WHEN_DONE){
         pbf_press_button(context, BUTTON_HOME, 200ms, 1000ms);
     }
     send_program_finished_notification(env, NOTIFICATION_PROGRAM_FINISH);

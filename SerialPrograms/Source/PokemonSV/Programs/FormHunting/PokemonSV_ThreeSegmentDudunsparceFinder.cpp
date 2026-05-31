@@ -12,6 +12,7 @@
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "CommonTools/StartupChecks/VideoResolutionCheck.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonSV/Inference/PokemonSV_PokemonSummaryReader.h"
 #include "PokemonSV/Programs/Boxes/PokemonSV_BoxRoutines.h"
@@ -103,7 +104,7 @@ void ThreeSegmentDudunsparceFinder::check_one_column(
     enter_bag_from_menu(env.program_info(), env.console, context);
     // move cursor to the "Other Items" tab
     for (size_t c = 0; c < 4; c++){
-        pbf_press_dpad(context, DPAD_RIGHT, 20, 105);
+        pbf_press_dpad(context, DPAD_RIGHT, 160ms, 840ms);
     }
     context.wait_for_all_requests();
     // move to candies:
@@ -123,33 +124,33 @@ void ThreeSegmentDudunsparceFinder::check_one_column(
     
     // go down 5 to go to candy XL
     for (size_t c = 0; c < 5; c++){
-        pbf_press_dpad(context, DPAD_DOWN, 20, 105);
+        pbf_press_dpad(context, DPAD_DOWN, 160ms, 840ms);
     }
     // press A to bring up sub menu: "Use this item", "Give to Pokemon", "Cancel"
-    pbf_press_button(context, BUTTON_A, 20, 105);
+    pbf_press_button(context, BUTTON_A, 160ms, 840ms);
     // press A again to select "Use this item"
-    pbf_press_button(context, BUTTON_A, 20, 105);
+    pbf_press_button(context, BUTTON_A, 160ms, 840ms);
     // now the cursor is on the first pokemon
     const int starting_pokemon_in_party = HAS_CLONE_RIDE_POKEMON ? 2 : 1;
     for (int i_pokemon = starting_pokemon_in_party; i_pokemon < num_pokemon_in_party; i_pokemon++){
         // go down to the target pokemon
         for (int c = 0; c < i_pokemon; c++){
-            pbf_press_dpad(context, DPAD_DOWN, 20, 105);
+            pbf_press_dpad(context, DPAD_DOWN, 160ms, 840ms);
         }
         // select the pokemon. This will open up the item count "x1"
-        pbf_press_button(context, BUTTON_A, 20, 105);
+        pbf_press_button(context, BUTTON_A, 160ms, 840ms);
         // press A again to apply the x1 candy XL to the pokemon
-        pbf_press_button(context, BUTTON_A, 20, 105);
+        pbf_press_button(context, BUTTON_A, 160ms, 840ms);
         // wait for some more time to let the level up animation finish
         pbf_wait(context, Seconds(1));
         // press A to clear the "dudunsparce grew up to lv 31" message box
-        pbf_press_button(context, BUTTON_A, 20, 105);
+        pbf_press_button(context, BUTTON_A, 160ms, 840ms);
     }
 
     // leave bag and move to menu, enter the first dunsparce's sub-menu
     enter_menu_from_bag(env.program_info(), env.console, context, starting_pokemon_in_party, MenuSide::LEFT);
     // press A again to go into pokemon status summary screen
-    pbf_press_button(context, BUTTON_A, 20, 105);
+    pbf_press_button(context, BUTTON_A, 160ms, 840ms);
     // wait until we are in pokemon status summary screen
     PokemonSummaryWatcher summary_watcher;
     int ret = wait_until(
@@ -165,13 +166,13 @@ void ThreeSegmentDudunsparceFinder::check_one_column(
         );
     }
     // move to the moves screen
-    pbf_press_dpad(context, DPAD_RIGHT, 20, 105);
+    pbf_press_dpad(context, DPAD_RIGHT, 160ms, 840ms);
 
     for (int i_pokemon = starting_pokemon_in_party; i_pokemon < num_pokemon_in_party; i_pokemon++){
         // press A to open submenu "Remember moves", "Forget a move", "Use TMs to learn moves", "Quit"
-        pbf_press_button(context, BUTTON_A, 20, 105);
+        pbf_press_button(context, BUTTON_A, 160ms, 840ms);
         // press A to select "Remember moves"
-        pbf_press_button(context, BUTTON_A, 20, 105);
+        pbf_press_button(context, BUTTON_A, 160ms, 840ms);
         // wait until Remember Move list to appear
         // XXX
     }
@@ -183,13 +184,13 @@ void ThreeSegmentDudunsparceFinder::program(SingleSwitchProgramEnvironment& env,
     ThreeSegmentDudunsparceFinder_Descriptor::Stats& stats = env.current_stats<ThreeSegmentDudunsparceFinder_Descriptor::Stats>();
 
     //  Connect the controller.
-    pbf_press_button(context, BUTTON_L, 10, 100);
+    require_player(env.console, context, BUTTON_L);
 
     try{
-        for(uint8_t i = 0; i < 6; i++){
+        for (uint8_t i = 0; i < 6; i++){
             check_one_column(env, context, i);
         }
-    } catch(OperationFailedException&){
+    }catch (OperationFailedException&){
         stats.m_errors++;
         env.update_stats();
         throw;

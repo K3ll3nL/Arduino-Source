@@ -8,7 +8,7 @@
 #define PokemonAutomation_PokemonLA_EscapeFromAttack_H
 
 #include "CommonTools/Async/SuperControlSession.h"
-#include "NintendoSwitch/Controllers/NintendoSwitch_ProController.h"
+#include "NintendoSwitch/Controllers/Procon/NintendoSwitch_ProController.h"
 #include "PokemonLA/Inference/PokemonLA_UnderAttackDetector.h"
 #include "PokemonLA/Inference/PokemonLA_MountDetector.h"
 #include "PokemonLA/Inference/Objects/PokemonLA_ButtonDetector.h"
@@ -59,10 +59,6 @@ private:
     bool run_climbing(AsyncCommandSession<ProController>& commands, WallClock timestamp);
 
 private:
-    static const uint16_t GET_ON_MOUNT_TIME = 125;
-    static const uint16_t GET_ON_BRAVIARY_TIME = 280;
-
-
     const WallClock m_min_stop;
     const WallClock m_deadline;
 

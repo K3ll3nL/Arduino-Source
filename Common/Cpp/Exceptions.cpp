@@ -5,6 +5,7 @@
  */
 
 #include <iostream>
+#include <format>
 #include "Exceptions.h"
 
 namespace PokemonAutomation{
@@ -28,6 +29,14 @@ std::string Exception::to_str() const{
 }
 
 
+ParseException::ParseException(std::string message_string)
+    : m_message(std::move(message_string))
+{
+    std::string str = ParseException::name();
+    str += ": " + message();
+    std::cerr << str << std::endl;
+}
+
 
 
 FileException::FileException(Logger* logger, const char* location, std::string message_string, std::string file)
@@ -44,7 +53,15 @@ FileException::FileException(Logger* logger, const char* location, std::string m
     }
 }
 std::string FileException::message() const{
-    return m_message + "\nFile: " + m_file + "\nLocation: " + m_location;
+    std::string ret = m_message;
+    if (!m_file.empty()){
+        ret += "\nFile: " + m_file;
+    }
+    if (m_location != nullptr){
+        ret += "\nLocation: ";
+        ret += m_location;
+    }
+    return ret;
 }
 
 
@@ -114,9 +131,23 @@ std::string UserSetupError::message() const{
 }
 
 
+MLModelSessionCreationError::MLModelSessionCreationError(Logger* logger, std::string model_path)
+: m_model_path(model_path)
+{
+    if (logger){
+        logger->log(message());
+    }else{
+        std::cerr << message() << std::endl;
+    }
+}
 
-
-
+std::string MLModelSessionCreationError::message() const{
+    return std::format(
+        "Failed to create a model session from {}. "
+        "Probably failure loading the model or not enough GPU memory",
+        m_model_path
+    );
+}
 
 
 

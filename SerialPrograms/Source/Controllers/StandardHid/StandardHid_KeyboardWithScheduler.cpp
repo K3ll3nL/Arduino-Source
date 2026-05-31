@@ -12,12 +12,12 @@ namespace StandardHid{
 
 
 void KeyboardControllerWithScheduler::issue_key(
-    const Cancellable* cancellable,
+    Cancellable* cancellable,
     Milliseconds delay, Milliseconds hold, Milliseconds cooldown,
     KeyboardKey key
 ){
     SuperscalarScheduler::Schedule schedule;
-    std::lock_guard<std::mutex> lg0(m_issue_lock);
+    std::lock_guard<Mutex> lg0(m_issue_lock);
     {
         if (cancellable){
             cancellable->throw_if_cancelled();
@@ -39,12 +39,12 @@ void KeyboardControllerWithScheduler::issue_key(
     }
 }
 void KeyboardControllerWithScheduler::issue_keys(
-    const Cancellable* cancellable,
+    Cancellable* cancellable,
     Milliseconds delay, Milliseconds hold, Milliseconds cooldown,
     const std::vector<KeyboardKey>& keys
 ){
     SuperscalarScheduler::Schedule schedule;
-    std::lock_guard<std::mutex> lg0(m_issue_lock);
+    std::lock_guard<Mutex> lg0(m_issue_lock);
     {
         if (cancellable){
             cancellable->throw_if_cancelled();

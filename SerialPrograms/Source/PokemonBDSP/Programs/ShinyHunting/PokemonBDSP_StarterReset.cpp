@@ -104,10 +104,11 @@ StarterReset::StarterReset()
 void StarterReset::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     StarterReset_Descriptor::Stats& stats = env.current_stats<StarterReset_Descriptor::Stats>();
 
-    std::shared_ptr<const ImageRGB32> briefcase = std::make_shared<const ImageRGB32>(RESOURCE_PATH() + "PokemonBDSP/StarterBriefcase.png");
+    std::shared_ptr<const ImageRGB32> briefcase =
+        std::make_shared<const ImageRGB32>(RESOURCE_PATH() + "PokemonBDSP/StarterBriefcase.png");
 
     //  Connect the controller.
-    pbf_press_button(context, BUTTON_B, 5, 5);
+    require_player(env.console, context, BUTTON_B);
 
     size_t consecutive_failures = 0;
 
@@ -134,14 +135,14 @@ void StarterReset::program(SingleSwitchProgramEnvironment& env, ProControllerCon
         reset = true;
 
         //  Enter the lake.
-        pbf_move_left_joystick(context, 128, 0, TICKS_PER_SECOND, 0);
+        pbf_move_left_joystick(context, {0, +1}, 1000ms, 0ms);
 
         //  Mash B until we see the briefcase.
         ImageMatchWatcher detector(briefcase, {0.5, 0.1, 0.5, 0.7}, 100, true);
         int ret = run_until<ProControllerContext>(
             env.console, context,
             [](ProControllerContext& context){
-                pbf_mash_button(context, BUTTON_B, 120 * TICKS_PER_SECOND);
+                pbf_mash_button(context, BUTTON_B, 120000ms);
             },
             {{detector}}
         );
@@ -157,7 +158,7 @@ void StarterReset::program(SingleSwitchProgramEnvironment& env, ProControllerCon
 
         //  Wait for briefcase to fully open.
         env.log("Mashing B for briefcase to fully open.");
-        pbf_mash_button(context, BUTTON_B, 2 * TICKS_PER_SECOND);
+        pbf_mash_button(context, BUTTON_B, 2000ms);
 
         //  Scroll to your starter.
         size_t scroll = 0;
@@ -171,11 +172,11 @@ void StarterReset::program(SingleSwitchProgramEnvironment& env, ProControllerCon
             scroll = 2;
         }
         for (size_t c = 0; c < scroll; c++){
-            pbf_press_dpad(context, DPAD_RIGHT, 20, 105);
+            pbf_press_dpad(context, DPAD_RIGHT, 160ms, 840ms);
         }
 
         //  Select starter.
-        pbf_press_button(context, BUTTON_ZL, 20, 30);
+        pbf_press_button(context, BUTTON_ZL, 160ms, 240ms);
         context.wait_for_all_requests();
 
         {
@@ -190,9 +191,9 @@ void StarterReset::program(SingleSwitchProgramEnvironment& env, ProControllerCon
                 env.log("Timed out waiting for selection prompt.", COLOR_RED);
                 consecutive_failures++;
             }
-            pbf_wait(context, 50);
-            pbf_press_dpad(context, DPAD_UP, 10, 50);
-            pbf_press_button(context, BUTTON_ZL, 10, 5 * TICKS_PER_SECOND);
+            pbf_wait(context, 400ms);
+            pbf_press_dpad(context, DPAD_UP, 80ms, 400ms);
+            pbf_press_button(context, BUTTON_ZL, 80ms, 5000ms);
             context.wait_for_all_requests();
         }
 
@@ -227,8 +228,8 @@ void StarterReset::program(SingleSwitchProgramEnvironment& env, ProControllerCon
                 true, true, {{{"starly"}, ShinyType::UNKNOWN_SHINY}}, result_wild.alpha,
                 result_wild.get_best_screenshot()
             );
-            pbf_wait(context, 5 * TICKS_PER_SECOND);
-            pbf_press_button(context, BUTTON_CAPTURE, 2 * TICKS_PER_SECOND, 5 * TICKS_PER_SECOND);
+            pbf_wait(context, 5000ms);
+            pbf_press_button(context, BUTTON_CAPTURE, 2000ms, 5000ms);
         }
 
         bool your_shiny = is_likely_shiny(result_own.shiny_type);
@@ -241,8 +242,8 @@ void StarterReset::program(SingleSwitchProgramEnvironment& env, ProControllerCon
                 true, true, {{{starter}, ShinyType::UNKNOWN_SHINY}}, result_own.alpha,
                 result_own.get_best_screenshot()
             );
-            pbf_wait(context, 5 * TICKS_PER_SECOND);
-            pbf_press_button(context, BUTTON_CAPTURE, 2 * TICKS_PER_SECOND, 5 * TICKS_PER_SECOND);
+            pbf_wait(context, 5000ms);
+            pbf_press_button(context, BUTTON_CAPTURE, 2000ms, 5000ms);
             break;
         }else{
             stats.add_non_shiny();

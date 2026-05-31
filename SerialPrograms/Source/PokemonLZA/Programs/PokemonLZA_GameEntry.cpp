@@ -13,6 +13,8 @@
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_Superscalar.h"
 #include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "PokemonLZA/PokemonLZA_Settings.h"
+#include "PokemonLZA/Inference/PokemonLZA_SelectionArrowDetector.h"
+#include "PokemonLZA/Inference/PokemonLZA_DialogDetector.h"
 #include "PokemonLZA_GameEntry.h"
 
 namespace PokemonAutomation{
@@ -32,24 +34,72 @@ bool reset_game_to_gamemenu(
 //  mash A to enter the game and wait until the black screen is gone.
 bool gamemenu_to_ingame(
     VideoStream& stream, ProControllerContext& context,
-    Milliseconds mash_duration, Milliseconds enter_game_timeout
+    Milliseconds enter_game_timeout
 ){
     stream.log("Mashing A to enter game...");
-    BlackScreenOverWatcher detector(COLOR_RED, {0.1, 0.04, 0.8, 0.3});
-    pbf_mash_button(context, BUTTON_A, mash_duration);
-    context.wait_for_all_requests();
-    stream.log("Waiting to enter game...");
-    int ret = wait_until(
-        stream, context,
-        std::chrono::milliseconds(enter_game_timeout),
-        {{detector}}
-    );
-    if (ret == 0){
-        stream.log("Entered game!");
-        return true;
-    }else{
-        stream.log("Timed out waiting to enter game.", COLOR_RED);
-        return false;
+    while (true){
+        BlackScreenWatcher black_screen(COLOR_RED, {0.1, 0.04, 0.8, 0.3});
+        BlueDialogWatcher dialog(COLOR_YELLOW);
+        SelectionArrowWatcher arrow(
+            COLOR_BLUE,
+            &stream.overlay(),
+            SelectionArrowType::RIGHT,
+            {0.2, 0.5, 0.6, 0.3}
+        );
+        context.wait_for_all_requests();
+//        stream.log("Waiting to enter game...");
+        int ret = run_until<ProControllerContext>(
+            stream, context,
+            [=](ProControllerContext& context){
+                pbf_mash_button(context, BUTTON_A, 2s);
+                pbf_wait(context, enter_game_timeout);
+            },
+            {
+                black_screen,
+                dialog,
+                arrow,
+            }
+        );
+        switch (ret){
+        case 0:
+            stream.log("Detected black screen.", COLOR_BLUE);
+            break;
+        case 1:
+            stream.log("Detected dialog.", COLOR_BLUE);
+            pbf_press_button(context, BUTTON_B, 160ms, 240ms);
+            continue;
+        case 2:
+            stream.log("Detected backup save arrow.", COLOR_BLUE);
+            pbf_press_button(context, BUTTON_A, 160ms, 240ms);
+            continue;
+        default:
+            stream.log("Timed out waiting for black screen.", COLOR_RED);
+            return false;
+        }
+        break;
+    }
+
+    stream.log("Black screen detected");
+
+    {
+        BlackScreenWatcher detector(
+            COLOR_RED,
+            {0.1, 0.04, 0.8, 0.3},
+            100, 10,
+            BlackScreenWatcher::FinderType::GONE
+        );
+        int ret = wait_until(
+            stream, context,
+            std::chrono::milliseconds(enter_game_timeout),
+            {{detector}}
+        );
+        if (ret == 0){
+            stream.log("Entered game!");
+            return true;
+        }else{
+            stream.log("Timed out waiting to enter game.", COLOR_RED);
+            return false;
+        }
     }
 }
 
@@ -57,7 +107,6 @@ bool reset_game_from_home(
     ProgramEnvironment& env,
     ConsoleHandle& console, ProControllerContext& context,
     bool backup_save,
-    Milliseconds enter_game_mash,
     Milliseconds enter_game_timeout,
     Milliseconds post_wait_time
 ){
@@ -68,6 +117,7 @@ bool reset_game_from_home(
 
     if (backup_save){
         console.log("Loading backup save!");
+        console.overlay().add_log("Use Backup Save");
         pbf_wait(context, 1000ms);
         ssf_press_dpad(context, DPAD_UP, 0ms, 200ms);
         ssf_press_button(context, BUTTON_B | BUTTON_X, 1000ms, 200ms);
@@ -75,7 +125,6 @@ bool reset_game_from_home(
 
     ok &= gamemenu_to_ingame(
         console, context,
-        enter_game_mash,
         enter_game_timeout
     );
     if (!ok){
@@ -95,8 +144,7 @@ bool reset_game_from_home(
     return reset_game_from_home(
         env, console, context,
         backup_save,
-        GameSettings::instance().ENTER_GAME_MASH0,
-        GameSettings::instance().ENTER_GAME_WAIT,
+        GameSettings::instance().ENTER_GAME_WAIT0,
         post_wait_time
     );
 }

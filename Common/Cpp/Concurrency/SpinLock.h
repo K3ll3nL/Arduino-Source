@@ -102,10 +102,10 @@ public:
     }
 
 private:
-    void internal_acquire_read();
-    void internal_acquire_write();
-    void internal_acquire_read(const char* label);
-    void internal_acquire_write(const char* label);
+    void internal_acquire_read() noexcept;
+    void internal_acquire_write() noexcept;
+    void internal_acquire_read(const char* label) noexcept;
+    void internal_acquire_write(const char* label) noexcept;
 
 private:
     //  0           =   unlocked
@@ -120,7 +120,10 @@ public:
     ReadSpinLock(const ReadSpinLock&) = delete;
     void operator=(const ReadSpinLock&) = delete;
 
-    PA_FORCE_INLINE ReadSpinLock(SpinLockMRSW& lock, const char* label = "(unnamed lock)")
+    PA_FORCE_INLINE ReadSpinLock(
+        SpinLockMRSW& lock,
+        const char* label = "(unnamed lock)"
+    )
         : m_lock(lock)
     {
         lock.acquire_read(label);
@@ -158,7 +161,7 @@ private:
 
 
 using SpinLock = SpinLockMRSW;
-using SpinLockGuard = WriteSpinLock;
+//using SpinLockGuard = WriteSpinLock;
 
 
 

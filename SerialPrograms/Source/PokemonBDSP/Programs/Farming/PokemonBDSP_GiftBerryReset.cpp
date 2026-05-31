@@ -11,8 +11,9 @@
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonFramework/VideoPipeline/VideoFeed.h"
 #include "CommonFramework/ProgramStats/StatsTracking.h"
-#include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/NintendoSwitch_Settings.h"
+#include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonBDSP/Inference/PokemonBDSP_DialogDetector.h"
 #include "PokemonBDSP/PokemonBDSP_Settings.h"
@@ -106,7 +107,7 @@ void GiftBerryReset::program(SingleSwitchProgramEnvironment& env, ProControllerC
     env.update_stats();
 
     //  Connect the controller.
-    pbf_move_right_joystick(context, 0, 255, 10, 0);
+    require_player(env.console, context, BUTTON_L);
 
     const auto selected_berries = TARGET_BERRIES.selected_berries();
     for (const auto& berry_slug: selected_berries){
@@ -120,8 +121,8 @@ void GiftBerryReset::program(SingleSwitchProgramEnvironment& env, ProControllerC
         env.console.log("Talking to berry npc.");
         // Press ZL three times to advance dialog with npc
         for (int i = 0; i < 3; i++){
-            pbf_mash_button(context, BUTTON_ZL, 30);
-            pbf_wait(context, 150);
+            pbf_mash_button(context, BUTTON_ZL, 240ms);
+            pbf_wait(context, 1200ms);
         }
         context.wait_for_all_requests();
 

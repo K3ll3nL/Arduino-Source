@@ -25,9 +25,9 @@ namespace MaxLairInternal{
 bool abort_if_error(MultiSwitchProgramEnvironment& env, CancellableScope& scope, const std::atomic<size_t>& errors){
     if (errors.load(std::memory_order_acquire)){
         env.run_in_parallel(scope, [&](ConsoleHandle& console, ProControllerContext& context){
-            pbf_press_button(context, BUTTON_B, 10, TICKS_PER_SECOND);
-            pbf_press_button(context, BUTTON_A, 10, TICKS_PER_SECOND);
-            pbf_mash_button(context, BUTTON_B, 8 * TICKS_PER_SECOND);
+            pbf_press_button(context, BUTTON_B, 80ms, 1000ms);
+            pbf_press_button(context, BUTTON_A, 80ms, 1000ms);
+            pbf_mash_button(context, BUTTON_B, 8000ms);
         });
         return true;
     }
@@ -80,7 +80,7 @@ public:
     virtual ~AllJoinedTracker(){}
 
     bool report_joined(){
-        std::unique_lock<std::mutex> lg(m_lock);
+        std::unique_lock<Mutex> lg(m_lock);
         m_counter++;
         if (m_counter >= m_consoles){
             m_cv.notify_all();
@@ -102,14 +102,14 @@ public:
         if (Cancellable::cancel(std::move(exception))){
             return true;
         }
-        std::lock_guard<std::mutex> lg(m_lock);
+        std::lock_guard<Mutex> lg(m_lock);
         m_cv.notify_all();
         return false;
     }
 
 private:
-    std::mutex m_lock;
-    std::condition_variable m_cv;
+    Mutex m_lock;
+    ConditionVariable m_cv;
 
     WallClock m_time_limit;
     size_t m_consoles;
@@ -159,7 +159,7 @@ bool start_raid_local(
     });
     if (errors.load(std::memory_order_acquire) != 0){
         env.run_in_parallel(scope, [&](ConsoleHandle& console, ProControllerContext& context){
-            pbf_mash_button(context, BUTTON_B, 8 * TICKS_PER_SECOND);
+            pbf_mash_button(context, BUTTON_B, 8000ms);
         });
         return false;
     }
@@ -176,10 +176,10 @@ bool start_raid_local(
 
         //  Enter code.
         if (!code.empty() && env.consoles.size() > 1){
-            pbf_press_button(context, BUTTON_PLUS, 10, TICKS_PER_SECOND);
-            FastCodeEntry::numberpad_enter_code(console, context, code, true);
-            pbf_wait(context, 2 * TICKS_PER_SECOND);
-            pbf_press_button(context, BUTTON_A, 10, TICKS_PER_SECOND);
+            pbf_press_button(context, BUTTON_PLUS, 80ms, 1000ms);
+            FastCodeEntry::numberpad_enter_code(console, context, false, code, true);
+            pbf_wait(context, 2000ms);
+            pbf_press_button(context, BUTTON_A, 80ms, 1000ms);
         }
     });
 
@@ -187,9 +187,9 @@ bool start_raid_local(
     env.run_in_parallel(scope, [&](ConsoleHandle& console, ProControllerContext& context){
         //  Delay to prevent the Switches from forming separate lobbies.
         if (env.consoles.size() > 1 && console.index() != host.index()){
-            pbf_wait(context, 3 * TICKS_PER_SECOND);
+            pbf_wait(context, 5000ms);
         }
-        pbf_press_button(context, BUTTON_A, 10, TICKS_PER_SECOND);
+        pbf_press_button(context, BUTTON_A, 80ms, 1000ms);
     });
 
     auto time_limit = current_time() + settings.LOBBY_WAIT_DELAY0.get();
@@ -238,14 +238,14 @@ bool start_raid_local(
     env.run_in_parallel(scope, [&](ConsoleHandle& console, ProControllerContext& context){
         //  Ready up.
         context.wait_for(std::chrono::seconds(1));
-        pbf_press_button(context, BUTTON_A, 10, TICKS_PER_SECOND);
+        pbf_press_button(context, BUTTON_A, 80ms, 1000ms);
         context.wait_for_all_requests();
 
         //  Wait
         size_t index = console.index();
         if (!wait_for_lobby_ready(console, context, *entrance[index], env.consoles.size(), env.consoles.size(), time_limit)){
             errors.fetch_add(1);
-            pbf_mash_button(context, BUTTON_B, 10 * TICKS_PER_SECOND);
+            pbf_mash_button(context, BUTTON_B, 10000ms);
             return;
         }
     });
@@ -257,7 +257,7 @@ bool start_raid_local(
         //  Start
         if (!start_adventure(console, context, env.consoles.size())){
             errors.fetch_add(1);
-            pbf_mash_button(context, BUTTON_B, 10 * TICKS_PER_SECOND);
+            pbf_mash_button(context, BUTTON_B, 10000ms);
             return;
         }
     });
@@ -313,7 +313,7 @@ bool start_raid_host(
     });
     if (errors.load(std::memory_order_acquire) != 0){
         env.run_in_parallel(scope, [&](ConsoleHandle& console, ProControllerContext& context){
-            pbf_mash_button(context, BUTTON_B, 8 * TICKS_PER_SECOND);
+            pbf_mash_button(context, BUTTON_B, 8000ms);
         });
         return false;
     }
@@ -331,10 +331,10 @@ bool start_raid_host(
 
         //  Enter Code
         if (!code.empty()){
-            pbf_press_button(context, BUTTON_PLUS, 10, TICKS_PER_SECOND);
-            FastCodeEntry::numberpad_enter_code(console, context, code, true);
-            pbf_wait(context, 2 * TICKS_PER_SECOND);
-            pbf_press_button(context, BUTTON_A, 10, TICKS_PER_SECOND);
+            pbf_press_button(context, BUTTON_PLUS, 80ms, 1000ms);
+            FastCodeEntry::numberpad_enter_code(console, context, false, code, true);
+            pbf_wait(context, 2000ms);
+            pbf_press_button(context, BUTTON_A, 80ms, 1000ms);
         }
     });
 
@@ -345,9 +345,9 @@ bool start_raid_host(
     env.run_in_parallel(scope, [&](ConsoleHandle& console, ProControllerContext& context){
         //  If you start the raids at the same time, they won't find each other.
         if (console.index() != host.index()){
-            pbf_wait(context, 3 * TICKS_PER_SECOND);
+            pbf_wait(context, 3000ms);
         }
-        pbf_press_button(context, BUTTON_A, 10, TICKS_PER_SECOND);
+        pbf_press_button(context, BUTTON_A, 80ms, 1000ms);
     });
 
     auto time_limit = current_time() + settings.LOBBY_WAIT_DELAY0.get();
@@ -404,14 +404,14 @@ bool start_raid_host(
     env.run_in_parallel(scope, [&](ConsoleHandle& console, ProControllerContext& context){
         //  Ready up.
         context.wait_for(std::chrono::seconds(1));
-        pbf_press_button(context, BUTTON_A, 10, TICKS_PER_SECOND);
+        pbf_press_button(context, BUTTON_A, 80ms, 1000ms);
         context.wait_for_all_requests();
 
         //  Wait
         size_t index = console.index();
         if (!wait_for_lobby_ready(console, context, *entrance[index], env.consoles.size(), 4, time_limit)){
             errors.fetch_add(1);
-            pbf_mash_button(context, BUTTON_B, 10 * TICKS_PER_SECOND);
+            pbf_mash_button(context, BUTTON_B, 10000ms);
             return;
         }
     });
@@ -423,7 +423,7 @@ bool start_raid_host(
         //  Start
         if (!start_adventure(console, context, env.consoles.size())){
             errors.fetch_add(1);
-            pbf_mash_button(context, BUTTON_B, 10 * TICKS_PER_SECOND);
+            pbf_mash_button(context, BUTTON_B, 10000ms);
             return;
         }
     });

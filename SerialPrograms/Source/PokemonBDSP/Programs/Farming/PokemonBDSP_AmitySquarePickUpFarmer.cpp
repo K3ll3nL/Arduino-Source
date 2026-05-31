@@ -7,6 +7,7 @@
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonFramework/ProgramStats/StatsTracking.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 //#include "PokemonBDSP/PokemonBDSP_Settings.h"
 #include "PokemonBDSP_AmitySquarePickUpFarmer.h"
@@ -86,7 +87,7 @@ void AmitySquarePickUpFarmer::program(SingleSwitchProgramEnvironment& env, ProCo
     env.update_stats();
 
     //  Connect the controller.
-    pbf_move_right_joystick(context, 0, 255, 10, 0);
+    require_player(env.console, context, BUTTON_L);
 
     for (uint16_t c = 0; c < MAX_FETCH_ATTEMPTS; c++){
         env.update_stats();
@@ -94,22 +95,22 @@ void AmitySquarePickUpFarmer::program(SingleSwitchProgramEnvironment& env, ProCo
 
         for (uint16_t i = 0; i < ROUNDS_PER_FETCH; i++){
             //  Move right
-            pbf_move_left_joystick(context, 255, 128, ONE_WAY_MOVING_TIME0, 0ms);
+            pbf_move_left_joystick(context, {+1, 0}, ONE_WAY_MOVING_TIME0, 0ms);
             // Move left
-            pbf_move_left_joystick(context, 0, 128, ONE_WAY_MOVING_TIME0, 0ms);
+            pbf_move_left_joystick(context, {-1, 0}, ONE_WAY_MOVING_TIME0, 0ms);
         }
 
         // Wait for your pokemon to catch up to you
         pbf_wait(context, WAIT_TIME_FOR_POKEMON0);
 
         // Face toward your pokemon.
-        pbf_press_dpad(context, DPAD_RIGHT, 1, 0);
+        pbf_press_dpad(context, DPAD_RIGHT, 8ms, 0ms);  //  This works? It's not too short?
 
         // Mash button to talk to pokemon
-        pbf_mash_button(context, BUTTON_ZL, 500);
+        pbf_mash_button(context, BUTTON_ZL, 4000ms);
 
         // Mash button to end talking to pokemon
-        pbf_mash_button(context, BUTTON_B, 500);
+        pbf_mash_button(context, BUTTON_B, 4000ms);
 
         stats.m_attempts++;
     }

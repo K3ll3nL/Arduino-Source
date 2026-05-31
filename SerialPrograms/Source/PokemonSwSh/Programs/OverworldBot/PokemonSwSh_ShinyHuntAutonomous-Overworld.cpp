@@ -8,8 +8,9 @@
 #include "Common/Cpp/PrettyPrint.h"
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonTools/Async/InferenceRoutines.h"
-#include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/NintendoSwitch_Settings.h"
+#include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "PokemonSwSh/PokemonSwSh_Settings.h"
 #include "PokemonSwSh/Commands/PokemonSwSh_Commands_DateSpam.h"
 #include "PokemonSwSh/ShinyHuntTracker.h"
@@ -298,16 +299,15 @@ bool ShinyHuntAutonomousOverworld::charge_at_target(
     );
 
     const Trajectory& trajectory = target.second.trajectory;
-    double angle = std::atan2(
-        (double)trajectory.joystick_y - 128,
-        (double)trajectory.joystick_x - 128
-    ) * 57.295779513082320877;
+    double stick_x = trajectory.joystick_fx;
+    double stick_y = trajectory.joystick_fy;
+    double angle = std::atan2(stick_y, stick_x) * 57.295779513082320877;
     stream.log(
-        "Trajectory: Distance = " + std::to_string(trajectory.distance_in_ticks) +
-        ", Direction = " + tostr_default(-angle) + " degrees"
+        "Trajectory: Distance = " + std::to_string(trajectory.distance_in_millis.count()) +
+        "ms, Direction = " + tostr_default(angle) + " degrees"
     );
 
-    Milliseconds duration = (trajectory.distance_in_ticks + 16) * 8ms;
+    Milliseconds duration = trajectory.distance_in_millis + 128ms;
     duration = std::min<Milliseconds>(duration, MAX_MOVE_DURATION0);
 
 
@@ -327,19 +327,18 @@ bool ShinyHuntAutonomousOverworld::charge_at_target(
             //  Move to target.
             pbf_move_left_joystick(
                 context,
-                trajectory.joystick_x,
-                trajectory.joystick_y,
+                {stick_x, stick_y},
                 duration, 0ms
             );
 
             //  Circle Maneuver
             if (TARGET_CIRCLING){
-                if (trajectory.joystick_y < 64 &&
-                    64 <= trajectory.joystick_x && trajectory.joystick_x <= 192
+                if (trajectory.joystick_fy > 0.5 &&
+                    -0.5 <= trajectory.joystick_fx && trajectory.joystick_fx <= 0.5
                 ){
-                    move_in_circle_up(context, trajectory.joystick_x > 128);
+                    move_in_circle_up(context, trajectory.joystick_fx > 0);
                 }else{
-                    move_in_circle_down(context, trajectory.joystick_x <= 128);
+                    move_in_circle_down(context, trajectory.joystick_fx <= 0);
                 }
             }
         },
@@ -372,11 +371,17 @@ void ShinyHuntAutonomousOverworld::program(SingleSwitchProgramEnvironment& env, 
 
     if (START_LOCATION.start_in_grip_menu()){
         grip_menu_connect_go_home(context);
-        resume_game_back_out(env.console, context, ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST, 200);
+        resume_game_back_out(
+            env.console,
+            context,
+            ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST,
+            1600ms
+        );
     }else{
-        pbf_press_button(context, BUTTON_B, 5, 5);
+        //  Connect the controller.
+        require_player(env.console, context, BUTTON_B);
     }
-    pbf_move_right_joystick(context, 128, 255, TICKS_PER_SECOND, 0);
+    pbf_move_right_joystick(context, {0, -1}, 1000ms, 0ms);
 
     WallDuration TIMEOUT = WATCHDOG_TIMER0;
     WallDuration PERIOD = std::chrono::hours(TIME_ROLLBACK_HOURS);

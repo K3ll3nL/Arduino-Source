@@ -9,6 +9,7 @@
 #include "CommonFramework/ProgramStats/StatsTracking.h"
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonLA/PokemonLA_Settings.h"
 #include "PokemonLA/Inference/Sounds/PokemonLA_ShinySoundDetector.h"
@@ -115,12 +116,12 @@ void PostMMOSpawnReset::run_iteration(SingleSwitchProgramEnvironment& env, ProCo
 
                 // forward portion
                 if (TURN_DURATION0.get() > 0ms){
-                    pbf_move_right_joystick(context, 255, 128, TURN_DURATION0, 0ms);
+                    pbf_move_right_joystick(context, {+1, 0}, TURN_DURATION0, 0ms);
                 }else if (TURN_DURATION0.get() < 0ms){
-                    pbf_move_right_joystick(context, 0, 128, -TURN_DURATION0.get(), 0ms);
+                    pbf_move_right_joystick(context, {-1, 0}, -TURN_DURATION0.get(), 0ms);
                 }
                 
-                pbf_controller_state(context, BUTTON_LCLICK, DPAD_NONE, 128, 0, 128, 128, FORWARD_DURATION0);
+                pbf_controller_state(context, BUTTON_LCLICK, DPAD_NONE, {0, +1}, {0, 0}, FORWARD_DURATION0);
 
                 pbf_wait(context, WAIT_DURATION0);
 
@@ -143,7 +144,7 @@ void PostMMOSpawnReset::program(SingleSwitchProgramEnvironment& env, ProControll
     PostMMOSpawnReset_Descriptor::Stats& stats = env.current_stats<PostMMOSpawnReset_Descriptor::Stats>();
 
     //  Connect the controller.
-    pbf_press_button(context, BUTTON_LCLICK, 5, 5);
+    require_player(env.console, context, BUTTON_LCLICK);
 
     while (true){
         env.update_stats();

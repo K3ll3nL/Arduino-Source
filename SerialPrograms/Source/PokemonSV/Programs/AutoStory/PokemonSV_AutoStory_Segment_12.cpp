@@ -4,6 +4,8 @@
  *
  */
 
+#include "CommonFramework/VideoPipeline/VideoFeed.h"
+
 #include "CommonFramework/Exceptions/OperationFailedException.h"
 #include "CommonFramework/VideoPipeline/VideoOverlay.h"
 #include "CommonTools/Async/InferenceRoutines.h"
@@ -83,12 +85,18 @@ void checkpoint_28(
     [&](size_t attempt_number){         
         context.wait_for_all_requests();
         DirectionDetector direction;
+        if (attempt_number > 0 || ENABLE_TEST){
+            env.console.log("Fly to neighbouring Pokecenter, then fly back, to clear any pokemon covering the minimap.");
+            move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::KEEP_ZOOM, -1, +1, 0ms});
+            move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::KEEP_ZOOM, -1, +1, 0ms});
+        }
+
         do_action_and_monitor_for_battles(env.program_info(), env.console, context,
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
                 direction.change_direction(env.program_info(), env.console, context, 2.71);
-                pbf_move_left_joystick(context, 128, 0, 375, 100);
+                pbf_move_left_joystick(context, {0, +1}, 3000ms, 800ms);
                 direction.change_direction(env.program_info(), env.console, context, 1.26);
-                pbf_move_left_joystick(context, 128, 0, 1750, 100);                
+                pbf_move_left_joystick(context, {0, +1}, 14000ms, 800ms);
         });        
        
         direction.change_direction(env.program_info(), env.console, context, 2.73);
@@ -99,10 +107,10 @@ void checkpoint_28(
             [&](ProControllerContext& context){
                 handle_when_stationary_in_overworld(env.program_info(), env.console, context, 
                     [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                        pbf_move_left_joystick(context, 128, 0, 10 * TICKS_PER_SECOND, 100);
+                        pbf_move_left_joystick(context, {0, +1}, 10000ms, 800ms);
                     }, 
                     [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                        pbf_move_left_joystick(context, 0, 0, 100, 20);
+                        pbf_move_left_joystick(context, {-1, +1}, 800ms, 160ms);
                     },
                     5, 3
                 );     
@@ -120,7 +128,7 @@ void checkpoint_28(
         wait_for_overworld(env.program_info(), env.console, context);
 
         // talk to receptionist
-        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_SPAM_A, 10);
+        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_SPAM_A, 10000ms);
         clear_dialog(env.console, context, ClearDialogMode::STOP_BATTLE, 60, {CallbackEnum::BATTLE, CallbackEnum::PROMPT_DIALOG, CallbackEnum::DIALOG_ARROW});
 
         // battle Katy
@@ -129,14 +137,14 @@ void checkpoint_28(
         mash_button_till_overworld(env.console, context, BUTTON_A, 360);
 
         // leave gym building
-        pbf_move_left_joystick(context, 128, 255, 500, 100);
-        pbf_wait(context, 3 * TICKS_PER_SECOND);        
+        pbf_move_left_joystick(context, {0, -1}, 2400ms, 800ms);
+        pbf_wait(context, 3000ms);
         // wait for overworld after leaving gym
         wait_for_overworld(env.program_info(), env.console, context, 30);
 
-        pbf_move_left_joystick(context, 128, 0, 450, 100);
+        pbf_move_left_joystick(context, {0, +1}, 3600ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 1.26);
-        pbf_move_left_joystick(context, 128, 0, 1600, 100);
+        pbf_move_left_joystick(context, {0, +1}, 12800ms, 800ms);
         fly_to_overlapping_flypoint(env.program_info(), env.console, context);
        
     });

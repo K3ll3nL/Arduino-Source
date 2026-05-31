@@ -35,8 +35,7 @@ BBQSoloFarmer_Descriptor::BBQSoloFarmer_Descriptor()
         "Farm Blueberry Quests in the Terarium for BP.",
         ProgramControllerClass::StandardController_RequiresPrecision,
         FeedbackType::REQUIRED,
-        AllowCommandsWhenRunning::DISABLE_COMMANDS,
-        {}
+        AllowCommandsWhenRunning::DISABLE_COMMANDS
     )
 {}
 struct BBQSoloFarmer_Descriptor::Stats : public StatsTracker{
@@ -77,9 +76,12 @@ void BBQSoloFarmer::program(SingleSwitchProgramEnvironment& env, ProControllerCo
     BBQSoloFarmer_Descriptor::Stats& stats = env.current_stats<BBQSoloFarmer_Descriptor::Stats>();
 
     //Make sure console type is set
-    if (env.console.state().console_type() == ConsoleType::Unknown) {
+    if (env.console.state().console_type() == ConsoleType::Unknown){
         throw UserSetupError(env.console, "Console Type (Switch 1 or 2) must be specified.");
     }
+
+    //  Connect the controller.
+    require_player(env.console, context, BUTTON_LCLICK);
     
     //Fly to plaza
     open_map_from_overworld(env.program_info(), env.console, context);
@@ -141,12 +143,12 @@ void BBQSoloFarmer::program(SingleSwitchProgramEnvironment& env, ProControllerCo
         quests_to_do.clear();
 
         //Fix the time to prevent running out of years
-        pbf_wait(context, 250);
+        pbf_wait(context, 2000ms);
         context.wait_for_all_requests();
         go_home(env.console, context);
         home_to_date_time(env.console, context, false);
-        pbf_press_button(context, BUTTON_A, 20, 105);
-        pbf_press_button(context, BUTTON_A, 20, 105);
+        pbf_press_button(context, BUTTON_A, 160ms, 840ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 840ms);
         pbf_press_button(context, BUTTON_HOME, 160ms, ConsoleSettings::instance().SETTINGS_TO_HOME_DELAY0);
         resume_game_from_home(env.console, context);
 
@@ -166,8 +168,8 @@ void BBQSoloFarmer::program(SingleSwitchProgramEnvironment& env, ProControllerCo
     if (BBQ_OPTIONS.FIX_TIME_WHEN_DONE){
         go_home(env.console, context);
         home_to_date_time(env.console, context, false);
-        pbf_press_button(context, BUTTON_A, 20, 105);
-        pbf_press_button(context, BUTTON_A, 20, 105);
+        pbf_press_button(context, BUTTON_A, 160ms, 840ms);
+        pbf_press_button(context, BUTTON_A, 160ms, 840ms);
         pbf_press_button(context, BUTTON_HOME, 160ms, ConsoleSettings::instance().SETTINGS_TO_HOME_DELAY0);
         resume_game_from_home(env.console, context);
 

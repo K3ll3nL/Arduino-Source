@@ -6,8 +6,9 @@
 
 #include "CommonFramework/Exceptions/OperationFailedException.h"
 #include "CommonFramework/Notifications/ProgramNotifications.h"
-#include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/NintendoSwitch_Settings.h"
+#include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "PokemonSwSh/PokemonSwSh_Settings.h"
 #include "PokemonSwSh/Commands/PokemonSwSh_Commands_DateSpam.h"
 #include "PokemonSwSh/Inference/ShinyDetection/PokemonSwSh_ShinyEncounterDetector.h"
@@ -93,9 +94,15 @@ ShinyHuntAutonomousRegi::ShinyHuntAutonomousRegi()
 void ShinyHuntAutonomousRegi::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     if (START_LOCATION.start_in_grip_menu()){
         grip_menu_connect_go_home(context);
-        resume_game_back_out(env.console, context, ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST, 200);
+        resume_game_back_out(
+            env.console,
+            context,
+            ConsoleSettings::instance().TOLERATE_SYSTEM_UPDATE_MENU_FAST,
+            1600ms
+        );
     }else{
-        pbf_press_button(context, BUTTON_B, 5, 5);
+        //  Connect the controller.
+        require_player(env.console, context, BUTTON_B);
     }
 
     ShinyHuntTracker& stats = env.current_stats<ShinyHuntTracker>();
@@ -129,7 +136,7 @@ void ShinyHuntAutonomousRegi::program(SingleSwitchProgramEnvironment& env, ProCo
         run_regi_light_puzzle(env.console, context, REGI_NAME, stats.encounters());
 
         //  Start the encounter.
-        pbf_mash_button(context, BUTTON_A, 5 * TICKS_PER_SECOND);
+        pbf_mash_button(context, BUTTON_A, 5000ms);
         context.wait_for_all_requests();
 
         //  Detect shiny.
@@ -141,7 +148,7 @@ void ShinyHuntAutonomousRegi::program(SingleSwitchProgramEnvironment& env, ProCo
 //        shininess = ShinyDetection::SQUARE_SHINY;
         if (result.shiny_type == ShinyType::UNKNOWN){
             stats.add_error();
-            pbf_mash_button(context, BUTTON_B, TICKS_PER_SECOND);
+            pbf_mash_button(context, BUTTON_B, 1000ms);
             run_away(env.console, context, EXIT_BATTLE_TIMEOUT0);
             error = true;
             continue;

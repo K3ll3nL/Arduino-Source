@@ -52,9 +52,9 @@ CameraAngle quest_photo_navi(
             //Polar Rest Area - targeting Duosion fixed spawn
             central_to_polar_rest(info, console, context);
 
-            pbf_press_button(context, BUTTON_L, 10, 50);
-            pbf_move_left_joystick(context, 128, 0, 230, 20);
-            pbf_move_left_joystick(context, 0, 128, 250, 20);
+            pbf_press_button(context, BUTTON_L, 80ms, 400ms);
+            pbf_move_left_joystick(context, {0, +1}, 1840ms, 160ms);
+            pbf_move_left_joystick(context, {-1, 0}, 2000ms, 160ms);
 
             break;
         case BBQuests::photo_swim: case BBQuests::photo_water: case BBQuests::photo_polar:
@@ -63,11 +63,11 @@ CameraAngle quest_photo_navi(
             //Polar Outdoor Classroom 1 - fixed Horsea
             central_to_polar_class1(info, console, context);
 
-            pbf_wait(context, 200);
+            pbf_wait(context, 1600ms);
             context.wait_for_all_requests();
 
-            pbf_press_button(context, BUTTON_L, 10, 50);
-            pbf_move_left_joystick(context, 255, 50, 180, 20);
+            pbf_press_button(context, BUTTON_L, 80ms, 400ms);
+            pbf_move_left_joystick(context, {+1, +0.609}, 1440ms, 160ms);
 
             angle = CameraAngle::down;
 
@@ -78,21 +78,21 @@ CameraAngle quest_photo_navi(
             //Coastal Plaza - Exeggutor-A
             central_to_coastal_plaza(info, console, context);
 
-            pbf_move_left_joystick(context, 0, 115, 400, 20);
+            pbf_move_left_joystick(context, {-1, +0.102}, 3200ms, 160ms);
 
             //Jump down
-            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 20, 105);
+            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 160ms, 840ms);
             ssf_press_button(context, BUTTON_B, 0ms, 800ms);
             ssf_press_button(context, BUTTON_B, 0ms, 160ms, 80ms);
             ssf_press_button(context, BUTTON_B, 0ms, 160ms);
 
-            pbf_wait(context, 100);
+            pbf_wait(context, 800ms);
             context.wait_for_all_requests();
 
-            pbf_move_left_joystick(context, 128, 0, 150, 20);
-            pbf_press_button(context, BUTTON_B, 20, 20);
-            pbf_wait(context, 200);
-            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 20, 105);
+            pbf_move_left_joystick(context, {0, +1}, 1200ms, 160ms);
+            pbf_press_button(context, BUTTON_B, 160ms, 160ms);
+            pbf_wait(context, 1600ms);
+            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 160ms, 840ms);
             context.wait_for_all_requests();
 
             break;
@@ -102,12 +102,12 @@ CameraAngle quest_photo_navi(
             //Canyon Plaza - Golett
             central_to_canyon_plaza(info, console, context);
 
-            pbf_move_left_joystick(context, 210, 128, 10, 20);
-            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 20, 105);
+            pbf_move_left_joystick(context, {+0.646, 0}, 80ms, 160ms);
+            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 160ms, 840ms);
 
-            jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 600, 250, 400);
+            jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 4800ms, 2000ms, 3200ms);
 
-            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 20, 105);
+            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 160ms, 840ms);
 
             break;
         case BBQuests::photo_savanna: case BBQuests::photo_normal: case BBQuests::photo_fire:
@@ -116,20 +116,20 @@ CameraAngle quest_photo_navi(
             //Savanna Plaza - Pride Rock
             central_to_savanna_plaza(info, console, context);
 
-            pbf_move_left_joystick(context, 220, 255, 10, 20);
-            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 20, 105);
+            pbf_move_left_joystick(context, {+0.724, -1}, 80ms, 160ms);
+            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 160ms, 840ms);
 
-            jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 600, 400, 400);
+            jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 4800ms, 3200ms, 3200ms);
 
-            pbf_press_button(context, BUTTON_PLUS, 20, 105);
-            pbf_move_left_joystick(context, 255, 128, 20, 50);
+            pbf_press_button(context, BUTTON_PLUS, 160ms, 840ms);
+            pbf_move_left_joystick(context, {+1, 0}, 160ms, 400ms);
 
-            pbf_press_button(context, BUTTON_L, 20, 50);
-            pbf_move_left_joystick(context, 128, 0, 100, 50);
+            pbf_press_button(context, BUTTON_L, 160ms, 400ms);
+            pbf_move_left_joystick(context, {0, +1}, 800ms, 400ms);
 
             //Turn slightly for switch 1
-            if (console.state().console_type() == ConsoleType::Switch1) {
-                pbf_move_left_joystick(context, 0, 0, 20, 50);
+            if (console.state().console_type() == ConsoleType::Switch1){
+                pbf_move_left_joystick(context, {-1, +1}, 160ms, 400ms);
             }
 
             break;
@@ -139,12 +139,12 @@ CameraAngle quest_photo_navi(
             //Kleavor
             central_to_canyon_plaza(info, console, context);
 
-            pbf_move_left_joystick(context, 205, 64, 20, 105);
-            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 20, 105);
+            pbf_move_left_joystick(context, {+0.606, +0.5}, 160ms, 840ms);
+            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 160ms, 840ms);
 
-            jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 1000, 1500, 300);
+            jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 8000ms, 12000ms, 2400ms);
 
-            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 20, 105);
+            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 160ms, 840ms);
 
             break;
         case BBQuests::photo_fairy:
@@ -154,15 +154,15 @@ CameraAngle quest_photo_navi(
             open_map_from_overworld(info, console, context);
             fly_to_overworld_from_map(info, console, context);
 
-            pbf_move_left_joystick(context, 0, 80, 10, 20);
-            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 20, 105);
+            pbf_move_left_joystick(context, {-1, +0.375}, 80ms, 160ms);
+            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 160ms, 840ms);
 
-            jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 2000, 1500, 200);
+            jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 16000ms, 12000ms, 1600ms);
 
-            pbf_press_button(context, BUTTON_PLUS, 20, 105);
+            pbf_press_button(context, BUTTON_PLUS, 160ms, 840ms);
 
-            pbf_move_left_joystick(context, 255, 0, 10, 20);
-            pbf_press_button(context, BUTTON_L, 20, 50);
+            pbf_move_left_joystick(context, {+1, +1}, 80ms, 160ms);
+            pbf_press_button(context, BUTTON_L, 160ms, 400ms);
 
             angle = CameraAngle::down;
             break;
@@ -173,14 +173,14 @@ CameraAngle quest_photo_navi(
             open_map_from_overworld(info, console, context);
             fly_to_overworld_from_map(info, console, context);
 
-            pbf_move_left_joystick(context, 0, 0, 10, 20);
-            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 20, 105);
+            pbf_move_left_joystick(context, {-1, +1}, 80ms, 160ms);
+            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 160ms, 840ms);
 
-            jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 1100, 1700, 200);
+            jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 8800ms, 13600ms, 1600ms);
 
-            pbf_press_button(context, BUTTON_PLUS, 20, 105);
-            pbf_move_left_joystick(context, 0, 128, 20, 50);
-            pbf_press_button(context, BUTTON_L, 20, 50);
+            pbf_press_button(context, BUTTON_PLUS, 160ms, 840ms);
+            pbf_move_left_joystick(context, {-1, 0}, 160ms, 400ms);
+            pbf_press_button(context, BUTTON_L, 160ms, 400ms);
 
             break;
         case BBQuests::photo_flying:
@@ -189,15 +189,15 @@ CameraAngle quest_photo_navi(
             //Vullaby/Mandibuzz
             central_to_savanna_plaza(info, console, context);
 
-            pbf_move_left_joystick(context, 255, 0, 10, 20);
-            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 20, 105);
+            pbf_move_left_joystick(context, {+1, +1}, 80ms, 160ms);
+            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 160ms, 840ms);
 
-            pbf_move_left_joystick(context, 128, 0, 550, 20);
-            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 20, 105);
+            pbf_move_left_joystick(context, {0, +1}, 4400ms, 160ms);
+            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 160ms, 840ms);
 
-            pbf_move_left_joystick(context, 128, 0, 150, 20);
+            pbf_move_left_joystick(context, {0, +1}, 1200ms, 160ms);
 
-            pbf_move_left_joystick(context, 255, 128, 10, 20);
+            pbf_move_left_joystick(context, {+1, 0}, 80ms, 160ms);
 
             angle = CameraAngle::down;
             break;
@@ -207,9 +207,9 @@ CameraAngle quest_photo_navi(
             //Electabuzz
             central_to_canyon_rest(info, console, context);
 
-            pbf_move_left_joystick(context, 255, 255, 10, 20);
-            pbf_press_button(context, BUTTON_L, 20, 50);
-            pbf_move_left_joystick(context, 128, 0, 400, 20);
+            pbf_move_left_joystick(context, {+1, -1}, 80ms, 160ms);
+            pbf_press_button(context, BUTTON_L, 160ms, 400ms);
+            pbf_move_left_joystick(context, {0, +1}, 3200ms, 160ms);
 
             break;
         case BBQuests::photo_fighting:
@@ -217,14 +217,14 @@ CameraAngle quest_photo_navi(
 
             //Hitmontop (TERA ICE) - Canyon Plaza or Classroom
             central_to_canyon_plaza(info, console, context);
-            pbf_move_left_joystick(context, 0, 128, 400, 20);
-            pbf_press_button(context, BUTTON_L, 10, 50);
-            pbf_move_left_joystick(context, 0, 100, 20, 50);
-            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 20, 105);
+            pbf_move_left_joystick(context, {-1, 0}, 3200ms, 160ms);
+            pbf_press_button(context, BUTTON_L, 80ms, 400ms);
+            pbf_move_left_joystick(context, {-1, +0.219}, 160ms, 400ms);
+            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 160ms, 840ms);
 
-            jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 200, 500, 800);
+            jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 1600ms, 4000ms, 6400ms);
 
-            pbf_press_button(context, BUTTON_PLUS, 20, 100);
+            pbf_press_button(context, BUTTON_PLUS, 160ms, 800ms);
             context.wait_for_all_requests();
 
             break;
@@ -233,19 +233,19 @@ CameraAngle quest_photo_navi(
 
             //Muk-A - area a bit laggy but consistently so
             central_to_coastal_plaza(info, console, context);
-            pbf_move_left_joystick(context, 0, 128, 20, 50);
+            pbf_move_left_joystick(context, {-1, 0}, 160ms, 400ms);
 
-            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 20, 105);
+            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 160ms, 840ms);
 
-            if (console.state().console_type() == ConsoleType::Switch1) {
-                jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 1000, 1400, 300);
-            } else { //Switch 2
-                jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 1000, 1300, 300);
+            if (console.state().console_type() == ConsoleType::Switch1){
+                jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 8000ms, 11200ms, 2400ms);
+            }else{ //Switch 2
+                jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 8000ms, 10400ms, 2400ms);
             }
-            pbf_press_button(context, BUTTON_PLUS, 20, 105);
-            pbf_move_left_joystick(context, 128, 0, 150, 50);
-            pbf_move_left_joystick(context, 180, 0, 20, 50);
-            pbf_wait(context, 200); //Give it time to spawn/load.
+            pbf_press_button(context, BUTTON_PLUS, 160ms, 840ms);
+            pbf_move_left_joystick(context, {0, +1}, 1200ms, 400ms);
+            pbf_move_left_joystick(context, {+0.409, +1}, 160ms, 400ms);
+            pbf_wait(context, 1600ms); //Give it time to spawn/load.
             context.wait_for_all_requests();
 
             angle = CameraAngle::down;
@@ -256,19 +256,19 @@ CameraAngle quest_photo_navi(
 
             //Dugtrio-A - area a bit laggy but should work most of the time
             central_to_coastal_plaza(info, console, context);
-            pbf_move_left_joystick(context, 0, 128, 20, 50);
+            pbf_move_left_joystick(context, {-1, 0}, 160ms, 400ms);
 
-            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 20, 105);
+            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 160ms, 840ms);
 
-            if (console.state().console_type() == ConsoleType::Switch1) {
-                jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 200, 575, 200);
-            } else { //Switch 2
-                jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 200, 500, 200);
+            if (console.state().console_type() == ConsoleType::Switch1){
+                jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 1600ms, 4600ms, 1600ms);
+            }else{ //Switch 2
+                jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 1600ms, 400ms, 1600ms);
             }
 
-            pbf_press_button(context, BUTTON_PLUS, 20, 105);
-            pbf_move_left_joystick(context, 0, 128, 20, 50);
-            pbf_press_button(context, BUTTON_L, 20, 50);
+            pbf_press_button(context, BUTTON_PLUS, 160ms, 840ms);
+            pbf_move_left_joystick(context, {-1, 0}, 160ms, 400ms);
+            pbf_press_button(context, BUTTON_L, 160ms, 400ms);
 
             break;
         default:
@@ -305,18 +305,18 @@ void quest_photo(
                 PromptDialogWatcher photo_prompt(COLOR_RED);
                 OverworldWatcher overworld(console.logger(), COLOR_BLUE);
 
-                pbf_press_dpad(context, DPAD_DOWN, 50, 20);
-                pbf_wait(context, 100);
+                pbf_press_dpad(context, DPAD_DOWN, 400ms, 160ms);
+                pbf_wait(context, 800ms);
                 context.wait_for_all_requests();
 
                 if (move_camera == CameraAngle::up){
-                    pbf_move_right_joystick(context, 128, 0, 50, 20);
+                    pbf_move_right_joystick(context, {0, +1}, 400ms, 160ms);
                 }else if (move_camera == CameraAngle::down){
-                    pbf_move_right_joystick(context, 128, 255, 50, 20);
+                    pbf_move_right_joystick(context, {0, -1}, 400ms, 160ms);
                 }
                 context.wait_for_all_requests();
 
-                pbf_press_button(context, BUTTON_A, 20, 50);
+                pbf_press_button(context, BUTTON_A, 160ms, 400ms);
 
                 int ret = wait_until(
                     console, context,
@@ -331,7 +331,7 @@ void quest_photo(
                 int exit = run_until<ProControllerContext>(
                     console, context,
                     [&](ProControllerContext& context){
-                        pbf_mash_button(context, BUTTON_B, 2000);
+                        pbf_mash_button(context, BUTTON_B, 16000ms);
                     },
                     {{ overworld }}
                 );
@@ -354,7 +354,7 @@ void quest_photo(
             bool is_shiny = (bool)encounter_watcher.shiny_screenshot();
             if (is_shiny){
                 console.log("Shiny detected!");
-                pbf_press_button(context, BUTTON_CAPTURE, 2 * TICKS_PER_SECOND, 5 * TICKS_PER_SECOND);
+                pbf_press_button(context, BUTTON_CAPTURE, 2000ms, 5000ms);
                 throw ProgramFinishedException();
             }else{
                 console.log("Detected battle. Running from battle and returning to plaza.");
@@ -362,7 +362,7 @@ void quest_photo(
                     //Smoke Ball or Flying type required due to Arena Trap/Magnet Pull
                     NormalBattleMenuWatcher battle_menu(COLOR_YELLOW);
                     battle_menu.move_to_slot(console, context, 3);
-                    pbf_press_button(context, BUTTON_A, 10, 50);
+                    pbf_press_button(context, BUTTON_A, 80ms, 400ms);
                     press_Bs_to_back_to_overworld(info, console, context);
                     return_to_plaza(info, console, context);
                 }catch (...){
@@ -393,21 +393,21 @@ void quest_catch_navi(
             //Savanna Plaza - Pride Rock
             central_to_savanna_plaza(info, console, context);
 
-            pbf_move_left_joystick(context, 220, 255, 10, 20);
-            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 20, 105);
+            pbf_move_left_joystick(context, {+0.724, -1}, 80ms, 160ms);
+            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 160ms, 840ms);
 
-            jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 600, 400, 400);
+            jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 4800ms, 3200ms, 3200ms);
 
-            pbf_press_button(context, BUTTON_PLUS, 20, 105);
-            pbf_move_left_joystick(context, 255, 128, 20, 50);
+            pbf_press_button(context, BUTTON_PLUS, 160ms, 840ms);
+            pbf_move_left_joystick(context, {+1, 0}, 160ms, 400ms);
 
-            pbf_press_button(context, BUTTON_L, 20, 50);
-            pbf_move_left_joystick(context, 128, 0, 100, 50);
+            pbf_press_button(context, BUTTON_L, 160ms, 400ms);
+            pbf_move_left_joystick(context, {0, +1}, 800ms, 400ms);
 
             //Turn slightly for switch 1
-            if (console.state().console_type() == ConsoleType::Switch1) {
-                pbf_move_left_joystick(context, 0, 0, 20, 50);
-                pbf_press_button(context, BUTTON_L, 20, 50);
+            if (console.state().console_type() == ConsoleType::Switch1){
+                pbf_move_left_joystick(context, {-1, +1}, 160ms, 400ms);
+                pbf_press_button(context, BUTTON_L, 160ms, 400ms);
             }
 
             break;
@@ -418,12 +418,12 @@ void quest_catch_navi(
             //Polar Rest Area - targeting Duosion fixed spawn
             central_to_polar_rest(info, console, context);
 
-            pbf_press_button(context, BUTTON_L, 10, 50);
-            pbf_move_left_joystick(context, 128, 0, 230, 20);
-            pbf_move_left_joystick(context, 0, 128, 250, 20);
+            pbf_press_button(context, BUTTON_L, 80ms, 400ms);
+            pbf_move_left_joystick(context, {0, +1}, 1840ms, 160ms);
+            pbf_move_left_joystick(context, {-1, 0}, 2000ms, 160ms);
 
-            pbf_press_button(context, BUTTON_L, 20, 50);
-            pbf_move_left_joystick(context, 128, 0, 150, 20);
+            pbf_press_button(context, BUTTON_L, 160ms, 400ms);
+            pbf_move_left_joystick(context, {0, +1}, 1200ms, 160ms);
 
             break;
 
@@ -433,21 +433,21 @@ void quest_catch_navi(
             //Coastal Plaza - Exeggutor-A
             central_to_coastal_plaza(info, console, context);
 
-            pbf_move_left_joystick(context, 0, 115, 400, 20);
+            pbf_move_left_joystick(context, {-1, +0.102}, 3200ms, 160ms);
 
             //Jump down
-            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 20, 105);
+            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 160ms, 840ms);
             ssf_press_button(context, BUTTON_B, 0ms, 800ms);
             ssf_press_button(context, BUTTON_B, 0ms, 160ms, 80ms);
             ssf_press_button(context, BUTTON_B, 0ms, 160ms);
 
-            pbf_wait(context, 100);
+            pbf_wait(context, 800ms);
             context.wait_for_all_requests();
 
-            pbf_move_left_joystick(context, 128, 0, 350, 20);
-            pbf_press_button(context, BUTTON_B, 20, 20);
-            pbf_wait(context, 200);
-            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 20, 105);
+            pbf_move_left_joystick(context, {0, +1}, 2800ms, 160ms);
+            pbf_press_button(context, BUTTON_B, 160ms, 160ms);
+            pbf_wait(context, 1600ms);
+            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 160ms, 840ms);
 
             break;
         case BBQuests::catch_ghost: case BBQuests::catch_ground:
@@ -456,16 +456,16 @@ void quest_catch_navi(
             //Canyon Plaza - Golett
             central_to_canyon_plaza(info, console, context);
 
-            pbf_move_left_joystick(context, 210, 128, 10, 20);
-            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 20, 105);
+            pbf_move_left_joystick(context, {+0.646, 0}, 80ms, 160ms);
+            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 160ms, 840ms);
 
-            jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 600, 300, 400);
+            jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 4800ms, 2400ms, 3200ms);
 
-            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 20, 105);
+            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 160ms, 840ms);
 
-            pbf_move_left_joystick(context, 0, 0, 10, 20);
-            pbf_press_button(context, BUTTON_L, 20, 50);
-            pbf_move_left_joystick(context, 128, 0, 50, 20);
+            pbf_move_left_joystick(context, {-1, +1}, 80ms, 160ms);
+            pbf_press_button(context, BUTTON_L, 160ms, 400ms);
+            pbf_move_left_joystick(context, {0, +1}, 400ms, 160ms);
 
             break;
         case BBQuests::catch_fairy:
@@ -476,15 +476,15 @@ void quest_catch_navi(
             open_map_from_overworld(info, console, context);
             fly_to_overworld_from_map(info, console, context);
 
-            pbf_move_left_joystick(context, 0, 80, 10, 20);
-            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 20, 105);
+            pbf_move_left_joystick(context, {-1, +0.375}, 80ms, 160ms);
+            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 160ms, 840ms);
 
-            jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 2000, 1500, 200);
+            jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 16000ms, 12000ms, 1600ms);
 
-            pbf_press_button(context, BUTTON_PLUS, 20, 105);
+            pbf_press_button(context, BUTTON_PLUS, 160ms, 840ms);
 
-            pbf_move_left_joystick(context, 255, 0, 10, 20);
-            pbf_press_button(context, BUTTON_L, 20, 50);
+            pbf_move_left_joystick(context, {+1, +1}, 80ms, 160ms);
+            pbf_press_button(context, BUTTON_L, 160ms, 400ms);
 
             break;
         case BBQuests::catch_fighting:
@@ -492,12 +492,12 @@ void quest_catch_navi(
 
             //Hitmontop (TERA ICE) - Canyon Plaza or Classroom
             central_to_canyon_plaza(info, console, context);
-            pbf_move_left_joystick(context, 0, 128, 400, 20);
-            pbf_press_button(context, BUTTON_L, 10, 50);
-            pbf_move_left_joystick(context, 0, 100, 20, 50);
-            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 20, 105);
+            pbf_move_left_joystick(context, {-1, 0}, 3200ms, 160ms);
+            pbf_press_button(context, BUTTON_L, 80ms, 400ms);
+            pbf_move_left_joystick(context, {-1, +0.219}, 160ms, 400ms);
+            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 160ms, 840ms);
 
-            jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 200, 500, 800);
+            jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 1600ms, 4000ms, 6400ms);
 
             break;
 
@@ -506,10 +506,10 @@ void quest_catch_navi(
 
             central_to_canyon_plaza(info, console, context);
 
-            pbf_move_left_joystick(context, 205, 64, 20, 105);
-            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 20, 105);
+            pbf_move_left_joystick(context, {+0.606, +0.5}, 160ms, 840ms);
+            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 160ms, 840ms);
 
-            jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 1000, 1650, 500);
+            jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 8000ms, 13200ms, 4000ms);
             break;
         case BBQuests::catch_flying:
             console.log("Catch: Flying");
@@ -517,32 +517,32 @@ void quest_catch_navi(
             //Vullaby/Mandibuzz
             central_to_savanna_plaza(info, console, context);
 
-            pbf_move_left_joystick(context, 255, 40, 10, 20);
-            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 20, 105);
+            pbf_move_left_joystick(context, {+1, +0.688}, 80ms, 160ms);
+            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 160ms, 840ms);
 
-            pbf_move_left_joystick(context, 128, 0, 500, 20);
-            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 20, 105);
+            pbf_move_left_joystick(context, {0, +1}, 4000ms, 160ms);
+            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 160ms, 840ms);
 
-            pbf_move_left_joystick(context, 255, 0, 10, 20);
-            pbf_press_button(context, BUTTON_L, 20, 50);
+            pbf_move_left_joystick(context, {+1, +1}, 80ms, 160ms);
+            pbf_press_button(context, BUTTON_L, 160ms, 400ms);
 
-            if (console.state().console_type() == ConsoleType::Switch1) {
-                pbf_move_left_joystick(context, 128, 0, 200, 20);
-            } else {
-                pbf_move_left_joystick(context, 128, 0, 170, 20);
+            if (console.state().console_type() == ConsoleType::Switch1){
+                pbf_move_left_joystick(context, {0, +1}, 1600ms, 160ms);
+            }else{
+                pbf_move_left_joystick(context, {0, +1}, 1360ms, 160ms);
             }
 
-            pbf_press_button(context, BUTTON_L, 20, 50);
+            pbf_press_button(context, BUTTON_L, 160ms, 400ms);
 
-            pbf_move_left_joystick(context, 0, 0, 10, 20);
-            pbf_press_button(context, BUTTON_L, 20, 50);
+            pbf_move_left_joystick(context, {-1, +1}, 80ms, 160ms);
+            pbf_press_button(context, BUTTON_L, 160ms, 400ms);
 
-            if (console.state().console_type() == ConsoleType::Switch1) {
-                pbf_move_left_joystick(context, 128, 0, 100, 20);
-            } else {
-                pbf_move_left_joystick(context, 128, 0, 120, 20);
+            if (console.state().console_type() == ConsoleType::Switch1){
+                pbf_move_left_joystick(context, {0, +1}, 800ms, 160ms);
+            }else{
+                pbf_move_left_joystick(context, {0, +1}, 960ms, 160ms);
             }
-            pbf_wait(context, 400);
+            pbf_wait(context, 3200ms);
             context.wait_for_all_requests();
 
             break;
@@ -552,14 +552,14 @@ void quest_catch_navi(
             //Geodude-A
             open_map_from_overworld(info, console, context);
             fly_to_overworld_from_map(info, console, context);
-            pbf_press_button(context, BUTTON_L, 20, 50);
-            pbf_move_left_joystick(context, 70, 0, 10, 20);
-            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 20, 105);
+            pbf_press_button(context, BUTTON_L, 160ms, 400ms);
+            pbf_move_left_joystick(context, {-0.453, +1}, 80ms, 160ms);
+            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 160ms, 840ms);
 
-            jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 100, 550, 300);
+            jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 800ms, 4400ms, 2400ms);
 
-            pbf_press_button(context, BUTTON_PLUS, 20, 105);
-            pbf_wait(context, 300);
+            pbf_press_button(context, BUTTON_PLUS, 160ms, 840ms);
+            pbf_wait(context, 2400ms);
             context.wait_for_all_requests();
 
             break;
@@ -568,20 +568,20 @@ void quest_catch_navi(
 
             //Dugtrio-A - area a bit laggy but should work most of the time
             central_to_coastal_plaza(info, console, context);
-            pbf_move_left_joystick(context, 0, 128, 20, 50);
+            pbf_move_left_joystick(context, {-1, 0}, 160ms, 400ms);
 
-            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 20, 105);
+            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 160ms, 840ms);
 
-            if (console.state().console_type() == ConsoleType::Switch1) {
-                jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 200, 575, 200);
-            } else { //Switch 2
-                jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 200, 500, 200);
+            if (console.state().console_type() == ConsoleType::Switch1){
+                jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 1600ms, 4600ms, 1600ms);
+            }else{ //Switch 2
+                jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 1600ms, 4000ms, 1600ms);
             }
 
-            pbf_press_button(context, BUTTON_PLUS, 20, 105);
-            pbf_move_left_joystick(context, 0, 128, 20, 50);
-            pbf_press_button(context, BUTTON_L, 20, 50);
-            pbf_move_left_joystick(context, 128, 0, 50, 50);
+            pbf_press_button(context, BUTTON_PLUS, 160ms, 840ms);
+            pbf_move_left_joystick(context, {-1, 0}, 160ms, 400ms);
+            pbf_press_button(context, BUTTON_L, 160ms, 400ms);
+            pbf_move_left_joystick(context, {0, +1}, 400ms, 400ms);
 
             break;
         case BBQuests::catch_poison: case BBQuests::catch_dark: 
@@ -589,38 +589,38 @@ void quest_catch_navi(
 
             //Muk-A - area a bit laggy but consistently so
             central_to_coastal_plaza(info, console, context);
-            pbf_move_left_joystick(context, 0, 128, 20, 50);
+            pbf_move_left_joystick(context, {-1, 0}, 160ms, 400ms);
 
-            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 20, 105);
+            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 160ms, 840ms);
 
-            if (console.state().console_type() == ConsoleType::Switch1) {
-                jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 1000, 1800, 300);
-            } else {
-                jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 1000, 1600, 300);
+            if (console.state().console_type() == ConsoleType::Switch1){
+                jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 8000ms, 14400ms, 2400ms);
+            }else{
+                jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 8000ms, 12800ms, 2400ms);
             }
 
-            pbf_press_button(context, BUTTON_PLUS, 20, 105);
+            pbf_press_button(context, BUTTON_PLUS, 160ms, 840ms);
 
             //Extra throws for this one
             ssf_press_button(context, BUTTON_ZR, 0ms, 1600ms);
             ssf_press_button(context, BUTTON_ZL, 800ms, 400ms);
             ssf_press_button(context, BUTTON_ZL, 1200ms, 400ms);
-            pbf_wait(context, 200);
+            pbf_wait(context, 1600ms);
             context.wait_for_all_requests();
-            pbf_press_button(context, BUTTON_ZR, 20, 50); //Withdraw pokemon
+            pbf_press_button(context, BUTTON_ZR, 160ms, 400ms); //Withdraw pokemon
 
-            pbf_move_left_joystick(context, 255, 128, 20, 50);
-            pbf_press_button(context, BUTTON_L, 20, 50);
+            pbf_move_left_joystick(context, {+1, 0}, 160ms, 400ms);
+            pbf_press_button(context, BUTTON_L, 160ms, 400ms);
             ssf_press_button(context, BUTTON_ZR, 0ms, 1600ms);
             ssf_press_button(context, BUTTON_ZL, 800ms, 400ms);
             ssf_press_button(context, BUTTON_ZL, 1200ms, 400ms);
-            pbf_wait(context, 200);
+            pbf_wait(context, 1600ms);
             context.wait_for_all_requests();
-            pbf_press_button(context, BUTTON_ZR, 20, 50); //Withdraw pokemon
+            pbf_press_button(context, BUTTON_ZR, 160ms, 400ms); //Withdraw pokemon
 
-            pbf_press_button(context, BUTTON_L, 20, 50);
-            pbf_move_left_joystick(context, 255, 128, 20, 50);
-            pbf_press_button(context, BUTTON_L, 20, 50);
+            pbf_press_button(context, BUTTON_L, 160ms, 400ms);
+            pbf_move_left_joystick(context, {+1, 0}, 160ms, 400ms);
+            pbf_press_button(context, BUTTON_L, 160ms, 400ms);
 
             break;
         case BBQuests::catch_water: case BBQuests::catch_ice:
@@ -628,14 +628,14 @@ void quest_catch_navi(
 
             //Lapras - Tera Bug
             central_to_polar_rest(info, console, context);
-            pbf_press_button(context, BUTTON_L, 10, 50);
-            pbf_move_left_joystick(context, 128, 0, 230, 20);
-            pbf_move_left_joystick(context, 0, 128, 300, 20);
-            pbf_press_button(context, BUTTON_L, 20, 50);
-            pbf_move_left_joystick(context, 20, 0, 20, 50);
-            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 20, 105);
+            pbf_press_button(context, BUTTON_L, 80ms, 400ms);
+            pbf_move_left_joystick(context, {0, +1}, 1840ms, 160ms);
+            pbf_move_left_joystick(context, {-1, 0}, 2400ms, 160ms);
+            pbf_press_button(context, BUTTON_L, 160ms, 400ms);
+            pbf_move_left_joystick(context, {-0.844, +1}, 160ms, 400ms);
+            pbf_press_button(context, BUTTON_L | BUTTON_PLUS, 160ms, 840ms);
 
-            jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 700, 1700, 300);
+            jump_glide_fly(console, context, BBQ_OPTIONS.INVERTED_FLIGHT, 5600ms, 13600ms, 2400ms);
 
             break;
         default:
@@ -652,7 +652,7 @@ void quest_catch_navi(
     ssf_press_button(context, BUTTON_ZL, 800ms, 400ms);
     ssf_press_button(context, BUTTON_ZL, 1200ms, 400ms);
 
-    pbf_wait(context, 300);
+    pbf_wait(context, 2400ms);
     context.wait_for_all_requests();
 
 }
@@ -679,11 +679,11 @@ void quest_catch_throw_ball(
         }
 
         //Mash B to exit anything else
-        pbf_mash_button(context, BUTTON_B, 125);
+        pbf_mash_button(context, BUTTON_B, 1000ms);
         context.wait_for_all_requests();
 
         //Press X to open Ball menu
-        pbf_press_button(context, BUTTON_X, 20, 100);
+        pbf_press_button(context, BUTTON_X, 160ms, 800ms);
         context.wait_for_all_requests();
 
         VideoSnapshot screen = console.video().snapshot();
@@ -706,10 +706,10 @@ void quest_catch_throw_ball(
 
     //Throw ball
     console.log("Throwing ball.");
-    pbf_mash_button(context, BUTTON_A, 150);
+    pbf_mash_button(context, BUTTON_A, 1200ms);
     context.wait_for_all_requests();
 
-    pbf_mash_button(context, BUTTON_B, 900);
+    pbf_mash_button(context, BUTTON_B, 7200ms);
     context.wait_for_all_requests();
 }
 
@@ -754,7 +754,7 @@ void quest_catch_handle_battle(
                 BattleBallReader exists(console, BBQ_OPTIONS.LANGUAGE);
                 std::string ball_exists = "";
 
-                pbf_press_button(context, BUTTON_X, 20, 100);
+                pbf_press_button(context, BUTTON_X, 160ms, 800ms);
                 context.wait_for_all_requests();
 
                 VideoSnapshot screen_ball = console.video().snapshot();
@@ -762,10 +762,10 @@ void quest_catch_handle_battle(
 
                 if (ball_exists == ""){
                     console.log("Could not find ball reader. Tera battle. Using first attack.");
-                    pbf_mash_button(context, BUTTON_B, 125);
+                    pbf_mash_button(context, BUTTON_B, 1000ms);
                     context.wait_for_all_requests();
 
-                    pbf_mash_button(context, BUTTON_A, 300);
+                    pbf_mash_button(context, BUTTON_A, 2400ms);
                     context.wait_for_all_requests();
 
                     tera_target = true;
@@ -796,8 +796,8 @@ void quest_catch_handle_battle(
                         int ret_move_select = run_until<ProControllerContext>(
                             console, context,
                             [&](ProControllerContext& context){
-                                pbf_press_button(context, BUTTON_A, 10, 50);
-                                pbf_wait(context, 100);
+                                pbf_press_button(context, BUTTON_A, 80ms, 400ms);
+                                pbf_wait(context, 800ms);
                                 context.wait_for_all_requests();
                             },
                             { move_watcher }
@@ -810,8 +810,8 @@ void quest_catch_handle_battle(
 
                         context.wait_for_all_requests();
                         move_select.move_to_slot(console, context, 3);
-                        pbf_mash_button(context, BUTTON_A, 150);
-                        pbf_wait(context, 100);
+                        pbf_mash_button(context, BUTTON_A, 1200ms);
+                        pbf_wait(context, 800ms);
                         context.wait_for_all_requests();
 
                         //Check for battle menu
@@ -833,7 +833,7 @@ void quest_catch_handle_battle(
                         }
                     }else{
                         //Wild pokemon's turn/wait for catch animation
-                        pbf_mash_button(context, BUTTON_B, 900);
+                        pbf_mash_button(context, BUTTON_B, 7200ms);
                         context.wait_for_all_requests();
                     }
                 }
@@ -852,11 +852,11 @@ void quest_catch_handle_battle(
                     break;
                 case 1:
                     console.log("Detected fainted Pokemon. Switching to next living Pokemon...");
-                    pbf_press_button(context, BUTTON_A, 20, 50);
-                    pbf_wait(context, 100);
+                    pbf_press_button(context, BUTTON_A, 160ms, 400ms);
+                    pbf_wait(context, 800ms);
                     context.wait_for_all_requests();
                     if (swap.move_to_slot(console, context, switch_party_slot)){
-                        pbf_mash_button(context, BUTTON_A, 3 * TICKS_PER_SECOND);
+                        pbf_mash_button(context, BUTTON_A, 3000ms);
                         context.wait_for_all_requests();
                         switch_party_slot++;
                     }
@@ -936,7 +936,7 @@ void quest_catch(
         bool is_shiny = (bool)encounter_watcher.shiny_screenshot();
         if (is_shiny){
             console.log("Shiny detected!");
-            pbf_press_button(context, BUTTON_CAPTURE, 2 * TICKS_PER_SECOND, 5 * TICKS_PER_SECOND);
+            pbf_press_button(context, BUTTON_CAPTURE, 2000ms, 5000ms);
             throw ProgramFinishedException();
         }else{
             quest_catch_handle_battle(info, console, context, BBQ_OPTIONS, current_quest);
@@ -954,15 +954,15 @@ void quest_catch(
 
     //Heal up and then reset position again.
     OverworldWatcher done_healing(console.logger(), COLOR_BLUE);
-    pbf_move_left_joystick(context, 128, 0, 100, 20);
+    pbf_move_left_joystick(context, {0, +1}, 800ms, 160ms);
 
-    pbf_mash_button(context, BUTTON_A, 300);
+    pbf_mash_button(context, BUTTON_A, 2400ms);
     context.wait_for_all_requests();
 
     int exit = run_until<ProControllerContext>(
         console, context,
         [&](ProControllerContext& context){
-            pbf_mash_button(context, BUTTON_B, 2000);
+            pbf_mash_button(context, BUTTON_B, 16000ms);
         },
         {{ done_healing }}
     );
@@ -970,7 +970,7 @@ void quest_catch(
         console.log("Overworld detected.");
     }
     open_map_from_overworld(info, console, context);
-    pbf_press_button(context, BUTTON_ZL, 40, 100);
+    pbf_press_button(context, BUTTON_ZL, 320ms, 800ms);
     fly_to_overworld_from_map(info, console, context);
     context.wait_for_all_requests();
 }
@@ -1002,12 +1002,12 @@ void wild_battle_tera(
                 if (first_turn && tera_self){
                     console.log("Turn 1: Tera.");
                     //Open move menu
-                    pbf_press_button(context, BUTTON_A, 10, 50);
-                    pbf_wait(context, 100);
+                    pbf_press_button(context, BUTTON_A, 80ms, 400ms);
+                    pbf_wait(context, 800ms);
                     context.wait_for_all_requests();
 
-                    pbf_press_button(context, BUTTON_R, 20, 50);
-                    pbf_press_button(context, BUTTON_A, 10, 50);
+                    pbf_press_button(context, BUTTON_R, 160ms, 400ms);
+                    pbf_press_button(context, BUTTON_A, 80ms, 400ms);
 
                     first_turn = false;
                 }
@@ -1026,16 +1026,16 @@ void wild_battle_tera(
                 switch (ret3){
                 case 0:
                     console.log("Detected battle menu. Pressing A to attack...");
-                    pbf_mash_button(context, BUTTON_A, 3 * TICKS_PER_SECOND);
+                    pbf_mash_button(context, BUTTON_A, 3000ms);
                     context.wait_for_all_requests();
                     break;
                 case 1:
                     console.log("Detected fainted Pokemon. Switching to next living Pokemon...");
-                    pbf_press_button(context, BUTTON_A, 20, 50);
-                    pbf_wait(context, 100);
+                    pbf_press_button(context, BUTTON_A, 160ms, 400ms);
+                    pbf_wait(context, 800ms);
                     context.wait_for_all_requests();
                     if (swap.move_to_slot(console, context, switch_party_slot)){
-                        pbf_mash_button(context, BUTTON_A, 3 * TICKS_PER_SECOND);
+                        pbf_mash_button(context, BUTTON_A, 3000ms);
                         context.wait_for_all_requests();
                         switch_party_slot++;
                     }

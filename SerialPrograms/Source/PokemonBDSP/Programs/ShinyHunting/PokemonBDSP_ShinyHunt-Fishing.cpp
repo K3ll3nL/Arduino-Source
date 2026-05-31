@@ -7,6 +7,7 @@
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "PokemonSwSh/ShinyHuntTracker.h"
 #include "PokemonBDSP/Inference/PokemonBDSP_DialogDetector.h"
 #include "PokemonBDSP/Inference/PokemonBDSP_MarkFinder.h"
@@ -101,12 +102,12 @@ void ShinyHuntFishing::program(SingleSwitchProgramEnvironment& env, ProControlle
     LeadingShinyTracker lead_tracker(env.console);
 
     //  Connect the controller.
-    pbf_press_button(context, BUTTON_B, 5, 5);
+    require_player(env.console, context, BUTTON_B);
 
     //  Encounter Loop
     while (true){
         env.update_stats();
-        pbf_mash_button(context, BUTTON_B, TICKS_PER_SECOND);
+        pbf_mash_button(context, BUTTON_B, 1000ms);
         context.wait_for_all_requests();
 
         {
@@ -117,7 +118,7 @@ void ShinyHuntFishing::program(SingleSwitchProgramEnvironment& env, ProControlle
             int ret = run_until<ProControllerContext>(
                 env.console, context,
                 [this](ProControllerContext& context){
-                    SHORTCUT.run(context, 30 * TICKS_PER_SECOND);
+                    SHORTCUT.run(context, 30000ms);
                 },
                 {
                     {dialog_detector},
@@ -132,7 +133,7 @@ void ShinyHuntFishing::program(SingleSwitchProgramEnvironment& env, ProControlle
                 continue;
             case 1:
                 env.log("Hooked something!", COLOR_BLUE);
-                pbf_press_button(context, BUTTON_ZL, 10, TICKS_PER_SECOND);
+                pbf_press_button(context, BUTTON_ZL, 80ms, 1000ms);
                 break;
             case 2:
                 env.log("Unexpected battle menu.", COLOR_RED);
@@ -156,7 +157,7 @@ void ShinyHuntFishing::program(SingleSwitchProgramEnvironment& env, ProControlle
             );
             switch (ret){
             case 0:
-                pbf_mash_button(context, BUTTON_B, TICKS_PER_SECOND);
+                pbf_mash_button(context, BUTTON_B, 1000ms);
                 break;
             case 1:
                 env.log("Unexpected battle menu.", COLOR_RED);

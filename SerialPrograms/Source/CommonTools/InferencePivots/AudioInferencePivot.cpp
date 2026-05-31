@@ -5,6 +5,7 @@
  */
 
 #include "Common/Cpp/Exceptions.h"
+#include "CommonFramework/Tools/GlobalThreadPools.h"
 #include "CommonFramework/AudioPipeline/AudioFeed.h"
 #include "AudioInferencePivot.h"
 
@@ -21,6 +22,7 @@ struct AudioInferencePivot::PeriodicCallback{
     std::atomic<InferenceCallback*>* set_when_triggered;
     AudioInferenceCallback& callback;
     std::chrono::milliseconds period;
+    WallClock start_time;
 
     uint64_t last_seqnum = ~(uint64_t)0;
 
@@ -30,18 +32,20 @@ struct AudioInferencePivot::PeriodicCallback{
         Cancellable& p_scope,
         std::atomic<InferenceCallback*>* p_set_when_triggered,
         AudioInferenceCallback& p_callback,
-        std::chrono::milliseconds p_period
+        std::chrono::milliseconds p_period,
+        WallClock m_start_time
     )
         : scope(p_scope)
         , set_when_triggered(p_set_when_triggered)
         , callback(p_callback)
         , period(p_period)
+        , start_time(m_start_time)
     {}
 };
 
 
-AudioInferencePivot::AudioInferencePivot(CancellableScope& scope, AudioFeed& feed, AsyncDispatcher& dispatcher)
-    : PeriodicRunner(dispatcher)
+AudioInferencePivot::AudioInferencePivot(CancellableScope& scope, AudioFeed& feed)
+    : BusyPeriodicRunner(GlobalThreadPools::unlimited_pivot())
     , m_feed(feed)
 {
     attach(scope);
@@ -54,9 +58,10 @@ void AudioInferencePivot::add_callback(
     Cancellable& scope,
     std::atomic<InferenceCallback*>* set_when_triggered,
     AudioInferenceCallback& callback,
-    std::chrono::milliseconds period
+    std::chrono::milliseconds period,
+    WallClock start_time
 ){
-    WriteSpinLock lg(m_lock);
+    WriteSpinLock lg(m_lock, PA_CURRENT_FUNCTION);
     auto iter = m_map.find(&callback);
     if (iter != m_map.end()){
         throw InternalProgramError(nullptr, PA_CURRENT_FUNCTION, "Attempted to add the same callback twice.");
@@ -64,23 +69,23 @@ void AudioInferencePivot::add_callback(
     iter = m_map.emplace(
         std::piecewise_construct,
         std::forward_as_tuple(&callback),
-        std::forward_as_tuple(scope, set_when_triggered, callback, period)
+        std::forward_as_tuple(scope, set_when_triggered, callback, period, start_time)
     ).first;
     try{
-        PeriodicRunner::add_event(&iter->second, period);
+        BusyPeriodicRunner::add_event(&iter->second, period);
     }catch (...){
         m_map.erase(iter);
         throw;
     }
 }
 StatAccumulatorI32 AudioInferencePivot::remove_callback(AudioInferenceCallback& callback){
-    WriteSpinLock lg(m_lock);
+    WriteSpinLock lg(m_lock, PA_CURRENT_FUNCTION);
     auto iter = m_map.find(&callback);
     if (iter == m_map.end()){
         return StatAccumulatorI32();
     }
     StatAccumulatorI32 stats = iter->second.stats;
-    PeriodicRunner::remove_event(&iter->second);
+    BusyPeriodicRunner::remove_event(&iter->second);
     m_map.erase(iter);
     return stats;
 }

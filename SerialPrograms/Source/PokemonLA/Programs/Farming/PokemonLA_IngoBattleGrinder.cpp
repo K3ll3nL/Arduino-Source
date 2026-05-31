@@ -11,6 +11,7 @@
 #include "CommonFramework/ProgramStats/StatsTracking.h"
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
+#include "NintendoSwitch/Programs/NintendoSwitch_GameEntry.h"
 #include "Pokemon/Pokemon_Strings.h"
 #include "PokemonLA/Inference/Battles/PokemonLA_BattleMenuDetector.h"
 #include "PokemonLA/Inference/Battles/PokemonLA_BattlePokemonSwitchDetector.h"
@@ -89,7 +90,7 @@ IngoBattleGrinder::IngoBattleGrinder()
 
 bool IngoBattleGrinder::start_dialog(VideoStream& stream, ProControllerContext& context){
     // First press A to start talking with Ingo.
-    pbf_press_button(context, BUTTON_A, 20, 150);
+    pbf_press_button(context, BUTTON_A, 160ms, 1200ms);
     context.wait_for_all_requests();
 
     {
@@ -118,7 +119,7 @@ bool IngoBattleGrinder::start_dialog(VideoStream& stream, ProControllerContext& 
             stream, context,
             [&](ProControllerContext& context){
                 for (size_t c = 0; c < 10; c++){
-                    pbf_press_button(context, BUTTON_A, 20, 150);
+                    pbf_press_button(context, BUTTON_A, 160ms, 1200ms);
                 }
             },
             {
@@ -146,7 +147,7 @@ bool IngoBattleGrinder::start_dialog(VideoStream& stream, ProControllerContext& 
         }
     }
 
-    pbf_press_button(context, BUTTON_A, 20, 150);
+    pbf_press_button(context, BUTTON_A, 160ms, 1200ms);
     context.wait_for_all_requests();
 
     ButtonDetector button2(
@@ -160,7 +161,7 @@ bool IngoBattleGrinder::start_dialog(VideoStream& stream, ProControllerContext& 
         stream, context,
         [&](ProControllerContext& context){
             for (size_t c = 0; c < 5; c++){
-                pbf_press_button(context, BUTTON_A, 20, 150);
+                pbf_press_button(context, BUTTON_A, 160ms, 1200ms);
             }
         },
         {{button2}}
@@ -199,19 +200,19 @@ bool IngoBattleGrinder::run_iteration(SingleSwitchProgramEnvironment& env, ProCo
 
     //  Move to page.
     for (int8_t c = 0; c < menu_location.page; c++){
-        pbf_press_dpad(context, DPAD_UP, 10, 60);
-        pbf_press_dpad(context, DPAD_UP, 10, 60);
-        pbf_press_button(context, BUTTON_A, 10, 100);
+        pbf_press_dpad(context, DPAD_UP, 80ms, 480ms);
+        pbf_press_dpad(context, DPAD_UP, 80ms, 480ms);
+        pbf_press_button(context, BUTTON_A, 80ms, 800ms);
     }
 
     //  Move to slot.
     for (int8_t c = 0; c < menu_location.index; c++){
-        pbf_press_dpad(context, DPAD_DOWN, 10, 60);
+        pbf_press_dpad(context, DPAD_DOWN, 80ms, 480ms);
     }
 
     // Press the button to select the opponent
-    pbf_press_button(context, BUTTON_A, 10, 115);
-    pbf_wait(context, 1 * TICKS_PER_SECOND);
+    pbf_press_button(context, BUTTON_A, 80ms, 920ms);
+    pbf_wait(context, 1000ms);
     context.wait_for_all_requests();
 
     env.log("Finish selecting the opponent. Battle should start now.");
@@ -284,7 +285,7 @@ bool IngoBattleGrinder::run_iteration(SingleSwitchProgramEnvironment& env, ProCo
                 env.console.log("Switch pokemon");
 
                 // Go to the switching pokemon screen:
-                pbf_press_dpad(context, DPAD_DOWN, 20, 100);
+                pbf_press_dpad(context, DPAD_DOWN, 160ms, 800ms);
 
                 switch_cur_pokemon();
             }else{
@@ -295,7 +296,7 @@ bool IngoBattleGrinder::run_iteration(SingleSwitchProgramEnvironment& env, ProCo
                 }
 
                 // Press A to select moves
-                pbf_press_button(context, BUTTON_A, 10, 125);
+                pbf_press_button(context, BUTTON_A, 80ms, 1000ms);
                 context.wait_for_all_requests();
 
                 // Use move. 
@@ -321,7 +322,7 @@ bool IngoBattleGrinder::run_iteration(SingleSwitchProgramEnvironment& env, ProCo
                     }
                     
                     // Go to the next move.
-                    pbf_press_dpad(context, DPAD_DOWN, 20, 100);
+                    pbf_press_dpad(context, DPAD_DOWN, 160ms, 800ms);
                     // env.console.context().wait_for_all_requests();
                     cur_move++;
                     env.console.log("No PP. Use next move, " + std::to_string(cur_move), COLOR_RED);
@@ -345,12 +346,12 @@ bool IngoBattleGrinder::run_iteration(SingleSwitchProgramEnvironment& env, ProCo
         }else if (ret == 1){
             env.console.log("Transparent dialogue box.");
             
-            pbf_press_button(context, BUTTON_B, 20, 100);
+            pbf_press_button(context, BUTTON_B, 160ms, 800ms);
             context.wait_for_all_requests();
         }else if(ret == 2){
             env.console.log("Normal dialogue box.");
 
-            pbf_press_button(context, BUTTON_B, 20, 100);
+            pbf_press_button(context, BUTTON_B, 160ms, 800ms);
             context.wait_for_all_requests();
         }else if (ret == 3){
             env.console.log("Pokemon fainted.", COLOR_RED);
@@ -376,7 +377,7 @@ void IngoBattleGrinder::program(SingleSwitchProgramEnvironment& env, ProControll
     IngoBattleGrinder_Descriptor::Stats& stats = env.current_stats<IngoBattleGrinder_Descriptor::Stats>();
 
     //  Connect the controller.
-    pbf_press_button(context, BUTTON_LCLICK, 5, 5);
+    require_player(env.console, context, BUTTON_LCLICK);
 
     // {
     //     // ImageRGB32 image("./scripts/LA_switch_pokemon_Kuro.png");

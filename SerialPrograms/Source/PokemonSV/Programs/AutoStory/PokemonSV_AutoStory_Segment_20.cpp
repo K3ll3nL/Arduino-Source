@@ -4,6 +4,8 @@
  *
  */
 
+#include "CommonFramework/VideoPipeline/VideoFeed.h"
+
 #include "CommonFramework/Exceptions/OperationFailedException.h"
 #include "CommonFramework/VideoPipeline/VideoOverlay.h"
 #include "CommonTools/Async/InferenceRoutines.h"
@@ -108,40 +110,46 @@ void checkpoint_43(
         context.wait_for_all_requests();
 
         // place the marker somewhere else. the current location disrupts the Stationary detector
-        realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_NEW_MARKER, 0, 128, 50);
+        realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_NEW_MARKER, -1, 0, 400ms);
 
         DirectionDetector direction;
+        if (attempt_number > 0 || ENABLE_TEST){
+            env.console.log("Fly to neighbouring Pokecenter, then fly back, to clear any pokemon covering the minimap.");
+            move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::KEEP_ZOOM, -1, +1, 0ms});
+            move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::KEEP_ZOOM, -1, 0, 240ms});
+        }
+
         do_action_and_monitor_for_battles(env.program_info(), env.console, context,
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
                 direction.change_direction(env.program_info(), env.console, context, 6.198);
-                pbf_move_left_joystick(context, 128, 0, 400, 100);
+                pbf_move_left_joystick(context, {0, +1}, 3200ms, 800ms);
                 direction.change_direction(env.program_info(), env.console, context, 4.693);
-                pbf_move_left_joystick(context, 128, 0, 1000, 100);
+                pbf_move_left_joystick(context, {0, +1}, 8000ms, 800ms);
         });
         // walk up right set of stairs
         direction.change_direction(env.program_info(), env.console, context, 4.276);
-        pbf_move_left_joystick(context, 128, 0, 700, 100);
+        pbf_move_left_joystick(context, {0, +1}, 5600ms, 800ms);
 
         // realign using lamp-post
         direction.change_direction(env.program_info(), env.console, context, 2.34);
-        pbf_move_left_joystick(context, 128, 0, 200, 100);
+        pbf_move_left_joystick(context, {0, +1}, 1600ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 1.81);
-        pbf_move_left_joystick(context, 255, 0, 600, 100);
+        pbf_move_left_joystick(context, {+1, +1}, 4800ms, 800ms);
 
         // move toward gym building
         direction.change_direction(env.program_info(), env.console, context, 4.26);
-        pbf_move_left_joystick(context, 128, 0, 900, 100);
+        pbf_move_left_joystick(context, {0, +1}, 7200ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 3.05);
-        pbf_move_left_joystick(context, 128, 0, 200, 100);
-        pbf_wait(context, 7 * TICKS_PER_SECOND);
+        pbf_move_left_joystick(context, {0, +1}, 1600ms, 800ms);
+        pbf_wait(context, 7000ms);
         context.wait_for_all_requests();
 
         handle_when_stationary_in_overworld(env.program_info(), env.console, context, 
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_ONLY, 20);
+                walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_ONLY, 20000ms);
             }, 
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                pbf_move_left_joystick(context, 0, 0, 100, 50);
+                pbf_move_left_joystick(context, {-1, +1}, 800ms, 400ms);
             },
             5, 5
         );          
@@ -171,64 +179,64 @@ void checkpoint_44(
 
         // talk to receptionist
         env.console.log("Talk to Artazon gym receptionist.");
-        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_SPAM_A, 10);
+        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_SPAM_A, 10000ms);
         clear_dialog(env.console, context, ClearDialogMode::STOP_OVERWORLD, 60, {CallbackEnum::OVERWORLD});
 
-        pbf_move_left_joystick(context, 128, 255, 500, 100);
-        pbf_wait(context, 3 * TICKS_PER_SECOND);        
+        pbf_move_left_joystick(context, {0, -1}, 2400ms, 800ms);
+        pbf_wait(context, 3000ms);
         // wait for overworld after leaving gym
         wait_for_overworld(env.program_info(), env.console, context, 30);      
         
         // talk to Sunflora NPC
         DirectionDetector direction;
         direction.change_direction(env.program_info(), env.console, context, 4.91);
-        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_SPAM_A, 10);
+        walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_SPAM_A, 10000ms);
         clear_dialog(env.console, context, ClearDialogMode::STOP_OVERWORLD, 60, {CallbackEnum::OVERWORLD, CallbackEnum::PROMPT_DIALOG});
 
         // realign to wall
         direction.change_direction(env.program_info(), env.console, context, 1.477);
-        pbf_move_left_joystick(context, 128, 0, 500, 100);
+        pbf_move_left_joystick(context, {0, +1}, 4000ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 2.166);
-        pbf_move_left_joystick(context, 0, 0, 300, 100);
+        pbf_move_left_joystick(context, {-1, +1}, 2400ms, 800ms);
 
         // get sunflora 1
         direction.change_direction(env.program_info(), env.console, context, 4.85);
-        pbf_move_left_joystick(context, 128, 0, 300, 100);        
+        pbf_move_left_joystick(context, {0, +1}, 2400ms, 800ms);
         handle_failed_action(env.program_info(), env.console, context,
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                pbf_mash_button(context, BUTTON_A, 500);
+                pbf_mash_button(context, BUTTON_A, 4000ms);
                 check_num_sunflora_found(env, context, 1);
             },
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                pbf_move_left_joystick(context, 128, 0, 30, 100);
+                pbf_move_left_joystick(context, {0, +1}, 240ms, 800ms);
             },
             3
         );
 
         // get sunflora 2
         direction.change_direction(env.program_info(), env.console, context, 0.384);
-        pbf_move_left_joystick(context, 128, 0, 120, 100);
+        pbf_move_left_joystick(context, {0, +1}, 960ms, 800ms);
         handle_failed_action(env.program_info(), env.console, context,
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                pbf_mash_button(context, BUTTON_A, 500);
+                pbf_mash_button(context, BUTTON_A, 4000ms);
                 check_num_sunflora_found(env, context, 2);
             },
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                pbf_move_left_joystick(context, 128, 0, 30, 100);
+                pbf_move_left_joystick(context, {0, +1}, 240ms, 800ms);
             },
             3
         );        
 
         // get sunflora 3
         direction.change_direction(env.program_info(), env.console, context, 5.377);
-        pbf_move_left_joystick(context, 128, 0, 120, 100);
+        pbf_move_left_joystick(context, {0, +1}, 960ms, 800ms);
         handle_failed_action(env.program_info(), env.console, context,
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                pbf_mash_button(context, BUTTON_A, 500);
+                pbf_mash_button(context, BUTTON_A, 4000ms);
                 check_num_sunflora_found(env, context, 3);
             },
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                pbf_move_left_joystick(context, 128, 0, 30, 100);
+                pbf_move_left_joystick(context, {0, +1}, 240ms, 800ms);
             },
             3
         );              
@@ -238,27 +246,27 @@ void checkpoint_44(
         // get sunflora 4
         // align to corner 4.1
         direction.change_direction(env.program_info(), env.console, context, 1.90);
-        pbf_move_left_joystick(context, 128, 0, 200, 100);    
+        pbf_move_left_joystick(context, {0, +1}, 1600ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 2.166);
-        pbf_move_left_joystick(context, 0, 0, 300, 100);
+        pbf_move_left_joystick(context, {-1, +1}, 2400ms, 800ms);
 
         // align to corner 4.2
         direction.change_direction(env.program_info(), env.console, context, 6.056);
-        pbf_move_left_joystick(context, 128, 0, 670, 100);
+        pbf_move_left_joystick(context, {0, +1}, 5360ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 1.55);
-        pbf_move_left_joystick(context, 128, 0, 200, 100);
+        pbf_move_left_joystick(context, {0, +1}, 1600ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 1.69);
-        pbf_move_left_joystick(context, 0, 0, 500, 100);
+        pbf_move_left_joystick(context, {-1, +1}, 4000ms, 800ms);
 
         direction.change_direction(env.program_info(), env.console, context, 5.85);
-        pbf_move_left_joystick(context, 128, 0, 60, 100);
+        pbf_move_left_joystick(context, {0, +1}, 480ms, 800ms);
         handle_failed_action(env.program_info(), env.console, context,
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                pbf_mash_button(context, BUTTON_A, 500);
+                pbf_mash_button(context, BUTTON_A, 4000ms);
                 check_num_sunflora_found(env, context, 4);
             },
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                pbf_move_left_joystick(context, 128, 0, 30, 100);
+                pbf_move_left_joystick(context, {0, +1}, 240ms, 800ms);
             },
             3
         );        
@@ -266,27 +274,27 @@ void checkpoint_44(
         // get sunflora 5
         // align to corner 5.1
         direction.change_direction(env.program_info(), env.console, context, 1.59);
-        pbf_move_left_joystick(context, 128, 0, 200, 100);
+        pbf_move_left_joystick(context, {0, +1}, 1600ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 1.79);
-        pbf_move_left_joystick(context, 0, 0, 500, 100);        
+        pbf_move_left_joystick(context, {-1, +1}, 4000ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 6.055);        
-        pbf_move_left_joystick(context, 128, 0, 400, 100);
+        pbf_move_left_joystick(context, {0, +1}, 3200ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 5.06);   
-        pbf_move_left_joystick(context, 128, 0, 600, 100);
+        pbf_move_left_joystick(context, {0, +1}, 4800ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 4.38);   
-        pbf_move_left_joystick(context, 0, 0, 700, 100);
+        pbf_move_left_joystick(context, {-1, +1}, 5600ms, 800ms);
 
         direction.change_direction(env.program_info(), env.console, context, 2.53);   
-        pbf_move_left_joystick(context, 128, 0, 160, 100);
+        pbf_move_left_joystick(context, {0, +1}, 1280ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 0.78);   
-        pbf_move_left_joystick(context, 128, 0, 90, 100);  // todo: adjust this. 80 -> 90?
+        pbf_move_left_joystick(context, {0, +1}, 720ms, 800ms);  // todo: adjust this. 80 -> 90?
         handle_failed_action(env.program_info(), env.console, context,
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                pbf_mash_button(context, BUTTON_A, 500);
+                pbf_mash_button(context, BUTTON_A, 4000ms);
                 check_num_sunflora_found(env, context, 5);
             },
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                pbf_move_left_joystick(context, 128, 0, 30, 100);
+                pbf_move_left_joystick(context, {0, +1}, 240ms, 800ms);
             },
             3
         );        
@@ -294,22 +302,22 @@ void checkpoint_44(
         // sunflora 6
         // align to corner 6.1
         direction.change_direction(env.program_info(), env.console, context, 4.2);
-        pbf_move_left_joystick(context, 128, 0, 200, 100);
+        pbf_move_left_joystick(context, {0, +1}, 1600ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 4.38);   
-        pbf_move_left_joystick(context, 0, 0, 700, 100);        
+        pbf_move_left_joystick(context, {-1, +1}, 5600ms, 800ms);
 
         direction.change_direction(env.program_info(), env.console, context, 0.96);
-        pbf_move_left_joystick(context, 128, 0, 250, 100);
+        pbf_move_left_joystick(context, {0, +1}, 2000ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 5.17);        
-        pbf_move_left_joystick(context, 128, 0, 50, 100);
+        pbf_move_left_joystick(context, {0, +1}, 400ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 3.86);
         handle_failed_action(env.program_info(), env.console, context,
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                pbf_mash_button(context, BUTTON_A, 500);
+                pbf_mash_button(context, BUTTON_A, 4000ms);
                 check_num_sunflora_found(env, context, 6);
             },
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                pbf_move_left_joystick(context, 128, 0, 30, 100);
+                pbf_move_left_joystick(context, {0, +1}, 240ms, 800ms);
             },
             3
         );        
@@ -317,57 +325,57 @@ void checkpoint_44(
         // sunflora 7
         // align to corner 7.1
         direction.change_direction(env.program_info(), env.console, context, 2.06);
-        pbf_move_left_joystick(context, 128, 0, 80, 100);
+        pbf_move_left_joystick(context, {0, +1}, 640ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 4.7); 
-        pbf_move_left_joystick(context, 128, 0, 100, 100);
+        pbf_move_left_joystick(context, {0, +1}, 800ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 5.01);               
-        pbf_move_left_joystick(context, 128, 0, 1600, 100);        
+        pbf_move_left_joystick(context, {0, +1}, 12800ms, 800ms);
 
         // align to corner 7.2. bush
         direction.change_direction(env.program_info(), env.console, context, 2.34);
-        pbf_move_left_joystick(context, 128, 0, 700, 100);
+        pbf_move_left_joystick(context, {0, +1}, 5600ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 3.42);
-        pbf_move_left_joystick(context, 128, 0, 400, 100);
+        pbf_move_left_joystick(context, {0, +1}, 3200ms, 800ms);
 
         // align to corner 7.3. lamp-post
         // todo: adjust routine to get to lampost. go behind the sculpture and goat?
         direction.change_direction(env.program_info(), env.console, context, 0);
-        pbf_move_left_joystick(context, 128, 0, 120, 100);
+        pbf_move_left_joystick(context, {0, +1}, 960ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 1.75);
-        pbf_move_left_joystick(context, 128, 0, 400, 100);
+        pbf_move_left_joystick(context, {0, +1}, 3200ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 2.95);
-        pbf_move_left_joystick(context, 128, 0, 300, 100);
+        pbf_move_left_joystick(context, {0, +1}, 2400ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 2.22);
-        pbf_move_left_joystick(context, 128, 0, 400, 100);
+        pbf_move_left_joystick(context, {0, +1}, 3200ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 1.01);
-        pbf_move_left_joystick(context, 128, 0, 300, 100);
+        pbf_move_left_joystick(context, {0, +1}, 2400ms, 800ms);
 
         // align to corner 7.4. wall corner
         direction.change_direction(env.program_info(), env.console, context, 3.70);
-        pbf_move_left_joystick(context, 128, 0, 400, 100);
+        pbf_move_left_joystick(context, {0, +1}, 3200ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 4.28);
-        pbf_move_left_joystick(context, 128, 0, 400, 100);
+        pbf_move_left_joystick(context, {0, +1}, 3200ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 3.54);
-        pbf_move_left_joystick(context, 128, 0, 600, 100);
+        pbf_move_left_joystick(context, {0, +1}, 4800ms, 800ms);
 
         // align to corner 7.5. bush
         direction.change_direction(env.program_info(), env.console, context, 3.11);
-        pbf_controller_state(context, BUTTON_B, DPAD_NONE, 128, 0, 128, 128, 150);
-        pbf_move_left_joystick(context, 128, 0, 60, 100);
+        pbf_controller_state(context, BUTTON_B, DPAD_NONE, {0, +1}, {0, 0}, 1200ms);
+        pbf_move_left_joystick(context, {0, +1}, 480ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 4.28);
-        pbf_move_left_joystick(context, 128, 0, 200, 100);
+        pbf_move_left_joystick(context, {0, +1}, 1600ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 3.60);
-        pbf_move_left_joystick(context, 128, 0, 400, 100);
+        pbf_move_left_joystick(context, {0, +1}, 3200ms, 800ms);
 
         direction.change_direction(env.program_info(), env.console, context, 1.17);
-        pbf_move_left_joystick(context, 128, 0, 130, 100);
+        pbf_move_left_joystick(context, {0, +1}, 1040ms, 800ms);
         handle_failed_action(env.program_info(), env.console, context,
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                pbf_mash_button(context, BUTTON_A, 500);
+                pbf_mash_button(context, BUTTON_A, 4000ms);
                 check_num_sunflora_found(env, context, 7);
             },
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                pbf_move_left_joystick(context, 128, 0, 30, 100);
+                pbf_move_left_joystick(context, {0, +1}, 240ms, 800ms);
             },
             3
         );           
@@ -375,77 +383,77 @@ void checkpoint_44(
         // sunflora 8
         // align to corner 8.1. bush
         direction.change_direction(env.program_info(), env.console, context, 4.54);
-        pbf_move_left_joystick(context, 128, 0, 200, 100);
-        pbf_controller_state(context, BUTTON_B, DPAD_NONE, 128, 0, 128, 128, 150);
-        pbf_move_left_joystick(context, 128, 0, 200, 100);
+        pbf_move_left_joystick(context, {0, +1}, 1600ms, 800ms);
+        pbf_controller_state(context, BUTTON_B, DPAD_NONE, {0, +1}, {0, 0}, 1200ms);
+        pbf_move_left_joystick(context, {0, +1}, 1600ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 3.60);
-        pbf_move_left_joystick(context, 128, 0, 400, 100);
+        pbf_move_left_joystick(context, {0, +1}, 3200ms, 800ms);
 
         direction.change_direction(env.program_info(), env.console, context, 1.64);
-        pbf_move_left_joystick(context, 128, 0, 350, 100);
+        pbf_move_left_joystick(context, {0, +1}, 2800ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 4.36);
-        pbf_move_left_joystick(context, 128, 0, 100, 100);
+        pbf_move_left_joystick(context, {0, +1}, 800ms, 800ms);
 
         handle_failed_action(env.program_info(), env.console, context,
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                pbf_press_button(context, BUTTON_A, 50, 50);
-                pbf_press_button(context, BUTTON_A, 50, 50); // extra press in case one is dropped
-                pbf_press_button(context, BUTTON_A, 50, 50);
-                pbf_wait(context, 250);
+                pbf_press_button(context, BUTTON_A, 400ms, 400ms);
+                pbf_press_button(context, BUTTON_A, 400ms, 400ms); // extra press in case one is dropped
+                pbf_press_button(context, BUTTON_A, 400ms, 400ms);
+                pbf_wait(context, 2000ms);
                 press_Bs_to_back_to_overworld(env.program_info(), env.console, context);
                 check_num_sunflora_found(env, context, 8);  
-                pbf_wait(context, 3 * TICKS_PER_SECOND);
+                pbf_wait(context, 3000ms);
             },
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                pbf_move_left_joystick(context, 128, 0, 30, 100);
+                pbf_move_left_joystick(context, {0, +1}, 240ms, 800ms);
             },
             3
         );        
 
         // // sunflora 9
         // // align to corner 9.1. bush
-        pbf_move_left_joystick(context, 128, 255, 200, 100);
+        pbf_move_left_joystick(context, {0, -1}, 1600ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 4.89);
-        pbf_move_left_joystick(context, 128, 0, 350, 100);
-        pbf_controller_state(context, BUTTON_B, DPAD_NONE, 128, 0, 128, 128, 180);
+        pbf_move_left_joystick(context, {0, +1}, 2800ms, 800ms);
+        pbf_controller_state(context, BUTTON_B, DPAD_NONE, {0, +1}, {0, 0}, 1440ms);
         get_off_ride(env.program_info(), env.console, context);
         direction.change_direction(env.program_info(), env.console, context, 3.60);
-        pbf_move_left_joystick(context, 128, 0, 600, 100);
+        pbf_move_left_joystick(context, {0, +1}, 4800ms, 800ms);
 
 
         direction.change_direction(env.program_info(), env.console, context, 1.48);
-        pbf_move_left_joystick(context, 128, 0, 50, 100);
+        pbf_move_left_joystick(context, {0, +1}, 400ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 3.11);
-        pbf_move_left_joystick(context, 128, 0, 180, 100);
+        pbf_move_left_joystick(context, {0, +1}, 1440ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 4.75);
-        pbf_move_left_joystick(context, 128, 0, 100, 100);
+        pbf_move_left_joystick(context, {0, +1}, 800ms, 800ms);
         get_on_ride(env.program_info(), env.console, context);
         direction.change_direction(env.program_info(), env.console, context, 5.53);
-        pbf_move_left_joystick(context, 128, 0, 600, 100);
+        pbf_move_left_joystick(context, {0, +1}, 4800ms, 800ms);
         handle_failed_action(env.program_info(), env.console, context,
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                pbf_mash_button(context, BUTTON_A, 500);
+                pbf_mash_button(context, BUTTON_A, 4000ms);
                 check_num_sunflora_found(env, context, 9);
             },
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                pbf_move_left_joystick(context, 128, 0, 30, 100);
+                pbf_move_left_joystick(context, {0, +1}, 240ms, 800ms);
             },
             3
         );
 
         // sunflora 10
         // align to corner 10.1. bush
-        pbf_move_left_joystick(context, 0, 128, 200, 100);
+        pbf_move_left_joystick(context, {-1, 0}, 1600ms, 800ms);
 
         direction.change_direction(env.program_info(), env.console, context, 4.02);
-        pbf_move_left_joystick(context, 128, 0, 250, 100);
+        pbf_move_left_joystick(context, {0, +1}, 2000ms, 800ms);
         handle_failed_action(env.program_info(), env.console, context,
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                pbf_mash_button(context, BUTTON_A, 500);
+                pbf_mash_button(context, BUTTON_A, 4000ms);
                 check_num_sunflora_found(env, context, 10);
             },
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                pbf_move_left_joystick(context, 128, 0, 30, 100);
+                pbf_move_left_joystick(context, {0, +1}, 240ms, 800ms);
             },
             3
         );
@@ -453,19 +461,19 @@ void checkpoint_44(
         // go back to Sunflora NPC
         // align to corner 11.1. bush
         direction.change_direction(env.program_info(), env.console, context, 0.65);
-        pbf_move_left_joystick(context, 128, 0, 200, 100);
-        pbf_controller_state(context, BUTTON_B, DPAD_NONE, 128, 0, 128, 128, 150);
-        pbf_move_left_joystick(context, 128, 0, 800, 100);
+        pbf_move_left_joystick(context, {0, +1}, 1600ms, 800ms);
+        pbf_controller_state(context, BUTTON_B, DPAD_NONE, {0, +1}, {0, 0}, 1200ms);
+        pbf_move_left_joystick(context, {0, +1}, 6400ms, 800ms);
 
         direction.change_direction(env.program_info(), env.console, context, 4.49);
-        pbf_move_left_joystick(context, 128, 0, 100, 100);
+        pbf_move_left_joystick(context, {0, +1}, 800ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 5.53);
 
         NoMinimapWatcher no_minimap(env.console, COLOR_RED, Milliseconds(5000));
         int ret = run_until<ProControllerContext>(
             env.console, context,
             [&](ProControllerContext& context){
-                pbf_move_left_joystick(context, 128, 0, 30 * TICKS_PER_SECOND, 100);
+                pbf_move_left_joystick(context, {0, +1}, 30000ms, 800ms);
             },
             {no_minimap}
         );
@@ -501,23 +509,23 @@ void checkpoint_45(
 
         DirectionDetector direction;
         direction.change_direction(env.program_info(), env.console, context, 1.52);
-        pbf_move_left_joystick(context, 128, 0, 400, 100);    
+        pbf_move_left_joystick(context, {0, +1}, 3200ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 2.62);
-        pbf_move_left_joystick(context, 128, 0, 400, 100);
+        pbf_move_left_joystick(context, {0, +1}, 3200ms, 800ms);
 
         direction.change_direction(env.program_info(), env.console, context, 2.18);
-        pbf_controller_state(context, BUTTON_B, DPAD_NONE, 128, 0, 128, 128, 150);
-        pbf_move_left_joystick(context, 128, 0, 400, 100);
+        pbf_controller_state(context, BUTTON_B, DPAD_NONE, {0, +1}, {0, 0}, 1200ms);
+        pbf_move_left_joystick(context, {0, +1}, 3200ms, 800ms);
         direction.change_direction(env.program_info(), env.console, context, 3.16);
-        pbf_move_left_joystick(context, 0, 0, 100, 50);
+        pbf_move_left_joystick(context, {-1, +1}, 800ms, 400ms);
 
         handle_when_stationary_in_overworld(env.program_info(), env.console, context, 
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_SPAM_A, 20);
+                walk_forward_until_dialog(env.program_info(), env.console, context, NavigationMovementMode::DIRECTIONAL_SPAM_A, 20000ms);
             }, 
             [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-                pbf_move_left_joystick(context, 0, 0, 100, 50);
-                pbf_move_left_joystick(context, 255, 0, 100, 50);
+                pbf_move_left_joystick(context, {-1, +1}, 800ms, 400ms);
+                pbf_move_left_joystick(context, {+1, +1}, 800ms, 400ms);
             },
             5, 2, 2
         ); 
@@ -545,32 +553,34 @@ void checkpoint_46(
         
         context.wait_for_all_requests();
 
-        pbf_move_left_joystick(context, 128, 255, 500, 100);
-        pbf_wait(context, 3 * TICKS_PER_SECOND);
+        pbf_move_left_joystick(context, {0, -1}, 2400ms, 800ms);
+        pbf_wait(context, 3000ms);
         // wait for overworld after leaving Gym
         wait_for_overworld(env.program_info(), env.console, context, 30);
 
-        // fly to Porto Marinada pokecenter
-        move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::ZOOM_IN, 255, 128, 50});
+        // At this startpoint, no Pokemon show up on minimap/map
+
+        // fly to Artazon east pokecenter
+        move_cursor_towards_flypoint_and_go_there(env.program_info(), env.console, context, {ZoomChange::ZOOM_IN, +1, 0, 400ms});
 
         // section 1. set marker to pokecenter
         realign_player_from_landmark(
             env.program_info(), env.console, context, 
-            {ZoomChange::KEEP_ZOOM, 255, 0, 50},
-            {ZoomChange::ZOOM_IN, 0, 0, 0}
+            {ZoomChange::KEEP_ZOOM, +1, +1, 400ms},
+            {ZoomChange::ZOOM_IN, -1, +1, 0ms}
         );        
         overworld_navigation(env.program_info(), env.console, context, 
             NavigationStopCondition::STOP_MARKER, NavigationMovementMode::DIRECTIONAL_ONLY, 
-            128, 0, 80, 20, false);  
+            0, +1, 80, 20, false);  
 
         // section 2. set marker past pokecenter
         handle_unexpected_battles(env.program_info(), env.console, context,
         [&](const ProgramInfo& info, VideoStream& stream, ProControllerContext& context){
-            realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_NEW_MARKER, 180, 0, 30);
+            realign_player(env.program_info(), env.console, context, PlayerRealignMode::REALIGN_NEW_MARKER, +0.409, +1, 240ms);
         });      
         overworld_navigation(env.program_info(), env.console, context, 
             NavigationStopCondition::STOP_TIME, NavigationMovementMode::DIRECTIONAL_ONLY, 
-            128, 15, 12, 12, false);             
+            0, +0.883, 12, 12, false);             
        
         fly_to_overlapping_flypoint(env.program_info(), env.console, context);
 

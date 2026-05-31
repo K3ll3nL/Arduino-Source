@@ -58,16 +58,31 @@ FriendDelete::FriendDelete()
     PA_ADD_OPTION(FINISH_DELETE_DELAY0);
 }
 void FriendDelete::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
-    pbf_press_button(context, BUTTON_A, 10, 20);
+
+    ConsoleType console_type = env.console.state().console_type();
+    bool scroll_down;
+    if (is_switch2(console_type)){
+        scroll_down = true;
+    }else if (is_switch1(console_type)){
+        scroll_down = false;
+    }else{
+        throw UserSetupError(env.logger(), "Please choose a console type: Switch 1 or Switch 2");
+    }
+
+    pbf_press_button(context, BUTTON_ZL, 80ms, 160ms);
 
     for (uint16_t c = 0; c < FRIENDS_TO_DELETE; c++){
         pbf_press_button(context, BUTTON_A, 40ms, VIEW_FRIEND_DELAY0);      //  View friend
-        pbf_press_dpad(context, DPAD_DOWN, 10, 20);
-        pbf_press_button(context, BUTTON_A, 10, 90);                        //  Click on Options
-        if (BLOCK_FRIENDS){
-            pbf_press_dpad(context, DPAD_DOWN, 10, 20);
+        pbf_press_dpad(context, DPAD_DOWN, 48ms, 48ms);
+        pbf_press_dpad(context, DPAD_DOWN, 48ms, 48ms);
+        pbf_press_button(context, BUTTON_A, 80ms, 720ms);                   //  Click on Options
+        if (scroll_down){
+            pbf_press_dpad(context, DPAD_DOWN, 80ms, 160ms);
         }
-        pbf_press_button(context, BUTTON_A, 10, 90);                        //  Click on Remove/Block Friend
+        if (BLOCK_FRIENDS){
+            pbf_press_dpad(context, DPAD_DOWN, 80ms, 160ms);
+        }
+        pbf_press_button(context, BUTTON_A, 80ms, 720ms);                   //  Click on Remove/Block Friend
         if (BLOCK_FRIENDS){
             pbf_press_button(context, BUTTON_A, 80ms, VIEW_FRIEND_DELAY0);  //  Confirm
         }

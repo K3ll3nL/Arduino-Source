@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <chrono>
+#include <format>
 #include <sstream>
 #include <iomanip>
 #include "Exceptions.h"
@@ -167,16 +168,10 @@ std::string tostr_bytes(uint64_t bytes){
 
 
 std::string tostr_default(double x){
-    std::ostringstream ss;
-    ss << x;
-    return ss.str();
+    return std::format("{:.6g}", x);
 }
 std::string tostr_fixed(double x, int precision){
-    std::ostringstream out;
-    out << std::setprecision(precision);
-    out << std::fixed;
-    out << x;
-    return out.str();
+    return std::format("{:.{}f}", x, precision);
 }
 
 
@@ -280,6 +275,19 @@ std::string tostr_hex(uint64_t x){
 }
 
 
+std::string tostr_hexbytes(const void* data, size_t length){
+    static const char HEX_DIGITS[] = "0123456789abcdef";
+    const uint8_t* ptr = (const uint8_t*)data;
+    std::string ret;
+    for (size_t c = 0; c < length; c++){
+        if (c > 0){
+            ret += " ";
+        }
+        ret += HEX_DIGITS[ptr[c] >> 4];
+        ret += HEX_DIGITS[ptr[c] & 0xf];
+    }
+    return ret;
+}
 
 
 

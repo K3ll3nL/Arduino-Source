@@ -67,12 +67,12 @@ void run_swap_pokemon(
     bool swap = should_swap_with_newly_caught(stream.logger(), inferred, player_index, options);
     if (swap){
         stream.log("Choosing to swap for: " + options[1], COLOR_PURPLE);
-        std::lock_guard<std::mutex> lg(runtime.m_delay_lock);
-        pbf_mash_button(context, BUTTON_A, TICKS_PER_SECOND);
+        std::lock_guard<Mutex> lg(runtime.m_delay_lock);
+        pbf_mash_button(context, BUTTON_A, 1000ms);
         context.wait_for_all_requests();
     }else{
         stream.log("Choosing not to swap.", COLOR_PURPLE);
-        pbf_mash_button(context, BUTTON_B, TICKS_PER_SECOND);
+        pbf_mash_button(context, BUTTON_B, 1000ms);
         context.wait_for_all_requests();
     }
 
@@ -83,7 +83,7 @@ void run_swap_pokemon(
         int result = run_until<ProControllerContext>(
             stream, context,
             [&](ProControllerContext& context){
-                pbf_mash_button(context, swap ? BUTTON_A : BUTTON_B, 30 * TICKS_PER_SECOND);
+                pbf_mash_button(context, swap ? BUTTON_A : BUTTON_B, 30000ms);
             },
             {{detector}}
         );

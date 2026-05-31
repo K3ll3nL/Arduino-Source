@@ -139,9 +139,9 @@ void RaidItemFarmerOHKO::program(MultiSwitchProgramEnvironment& env, Cancellable
                     enter_den(context, 0ms, false, false);
                 }else{
                     pbf_press_button(context, BUTTON_Y, 80ms, GameSettings::instance().OPEN_YCOMM_DELAY0);
-                    pbf_press_dpad(context, DPAD_UP, 5, 0);
-                    pbf_move_right_joystick(context, 128, 0, 5, 0);
-                    pbf_press_button(context, BUTTON_X, 10, 10);
+                    pbf_press_dpad(context, DPAD_UP, 40ms, 0ms);
+                    pbf_move_right_joystick(context, {0, +1}, 40ms, 0ms);
+                    pbf_press_button(context, BUTTON_X, 80ms, 80ms);
                 }
             }
         );
@@ -153,14 +153,14 @@ void RaidItemFarmerOHKO::program(MultiSwitchProgramEnvironment& env, Cancellable
             scope, 1, switches,
             [&](ConsoleHandle& console, ProControllerContext& context){
                 pbf_wait(context, WAIT_FOR_STAMP_DELAY0);
-                pbf_press_button(context, BUTTON_X, 10, 10);
-                pbf_press_dpad(context, DPAD_RIGHT, 10, 10);
+                pbf_press_button(context, BUTTON_X, 80ms, 80ms);
+                pbf_press_dpad(context, DPAD_RIGHT, 80ms, 80ms);
                 pbf_mash_button(context, BUTTON_A, ENTER_STAMP_MASH_DURATION0);
             }
         );
 
         //  Start Raid
-        pbf_press_dpad(host, DPAD_UP, 5, 45);
+        pbf_press_dpad(host, DPAD_UP, 40ms, 360ms);
 
         host.wait_for_all_requests();
         env.run_in_parallel(
@@ -168,7 +168,7 @@ void RaidItemFarmerOHKO::program(MultiSwitchProgramEnvironment& env, Cancellable
             [&](ConsoleHandle& console, ProControllerContext& context){
                 pbf_mash_button(context, BUTTON_A, RAID_START_MASH_DURATION0);
                 pbf_wait(context, RAID_START_TO_ATTACK_DELAY0);
-                pbf_mash_button(context, BUTTON_A, 5 * TICKS_PER_SECOND);
+                pbf_mash_button(context, BUTTON_A, 5000ms);
                 pbf_wait(context, ATTACK_TO_CATCH_DELAY0);
 
                 if (console.index() == 0){
@@ -189,7 +189,7 @@ void RaidItemFarmerOHKO::program(MultiSwitchProgramEnvironment& env, Cancellable
                         BACKUP_SAVE
                     );
                 }else{
-                    pbf_press_dpad(context, DPAD_DOWN, 10, 10);
+                    pbf_press_dpad(context, DPAD_DOWN, 80ms, 80ms);
                     Milliseconds delay = RETURN_TO_OVERWORLD_DELAY0;
                     if (delay > 5000ms){
                         pbf_mash_button(context, BUTTON_A, delay - 5000ms);
