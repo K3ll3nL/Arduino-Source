@@ -231,12 +231,16 @@ PokemonData::PokemonData(int id, int form_id, std::string form,
     placeholder = false;
 }
 
-PokemonData::PokemonData(int id, int form_id, std::string form,
+PokemonData::PokemonData(int row, int col, int box, int id, int form_id, std::string form,
                          StatsHuntGenderFilter gender,
                          PokemonType type1, PokemonType type2,
                          Region region, int ot_id, int level,
                          bool shiny, bool gmax, std::string ability, PokemonType tera, bool prime_example, bool placeholder)
-    : id(id)                     // int: just copy, no move needed
+
+    : row(row)
+    , col(col)
+    , box(box)
+    , id(id)                     // int: just copy, no move needed
     , form_id(form_id)           // int: copy
     , form(std::move(form))      // string: move avoids copy
     , gender(gender)             // enum: copy
@@ -254,6 +258,9 @@ PokemonData::PokemonData(int id, int form_id, std::string form,
 {}
 
 PokemonData::PokemonData(const JsonObject& obj) {
+    row           = obj.get_integer_throw("row");
+    col           = obj.get_integer_throw("col");
+    box           = obj.get_integer_throw("box");
     id            = obj.get_integer_throw("id");
     form_id       = obj.get_integer_throw("form_id");
     form          = obj.get_string_throw("form");
@@ -377,7 +384,12 @@ bool PokemonData::operator<(const PokemonData& other) const{
 
 std::string PokemonData::to_string() const {
     QString s;
-    s += QString("PokemonData { id: %1, form_id: %2, form: %3, gender: %4, ")
+    s += QString("PokemonData {row: %1, col %2,  box: %3, ")
+             .arg(row)
+             .arg(col)
+             .arg(box);
+
+    s += QString("id: %1, form_id: %2, form: %3, gender: %4, ")
              .arg(id)
              .arg(form_id)
              .arg(QString::fromStdString(form),
@@ -402,6 +414,9 @@ std::string PokemonData::to_string() const {
 
 JsonValue PokemonData::to_json(){
     JsonObject pokemon;
+    pokemon["row"] = row;
+    pokemon["col"] = col;
+    pokemon["box"] = box;
     pokemon["id"] = id;
     pokemon["form_id"] = form_id;
     pokemon["form"] = form;
@@ -463,6 +478,20 @@ void HomeSlot::setPokemon(const PokemonData& pokemon) {
 void HomeSlot::clear() {
     m_pokemon.reset();
 }
+
+void HomeSlot::swap_with(PokemonData& other) {
+    if (m_pokemon.has_value()) {
+        std::swap(*m_pokemon, other);
+
+        std::swap(m_pokemon->box, other.box);
+        std::swap(m_pokemon->row, other.row);
+        std::swap(m_pokemon->col, other.col);
+    } else {
+        // If the slot is empty, just move the Pokémon here.
+        m_pokemon = std::move(other);
+    }
+}
+
 
 
 // Default constructor: empty slots

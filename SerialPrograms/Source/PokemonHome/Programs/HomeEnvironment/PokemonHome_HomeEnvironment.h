@@ -178,9 +178,11 @@ public:
     bool sort_into_correct_boxes(SingleSwitchProgramEnvironment&, ProControllerContext&, int, int);
     void build_box(SingleSwitchProgramEnvironment&, ProControllerContext&, int);
     bool sort_box(SingleSwitchProgramEnvironment&, ProControllerContext&, int);
+    void set_up_boxes(SingleSwitchProgramEnvironment&, ProControllerContext&, int, int);
     void sort_all_boxes(SingleSwitchProgramEnvironment&, ProControllerContext&, int, int);
     size_t get_box();
     std::optional<HomeCursor> locate_pokemon(PokemonData&);
+    PokemonData populate_pokemon(PokemonData incomplete);
 
     HomeCursor get_cursor();
 

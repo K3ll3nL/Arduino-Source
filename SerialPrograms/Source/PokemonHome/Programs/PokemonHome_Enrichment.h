@@ -125,6 +125,8 @@ private:
     std::unordered_map<std::string, int> item_counts;
     mode enrichment_mode;
     Game current_game;
+
+    HomeBox tempbox;
 };
 }
 }

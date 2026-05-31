@@ -1581,18 +1581,28 @@ file(GLOB LIBRARY_SOURCES
     Source/PokemonHome/Inference/PokemonHome_OriginMarkReader.h
     Source/PokemonHome/Inference/PokemonHome_SelectionArrowDetector.cpp
     Source/PokemonHome/Inference/PokemonHome_SelectionArrowDetector.h
+    Source/PokemonHome/Inference/PokemonHome_SVItemReader.cpp
+    Source/PokemonHome/Inference/PokemonHome_SVItemReader.h
     Source/PokemonHome/Inference/PokemonHome_TeraTypeReader.cpp
     Source/PokemonHome/Inference/PokemonHome_TeraTypeReader.h
     Source/PokemonHome/PokemonHome_Panels.cpp
     Source/PokemonHome/PokemonHome_Panels.h
     Source/PokemonHome/PokemonHome_Settings.cpp
     Source/PokemonHome/PokemonHome_Settings.h
+    Source/PokemonHome/Programs/HomeEnvironment/PokemonHome_HomeEnvironment.cpp
+    Source/PokemonHome/Programs/HomeEnvironment/PokemonHome_HomeEnvironment.h
+    Source/PokemonHome/Programs/Enrichment_Tools.cpp
+    Source/PokemonHome/Programs/Enrichment_Tools.h
     Source/PokemonHome/Programs/PokemonHome_BoxNavigation.cpp
     Source/PokemonHome/Programs/PokemonHome_BoxNavigation.h
     Source/PokemonHome/Programs/PokemonHome_BoxSorter.cpp
     Source/PokemonHome/Programs/PokemonHome_BoxSorter.h
     Source/PokemonHome/Programs/PokemonHome_BoxSorterLivingDex.cpp
     Source/PokemonHome/Programs/PokemonHome_BoxSorterLivingDex.h
+    Source/PokemonHome/Programs/PokemonHome_Enrichment.cpp
+    Source/PokemonHome/Programs/PokemonHome_Enrichment.h
+    Source/PokemonHome/Programs/PokemonHome_Enrichment2.cpp
+    Source/PokemonHome/Programs/PokemonHome_Enrichment2.h
     Source/PokemonHome/Programs/PokemonHome_GenerateNameOCR.cpp
     Source/PokemonHome/Programs/PokemonHome_GenerateNameOCR.h
     Source/PokemonHome/Programs/PokemonHome_PageSwap.cpp

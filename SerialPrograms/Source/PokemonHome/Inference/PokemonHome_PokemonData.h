@@ -110,6 +110,9 @@ public:
         bool prime_example
         );
     PokemonData(
+        int row,
+        int col,
+        int box,
         int id,
         int form_id,
         std::string form,
@@ -137,6 +140,9 @@ public:
     std::string to_string() const;
     JsonValue to_json();
 
+    int row;
+    int col;
+    int box;
     int id;
     int form_id;
     std::string form;
@@ -174,6 +180,7 @@ public:
     const std::optional<PokemonData>& getPokemon() const { return m_pokemon; }
     std::optional<PokemonData>& getPokemon() { return m_pokemon; }
 
+
     bool isOccupied() const { return m_pokemon.has_value() && !m_pokemon->placeholder; }
     bool isEmpty() const { return !m_pokemon.has_value();}
     /* isOccupied speaks to the state of the slot in Pokemon HOME. isEmpty speaks
@@ -186,6 +193,7 @@ public:
     // Mutators
     void setPokemon(const PokemonData& pokemon);
     void clear();
+    void swap_with(PokemonData& other);
 
     FloatPixel m_quick_color;
     int m_row;

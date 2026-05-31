@@ -214,6 +214,8 @@ Enrichment::Enrichment()
         {"water-stone",0}
     };
 
+    tempbox = HomeBox();
+
 }
 
 #include <string>
@@ -246,7 +248,7 @@ std::string type_to_string(PokemonType type){
     return types[int(type)];
 }
 
-void home_clear_marking(SingleSwitchProgramEnvironment& env, ProControllerContext& context, HomeEnvironment& home_manager){
+void home_clear_marking(SingleSwitchProgramEnvironment& env, ProControllerContext& context, HomeEnvironment& home_manager, bool in_markings = false){
     ImageFloatBox home_circle_marking_big(0.75, 0.5, 0.0025, 0.005);
     ImageFloatBox home_triangle_marking_big(0.87, 0.5, 0.0025, 0.005);
     ImageFloatBox home_square_marking_big(0.75, 0.62, 0.0025, 0.005);
@@ -257,33 +259,38 @@ void home_clear_marking(SingleSwitchProgramEnvironment& env, ProControllerContex
     VideoSnapshot screen;
     VideoOverlaySet box_render(env.console);
 
-    pbf_press_button(context, BUTTON_A, 10, 180);
+    if(!in_markings){
+        pbf_press_button(context, BUTTON_A, 10, 180);
 
-    home_manager.detect_home(env, context, true);
+        home_manager.detect_home(env, context, true);
 
-    int row = home_manager.get_cursor().get_row();
-    int col = home_manager.get_cursor().get_col();
+        int row = home_manager.get_cursor().get_row();
+        int col = home_manager.get_cursor().get_col();
 
-    pbf_press_button(context, BUTTON_A, 10, 18);
-    pbf_press_dpad(context, DPAD_DOWN,10, 40);
-    pbf_press_dpad(context, DPAD_DOWN,10, 40);
+        pbf_press_button(context, BUTTON_A, 10, 18);
+        pbf_press_dpad(context, DPAD_DOWN,10, 40);
+        pbf_press_dpad(context, DPAD_DOWN,10, 40);
 
-    // Check can be marked in the first place
-    context.wait_for_all_requests();
-    screen = env.console.video().snapshot();
-    ImageFloatBox can_mark(0.16 + (col * .0705), std::min(0.58, 0.4 + (row*0.1)), 0.0075, 0.01);
-    FloatPixel scan_val = image_stats(extract_box_reference(screen, can_mark)).average;
-    box_render.add(COLOR_RED, can_mark);
-    env.console.log(std::to_string(scan_val.r)+" "+std::to_string(scan_val.g)+" "+std::to_string(scan_val.b));
-    if(!(scan_val.r==255&&scan_val.b==0)){
-        pbf_press_button(context, BUTTON_B, 10, 27);
+        // Check can be marked in the first place
         context.wait_for_all_requests();
-        return;
+        screen = env.console.video().snapshot();
+        ImageFloatBox can_mark(0.16 + (col * .0705), std::min(0.58, 0.4 + (row*0.1)), 0.0075, 0.01);
+        FloatPixel scan_val = image_stats(extract_box_reference(screen, can_mark)).average;
+        box_render.add(COLOR_RED, can_mark);
+        env.console.log(std::to_string(scan_val.r)+" "+std::to_string(scan_val.g)+" "+std::to_string(scan_val.b));
+        if(!(scan_val.r==255&&scan_val.b==0)){
+            pbf_press_button(context, BUTTON_B, 10, 27);
+            context.wait_for_all_requests();
+            return;
+        }
+
+        pbf_press_button(context, BUTTON_A, 10, 27);
     }
 
-    pbf_press_button(context, BUTTON_A, 10, 27);
-
     std::vector<ImageFloatBox> marking_list_big = {home_circle_marking_big,home_triangle_marking_big,home_square_marking_big,home_heart_marking_big,home_star_marking_big,home_diamond_marking_big};
+
+    context.wait_for_all_requests();
+    screen = env.console.video().snapshot();
 
     for(int i = 0; i<3; i++){
         for(int j=0;j<2;j++){
@@ -405,29 +412,20 @@ void home_remove_markings(SingleSwitchProgramEnvironment& env, ProControllerCont
 
 }
 
-HomeCursor home_locate_empty_position(SingleSwitchProgramEnvironment& env, ProControllerContext& context, int* current_box, int last_box){
-    VideoOverlaySet box_render(env.console);
+HomeCursor home_locate_empty_position(SingleSwitchProgramEnvironment& env, ProControllerContext& context, HomeEnvironment& home_manager, int start, int end){
+    std::vector<PokemonData*> list = home_manager.boxes.flatten();
 
-    VideoSnapshot screen = env.console.video().snapshot();
-
-    while(*current_box<last_box){
+    for(int i = start; i < end; i++){
         for (int row = 0; row < 5; row++){
-            for (int column = 0; column < 6; column++){
-                ImageFloatBox slot_box(0.06 + (0.072 * column), 0.2 + (0.1035 * row), 0.03, 0.057);
-                int current_box_value = (int)image_stddev(extract_box_reference(screen, slot_box)).sum();
-
-                //checking color to know if a pokemon is on the slot or not
-                if(current_box_value < 5){
-                    return {row, column};
+            for (int col = 0; col < 6; col++){
+                auto slot = home_manager.boxes.at(i).at(row, col);
+                if(slot.isEmpty()){
+                    return {row, col, i};
                 }
             }
         }
-        pbf_press_button(context, BUTTON_R, 10, 80);
-        (*current_box)++;
-        context.wait_for_all_requests();
-        screen = env.console.video().snapshot();
     }
-    throw;
+    return {0, 0, 0};
 }
 
 HomeCursor home_locate_empty_position_secondary(SingleSwitchProgramEnvironment& env, ProControllerContext& context, int* current_box, int last_box, bool transpose=false){
@@ -544,10 +542,10 @@ void sv_get_evo_items(SingleSwitchProgramEnvironment& env, ProControllerContext&
     }while(failed_match || euclidean_distance(image_stats(extract_box_reference(screen, first_selected)).average, FloatPixel(255, 215.5,0))>15);
 }
 
-Pokemon home_request_next_simple_item_evo(SingleSwitchProgramEnvironment& env, ProControllerContext& context, HomeEnvironment& home_manager, Game& game, std::unordered_map<std::string, int>& item_counts){
+std::vector<PokemonData> home_request_next_simple_item_evo(SingleSwitchProgramEnvironment& env, ProControllerContext& context, HomeEnvironment& home_manager, Game& game, int slots_full, std::unordered_map<std::string, int>& item_counts){
     ImageFloatBox home_filter_reader(0.4, 0.41, 0.2, 0.045);
     ImageFloatBox national_dex_number_box(0.448, 0.245, 0.049, 0.04); //pokemon national dex number pos
-    ImageFloatBox nature_box(0.157, 0.783, 0.212, 0.042); // Nature box
+    ImageFloatBox nhature_box(0.157, 0.783, 0.212, 0.042); // Nature box
     ImageFloatBox ot_id_box(0.782, 0.719, 0.193, 0.046); // OT ID box
     ImageFloatBox level_box(0.546, 0.099, 0.044, 0.041); // Level box
 
@@ -591,7 +589,7 @@ Pokemon home_request_next_simple_item_evo(SingleSwitchProgramEnvironment& env, P
     std::string filter_text = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_filter_reader)));
     env.console.log(filter_text);
 
-    if(filter_text=="No matches found!")return Pokemon();
+    if(filter_text=="No matches found!")return {};
 
 
 
@@ -599,17 +597,17 @@ Pokemon home_request_next_simple_item_evo(SingleSwitchProgramEnvironment& env, P
     pbf_press_button(context, BUTTON_DOWN, 10, 80);
     pbf_press_button(context, BUTTON_A, 10, 200); // Navigate into first pokemon to start finding something that evolves by leveling up
 
-    Pokemon first_pokemon = home_manager.scan_pokemon(env, context);
+    PokemonData first_pokemon = home_manager.populate_pokemon(home_manager.scan_pokemon(env, context));
 
-    Pokemon curr_pokemon = first_pokemon;
+    PokemonData curr_pokemon = first_pokemon;
 
-    std::vector<std::tuple<double, std::string, std::vector<double>>> item_list = {{25.0, "thunder-stone", {}},{27.0, "ice-stone", {0.01}},{30.0, "moon-stone", {}},{33.0, "moon-stone", {}},{35.0, "moon-stone", {}},{37.0, "fire-stone", {0}},{37.0, "ice-stone", {0.01}},{39.0, "moon-stone", {}},{58.0, "fire-stone", {}},{61.0, "water-stone", {}},{70.0, "leaf-stone", {}},{82.0, "thunder-stone", {}},{90.0, "water-stone", {}},{100.0, "leaf-stone", {0.1}},{102.0, "leaf-stone", {}},{120.0, "water-stone", {}},{176.0, "shiny-stone", {}},{191.0, "sun-stone", {}},{198.0, "dusk-stone", {}},{200.0, "dusk-stone", {}},{271.0, "water-stone", {}},{274.0, "leaf-stone", {}},{299.0, "thunder-stone", {}},{300.0, "moon-stone", {}},{315.0, "shiny-stone", {}},{511.0, "leaf-stone", {}},{513.0, "fire-stone", {}},{515.0, "water-stone", {}},{517.0, "moon-stone", {}},{546.0, "sun-stone", {}},{554.0, "ice-stone", {0}},{572.0, "shiny-stone", {}},{603.0, "thunder-stone", {}},{608.0, "dusk-stone", {}},{670.0, "shiny-stone", {}},{680.0, "dusk-stone", {}},{694.0, "sun-stone", {}},{737.0, "thunder-stone", {}},{739.0, "ice-stone", {}},{951.0, "fire-stone", {}},{938.0, "thunder-stone", {}},{974.0, "ice-stone", {}},{935.0, "auspicious-armor", {}},{935.0, "malicious-armor", {}},{884.0, "metal-alloy", {}}};
+    std::vector<std::tuple<double, std::string, std::vector<int>>> item_list = {{25.0, "thunder-stone", {}},{27.0, "ice-stone", {1}},{30.0, "moon-stone", {}},{33.0, "moon-stone", {}},{35.0, "moon-stone", {}},{37.0, "fire-stone", {0}},{37.0, "ice-stone", {1}},{39.0, "moon-stone", {}},{58.0, "fire-stone", {}},{61.0, "water-stone", {}},{70.0, "leaf-stone", {}},{82.0, "thunder-stone", {}},{90.0, "water-stone", {}},{100.0, "leaf-stone", {1}},{102.0, "leaf-stone", {}},{120.0, "water-stone", {}},{176.0, "shiny-stone", {}},{191.0, "sun-stone", {}},{198.0, "dusk-stone", {}},{200.0, "dusk-stone", {}},{271.0, "water-stone", {}},{274.0, "leaf-stone", {}},{299.0, "thunder-stone", {}},{300.0, "moon-stone", {}},{315.0, "shiny-stone", {}},{511.0, "leaf-stone", {}},{513.0, "fire-stone", {}},{515.0, "water-stone", {}},{517.0, "moon-stone", {}},{546.0, "sun-stone", {}},{554.0, "ice-stone", {0}},{572.0, "shiny-stone", {}},{603.0, "thunder-stone", {}},{608.0, "dusk-stone", {}},{670.0, "shiny-stone", {}},{680.0, "dusk-stone", {}},{694.0, "sun-stone", {}},{737.0, "thunder-stone", {}},{739.0, "ice-stone", {}},{951.0, "fire-stone", {}},{938.0, "thunder-stone", {}},{974.0, "ice-stone", {}},{884.0, "metal-alloy", {}}};
     // removed sinistea and poltchageist
 
 
-    auto matches_pokemon = [&](const Pokemon& curr_pokemon) -> bool {
+    auto matches_pokemon = [&](const PokemonData& curr_pokemon) -> bool {
         for (const auto& [dex_number, item_name, form_list] : item_list){
-            if (dex_number == curr_pokemon.national_dex_number && item_counts[item_name] > 0){
+            if (dex_number == curr_pokemon.id && item_counts[item_name] > 0){
                 if (!form_list.empty()){
                     if(std::find(form_list.begin(), form_list.end(), curr_pokemon.form_id) != form_list.end()){
                         item_counts[item_name]--;
@@ -626,54 +624,29 @@ Pokemon home_request_next_simple_item_evo(SingleSwitchProgramEnvironment& env, P
         return false;
     };
 
-
+    std::vector<PokemonData> out;
+    int slot_catch = 6000;
 
     do {
         env.console.log("Running search");
-        if (matches_pokemon(curr_pokemon)) {
-            pbf_press_button(context, BUTTON_B, 10, 270);
-            break;  // Found the first pokemon that can evolve by level up, break out of the do-while loop.
+        if (matches_pokemon(curr_pokemon)/* && !curr_pokemon.PLZA_locked */) {
+            out.push_back(curr_pokemon);
+            slots_full++;
         }
 
         pbf_press_button(context, BUTTON_R, 10, 80);
         context.wait_for_all_requests();
         screen = env.console.video().snapshot();
-        curr_pokemon = home_manager.scan_pokemon(env, context);
-    } while (curr_pokemon.national_dex_number != first_pokemon.national_dex_number
-             || curr_pokemon.level != first_pokemon.level
-             || curr_pokemon.ot_id != first_pokemon.ot_id);
+        curr_pokemon = home_manager.populate_pokemon(home_manager.scan_pokemon(env, context));
+    } while ((curr_pokemon.id    != first_pokemon.id ||
+              curr_pokemon.level != first_pokemon.level ||
+              curr_pokemon.ot_id != first_pokemon.ot_id)
+             && slots_full < 30
+             && slot_catch--);
 
-    if (!matches_pokemon(curr_pokemon)) {
-        return Pokemon();
-    }
-
-    pbf_press_button(context, BUTTON_A, 10, 40);
-    pbf_press_button(context, BUTTON_A, 10, 40);
-
-    HomeBoxViewWatcher boxWatcher(COLOR_BLUE);
+    return out;
 
 
-    context.wait_for_all_requests();
-
-    int ret = wait_until(
-        env.console, context, 5000ms, {
-            boxWatcher
-        });
-
-    while(ret!=0){
-        pbf_press_button(context, BUTTON_A, 10, 40);
-
-        context.wait_for_all_requests();
-
-        ret = wait_until(
-            env.console, context, 2000ms, {
-                boxWatcher
-            });
-    }
-
-    home_manager.detect_home(env, context, true);
-
-    return curr_pokemon;
 }
 
 std::vector<PokemonData> home_request_next_level_evo(SingleSwitchProgramEnvironment& env, ProControllerContext& context, HomeEnvironment& home_manager, Game& game, int slots_full){
@@ -719,8 +692,8 @@ std::vector<PokemonData> home_request_next_level_evo(SingleSwitchProgramEnvironm
 
     if(filter_text=="No matches found!")return {};
 
-    std::vector<std::pair<int,std::vector<int>>> level_list = {{1,{}},{2,{}},{4,{}},{5,{}},{7,{}},{8,{}},{10,{}},{11,{}},{13,{}},{14,{}},{16,{}},{17,{}},{19,{0}},{21,{}},{23,{}},{27,{0}},{29,{}},{32,{}},{41,{}},{43,{}},{46,{}},{48,{}},{50,{0,1}},{52,{0,2}},{54,{}},{56,{}},{60,{}},{63,{}},{66,{}},{69,{}},{72,{}},{74,{0,1}},{77,{0,1}},{79,{0}},{81,{}},{84,{}},{86,{}},{88,{0,1}},{92,{}},{96,{}},{98,{}},{100,{0}},{104,{}},{109,{}},{111,{}},{116,{}},{118,{}},{122,{1}},{129,{}},{138,{}},{140,{}},{147,{}},{148,{}},{152,{}},{153,{}},{155,{}},{156,{}},{158,{}},{159,{}},{161,{}},{163,{}},{165,{}},{167,{}},{170,{}},{177,{}},{179,{}},{180,{}},{183,{}},{187,{}},{188,{}},{194,{0,1}},{204,{}},{209,{}},{216,{}},{218,{}},{220,{}},{222,{1}},{223,{}},{228,{}},{231,{}},{236,{}},{238,{}},{239,{}},{240,{}},{246,{}},{247,{}},{252,{}},{253,{}},{255,{}},{256,{}},{258,{}},{259,{}},{261,{}},{263,{0,1}},{265,{}},{266,{}},{268,{}},{270,{}},{273,{}},{276,{}},{278,{}},{283,{}},{285,{}},{287,{}},{288,{}},{290,{}},{293,{}},{294,{}},{296,{}},{304,{}},{305,{}},{307,{}},{309,{}},{316,{}},{318,{}},{320,{}},{322,{}},{325,{}},{328,{}},{329,{}},{331,{}},{333,{}},{339,{}},{341,{}},{343,{}},{345,{}},{347,{}},{353,{}},{355,{}},{360,{}},{363,{}},{364,{}},{371,{}},{372,{}},{374,{}},{375,{}},{387,{}},{388,{}},{390,{}},{391,{}},{393,{}},{394,{}},{396,{}},{397,{}},{399,{}},{401,{}},{403,{}},{404,{}},{408,{}},{410,{}},{412,{0,1,2}},{415,{}},{418,{}},{420,{}},{422,{0,1}},{425,{}},{431,{}},{434,{}},{436,{}},{443,{}},{444,{}},{449,{}},{451,{}},{453,{}},{456,{}},{459,{}},{495,{}},{496,{}},{498,{}},{499,{}},{501,{}},{502,{}},{504,{}},{506,{}},{507,{}},{509,{}},{519,{}},{520,{}},{522,{}},{524,{}},{529,{}},{532,{}},{535,{}},{536,{}},{540,{}},{543,{}},{544,{}},{551,{}},{552,{}},{554,{}},{557,{}},{559,{}},{562,{}},{564,{}},{566,{}},{568,{}},{570,{0,1}},{574,{}},{575,{}},{577,{}},{578,{}},{580,{}},{582,{}},{583,{}},{585,{0,1,2,3}},{590,{}},{592,{}},{595,{}},{597,{}},{599,{}},{600,{}},{602,{}},{605,{}},{607,{}},{610,{}},{611,{}},{613,{}},{619,{}},{622,{}},{624,{}},{627,{}},{629,{}},{633,{}},{634,{}},{636,{}},{650,{}},{651,{}},{653,{}},{654,{}},{656,{}},{657,{}},{659,{}},{661,{}},{662,{}},{664,{}},{665,{}},{667,{}},{669,{}},{672,{}},{674,{}},{677,{}},{679,{}},{686,{}},{688,{}},{690,{}},{692,{}},{696,{}},{698,{}},{704,{}},{705,{}},{712,{}},{714,{}},{722,{}},{723,{}},{725,{}},{726,{}},{728,{}},{729,{}},{731,{}},{732,{}},{734,{}},{736,{}},{742,{}},{744,{0}},{747,{}},{749,{}},{751,{}},{753,{}},{755,{}},{757,{}},{759,{}},{761,{}},{767,{}},{769,{}},{782,{}},{783,{}},{789,{}},{790,{}},{810,{}},{811,{}},{813,{}},{814,{}},{816,{}},{817,{}},{819,{}},{821,{}},{822,{}},{824,{}},{825,{}},{827,{}},{829,{}},{831,{}},{833,{}},{835,{}},{837,{}},{838,{}},{843,{}},{846,{}},{848,{}},{850,{}},{856,{}},{857,{}},{859,{}},{860,{}},{878,{}},{885,{}},{886,{}},{906,{}},{907,{}},{909,{}},{910,{}},{912,{}},{913,{}},{915,{}},{917,{}},{919,{}},{921,{}},{924,{}},{926,{}},{928,{}},{929,{}},{932,{}},{933,{}},{940,{}},{942,{}},{944,{}},{948,{}},{955,{}},{957,{}},{958,{}},{960,{}},{963,{}},{965,{}},{969,{}},{971,{}},{996,{}},{997,{}}};
-    // removed: ralts, kirlia, snorunt, nighttime evolutions
+    std::vector<std::pair<int,std::vector<int>>> level_list = {{1,{}},{2,{}},{4,{}},{5,{}},{7,{}},{8,{}},{10,{}},{11,{}},{13,{}},{14,{}},{16,{}},{17,{}},{19,{0}},{21,{}},{23,{}},{27,{0}},{29,{}},{32,{}},{41,{}},{43,{}},{46,{}},{48,{}},{50,{0,1}},{52,{0,2}},{54,{}},{56,{}},{60,{}},{63,{}},{66,{}},{69,{}},{72,{}},{74,{0,1}},{77,{0,1}},{79,{0}},{81,{}},{84,{}},{86,{}},{88,{0,1}},{92,{}},{96,{}},{98,{}},{100,{0}},{104,{}},{109,{}},{111,{}},{116,{}},{118,{}},{122,{1}},{129,{}},{138,{}},{140,{}},{147,{}},{148,{}},{152,{}},{153,{}},{155,{}},{156,{}},{158,{}},{159,{}},{161,{}},{163,{}},{165,{}},{167,{}},{170,{}},{177,{}},{179,{}},{180,{}},{183,{}},{187,{}},{188,{}},{194,{0,1}},{204,{}},{209,{}},{216,{}},{218,{}},{220,{}},{222,{1}},{223,{}},{228,{}},{231,{}},{236,{}},{238,{}},{239,{}},{240,{}},{246,{}},{247,{}},{252,{}},{253,{}},{255,{}},{256,{}},{258,{}},{259,{}},{261,{}},{263,{0,1}},{265,{}},{266,{}},{268,{}},{270,{}},{273,{}},{276,{}},{278,{}},{283,{}},{285,{}},{287,{}},{288,{}},{293,{}},{294,{}},{296,{}},{304,{}},{305,{}},{307,{}},{309,{}},{316,{}},{318,{}},{320,{}},{322,{}},{325,{}},{328,{}},{329,{}},{331,{}},{333,{}},{339,{}},{341,{}},{343,{}},{345,{}},{347,{}},{353,{}},{355,{}},{360,{}},{363,{}},{364,{}},{371,{}},{372,{}},{374,{}},{375,{}},{387,{}},{388,{}},{390,{}},{391,{}},{393,{}},{394,{}},{396,{}},{397,{}},{399,{}},{401,{}},{403,{}},{404,{}},{408,{}},{410,{}},{412,{0,1,2}},{415,{}},{418,{}},{420,{}},{422,{0,1}},{425,{}},{431,{}},{434,{}},{436,{}},{443,{}},{444,{}},{449,{}},{451,{}},{453,{}},{456,{}},{459,{}},{495,{}},{496,{}},{498,{}},{499,{}},{501,{}},{502,{}},{504,{}},{506,{}},{507,{}},{509,{}},{519,{}},{520,{}},{522,{}},{524,{}},{529,{}},{532,{}},{535,{}},{536,{}},{540,{}},{543,{}},{544,{}},{551,{}},{552,{}},{554,{}},{557,{}},{559,{}},{562,{}},{564,{}},{566,{}},{568,{}},{570,{0,1}},{574,{}},{575,{}},{577,{}},{578,{}},{580,{}},{582,{}},{583,{}},{585,{0,1,2,3}},{590,{}},{592,{}},{595,{}},{597,{}},{599,{}},{600,{}},{602,{}},{605,{}},{607,{}},{610,{}},{611,{}},{613,{}},{619,{}},{622,{}},{624,{}},{627,{}},{629,{}},{633,{}},{634,{}},{636,{}},{650,{}},{651,{}},{653,{}},{654,{}},{656,{}},{657,{}},{659,{}},{661,{}},{662,{}},{664,{}},{665,{}},{667,{}},{669,{}},{672,{}},{674,{}},{677,{}},{679,{}},{686,{}},{688,{}},{690,{}},{692,{}},{696,{}},{698,{}},{704,{}},{705,{}},{712,{}},{714,{}},{722,{}},{723,{}},{725,{}},{726,{}},{728,{}},{729,{}},{731,{}},{732,{}},{734,{}},{736,{}},{742,{}},{744,{0}},{747,{}},{749,{}},{751,{}},{753,{}},{755,{}},{757,{}},{759,{}},{761,{}},{767,{}},{769,{}},{782,{}},{783,{}},{789,{}},{790,{}},{810,{}},{811,{}},{813,{}},{814,{}},{816,{}},{817,{}},{819,{}},{821,{}},{822,{}},{824,{}},{825,{}},{827,{}},{829,{}},{831,{}},{833,{}},{835,{}},{837,{}},{838,{}},{843,{}},{846,{}},{848,{}},{850,{}},{856,{}},{857,{}},{859,{}},{860,{}},{878,{}},{885,{}},{886,{}},{906,{}},{907,{}},{909,{}},{910,{}},{912,{}},{913,{}},{915,{}},{917,{}},{919,{}},{921,{}},{924,{}},{926,{}},{928,{}},{929,{}},{932,{}},{933,{}},{940,{}},{942,{}},{944,{}},{948,{}},{955,{}},{957,{}},{958,{}},{960,{}},{963,{}},{965,{}},{969,{}},{971,{}},{996,{}},{997,{}}};
+    // removed: ralts, kirlia, snorunt, nighttime evolutions, nincada
     std::vector<std::pair<int,StatsHuntGenderFilter>> genders_list = {{415, StatsHuntGenderFilter::Female},{757, StatsHuntGenderFilter::Female}};
 
     std::vector<std::pair<int,std::vector<std::string>>> moves_list = {{108,{"Rollout"}},{190,{"Double Hit"}},{193,{"Ancient Power"}},{203,{"Twin Beam"}},{206,{"Hyper Drill"}},{221,{"Ancient Power"}},{438,{"Mimic"}},{439,{"Mimic"}},{762,{"Stomp"}},{852,{"Taunt"}},{1011,{"Dragon Cheer"}}};
@@ -732,14 +705,15 @@ std::vector<PokemonData> home_request_next_level_evo(SingleSwitchProgramEnvironm
     pbf_press_button(context, BUTTON_A, 10, 200); // Navigate into first pokemon to start finding something that evolves by leveling up
 
 
-    PokemonData first_pokemon = home_manager.scan_pokemon(env, context);
+    PokemonData first_pokemon = home_manager.populate_pokemon(home_manager.scan_pokemon(env, context));
 
     PokemonData curr_pokemon = first_pokemon;
+;
 
 
     auto matches_pokemon = [&](const PokemonData& poke) -> bool {
         for (const auto& id_level : level_list) {
-            bool level_match = id_level.first==curr_pokemon.id && (id_level.second.empty()||find(id_level.second.begin(),id_level.second.end(),curr_pokemon.form_id)!=id_level.second.end());
+            bool level_match = id_level.first==poke.id && (id_level.second.empty()||find(id_level.second.begin(),id_level.second.end(),poke.form_id)!=id_level.second.end());
             if (!level_match) continue;
 
             for (const auto& id_gender : genders_list) {
@@ -754,40 +728,99 @@ std::vector<PokemonData> home_request_next_level_evo(SingleSwitchProgramEnvironm
     };
 
     std::vector<PokemonData> out;
+    int slot_catch = 6000;
 
     do {
         env.console.log("Running search");
-        if (matches_pokemon(curr_pokemon)) {
+        if (matches_pokemon(curr_pokemon)/* && !curr_pokemon.PLZA_locked */) {
             //special case for shedinja
-            if(curr_pokemon.id==290){
-                if(slots_full%5<5){ // safe to add shedinja
-                    out.push_back(curr_pokemon);
+            // if(curr_pokemon.id==290){
+            //     if(slots_full%5<5){ // safe to add shedinja
+            //         out.push_back(curr_pokemon);
+            //         slots_full++;
+            //     }else{
+            //         if(slots_full<29){ // we are able to push the last pokemon added to the next column
+            //             out.push_back(curr_pokemon);
+            //             out.push_back(PokemonData(0,0,0, 292, 0, "Shedinja", StatsHuntGenderFilter::Any, PokemonType::BUG, PokemonType::GHOST, Region::HOENN, 0, -1, false, false, "Wonder Guard", PokemonType::NONE, false, true));
+            //             // Swap last and third to last element
+            //             std::swap(out[out.size() - 1], out[out.size() - 3]);
+            //             slots_full+=2;
+            //         }
+            //     }
+            // }else{
+                out.push_back(curr_pokemon);
+                slots_full++;
+            // }
+        }
+
+        pbf_press_button(context, BUTTON_R, 10, 80);
+        context.wait_for_all_requests();
+        screen = env.console.video().snapshot();
+        curr_pokemon = home_manager.populate_pokemon(home_manager.scan_pokemon(env, context));
+    } while ((curr_pokemon.id    != first_pokemon.id ||
+              curr_pokemon.level != first_pokemon.level ||
+              curr_pokemon.ot_id != first_pokemon.ot_id)
+             && slots_full < 30
+             && slot_catch--);
+
+    return out;
+}
+
+std::vector<PokemonData> home_request_next_level_evo_v2(SingleSwitchProgramEnvironment& env, ProControllerContext& context, HomeEnvironment& home_manager, Game& game, int slots_full){
+    std::vector<std::pair<int,std::vector<int>>> level_list = {{1,{}},{2,{}},{4,{}},{5,{}},{7,{}},{8,{}},{10,{}},{11,{}},{13,{}},{14,{}},{16,{}},{17,{}},{19,{0}},{21,{}},{23,{}},{27,{0}},{29,{}},{32,{}},{41,{}},{43,{}},{46,{}},{48,{}},{50,{0,1}},{52,{0,2}},{54,{}},{56,{}},{60,{}},{63,{}},{66,{}},{69,{}},{72,{}},{74,{0,1}},{77,{0,1}},{79,{0}},{81,{}},{84,{}},{86,{}},{88,{0,1}},{92,{}},{96,{}},{98,{}},{100,{0}},{104,{}},{109,{}},{111,{}},{116,{}},{118,{}},{122,{1}},{129,{}},{138,{}},{140,{}},{147,{}},{148,{}},{152,{}},{153,{}},{155,{}},{156,{}},{158,{}},{159,{}},{161,{}},{163,{}},{165,{}},{167,{}},{170,{}},{177,{}},{179,{}},{180,{}},{183,{}},{187,{}},{188,{}},{194,{0,1}},{204,{}},{209,{}},{216,{}},{218,{}},{220,{}},{222,{1}},{223,{}},{228,{}},{231,{}},{236,{}},{238,{}},{239,{}},{240,{}},{246,{}},{247,{}},{252,{}},{253,{}},{255,{}},{256,{}},{258,{}},{259,{}},{261,{}},{263,{0,1}},{265,{}},{266,{}},{268,{}},{270,{}},{273,{}},{276,{}},{278,{}},{283,{}},{285,{}},{287,{}},{288,{}},{290,{}},{293,{}},{294,{}},{296,{}},{304,{}},{305,{}},{307,{}},{309,{}},{316,{}},{318,{}},{320,{}},{322,{}},{325,{}},{328,{}},{329,{}},{331,{}},{333,{}},{339,{}},{341,{}},{343,{}},{345,{}},{347,{}},{353,{}},{355,{}},{360,{}},{363,{}},{364,{}},{371,{}},{372,{}},{374,{}},{375,{}},{387,{}},{388,{}},{390,{}},{391,{}},{393,{}},{394,{}},{396,{}},{397,{}},{399,{}},{401,{}},{403,{}},{404,{}},{408,{}},{410,{}},{412,{0,1,2}},{415,{}},{418,{}},{420,{}},{422,{0,1}},{425,{}},{431,{}},{434,{}},{436,{}},{443,{}},{444,{}},{449,{}},{451,{}},{453,{}},{456,{}},{459,{}},{495,{}},{496,{}},{498,{}},{499,{}},{501,{}},{502,{}},{504,{}},{506,{}},{507,{}},{509,{}},{519,{}},{520,{}},{522,{}},{524,{}},{529,{}},{532,{}},{535,{}},{536,{}},{540,{}},{543,{}},{544,{}},{551,{}},{552,{}},{554,{}},{557,{}},{559,{}},{562,{}},{564,{}},{566,{}},{568,{}},{570,{0,1}},{574,{}},{575,{}},{577,{}},{578,{}},{580,{}},{582,{}},{583,{}},{585,{0,1,2,3}},{590,{}},{592,{}},{595,{}},{597,{}},{599,{}},{600,{}},{602,{}},{605,{}},{607,{}},{610,{}},{611,{}},{613,{}},{619,{}},{622,{}},{624,{}},{627,{}},{629,{}},{633,{}},{634,{}},{636,{}},{650,{}},{651,{}},{653,{}},{654,{}},{656,{}},{657,{}},{659,{}},{661,{}},{662,{}},{664,{}},{665,{}},{667,{}},{669,{}},{672,{}},{674,{}},{677,{}},{679,{}},{686,{}},{688,{}},{690,{}},{692,{}},{696,{}},{698,{}},{704,{}},{705,{}},{712,{}},{714,{}},{722,{}},{723,{}},{725,{}},{726,{}},{728,{}},{729,{}},{731,{}},{732,{}},{734,{}},{736,{}},{742,{}},{744,{0}},{747,{}},{749,{}},{751,{}},{753,{}},{755,{}},{757,{}},{759,{}},{761,{}},{767,{}},{769,{}},{782,{}},{783,{}},{789,{}},{790,{}},{810,{}},{811,{}},{813,{}},{814,{}},{816,{}},{817,{}},{819,{}},{821,{}},{822,{}},{824,{}},{825,{}},{827,{}},{829,{}},{831,{}},{833,{}},{835,{}},{837,{}},{838,{}},{843,{}},{846,{}},{848,{}},{850,{}},{856,{}},{857,{}},{859,{}},{860,{}},{878,{}},{885,{}},{886,{}},{906,{}},{907,{}},{909,{}},{910,{}},{912,{}},{913,{}},{915,{}},{917,{}},{919,{}},{921,{}},{924,{}},{926,{}},{928,{}},{929,{}},{932,{}},{933,{}},{940,{}},{942,{}},{944,{}},{948,{}},{955,{}},{957,{}},{958,{}},{960,{}},{963,{}},{965,{}},{969,{}},{971,{}},{996,{}},{997,{}}};
+    // removed: ralts, kirlia, snorunt, nighttime evolutions
+    std::vector<std::pair<int,StatsHuntGenderFilter>> genders_list = {{415, StatsHuntGenderFilter::Female},{757, StatsHuntGenderFilter::Female}};
+
+    std::vector<std::pair<int,std::vector<std::string>>> moves_list = {{108,{"Rollout"}},{190,{"Double Hit"}},{193,{"Ancient Power"}},{203,{"Twin Beam"}},{206,{"Hyper Drill"}},{221,{"Ancient Power"}},{438,{"Mimic"}},{439,{"Mimic"}},{762,{"Stomp"}},{852,{"Taunt"}},{1011,{"Dragon Cheer"}}};
+
+
+    auto matches_pokemon = [&](const PokemonData& poke) -> bool {
+        for (const auto& id_level : level_list) {
+            bool level_match = id_level.first==poke.id && (id_level.second.empty()||find(id_level.second.begin(),id_level.second.end(),poke.form_id)!=id_level.second.end());
+            if (!level_match) continue;
+
+            for (const auto& id_gender : genders_list) {
+                if (id_gender.first == poke.id && id_gender.second != poke.gender) {
+                    return false;
+                }
+            }
+
+            return true; // Was found in level match, but was not in genders_list. Can evolve by leveling up.
+        }
+        return false;
+    };
+
+    std::vector<PokemonData> out = {};
+
+    for(PokemonData* pokemon : home_manager.boxes.flatten()){
+        if(matches_pokemon(*pokemon)&&!pokemon->prime_example){
+            if(pokemon->id==290){
+                if(slots_full%5<4){ // safe to add shedinja
+                    out.push_back(*pokemon);
                     slots_full++;
                 }else{
                     if(slots_full<29){ // we are able to push the last pokemon added to the next column
-                        out.push_back(curr_pokemon);
-                        out.push_back(PokemonData(292, 0, "Shedinja", StatsHuntGenderFilter::Any, PokemonType::BUG, PokemonType::GHOST, Region::HOENN, 0, -1, false, false, "Wonder Guard", PokemonType::NONE, false, true));
+                        out.push_back(*pokemon);
+                        out.push_back(PokemonData(0,0,0, 292, 0, "Shedinja", StatsHuntGenderFilter::Any, PokemonType::BUG, PokemonType::GHOST, Region::HOENN, 0, -1, false, false, "Wonder Guard", PokemonType::NONE, false, true));
                         // Swap last and third to last element
                         std::swap(out[out.size() - 1], out[out.size() - 3]);
                         slots_full+=2;
                     }
                 }
             }else{
-                out.push_back(curr_pokemon);
+                out.push_back(*pokemon);
                 slots_full++;
             }
         }
 
-        pbf_press_button(context, BUTTON_R, 10, 80);
-        context.wait_for_all_requests();
-        screen = env.console.video().snapshot();
-        curr_pokemon = home_manager.scan_pokemon(env, context);
-    } while (curr_pokemon.id != first_pokemon.id
-             || curr_pokemon.level != first_pokemon.level
-             || curr_pokemon.ot_id != first_pokemon.ot_id || slots_full == 30);
+        if(slots_full>=30)break;
+
+
+    }
 
     return out;
 }
+
 
 std::vector<PokemonData> home_request_next_for_fun(SingleSwitchProgramEnvironment& env, ProControllerContext& context, HomeEnvironment& home_manager, Game& game, int slots_full){
     ImageFloatBox home_filter_reader(0.4, 0.41, 0.2, 0.045);
@@ -839,7 +872,7 @@ std::vector<PokemonData> home_request_next_for_fun(SingleSwitchProgramEnvironmen
     pbf_press_button(context, BUTTON_DOWN, 10, 80);
     pbf_press_button(context, BUTTON_A, 10, 200); // Navigate into first pokemon to start finding something that evolves by leveling up
 
-    PokemonData first_pokemon = home_manager.scan_pokemon(env, context);
+    PokemonData first_pokemon = home_manager.populate_pokemon(home_manager.scan_pokemon(env, context));
 
     PokemonData curr_pokemon = first_pokemon;
 
@@ -854,6 +887,9 @@ std::vector<PokemonData> home_request_next_for_fun(SingleSwitchProgramEnvironmen
     };
 
     std::vector<PokemonData> out;
+    int slot_catch = 6000;
+
+    // TODO: Get recent game to make sure it's not LGPE
 
 
     do {
@@ -866,10 +902,13 @@ std::vector<PokemonData> home_request_next_for_fun(SingleSwitchProgramEnvironmen
         pbf_press_button(context, BUTTON_R, 10, 80);
         context.wait_for_all_requests();
         screen = env.console.video().snapshot();
-        curr_pokemon = home_manager.scan_pokemon(env, context);
-    } while (curr_pokemon.id != first_pokemon.id
-             || curr_pokemon.level != first_pokemon.level
-             || curr_pokemon.ot_id != first_pokemon.ot_id || slots_full == 30);
+        curr_pokemon = home_manager.populate_pokemon(home_manager.scan_pokemon(env, context));
+    } while ((curr_pokemon.id    != first_pokemon.id ||
+              curr_pokemon.level != first_pokemon.level ||
+              curr_pokemon.ot_id != first_pokemon.ot_id)
+             && slots_full < 30
+             && slot_catch--);
+
 
     return out;
 
@@ -894,6 +933,7 @@ void home_move_pokemon_to_game(SingleSwitchProgramEnvironment& env, ProControlle
     pbf_press_button(context, BUTTON_UP, 10, 50);
     pbf_press_button(context, BUTTON_A, 10, 50);
 
+
     context.wait_for_all_requests();
 
 }
@@ -901,7 +941,7 @@ void home_move_pokemon_to_game(SingleSwitchProgramEnvironment& env, ProControlle
 // This function is run in Pokémon Home, and should be used when wanting to transfer a Pokémon to the Home box from the Game box on the right.
 // Assumes the cursor is in Home position {0,5}
 // Requires env, context, and two coordinates sent as an std::pair<int,int>
-void home_move_pokemon_from_game(SingleSwitchProgramEnvironment& env, ProControllerContext& context, HomeEnvironment& home_manager, const HomeCursor& home, const HomeCursor& game, bool emergency = false){
+void home_move_pokemon_from_game(SingleSwitchProgramEnvironment& env, ProControllerContext& context, HomeEnvironment& home_manager, HomeBox tempbox, const HomeCursor& home, const HomeCursor& game, bool emergency = false){
     home_manager.navigate_to(env, context, game);
 
     home_manager.pick_up_pokemon(env, context);
@@ -910,14 +950,17 @@ void home_move_pokemon_from_game(SingleSwitchProgramEnvironment& env, ProControl
 
     home_manager.put_down_pokemon(env, context);
 
-    pbf_press_button(context, BUTTON_A, 10, 50);
-    pbf_press_button(context, BUTTON_DOWN, 10, 50);
-    pbf_press_button(context, BUTTON_DOWN, 10, 50);
-    pbf_press_button(context, BUTTON_A, 10, 50);
-    pbf_press_button(context, BUTTON_A, 10, 50);
-    pbf_press_button(context, BUTTON_A, 10, 50);
-    pbf_press_button(context, BUTTON_UP, 10, 50);
-    pbf_press_button(context, BUTTON_A, 10, 50);
+    // Code to mark a pokemon with the red circle
+    // pbf_press_button(context, BUTTON_A, 10, 50);
+    // pbf_press_button(context, BUTTON_DOWN, 10, 50);
+    // pbf_press_button(context, BUTTON_DOWN, 10, 50);
+    // pbf_press_button(context, BUTTON_A, 10, 50);
+    // pbf_press_button(context, BUTTON_A, 10, 50);
+    // pbf_press_button(context, BUTTON_A, 10, 50);
+    // pbf_press_button(context, BUTTON_UP, 10, 50);
+    // pbf_press_button(context, BUTTON_A, 10, 50);
+
+    if(!emergency)home_manager.boxes.at(home.get_page()).at(home.get_row(),home.get_col()).swap_with(tempbox.at(game.get_row(),game.get_col()).getPokemon().value());
 
     context.wait_for_all_requests();
 
@@ -929,8 +972,8 @@ std::vector<PokemonData> home_request_next_pokemon(SingleSwitchProgramEnvironmen
     case mode::Level:
         return home_request_next_level_evo(env, context, home_manager, game, slots_full);
     case mode::Simple_Item:
-        return {};
-        // return home_request_next_simple_item_evo(env, context, home_manager, game, item_counts, slots_full);
+        // return {};
+        return home_request_next_simple_item_evo(env, context, home_manager, game,slots_full, item_counts);
     case mode::Fun:
         return home_request_next_for_fun(env, context, home_manager, game, slots_full);
     default:
@@ -941,7 +984,7 @@ std::vector<PokemonData> home_request_next_pokemon(SingleSwitchProgramEnvironmen
 // This function is run in Pokémon Home, and should be used when wanting to locate all Pokémon eligible for powering up
 // Requires env, context, and a game name to identify what game to navigate to
 // Returns the amount of Pokémon successfully retrieved
-int home_fill_boxes_to_game(SingleSwitchProgramEnvironment& env, ProControllerContext& context, HomeEnvironment& home_manager, Game& game, std::string box_name, mode mode, std::unordered_map<std::string, int>& item_counts){
+int home_fill_boxes_to_game(SingleSwitchProgramEnvironment& env, ProControllerContext& context, HomeEnvironment& home_manager, HomeBox tempbox, Game& game, std::string box_name, mode mode, std::unordered_map<std::string, int>& item_counts){
 
     int found = 0;
 
@@ -952,15 +995,20 @@ int home_fill_boxes_to_game(SingleSwitchProgramEnvironment& env, ProControllerCo
 
         home_manager.detect_home(env, context);
 
-        if(temp_mon.size()==0||found+temp_mon.size()>30)return found;
+        if(temp_mon.size()==0||(found+temp_mon.size())>30)return found;
 
-        for(PokemonData next: temp_mon){
-            std::optional<HomeCursor> dest = home_manager.locate_pokemon(next);
-            if(dest.has_value()){
-                home_manager.swap_pokemon(env, context, dest.value(), {++found%5, found/5 + 6});
-            }else{
-                found++;
+        for(const PokemonData &next: temp_mon){
+            if(next!=PokemonData()){
+                home_manager.navigate_to(env, context, {next.row, next.col, next.box});
+                home_manager.pick_up_pokemon(env, context);
+                home_manager.navigate_to(env, context, {found%5, found/5 + 6});
+                home_manager.put_down_pokemon(env, context);
+
+                auto tempmon = home_manager.boxes.at(next.box).at(next.row, next.col);
+                tempbox.at(found%5, found/5).setPokemon(tempmon.getPokemon().value());
+                tempmon.clear();
             }
+            found++;
         }
     }
 
@@ -1002,20 +1050,22 @@ void sv_run_ace2(SingleSwitchProgramEnvironment& env, ProControllerContext& cont
 
     VideoSnapshot screen = env.console.video().snapshot();
 
+    // Close out of boxes and run tournament
+    pbf_press_button(context, BUTTON_B, 10, 300);
+    pbf_mash_button(context, BUTTON_A, 40s);
+
     for(int i = 0; i < 4; i++){
         env.console.log("Running battle "+std::to_string(i+1), COLOR_CYAN);
 
-        int ret = -1;
+        int ret = -1, errcheck = 0;
         while(ret==-1){
-            ret = run_until<ProControllerContext>(
+            ret = wait_until(
                 env.console, context,
-                [](ProControllerContext& context){
-                    pbf_press_button(context, BUTTON_B, 20, 40);
-                },
-                {
-                    battle_menu,
-                }
-            );
+                30s,
+                {battle_menu}
+                );
+            if(++errcheck>6)throw BattleFailedException{};
+            else{pbf_press_button(context, BUTTON_B, 25, 30);}
         }
 
 
@@ -1039,9 +1089,10 @@ void sv_run_ace2(SingleSwitchProgramEnvironment& env, ProControllerContext& cont
                 next_battle_message,
                 learn_move_message
             }
-        );
+            );
 
         env.console.log("ret is "+std::to_string(ret));
+
 
         while(ret!=-1){
             switch(ret){
@@ -1059,9 +1110,10 @@ void sv_run_ace2(SingleSwitchProgramEnvironment& env, ProControllerContext& cont
                     }  else{
                         pbf_wait(context, 10000ms);
                     }
+                    errcheck = 0;
                 }
             case 1:
-                pbf_mash_button(context, BUTTON_B, 500ms);
+                pbf_mash_button(context, BUTTON_B, 5s);
             case 2:
                 pbf_press_button(context, BUTTON_B, 10, 20);
                 break;
@@ -1079,16 +1131,112 @@ void sv_run_ace2(SingleSwitchProgramEnvironment& env, ProControllerContext& cont
                     next_battle_message,
                     learn_move_message
                 }
-            );
+                );
+
+            if(errcheck++>10){
+                throw BattleFailedException{};
+            }
         }
     }
+}
+
+void sv_run_item_evos(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+    PokemonSV::AdvanceDialogWatcher dialogue_arrow(COLOR_CYAN, PokemonSV::DialogType::DIALOG_ALL);
+    PokemonSV::GradientArrowWatcher arrow_detector(COLOR_RED, PokemonSV::GradientArrowType::RIGHT, {0.1, 0.17, 0.05, 0.75});
+
+    auto get_item_row_y = [&](VideoSnapshot& screen) -> float {
+        PokemonSV::GradientArrowDetector arrow_detector(COLOR_RED, PokemonSV::GradientArrowType::RIGHT, {0.1, 0.17, 0.05, 0.75});
+        ImageFloatBox item_box;
+
+        arrow_detector.detect(item_box, screen);
+
+        return item_box.y;
+    };
+
+    auto get_selected_bag_item = [&](VideoSnapshot& screen) -> std::string {
+        float row_y = get_item_row_y(screen);
+
+        ImageFloatBox bag_text(0.175, row_y, 0.2, 0.069);
+
+        auto result = SVItemReader::instance().read_substring(
+            env.console, Language::English, extract_box_reference(screen, bag_text),
+            OCR::BLACK_TEXT_FILTERS()
+            );
+
+        if(result.results.size()==0)return {};
+
+        return result.results.cbegin()->second.token;
+    };
+
+    std::vector<std::string> evo_list = {"thunder-stone","ice-stone", "moon-stone", "fire-stone", "water-stone", "leaf-stone", "shiny-stone", "sun-stone", "dusk-stone", "metal-alloy"};
+
+    // Navigate to bag, then items pocket
+    pbf_press_dpad(context, DPAD_UP, 10, 50);
+    pbf_press_button(context, BUTTON_A, 10, 150);
+
+
+    context.wait_for_all_requests();
+
+    ImageFloatBox other_icon(0.485, 0.11, 0.005, 0.005);
+    while(euclidean_distance(image_stats(extract_box_reference(env.console.video().snapshot(), other_icon)).average, FloatPixel(255, 215.5,0))>5){
+        pbf_press_dpad(context, DPAD_RIGHT, 10, 20);
+        context.wait_for_all_requests();
+    }
+
+    int evos = 0;
+    pbf_wait(context, 500ms);
+
+    context.wait_for_all_requests();
+
+    VideoSnapshot screen = env.console.video().snapshot();
+
+    std::string top_item = get_selected_bag_item(screen);
+
+    std::string curr_item = top_item;
+    do{
+        for(int i = 2; i <= 6; i++){
+            ImageFloatBox can_evo_box(0.1, (i*0.125)+0.125, 0.001, 0.002);
+            FloatPixel can_evo_vals = image_stats(extract_box_reference(screen, can_evo_box)).average;
+
+            if(can_evo_vals.g>200){
+                if(std::find(evo_list.begin(), evo_list.end(), curr_item)== evo_list.end()){
+                    i=7;
+                    continue;
+                }else{
+                    pbf_press_button(context, BUTTON_A, 10, 75);
+                    pbf_press_button(context, BUTTON_A, 10, 75);
+                    for(int j = i; --j;){
+                        pbf_press_dpad(context, DPAD_DOWN, 10, 35);
+                    }
+                    run_until<ProControllerContext>(
+                        env.console, context,
+                        [](ProControllerContext& context){
+                            pbf_press_button(context, BUTTON_B, 10, 75);
+                        },
+                        {
+                            arrow_detector,
+                        }
+                    );
+                }
+            }
+        }
+
+
+        pbf_press_dpad(context, DPAD_DOWN, 10, 55);
+        context.wait_for_all_requests();
+        screen = env.console.video().snapshot();
+        curr_item = get_selected_bag_item(screen);
+
+    }while(top_item!=curr_item&&evos<4);
+
+
 }
 
 bool switch_close_game_and_open(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const std::string& target_game, int retries = 0){
     if(retries > MAX_RETRIES)return false;
 
     HomeMenuWatcher home_menu(env.console);
-    ImageFloatBox switch_game_checker(0, 0.2, 1, 0.06);
+    ImageFloatBox switch_game_checker(0, 0.198, 1, 0.062);
     VideoOverlaySet overlays(env.console);
 
     int ret = wait_until(env.console, context, 2s, {home_menu});
@@ -1107,9 +1255,17 @@ bool switch_close_game_and_open(SingleSwitchProgramEnvironment& env, ProControll
 
     for (int attempt = 0; attempt < 12; attempt++){
         context.wait_for_all_requests();
+        auto screen = env.console.video().snapshot();
+
+        ImageRGB32 filtered = to_blackwhite_rgb32_range(
+            screen,
+            true,
+            0xff0080c0,  // lower bound
+            0xff40ffff   // upper bound
+            );
         std::string game_name = OCR::ocr_read(
             Language::English,
-            extract_box_reference(env.console.video().snapshot(), switch_game_checker)
+            extract_box_reference(filtered, switch_game_checker)
             );
         game_name = sanitize_OCR(game_name);
 
@@ -1152,8 +1308,8 @@ bool switch_close_game_and_open(SingleSwitchProgramEnvironment& env, ProControll
         load_into_sv(env, context);
         ret = wait_until(env.console, context, 30s, {overworld});
         switch(ret){
-            case 0: return true;
-            default: return switch_close_game_and_open(env, context, target_game, retries+1);
+        case 0: return true;
+        default: return switch_close_game_and_open(env, context, target_game, retries+1);
         }
     }
 
@@ -1172,6 +1328,8 @@ void sv_run_enrichment(SingleSwitchProgramEnvironment& env, ProControllerContext
     VideoOverlaySet box_render(env.console);
     VideoSnapshot screen = env.console.video().snapshot();
 
+    int battlefails = 0;
+
     auto nav_to_boxes = [&]() -> std::string {
         // First, check if we are in the overworld
         int ret = wait_until(
@@ -1180,7 +1338,7 @@ void sv_run_enrichment(SingleSwitchProgramEnvironment& env, ProControllerContext
             {
                 overworld
             }
-        );      // TODO: Account for if the loading icon is on the screen
+            );      // TODO: Account for if the loading icon is on the screen
 
         // If not, mash B until we are
         while (ret == -1) {
@@ -1192,11 +1350,11 @@ void sv_run_enrichment(SingleSwitchProgramEnvironment& env, ProControllerContext
                 {
                     overworld,
                 }
-            );
+                );
         }
 
         // We are in the overworld, nav to boxes
-        PokemonSV::enter_box_system_from_overworld(env.program_info(),env.console, context); // Go to boxes to fill party
+        PokemonSV::enter_box_system_from_overworld(env.program_info(),env.console, context); //  to boxes to fill party
 
         context.wait_for_all_requests();
 
@@ -1258,24 +1416,20 @@ void sv_run_enrichment(SingleSwitchProgramEnvironment& env, ProControllerContext
 
         move_pokemon_column(runs, true);            // Retrieve pokemon for this iteration
 
-        // Close out of menu and start tournament
-        pbf_press_button(context, BUTTON_B, 10, 300);
-        pbf_mash_button(context, BUTTON_A, 25000ms);
-
         try{
             switch(mode){
-                case mode::Level:
-                    sv_run_ace2(env, context, 0.5);        // Run the tournament once
-                    break;
-                case mode::Simple_Item:
-                    // TODO: Do simple evo item stuff
-                    break;
-                case mode::Fun:
-                    // TODO: Do simple evo item stuff
-                    sv_run_ace2(env, context, 0);        // Run the tournament once
-                    break;
-                default:
-                    break;
+            case mode::Level:
+                sv_run_ace2(env, context, 0.5);        // Run the tournament once
+                break;
+            case mode::Simple_Item:
+                // TODO: Do simple evo item stuff
+                sv_run_item_evos(env, context);
+                break;
+            case mode::Fun:
+                sv_run_ace2(env, context, 0);        // Run the tournament once
+                break;
+            default:
+                break;
             }
 
 
@@ -1290,7 +1444,9 @@ void sv_run_enrichment(SingleSwitchProgramEnvironment& env, ProControllerContext
         catch(const BattleFailedException& e){
             env.console.log(e.what());
             // go home, reboot, and retry
-            runs--;
+            if(battlefails++<3){
+                runs--;
+            }
             switch_close_game_and_open(env, context, "Pokémon Violet");
         }
 
@@ -1320,18 +1476,21 @@ void Enrichment::initialize_home(SingleSwitchProgramEnvironment& env, ProControl
 
     std::ostringstream ss;
 
+    if(WIPE_MARKINGS)wipe_markings(env, context, home_manager);
 
     if(DISPOSE_GOS){
         home_dispose_of_go(env, context, home_manager);
         home_manager.navigate_menus_to(env, context, PageID::MAIN_MENU);
     }
 
-    if(WIPE_MARKINGS)wipe_markings(env, context, home_manager);
+    home_manager.set_up_boxes(env, context, HOME_FIRST_BOX, HOME_LAST_BOX);
+    home_manager.navigate_menus_to(env, context, PageID::MAIN_MENU);
+
 }
 
 void Enrichment::enrich_with_games(SingleSwitchProgramEnvironment& env, ProControllerContext& context, HomeEnvironment& home_manager, std::vector<Game>& game_list){
     std::unordered_map<GameStatus, std::vector<mode>> mode_list = {
-        {GameStatus::POKEMON_VIOLET, {mode::Level, /*mode::Simple_Item, */mode::Fun, mode::None}}
+        {GameStatus::POKEMON_VIOLET, {mode::Level, mode::Fun, mode::Simple_Item, mode::None}}
     };
 
     bool item_counts_init = false;
@@ -1342,45 +1501,51 @@ void Enrichment::enrich_with_games(SingleSwitchProgramEnvironment& env, ProContr
         int pokemon = 30;
         do{
             switch(game.game){
-                case GameStatus::POKEMON_VIOLET:
-                    if(!item_counts_init){
-                        switch_close_game_and_open(env, context, "Pokémon Violet");
-                        // TODO: Make sure we are at the desk, use STARTING_AT_DESK
-                        sv_get_evo_items(env, context, item_counts);
-                        item_counts_init = true;
-                        switch_close_game_and_open(env, context, "Pokémon HOME");
-                    }
-                    if(!SKIP_SETUP){
-                        home_manager.detect_home(env, context);
-                        home_manager.navigate_menus_to(env, context, PageID::BOX_VIEW, GameStatus::POKEMON_VIOLET);
-                        context.wait_for_all_requests();
-                        pokemon = home_fill_boxes_to_game(env, context, home_manager, game, SV_BOX_NAME, enrichment_mode, item_counts);
-                        env.console.log("Pokemon: "+std::to_string(pokemon));
-                        if(pokemon==0){
-                            env.console.log("Pokemon is now 0.");
-                            mode_list[game.game].erase(mode_list[game.game].begin());
-                            enrichment_mode = mode_list[game.game][0];
-                            env.console.log("enrichment_mode:"+to_string(enrichment_mode));
-                            break;
-                        }
-                    }
+            case GameStatus::POKEMON_VIOLET:
+                if(!item_counts_init){
                     switch_close_game_and_open(env, context, "Pokémon Violet");
-                    sv_run_enrichment(env,context, SV_BOX_NAME, std::ceil(pokemon/5), enrichment_mode);
-                    send_program_notification(
-                        env, NOTIFICATION_ERROR_FATAL,
-                        COLOR_GREEN,
-                        "Ran SV Enrichment on up to 30 Pokemon",
-                        {}, "",
-                        {}
-                        );
-                default:
-                    // switch_close_game_and_open(env, context, game.name);
-                    pokemon=30;
+                    // TODO: Make sure we are at the desk, use STARTING_AT_DESK
+                    sv_get_evo_items(env, context, item_counts);
+                    item_counts_init = true;
+                    switch_close_game_and_open(env, context, "Pokémon HOME");
+                }
+                if(!SKIP_SETUP){
+                    home_manager.detect_home(env, context);
+                    home_manager.navigate_menus_to(env, context, PageID::BOX_VIEW, GameStatus::POKEMON_VIOLET);
+                    home_manager.navigate_to(env, context, {2, 11, 0});
+                    home_navigate_to_box_secondary(env, context, SV_BOX_NAME);
+                    home_manager.navigate_to(env, context, {1, 1, 0});
+                    context.wait_for_all_requests();
+                    pokemon = home_fill_boxes_to_game(env, context, home_manager, tempbox, game, SV_BOX_NAME, enrichment_mode, item_counts);
+                    env.console.log("Pokemon: "+std::to_string(pokemon));
+                    if(pokemon==0){
+                        env.console.log("Pokemon is now 0.");
+                        mode_list[game.game].erase(mode_list[game.game].begin());
+                        enrichment_mode = mode_list[game.game][0];
+                        env.console.log("enrichment_mode:"+to_string(enrichment_mode));
+                        break;
+                    }
+                }
+                home_manager.navigate_menus_to(env, context, PageID::MAIN_MENU);
+                switch_close_game_and_open(env, context, "Pokémon Violet");
+                sv_run_enrichment(env,context, SV_BOX_NAME, std::ceil(pokemon/5), enrichment_mode);
+                send_program_notification(
+                    env, NOTIFICATION_ERROR_FATAL,
+                    COLOR_GREEN,
+                    "Ran SV Enrichment on up to 30 Pokemon",
+                    {}, "",
+                    {}
+                    );
+                switch_close_game_and_open(env, context, "Pokémon HOME");
+            default:
+                // switch_close_game_and_open(env, context, game.name);
+                pokemon=30;
             }
-            switch_close_game_and_open(env, context, "Pokémon HOME");
-            home_manager.detect_home(env, context);
-            home_manager.navigate_menus_to(env, context, PageID::BOX_VIEW, game.game);
-            home_put_away_pokemon(env, context, home_manager, game, EMERGENCY_DELOAD);
+            if(pokemon>0){
+                home_manager.detect_home(env, context);
+                home_manager.navigate_menus_to(env, context, PageID::BOX_VIEW, game.game);
+                home_put_away_pokemon(env, context, home_manager, game, EMERGENCY_DELOAD);
+            }
         }while(!(pokemon==0&&enrichment_mode==mode::None));
     }
 }
@@ -1392,17 +1557,15 @@ void Enrichment::home_put_away_pokemon(SingleSwitchProgramEnvironment& env, ProC
     home_manager.navigate_to(env, context, {1, 6});
 
     switch(game.game){
-        case GameStatus::POKEMON_VIOLET:
-            home_navigate_to_box_secondary(env, context, SV_BOX_NAME);
-        default:
-            home_navigate_to_box_secondary(env, context, SV_BOX_NAME);
+    case GameStatus::POKEMON_VIOLET:
+        home_navigate_to_box_secondary(env, context, SV_BOX_NAME);
+    default:
+        home_navigate_to_box_secondary(env, context, SV_BOX_NAME);
     }
     // pbf_press_button(context, BUTTON_UP, 10, 30);
     // move back to the Home side of the boxes
     // pbf_press_button(context, BUTTON_LEFT, 10, 30);
     home_manager.navigate_to(env, context, {0,0, HOME_FIRST_BOX});
-    int current_box = HOME_FIRST_BOX;
-    // For each Pokémon in the box, increment it's circle marking and find it a place to be put into
     try{
         for(int i = 0; i < 6; i++){
             for(int j = 0; j < 5; j++){
@@ -1411,8 +1574,8 @@ void Enrichment::home_put_away_pokemon(SingleSwitchProgramEnvironment& env, ProC
                 //checking color to know if a pokemon is on the slot or not
                 if((int)image_stddev(extract_box_reference(env.console.video().snapshot(), slot_box)).sum() < 5)continue;
 
-                HomeCursor target_pos = home_locate_empty_position(env, context, &current_box, HOME_LAST_BOX);
-                home_move_pokemon_from_game(env, context, home_manager, target_pos, {static_cast<int>(j),static_cast<int>(i+6)}, emergency);
+                HomeCursor target_pos = home_locate_empty_position(env, context, home_manager, HOME_FIRST_BOX, HOME_LAST_BOX);
+                home_move_pokemon_from_game(env, context, home_manager, tempbox, target_pos, {static_cast<int>(j),static_cast<int>(i+6)}, emergency);
             }
         }
         pbf_press_button(context, BUTTON_DOWN, 10, 30);
@@ -1633,14 +1796,21 @@ void Enrichment::home_dispose_of_go(SingleSwitchProgramEnvironment& env, ProCont
 }
 
 void Enrichment::wipe_markings(SingleSwitchProgramEnvironment& env, ProControllerContext& context,HomeEnvironment& home_manager){
+    ImageFloatBox home_filter_reader(0.4, 0.41, 0.2, 0.045);
+    ImageFloatBox national_dex_number_box(0.448, 0.245, 0.049, 0.04); //pokemon national dex number pos
+    ImageFloatBox nature_box(0.157, 0.783, 0.212, 0.042); // Nature box
+    ImageFloatBox ot_id_box(0.782, 0.719, 0.193, 0.046); // OT ID box
+    ImageFloatBox level_box(0.546, 0.099, 0.044, 0.041); // Level box
+
+    VideoOverlaySet box_render(env.console);
 
     auto is_marked = [&](VideoSnapshot& screen) -> bool{
-        ImageFloatBox home_circle_marking(0.8075, 0.817, 0.0025, 0.005);
-        ImageFloatBox home_triangle_marking(0.8375, 0.817, 0.0025, 0.005);
-        ImageFloatBox home_square_marking(0.8725, 0.817, 0.0025, 0.005);
-        ImageFloatBox home_heart_marking(0.9025, 0.817, 0.0025, 0.005);
-        ImageFloatBox home_star_marking(0.935, 0.817, 0.0025, 0.005);
-        ImageFloatBox home_diamond_marking(0.9675, 0.817, 0.0025, 0.005);
+        ImageFloatBox home_circle_marking(0.725, 0.67, 0.0025, 0.005);
+        ImageFloatBox home_triangle_marking(0.763, 0.67, 0.0025, 0.005);
+        ImageFloatBox home_square_marking(0.81, 0.67, 0.0025, 0.005);
+        ImageFloatBox home_heart_marking(0.85, 0.67, 0.0025, 0.005);
+        ImageFloatBox home_star_marking(0.895, 0.67, 0.0025, 0.005);
+        ImageFloatBox home_diamond_marking(0.93, 0.67, 0.0025, 0.005);
 
         std::vector<ImageFloatBox> marking_list = {home_circle_marking,home_triangle_marking,home_square_marking,home_heart_marking,home_star_marking,home_diamond_marking};
         bool marked = false;
@@ -1655,45 +1825,80 @@ void Enrichment::wipe_markings(SingleSwitchProgramEnvironment& env, ProControlle
 
     VideoSnapshot screen;
 
-    home_manager.navigate_menus_to(env, context, PageID::BOX_VIEW);
+    env.console.log("Moving to list");
 
-    home_manager.navigate_to(env, context, {4,5});
+    home_manager.navigate_menus_to(env, context, PageID::LIST_VIEW, GameStatus::POKEMON_HOME);
 
-    pbf_press_button(context, BUTTON_DOWN, 10, 30);
-    pbf_press_button(context, BUTTON_A, 10, 180);
+    context.wait_for_all_requests();
 
 
-    for(int i = 0; i<5;i++){
-        for(int j = (i%2==0?0:5); (i%2==0?j<5:j>0); (i%2==0?j++:j--)){
-            context.wait_for_all_requests();
-            screen = env.console.video().snapshot();
-            if(is_marked(screen)){
-                home_clear_marking(env, context, home_manager);
-                home_manager.navigate_to(env, context, {4,5});
+    for(int i = 0; i <= 2; i++){
+        for(int j = 0; j <= 1; j++){
+            for(int k = 2; k <= 3; k++){
+                env.console.log("Starting cycle");
+                pbf_press_button(context, BUTTON_PLUS, 10, 60);
+                pbf_press_button(context, BUTTON_X, 10, 60);
+                home_manager.scroll_filter_menu(env, context, "markings");
 
-                pbf_press_button(context, BUTTON_DOWN, 10, 30);
-                pbf_press_button(context, BUTTON_A, 10, 180);
-                i=0;
-                j=0;
-            }else{
-                pbf_press_dpad(context, (i%2==0?DPAD_RIGHT:DPAD_LEFT), 10, 27);
+                int row = i, col = j, color = k, rest = 3-i;
+
+                while(row--){
+                    pbf_press_dpad(context, DPAD_DOWN,10, 60);
+                }
+
+                while(col--){
+                    pbf_press_dpad(context, DPAD_RIGHT,10, 60);
+                }
+
+                while(color--){
+                    pbf_press_button(context, BUTTON_A,10, 60);
+                }
+
+                while(rest--){
+                    pbf_press_dpad(context, DPAD_DOWN,10, 60);
+                }
+
+                pbf_press_button(context, BUTTON_A, 10, 60);
+                pbf_press_button(context, BUTTON_B, 10, 60);
+
+                pbf_wait(context, 1500ms);
+                context.wait_for_all_requests();
+                screen = env.console.video().snapshot();
+                std::string filter_text = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, home_filter_reader)));
+                env.console.log(filter_text);
+
+                if(filter_text=="No matches found!")continue;
+
+                pbf_press_button(context, BUTTON_A, 10, 60);
+                pbf_press_button(context, BUTTON_DOWN, 10, 60);
+                pbf_press_button(context, BUTTON_A, 10, 240);
+
+                // TODO: Implement Caching logic for allowed marked pokemon
+
+                context.wait_for_all_requests();
+                screen = env.console.video().snapshot();
+                while(is_marked(screen)){
+                    pbf_press_button(context, BUTTON_X, 10, 60);
+
+                    home_clear_marking(env, context, home_manager, true);
+
+                    pbf_press_button(context, BUTTON_R, 10, 100);
+                    context.wait_for_all_requests();
+
+                    screen = env.console.video().snapshot();
+                }
+
+                pbf_press_button(context, BUTTON_B, 10, 60);
+
             }
         }
-        pbf_press_dpad(context, DPAD_DOWN, 10, 27);
-        context.wait_for_all_requests();
     }
 
-    pbf_press_button(context, BUTTON_A, 10, 27);
-    pbf_press_dpad(context, DPAD_UP, 10, 27);
 
     home_manager.detect_home(env, context);
 }
 
 void Enrichment::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
-    // FloatPixel pokemon_color = image_stats(extract_box_reference(env.console.video().snapshot(), ImageFloatBox(0.76, 0.295, 0.14, 0.23))).average;
-    // env.console.log(std::to_string(pokemon_color.r)+", "+std::to_string(pokemon_color.g)+", "+std::to_string(pokemon_color.b));
-
-    // plza_run_ralts(env, context);
 
     std::vector<Game> game_list = {Game(GameStatus::POKEMON_VIOLET,0,false)/*,Game(GameStatus::POKEMON_SWORD,3,false),Game(GameStatus::POKEMON_PLA,1,false),Game("GameStatus::POKEMON_EEVEE",4,false)*/};
 
@@ -1707,20 +1912,10 @@ void Enrichment::program(SingleSwitchProgramEnvironment& env, ProControllerConte
 
     HomeEnvironment home_manager(env, context);
 
+    initialize_home(env, context, home_manager, game_list);
     if(EMERGENCY_DELOAD){
         home_manager.navigate_menus_to(env, context, PageID::BOX_VIEW, GameStatus::POKEMON_VIOLET);
         home_put_away_pokemon(env, context, home_manager, game_list[0], true);
-    }
-    if(!SKIP_SORT){
-        initialize_home(env, context, home_manager, game_list);
-        home_manager.sort_all_boxes(env, context, HOME_FIRST_BOX, HOME_LAST_BOX);
-        send_program_notification(
-                env, NOTIFICATION_ERROR_FATAL,
-                COLOR_GREEN,
-                "Finished Sorting Pokemon",
-                {}, "",
-                screen
-            );
     }
     enrich_with_games(env, context, home_manager, game_list);
     send_program_notification(
@@ -1794,7 +1989,7 @@ void Enrichment::program(SingleSwitchProgramEnvironment& env, ProControllerConte
     //         }
     //     }
     // case 1:
-        // pbf_mash_button(context, BUTTON_B, 500ms);
+    // pbf_mash_button(context, BUTTON_B, 500ms);
     // case 2:
     //     pbf_press_button(context, BUTTON_B, 10, 20);
     //     break;
