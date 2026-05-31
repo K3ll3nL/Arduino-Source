@@ -1,3 +1,5 @@
+//Kellen Work
+
 /*  Filter Reader
  *
  *  From: https://github.com/PokemonAutomation/
@@ -25,7 +27,7 @@ SVItemReader::SVItemReader()
 
 
 
-OCR::StringMatchResult SVItemReader::read_substring(
+OCR::StringMatchResult SVItemReader:: read_substring(
     Logger& logger,
     Language language,
     const ImageViewRGB32& image,

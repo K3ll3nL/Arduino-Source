@@ -350,6 +350,33 @@ protected:
 
 
 
+class HomePrelimLogoutDialogueDetector : public StaticScreenDetector{
+public:
+    HomePrelimLogoutDialogueDetector(Color color);
+    virtual ~HomePrelimLogoutDialogueDetector();
+
+    virtual void make_overlays(VideoOverlaySet& items) const override;
+    virtual bool detect(const ImageViewRGB32& screen) override;
+
+protected:
+    Color m_color;
+    ImageFloatBox m_box;
+};
+
+class HomePrelimLogoutDialogueWatcher : public VisualInferenceCallback{
+public:
+    HomePrelimLogoutDialogueWatcher(Color color);
+    virtual ~HomePrelimLogoutDialogueWatcher();
+
+    virtual void make_overlays(VideoOverlaySet& items) const override;
+    virtual bool process_frame(const ImageViewRGB32& frame, WallClock timestamp) override;
+
+protected:
+    HomePrelimLogoutDialogueDetector m_detector;
+    FixedLimitVector<OverlayBoxScope> m_hits;
+};
+
+
 class HomePageRightMoveDetector : public StaticScreenDetector{
 public:
     HomePageRightMoveDetector(Color color);

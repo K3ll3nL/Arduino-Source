@@ -3,7 +3,7 @@
 #include <fstream>
 #include <filesystem>
 #include <format>
-#include <Qstring>
+#include <QString>
 #include <iostream>
 
 namespace PokemonAutomation{

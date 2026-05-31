@@ -50,11 +50,7 @@ bool HomeApplicationDetector::detect(const ImageViewRGB32& screen){
     ImageFloatBox minus_help_corner(0.03, 0.965, 0.06, 0.03);
     std::string minus_button = OCR::ocr_read(Language::English, extract_box_reference(screen, minus_help_corner));
     for(auto a:chars){minus_button.erase(std::remove(minus_button.begin(),minus_button.end(), a),minus_button.end());}
-    ImageFloatBox top_green(0.36, 0.01, 0.001, 0.001);
-    ImageFloatBox top_white(0.36, 0.076, 0.001, 0.001);
-    FloatPixel green_pixel = image_stats(extract_box_reference(screen, top_green)).average;
-    FloatPixel white_pixel = image_stats(extract_box_reference(screen, top_white)).average;
-    if(minus_button == "Help" && euclidean_distance(green_pixel, FloatPixel(149, 248, 212))==0 && euclidean_distance(white_pixel, FloatPixel(255, 255, 255))==0){
+    if(minus_button == "Help"){
         return true;
     }
 
@@ -151,11 +147,7 @@ bool HomeMainMenuDetector::detect(const ImageViewRGB32& screen){
     std::string menu_text = OCR::ocr_read(Language::English, extract_box_reference(screen, menu_read_corner));
     for(auto a:chars){minus_button.erase(std::remove(minus_button.begin(),minus_button.end(), a),minus_button.end());}
     for(auto a:chars){menu_text.erase(std::remove(menu_text.begin(),menu_text.end(), a),menu_text.end());}
-    ImageFloatBox top_green(0.36, 0.01, 0.001, 0.001);
-    ImageFloatBox top_white(0.36, 0.076, 0.001, 0.001);
-    FloatPixel green_pixel = image_stats(extract_box_reference(screen, top_green)).average;
-    FloatPixel white_pixel = image_stats(extract_box_reference(screen, top_white)).average;
-    if(menu_text == "MAIN MENU" && minus_button == "Help" && euclidean_distance(green_pixel, FloatPixel(149, 248, 212))==0 && euclidean_distance(white_pixel, FloatPixel(255, 255, 255))==0){
+    if(menu_text == "MAIN MENU" && minus_button == "Help"){
         return true;
     }
 
@@ -204,11 +196,7 @@ bool HomeGameSelectDetector::detect(const ImageViewRGB32& screen){
     std::string menu_text = OCR::ocr_read(Language::English, extract_box_reference(screen, help_text));
     for(auto a:chars){minus_button.erase(std::remove(minus_button.begin(),minus_button.end(), a),minus_button.end());}
     for(auto a:chars){menu_text.erase(std::remove(menu_text.begin(),menu_text.end(), a),menu_text.end());}
-    ImageFloatBox top_green(0.36, 0.01, 0.001, 0.001);
-    ImageFloatBox top_white(0.36, 0.076, 0.001, 0.001);
-    FloatPixel green_pixel = image_stats(extract_box_reference(screen, top_green)).average;
-    FloatPixel white_pixel = image_stats(extract_box_reference(screen, top_white)).average;
-    if(menu_text == "Select a game to connect to Pokémon HOME" && minus_button == "Help" && euclidean_distance(green_pixel, FloatPixel(149, 248, 212))==0 && euclidean_distance(white_pixel, FloatPixel(255, 255, 255))==0){
+    if(menu_text == "Select a game to connect to Pokémon HOME" && minus_button == "Help"){
         return true;
     }
 
@@ -257,11 +245,7 @@ bool HomeListViewDetector::detect(const ImageViewRGB32& screen){
     std::string menu_text = OCR::ocr_read(Language::English, extract_box_reference(screen, menu_read_corner));
     for(auto a:chars){minus_button.erase(std::remove(minus_button.begin(),minus_button.end(), a),minus_button.end());}
     for(auto a:chars){menu_text.erase(std::remove(menu_text.begin(),menu_text.end(), a),menu_text.end());}
-    ImageFloatBox top_green(0.36, 0.01, 0.001, 0.001);
-    ImageFloatBox top_white(0.36, 0.076, 0.001, 0.001);
-    FloatPixel green_pixel = image_stats(extract_box_reference(screen, top_green)).average;
-    FloatPixel white_pixel = image_stats(extract_box_reference(screen, top_white)).average;
-    if(menu_text == "POKEMON LIST" && minus_button == "Help" && euclidean_distance(green_pixel, FloatPixel(149, 248, 212))==0 && euclidean_distance(white_pixel, FloatPixel(255, 255, 255))==0){
+    if(menu_text == "POKEMON LIST" && minus_button == "Help"){
         return true;
     }
 
@@ -309,11 +293,7 @@ bool HomeSummaryViewDetector::detect(const ImageViewRGB32& screen){
     std::string menu_text = OCR::ocr_read(Language::English, extract_box_reference(screen, menu_read_corner));
     for(auto a:chars){minus_button.erase(std::remove(minus_button.begin(),minus_button.end(), a),minus_button.end());}
     for(auto a:chars){menu_text.erase(std::remove(menu_text.begin(),menu_text.end(), a),menu_text.end());}
-    ImageFloatBox top_green(0.36, 0.01, 0.001, 0.001);
-    ImageFloatBox top_white(0.36, 0.076, 0.001, 0.001);
-    FloatPixel green_pixel = image_stats(extract_box_reference(screen, top_green)).average;
-    FloatPixel white_pixel = image_stats(extract_box_reference(screen, top_white)).average;
-    if(menu_text == "CHECK SUMMARY" && minus_button == "Help" && euclidean_distance(green_pixel, FloatPixel(149, 248, 212))==0 && euclidean_distance(white_pixel, FloatPixel(255, 255, 255))==0){
+    if(menu_text == "CHECK SUMMARY" && minus_button == "Help"){
         return true;
     }
 
@@ -364,11 +344,7 @@ bool HomeMarkingsViewDetector::detect(const ImageViewRGB32& screen){
     for(auto a:chars){minus_button.erase(std::remove(minus_button.begin(),minus_button.end(), a),minus_button.end());}
     for(auto a:chars){menu_text.erase(std::remove(menu_text.begin(),menu_text.end(), a),menu_text.end());}
     for(auto a:chars){markings_text.erase(std::remove(markings_text.begin(),markings_text.end(), a),markings_text.end());}
-    ImageFloatBox top_green(0.36, 0.01, 0.001, 0.001);
-    ImageFloatBox top_white(0.36, 0.076, 0.001, 0.001);
-    FloatPixel green_pixel = image_stats(extract_box_reference(screen, top_green)).average;
-    FloatPixel white_pixel = image_stats(extract_box_reference(screen, top_white)).average;
-    if(markings_text == "Markings" && menu_text == "POKEMON" && minus_button == "Help" && euclidean_distance(green_pixel, FloatPixel(101, 179, 150))==0 && euclidean_distance(white_pixel, FloatPixel(207, 206, 206))==0){
+    if(markings_text == "Markings" && menu_text == "POKEMON"){
         return true;
     }
 
@@ -416,11 +392,7 @@ bool HomeBoxViewDetector::detect(const ImageViewRGB32& screen){
     std::string menu_text = OCR::ocr_read(Language::English, extract_box_reference(screen, menu_read_corner));
     for(auto a:chars){minus_button.erase(std::remove(minus_button.begin(),minus_button.end(), a),minus_button.end());}
     for(auto a:chars){menu_text.erase(std::remove(menu_text.begin(),menu_text.end(), a),menu_text.end());}
-    ImageFloatBox top_green(0.36, 0.01, 0.001, 0.001);
-    ImageFloatBox top_white(0.36, 0.076, 0.001, 0.001);
-    FloatPixel green_pixel = image_stats(extract_box_reference(screen, top_green)).average;
-    FloatPixel white_pixel = image_stats(extract_box_reference(screen, top_white)).average;
-    if(menu_text == "POKEMON" && minus_button == "Help" && euclidean_distance(green_pixel, FloatPixel(149, 248, 212))==0 && euclidean_distance(white_pixel, FloatPixel(255, 255, 255))==0){
+    if(menu_text == "POKEMON" && minus_button == "Help"){
         return true;
     }
 
@@ -534,6 +506,47 @@ void HomeLogoutDialogueWatcher::make_overlays(VideoOverlaySet& items) const{
 
 bool HomeLogoutDialogueWatcher::process_frame(const ImageViewRGB32& screen, WallClock timestamp){
 
+    return m_detector.detect(screen);
+}
+
+
+HomePrelimLogoutDialogueDetector::~HomePrelimLogoutDialogueDetector() = default;
+
+HomePrelimLogoutDialogueDetector::HomePrelimLogoutDialogueDetector(Color color)
+    : m_color(color)
+{}
+
+void HomePrelimLogoutDialogueDetector::make_overlays(VideoOverlaySet& items) const{
+    items.add(m_color, m_box);
+}
+
+bool HomePrelimLogoutDialogueDetector::detect(const ImageViewRGB32& screen){
+    char chars[] = "\n\r—";
+
+    ImageFloatBox login_dialogue(0.155, 0.82, 0.32, 0.06);
+    std::string login_text = OCR::ocr_read(Language::English, extract_box_reference(screen, login_dialogue));
+    for(auto a:chars){login_text.erase(std::remove(login_text.begin(),login_text.end(), a),login_text.end());}
+    if(login_text == "Would you like to save your"){
+        return true;
+    }
+
+    return false;
+}
+
+
+
+HomePrelimLogoutDialogueWatcher::~HomePrelimLogoutDialogueWatcher() = default;
+
+HomePrelimLogoutDialogueWatcher::HomePrelimLogoutDialogueWatcher(Color color)
+    : VisualInferenceCallback("HomePrelimLogoutDialogueWatcher")
+    , m_detector(color)
+{}
+
+void HomePrelimLogoutDialogueWatcher::make_overlays(VideoOverlaySet& items) const{
+    m_detector.make_overlays(items);
+}
+
+bool HomePrelimLogoutDialogueWatcher::process_frame(const ImageViewRGB32& screen, WallClock timestamp){
     return m_detector.detect(screen);
 }
 
@@ -911,8 +924,8 @@ public:
               ){
         m_aspect_ratio_lower = 0.8;
         m_aspect_ratio_upper = 2;
-        m_area_ratio_lower = 0.8;
-        m_area_ratio_upper = 1.4;
+        m_area_ratio_lower = 1;
+        m_area_ratio_upper = 1.6;
     }
 
     static const FilterCursorMatcher& instance(){
@@ -932,7 +945,7 @@ void FilterCursorLocator::make_overlays(VideoOverlaySet& items) const{
 
 std::pair<double, double> FilterCursorLocator::detect(const ImageViewRGB32& frame) const{
     const std::vector<std::pair<uint32_t, uint32_t>> filters = {
-        {combine_rgb(75, 205, 205), combine_rgb(95, 220, 220)}
+        {combine_rgb(75, 200, 200), combine_rgb(95, 220, 220)}
     };
 
     const double screen_rel_size = (frame.height() / 1080.0);

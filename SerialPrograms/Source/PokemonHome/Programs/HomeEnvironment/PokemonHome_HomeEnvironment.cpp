@@ -1,9 +1,12 @@
+﻿//Kellen Work
+
 #include "PokemonHome_HomeEnvironment.h"
 #include "CommonFramework/ImageTools/ImageStats.h"
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonFramework/VideoPipeline/VideoFeed.h"
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "CommonTools/OCR/OCR_RawOCR.h"
+#include "Common/Cpp/Exceptions.h"
 #include "CommonFramework/Tools/ErrorDumper.h"
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/NintendoSwitch_SingleSwitchProgram.h"
@@ -139,14 +142,14 @@ CursorActionResponse HomeCursor::move_cursor_to(SingleSwitchProgramEnvironment& 
 }
 
 CursorActionResponse HomeCursor::pick_up_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
-    pbf_press_button(context, BUTTON_Y, 10, 70);    // press y button
+    pbf_press_button(context, BUTTON_Y, 80ms, 240ms);    // press y button
     holding_pokemon = true;
     return {CursorActionResult::SUCCESS, "Function still undefined"};
 
 }
 
 CursorActionResponse HomeCursor::pick_up_pokemon_multi(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
-    pbf_press_button(context, BUTTON_A, 10, 70);    // press y button
+    pbf_press_button(context, BUTTON_A, 80ms, 240ms);    // press y button
     holding_pokemon = true;
     // locate_position(env, context);
     return {CursorActionResult::SUCCESS, "Function still undefined"};
@@ -154,13 +157,13 @@ CursorActionResponse HomeCursor::pick_up_pokemon_multi(SingleSwitchProgramEnviro
 }
 
 CursorActionResponse HomeCursor::put_down_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
-    pbf_press_button(context, BUTTON_Y, 10, 70);    // press y button
+    pbf_press_button(context, BUTTON_Y, 80ms, 240ms);    // press y button
     holding_pokemon = false;
     return {CursorActionResult::SUCCESS, "Function still undefined"};
 }
 
 CursorActionResponse HomeCursor::put_down_pokemon_multi(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
-    pbf_press_button(context, BUTTON_A, 10, 70);    // press y button
+    pbf_press_button(context, BUTTON_A, 80ms, 240ms);    // press y button
     holding_pokemon = true;
     return {CursorActionResult::SUCCESS, "Function still undefined"};
 }
@@ -173,19 +176,19 @@ void HomeCursor::align_col(SingleSwitchProgramEnvironment& env, ProControllerCon
         // direct movement
         if (new_col > col){
             for (int i = 0; i < new_col - col; ++i)
-                pbf_press_dpad(context, DPAD_RIGHT, 10, 30);
+                pbf_press_dpad(context, DPAD_RIGHT, 80ms, 240ms);
         } else {
             for (int i = 0; i < col - new_col; ++i)
-                pbf_press_dpad(context, DPAD_LEFT, 10, 30);
+                pbf_press_dpad(context, DPAD_LEFT, 80ms, 240ms);
         }
     } else {
         // wrap-around
         if (new_col > col){
             for (int i = 0; i < total_cols - (new_col - col); ++i)
-                pbf_press_dpad(context, DPAD_LEFT, 10, 30);
+                pbf_press_dpad(context, DPAD_LEFT, 80ms, 240ms);
         } else {
             for (int i = 0; i < total_cols - (col - new_col); ++i)
-                pbf_press_dpad(context, DPAD_RIGHT, 10, 30);
+                pbf_press_dpad(context, DPAD_RIGHT, 80ms, 240ms);
         }
     }
 
@@ -198,19 +201,19 @@ void HomeCursor::align_row(SingleSwitchProgramEnvironment& env, ProControllerCon
     // direct nav up or down through rows
     if (!(row == 0 && new_row == 4) && !(new_row == 0 && row == 4)) {
         for (int i = row; i < new_row; ++i) {
-            pbf_press_dpad(context, DPAD_DOWN, 10, 30);
+            pbf_press_dpad(context, DPAD_DOWN, 80ms, 240ms);
         }
         for (int i = new_row; i < row; ++i) {
-            pbf_press_dpad(context, DPAD_UP, 10, 30);
+            pbf_press_dpad(context, DPAD_UP, 80ms, 240ms);
         }
     } else { // wrap around is faster to move between row or last row
         if (row == 0 && new_row == 4) {
             for (int i = 0; i <= 2; ++i) {
-                pbf_press_dpad(context, DPAD_UP, 10, 30);
+                pbf_press_dpad(context, DPAD_UP, 80ms, 240ms);
             }
         } else {
             for (size_t i = 0; i <= 2; ++i) {
-                pbf_press_dpad(context, DPAD_DOWN, 10, 30);
+                pbf_press_dpad(context, DPAD_DOWN, 80ms, 240ms);
             }
         }
     }
@@ -243,11 +246,11 @@ CursorActionResponse HomeCursor::position_cursor(SingleSwitchProgramEnvironment&
 
         VideoSnapshot screen = env.console.video().snapshot();
         if(euclidean_distance(image_stats(extract_box_reference(screen, box_name_button)).average, FloatPixel(255, 215.5,0))<=15){
-            pbf_press_button(context, BUTTON_DOWN, 10, 60);
+            pbf_press_button(context, BUTTON_DOWN, 80ms, 240ms);
             return locate_position(env, context, true);
         }
         if(euclidean_distance(image_stats(extract_box_reference(screen, box_spaces_button)).average, FloatPixel(255, 215.5,0))<=15 || euclidean_distance(image_stats(extract_box_reference(screen, newest_30_button)).average, FloatPixel(255, 215.5,0))<=15){
-            pbf_press_button(context, BUTTON_UP, 10, 60);
+            pbf_press_button(context, BUTTON_UP, 80ms, 240ms);
             return locate_position(env, context, true);
         }
     }
@@ -296,14 +299,14 @@ CursorActionResponse HomeCursor::navigate_to_page(SingleSwitchProgramEnvironment
         last_move = {CursorActionResult::SUCCESS, "Starting on correct page"};
     }else if(dest_cursor.box>box){ // Navigating right
         while(box<dest_cursor.box){
-            pbf_press_button(context, BUTTON_R, 10, 0);
+            pbf_press_button(context, BUTTON_R, 80ms, 240ms);
             HomePageRightMoveWatcher rightWatcher(COLOR_BLUE);
             int ret = wait_until(env.console, context, 2000ms,
                                  {
                                      rightWatcher
                                  }
                                  );
-            pbf_wait(context, 12);
+            pbf_wait(context, 12ms);
             context.wait_for_all_requests();
             switch (ret){
             case 0:
@@ -317,14 +320,14 @@ CursorActionResponse HomeCursor::navigate_to_page(SingleSwitchProgramEnvironment
         }
     }else{ // navigating left
         while(box>dest_cursor.box){
-            pbf_press_button(context, BUTTON_L, 10, 0);
+            pbf_press_button(context, BUTTON_L, 80ms, 240ms);
             HomePageLeftMoveWatcher leftWatcher(COLOR_BLUE);
             int ret = wait_until(env.console, context, 2000ms,
                                  {
                                      leftWatcher
                                  }
                                  );
-            pbf_wait(context, 12);
+            pbf_wait(context, 12ms);
             context.wait_for_all_requests();
             switch (ret){
             case 0:
@@ -364,11 +367,11 @@ CursorActionResponse HomeCursor::locate_position(SingleSwitchProgramEnvironment&
 
         VideoSnapshot screen = env.console.video().snapshot();
         if(euclidean_distance(image_stats(extract_box_reference(screen, box_name_button)).average, FloatPixel(255, 187,0))<=15){
-            pbf_press_button(context, BUTTON_DOWN, 10, 60);
+            pbf_press_button(context, BUTTON_DOWN, 80ms, 240ms);
             return locate_position(env, context, true);
         }
         if(euclidean_distance(image_stats(extract_box_reference(screen, box_spaces_button)).average, FloatPixel(255, 187,0))<=15 || euclidean_distance(image_stats(extract_box_reference(screen, newest_30_button)).average, FloatPixel(255, 187,0))<=15){
-            pbf_press_button(context, BUTTON_UP, 10, 60);
+            pbf_press_button(context, BUTTON_UP, 80ms, 240ms);
             return locate_position(env, context, true);
         }
 
@@ -512,10 +515,10 @@ CursorActionResponse HomeCursor::identify_page(SingleSwitchProgramEnvironment& e
 
         // Decide which way to scroll
         if (page_offset < 0 || (page_offset == 0 && (box_name_top == 199 || box_name_bottom == 199))) {
-            pbf_press_button(context, BUTTON_L, 10, 50);
+            pbf_press_button(context, BUTTON_L, 80ms, 240ms);
             page_offset--;
         } else {
-            pbf_press_button(context, BUTTON_R, 10, 50);
+            pbf_press_button(context, BUTTON_R, 80ms, 240ms);
             page_offset++;
         }
 
@@ -591,30 +594,39 @@ bool HomeEnvironment::navigate_menus_to(SingleSwitchProgramEnvironment& env, Pro
             !(game == GameStatus::CURRENT && game_open == GameStatus::POKEMON_HOME);
     }
 
-    if(current_view==destination&&(game==game_open||game==GameStatus::CURRENT))return true;
+    // Already at destination with the right game open — nothing to do.
+    if(current_view == destination && (game == game_open || game == GameStatus::CURRENT))
+        return true;
 
     bool succeeded = true;
     std::vector<PageID> steps;
-    if( !(game==game_open||game == GameStatus::CURRENT) && current_view != PageID::GAME_SELECTION){
-        steps = find_navigation_path(env, context, current_view, PageID::GAME_SELECTION);
-        succeeded = perform_navigation_steps(env, context, steps) && succeeded;
-        // Open desired game
+
+    // If a specific game is requested and it doesn't match what's open,
+    // take a pit stop at MAIN_MENU (which logs out of the current game),
+    // then re-enter via GAME_SELECTION → BOX_VIEW with game_open updated.
+    if(!(game == game_open || game == GameStatus::CURRENT)){
+        if(current_view != PageID::MAIN_MENU){
+            steps = find_navigation_path(env, context, current_view, PageID::MAIN_MENU);
+            succeeded = perform_navigation_steps(env, context, steps) && succeeded;
+        }
         game_open = game;
+        steps = find_navigation_path(env, context, PageID::MAIN_MENU, PageID::BOX_VIEW);
+        succeeded = perform_navigation_steps(env, context, steps) && succeeded;
     }
 
-    if ((game != GameStatus::NONE && destination != current_view)) {
+    // Navigate from wherever we are now to the final destination.
+    if(game != GameStatus::NONE && destination != current_view){
         steps = find_navigation_path(env, context, current_view, destination);
         perform_navigation_steps(env, context, steps);
     }
 
     if(destination == PageID::BOX_VIEW){
-        if(!cursor.has_value() || cursor->get_page() == 0) {
+        if(!cursor.has_value() || cursor->get_page() == 0){
             cursor.emplace(env, context, false, game_open != GameStatus::POKEMON_HOME);
         }
     }
 
     context.wait_for_all_requests();
-
     return succeeded;
 }
 
@@ -642,43 +654,42 @@ std::vector<PageID> HomeEnvironment::find_navigation_path(SingleSwitchProgramEnv
 
     // BFS for shortest path
     std::queue<std::pair<PageID, std::vector<PageID>>> queue;
+    std::unordered_set<int> visited;
     queue.push({from, {}});
 
     while (!queue.empty()) {
         auto [current, current_path] = queue.front();
         queue.pop();
 
-        // env.console.log("Looking at moves from " + to_string(current));
+        if (visited.count(static_cast<int>(current))) continue;
+        visited.insert(static_cast<int>(current));
 
-
-        // If we've reached the target page, cache and return the path
         if (current == to) {
             current_path.push_back(current);
-            navigation_cache[key] = current_path; // Cache the result
+            navigation_cache[key] = current_path;
             return current_path;
         }
 
-        // Explore all transitions from the current page
         const auto& transitions = navigation_map[current];
         for (const auto& [next, _] : transitions) {
-            // env.console.log("considering moving to " + to_string(next));
-
-            // Push the next node and path without using a visited set
-            std::vector<PageID> new_path = current_path;
-            new_path.push_back(current);
-            queue.push({next, new_path});
+            if (!visited.count(static_cast<int>(next))) {
+                std::vector<PageID> new_path = current_path;
+                new_path.push_back(current);
+                queue.push({next, new_path});
+            }
         }
     }
 
-    // If no path is found, cache and return an empty vector
     navigation_cache[key] = {};
     return {};
 }
 
 bool HomeEnvironment::perform_navigation_steps(SingleSwitchProgramEnvironment& env, ProControllerContext& context, std::vector<PageID>& steps){
-    // Ensure we have at least two steps to navigate.
-    if (steps.size() < 2) {
-        throw std::runtime_error("Insufficient steps to perform navigation.");
+    if (steps.empty()) {
+        throw InternalProgramError(nullptr, PA_CURRENT_FUNCTION, "navigate_menus_to: No path found between pages.");
+    }
+    if (steps.size() == 1) {
+        return true;  // Already at destination, nothing to do.
     }
 
     bool no_errors = true;
@@ -729,9 +740,9 @@ void HomeEnvironment::identify_game_icon(SingleSwitchProgramEnvironment& env, Pr
 
     if(game_icon_prim.r>115&&game_icon_prim.r<125&&game_icon_prim.g>80&&game_icon_prim.g<85&&game_icon_prim.b>100&&game_icon_prim.b<105){
         game_open = GameStatus::POKEMON_VIOLET;
-    }else if(game_icon_prim.r>155&&game_icon_prim.r<165&&game_icon_prim.g>250&&game_icon_prim.g<=255&&game_icon_prim.b>200&&game_icon_prim.b<205){
+    }else if(game_icon_prim.r>155&&game_icon_prim.r<165&&game_icon_prim.g>240&&game_icon_prim.g<=255&&game_icon_prim.b>200&&game_icon_prim.b<205){
         game_open = GameStatus::POKEMON_HOME;
-    }else if(game_icon_prim.r>240&&game_icon_prim.r<245&&game_icon_prim.g>230&&game_icon_prim.g<235&&game_icon_prim.b>170&&game_icon_prim.b<175){
+    }else if(game_icon_prim.r>240&&game_icon_prim.r<245&&game_icon_prim.g>228&&game_icon_prim.g<235&&game_icon_prim.b>170&&game_icon_prim.b<182){
         game_open = GameStatus::POKEMON_PLA;
     }else{
         game_open = GameStatus::UNKNOWN;
@@ -758,7 +769,7 @@ bool HomeEnvironment::reconcile_box(SingleSwitchProgramEnvironment& env, ProCont
         navigate_to(env, context, {0,0, box_num});
     }else{
         for(int i = 5-cursor.value().get_row(); i>0; i--, moves++){
-            pbf_press_dpad(context, DPAD_DOWN, 10, 50);
+            pbf_press_dpad(context, DPAD_DOWN, 80ms, 240ms);
         }
     }
 
@@ -800,7 +811,7 @@ bool HomeEnvironment::reconcile_box(SingleSwitchProgramEnvironment& env, ProCont
 
     if(moves>0){
         for( ; moves>0; moves--){
-            pbf_press_dpad(context, DPAD_UP, 10, 50);
+            pbf_press_dpad(context, DPAD_UP, 80ms, 240ms);
         }
         context.wait_for_all_requests();
     }
@@ -914,23 +925,23 @@ bool HomeEnvironment::sort_into_correct_boxes(
             cursor.value().move_cursor_to(env, context, {0,0,left_num});
 
             context.wait_for_all_requests();
-            pbf_press_button(context, BUTTON_ZR,10, 50);
-            pbf_press_button(context, BUTTON_A,10, 50);
-            pbf_press_dpad(context, DPAD_DOWN,10, 30);
-            pbf_press_dpad(context, DPAD_DOWN,10, 30);
-            pbf_press_dpad(context, DPAD_DOWN,10, 30);
-            pbf_press_dpad(context, DPAD_DOWN,10, 30);
-            pbf_press_dpad(context, DPAD_RIGHT,10, 30);
-            pbf_press_dpad(context, DPAD_RIGHT,10, 30);
-            pbf_press_dpad(context, DPAD_RIGHT,10, 30);
-            pbf_press_dpad(context, DPAD_RIGHT,10, 30);
-            pbf_press_dpad(context, DPAD_RIGHT,10, 30);
-            pbf_press_button(context, BUTTON_A,10, 50);
+            pbf_press_button(context, BUTTON_ZR, 80ms, 240ms);
+            pbf_press_button(context, BUTTON_A, 80ms, 240ms);
+            pbf_press_dpad(context, DPAD_DOWN, 80ms, 240ms);
+            pbf_press_dpad(context, DPAD_DOWN, 80ms, 240ms);
+            pbf_press_dpad(context, DPAD_DOWN, 80ms, 240ms);
+            pbf_press_dpad(context, DPAD_DOWN, 80ms, 240ms);
+            pbf_press_dpad(context, DPAD_RIGHT, 80ms, 240ms);
+            pbf_press_dpad(context, DPAD_RIGHT, 80ms, 240ms);
+            pbf_press_dpad(context, DPAD_RIGHT, 80ms, 240ms);
+            pbf_press_dpad(context, DPAD_RIGHT, 80ms, 240ms);
+            pbf_press_dpad(context, DPAD_RIGHT, 80ms, 240ms);
+            pbf_press_button(context, BUTTON_A, 80ms, 240ms);
             context.wait_for_all_requests();
 
             cursor.value().move_cursor_to(env, context, {0,0,right_num});
-            pbf_press_button(context, BUTTON_A,10, 50);
-            pbf_press_button(context, BUTTON_ZL,10, 50);
+            pbf_press_button(context, BUTTON_A, 80ms, 240ms);
+            pbf_press_button(context, BUTTON_ZL, 80ms, 240ms);
 
             std::swap(left, right);
 
@@ -942,23 +953,23 @@ bool HomeEnvironment::sort_into_correct_boxes(
             cursor.value().move_cursor_to(env, context, {0,0,right_num});
 
             context.wait_for_all_requests();
-            pbf_press_button(context, BUTTON_ZR,10, 50);
-            pbf_press_button(context, BUTTON_A,10, 50);
-            pbf_press_dpad(context, DPAD_DOWN,10, 30);
-            pbf_press_dpad(context, DPAD_DOWN,10, 30);
-            pbf_press_dpad(context, DPAD_DOWN,10, 30);
-            pbf_press_dpad(context, DPAD_DOWN,10, 30);
-            pbf_press_dpad(context, DPAD_RIGHT,10, 30);
-            pbf_press_dpad(context, DPAD_RIGHT,10, 30);
-            pbf_press_dpad(context, DPAD_RIGHT,10, 30);
-            pbf_press_dpad(context, DPAD_RIGHT,10, 30);
-            pbf_press_dpad(context, DPAD_RIGHT,10, 30);
-            pbf_press_button(context, BUTTON_A,10, 50);
+            pbf_press_button(context, BUTTON_ZR, 80ms, 240ms);
+            pbf_press_button(context, BUTTON_A, 80ms, 240ms);
+            pbf_press_dpad(context, DPAD_DOWN, 80ms, 240ms);
+            pbf_press_dpad(context, DPAD_DOWN, 80ms, 240ms);
+            pbf_press_dpad(context, DPAD_DOWN, 80ms, 240ms);
+            pbf_press_dpad(context, DPAD_DOWN, 80ms, 240ms);
+            pbf_press_dpad(context, DPAD_RIGHT, 80ms, 240ms);
+            pbf_press_dpad(context, DPAD_RIGHT, 80ms, 240ms);
+            pbf_press_dpad(context, DPAD_RIGHT, 80ms, 240ms);
+            pbf_press_dpad(context, DPAD_RIGHT, 80ms, 240ms);
+            pbf_press_dpad(context, DPAD_RIGHT, 80ms, 240ms);
+            pbf_press_button(context, BUTTON_A, 80ms, 240ms);
             context.wait_for_all_requests();
 
             cursor.value().move_cursor_to(env, context, {0,0,left_num});
-            pbf_press_button(context, BUTTON_A,10, 50);
-            pbf_press_button(context, BUTTON_ZL,10, 50);
+            pbf_press_button(context, BUTTON_A, 80ms, 240ms);
+            pbf_press_button(context, BUTTON_ZL, 80ms, 240ms);
 
             std::swap(left, right);
 
@@ -1070,13 +1081,13 @@ void HomeEnvironment::scan_box(SingleSwitchProgramEnvironment& env, ProControlle
         }
 
         if (i + 1 < occupied_slots.size()) {
-            pbf_press_button(context, BUTTON_R, 10, 80);  // Move to next Pokémon
+            pbf_press_button(context, BUTTON_R, 80ms, 240ms);  // Move to next Pokémon
         }
     }
 
 
     // Step 5: Return to Box View
-    pbf_press_button(context, BUTTON_R, 10, 80);  // Move to first Pokémon again
+    pbf_press_button(context, BUTTON_R, 80ms, 240ms);  // Move to first Pokémon again
     navigate_menus_to(env, context, PageID::BOX_VIEW);
 
     box.loaded = true;
@@ -1580,7 +1591,7 @@ void HomeEnvironment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProCon
         bool succeeded = true;
         GameStatus return_game = game_open;\
 
-        pbf_press_button(context, BUTTON_B, 10, 35);
+        pbf_press_button(context, BUTTON_B, 80ms, 240ms);
 
         succeeded = navigate_menus_to(env, context, PageID::MAIN_MENU);
         navigate_menus_to(env, context, PageID::BOX_VIEW, return_game);
@@ -1755,7 +1766,7 @@ void HomeEnvironment::detect_home(SingleSwitchProgramEnvironment& env, ProContro
         // env.console.log("At Box View");
         break;
     case 7:
-        pbf_mash_button(context, BUTTON_B, 5*TICKS_PER_SECOND);
+        pbf_mash_button(context, BUTTON_B, 5s);
         context.wait_for_all_requests();
         detect_home(env, context, single_page);
         break;
@@ -1802,7 +1813,7 @@ void HomeEnvironment::scan_pokemon(SingleSwitchProgramEnvironment& env, ProContr
     try{
         ret = wait_until(
             env.console, context,
-            std::chrono::milliseconds(5*TICKS_PER_SECOND),
+            5s,
             {summary_page}
             );
     }catch(std::exception& e){
@@ -1848,7 +1859,7 @@ PokemonData HomeEnvironment::scan_pokemon(SingleSwitchProgramEnvironment& env, P
 
     int ret = wait_until(
         env.console, context,
-        std::chrono::milliseconds(10*TICKS_PER_SECOND),
+        10s,
         {summary_page}
         );
 
@@ -1917,7 +1928,7 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
 
              // Press A
              env.console.log("Press A");
-             pbf_press_button(context, BUTTON_A, 10, 100);
+             pbf_press_button(context, BUTTON_A, 80ms, 240ms);
 
              context.wait_for_all_requests();
 
@@ -1957,7 +1968,7 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
              int ret = run_until<ProControllerContext>(
                  env.console, context,
                  [](ProControllerContext& context){
-                     pbf_press_button(context, BUTTON_A, 10, 2*TICKS_PER_SECOND);
+                     pbf_press_button(context, BUTTON_A, 80ms, 2s);
                  },
                  {gameSelectWatcher}
                  );
@@ -1977,7 +1988,7 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
 
              // Press B, then verify we are at the game selection screen
              // env.console.log("Press B");
-             pbf_press_button(context, BUTTON_B, 10, 100);
+             pbf_press_button(context, BUTTON_B, 80ms, 240ms);
 
              context.wait_for_all_requests();
 
@@ -2022,7 +2033,7 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
 
              while (text != target_name){
                  // env.console.log("Found game " + text + OCR::ocr_read(Language::English, extract_box_reference(env.console.video().snapshot(), game_checker)));
-                 pbf_press_dpad(context, DPAD_RIGHT, 10, 20);
+                 pbf_press_dpad(context, DPAD_RIGHT, 80ms, 240ms);
 
                  context.wait_for_all_requests();
                  text = OCR::ocr_read(Language::English, extract_box_reference(env.console.video().snapshot(), game_checker));
@@ -2033,8 +2044,8 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
 
              // Press A twice, then verify we are at the Box View screen
              // env.console.log("Press A");
-             pbf_press_button(context, BUTTON_A, 10, 100);
-             pbf_press_button(context, BUTTON_A, 10, 100);
+             pbf_press_button(context, BUTTON_A, 80ms, 240ms+240ms);
+             pbf_press_button(context, BUTTON_A, 80ms, 240ms);
 
              context.wait_for_all_requests();
 
@@ -2053,29 +2064,44 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
         {PageID::MAIN_MENU,
          [](SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
              HomeLogoutDialogueWatcher logoutWatcher(COLOR_BLUE);
+             HomePrelimLogoutDialogueWatcher prelimLogoutWatcher(COLOR_BLUE);
              HomeMainMenuWatcher mainMenuWatcher(COLOR_BLUE);
 
              // Press Plus, then trigger logout sequence
              // env.console.log("Press Plus");
              // env.console.log("Press A");
-             pbf_press_button(context, BUTTON_PLUS, 10, 150);
-             pbf_press_button(context, BUTTON_A, 10, 150);
+             int ret;
+             int retries = 0;
+
+             do{
+                 pbf_press_button(context, BUTTON_PLUS, 80ms, 240ms);
+                 pbf_wait(context, 700ms);
+
+                 context.wait_for_all_requests();
+
+                 ret = wait_until(
+                     env.console, context, 60s, {
+                         prelimLogoutWatcher
+                     });
+             }while(ret!=0&&retries++<5);
+
+             pbf_press_button(context, BUTTON_A, 80ms, 240ms);
 
              context.wait_for_all_requests();
 
-             int ret = wait_until(
+             ret = wait_until(
                  env.console, context, 60s, {logoutWatcher});
 
              env.console.log(std::to_string(ret));
              if(ret!=0){
-                 pbf_press_button(context, BUTTON_A, 10, 150);
+                 pbf_press_button(context, BUTTON_A, 80ms, 240ms);
                  throw HomeSaveFailedError{};
              }
 
-             int retries = 0;
+             retries = 0;
 
              do{
-                 pbf_press_button(context, BUTTON_A, 10, 100);
+                 pbf_press_button(context, BUTTON_A, 80ms, 240ms);
 
                  context.wait_for_all_requests();
 
@@ -2098,9 +2124,9 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
 
              // Open menu, then go to summary. Assumes cursor is in the right position. (Use other code to check if the correct button is orange later)
              // env.console.log("Press A, then down, then A");
-             pbf_press_button(context, BUTTON_A, 10, 40);
-             pbf_press_button(context, BUTTON_DOWN, 10, 40);
-             pbf_press_button(context, BUTTON_A, 10, 40);
+             pbf_press_button(context, BUTTON_A, 80ms, 240ms);
+             pbf_press_button(context, BUTTON_DOWN, 80ms, 240ms);
+             pbf_press_button(context, BUTTON_A, 80ms, 240ms);
 
              context.wait_for_all_requests();
 
@@ -2121,10 +2147,10 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
              // Open menu, then go to markings. Assumes cursor is in the right position. (Use other code to check if the correct button is orange later)
              // env.console.log("Press A, then down, then down, then a");
 
-             pbf_press_button(context, BUTTON_A, 10, 40);
-             pbf_press_button(context, BUTTON_DOWN, 10, 40);
-             pbf_press_button(context, BUTTON_DOWN, 10, 40);
-             pbf_press_button(context, BUTTON_A, 10, 40);
+             pbf_press_button(context, BUTTON_A, 80ms, 240ms);
+             pbf_press_button(context, BUTTON_DOWN, 80ms, 240ms);
+             pbf_press_button(context, BUTTON_DOWN, 80ms, 240ms);
+             pbf_press_button(context, BUTTON_A, 80ms, 240ms);
 
              context.wait_for_all_requests();
 
@@ -2144,7 +2170,7 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
              // Press X
              // env.console.log("Press X");
 
-             pbf_press_button(context, BUTTON_X, 10, 40);
+             pbf_press_button(context, BUTTON_X, 80ms, 240ms);
 
              context.wait_for_all_requests();
 
@@ -2172,7 +2198,7 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
              // Press B
              // env.console.log("Press B");
 
-             pbf_press_button(context, BUTTON_B, 10, 40);
+             pbf_press_button(context, BUTTON_B, 80ms, 240ms);
 
              context.wait_for_all_requests();
 
@@ -2205,7 +2231,7 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
              //Press B
              // env.console.log("Press B");
 
-             pbf_press_button(context, BUTTON_B, 10, 40);
+             pbf_press_button(context, BUTTON_B, 80ms, 240ms);
 
              context.wait_for_all_requests();
 
@@ -2235,7 +2261,7 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
              //Press B
              // env.console.log("Press B");
 
-             pbf_press_button(context, BUTTON_B, 10, 40);
+             pbf_press_button(context, BUTTON_B, 80ms, 240ms);
 
              context.wait_for_all_requests();
 
@@ -2312,9 +2338,9 @@ void HomeEnvironment::scroll_filter_menu(SingleSwitchProgramEnvironment& env, Pr
         navigate_menus_to(env, context, PageID::LIST_VIEW);
         pbf_wait(context, 1000ms);
 
-        pbf_press_button(context, BUTTON_X, 10, 80);
+        pbf_press_button(context, BUTTON_X, 80ms, 240ms);
     }else if(menu_read != "main"){ // Filter menu open, but at a bad position. One b press will work.
-        pbf_press_button(context, BUTTON_B, 10, 80);
+        pbf_press_button(context, BUTTON_B, 80ms, 240ms);
     }
 
     // Expected behavior: sitting in main menu with "Filter" at the top of the screen
@@ -2327,6 +2353,8 @@ void HomeEnvironment::scroll_filter_menu(SingleSwitchProgramEnvironment& env, Pr
         // TODO: Do error correction for no cursor found
     }
 
+    env.console.log(std::to_string(filterWatcher.location().second));
+
     // Check top box
     ImageFloatBox dialog_box_selected(0.7, filterWatcher.location().second-0.06, 0.2, 0.05);
     ImageViewRGB32 dialog_image = extract_box_reference(screen, dialog_box_selected);
@@ -2336,22 +2364,22 @@ void HomeEnvironment::scroll_filter_menu(SingleSwitchProgramEnvironment& env, Pr
         );
     scrolls = result.results.empty()?1:FilterMenuReader::instance().distance_to(result.results.cbegin()->second.token, dest);
 
-    // Expected behavior: Should have scanned all four possible buttons to determine which one is moused over (black text). Also should know distance to target button.
+    // Expected behavior: Should have scanned all four possible buttons to determine which one is moused over (white text). Also should know distance to target button.
 
     if(scrolls<0){
         while(scrolls++<0){
-            pbf_press_dpad(context, DPAD_UP, 10, 35);
+            pbf_press_dpad(context, DPAD_UP, 80ms, 240ms);
         }
     }else if(scrolls>0){
         while(scrolls-->0){
-            pbf_press_dpad(context, DPAD_DOWN, 10, 35);
+            pbf_press_dpad(context, DPAD_DOWN, 80ms, 240ms);
         }
     }else if(retry_count==MAX_RETRIES-1){
-        pbf_press_dpad(context, DPAD_DOWN, 10, 35);
+        pbf_press_dpad(context, DPAD_DOWN, 80ms, 240ms);
     }
 
     // Expected behavior: should be moused over the target button, press A to navigate into it if so. Otherwise, reset.
-    pbf_press_button(context, BUTTON_A, 10, 60);
+    pbf_press_button(context, BUTTON_A, 80ms, 240ms+240ms);
 
     context.wait_for_all_requests();
 
@@ -2484,7 +2512,7 @@ void HomeEnvironment::bail_out(SingleSwitchProgramEnvironment &env, ProControlle
         );
 
     if(ret==0){
-        pbf_mash_button(context, BUTTON_B, 5*TICKS_PER_SECOND);
+        pbf_mash_button(context, BUTTON_B, 5s);
         context.wait_for_all_requests();
         detect_home(env, context, false);
 

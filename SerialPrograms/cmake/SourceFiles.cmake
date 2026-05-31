@@ -1569,22 +1569,36 @@ file(GLOB LIBRARY_SOURCES
     Source/PokemonFRLG/Programs/TestPrograms/PokemonFRLG_ReadBattleLevelUp.h
     Source/PokemonFRLG/Resources/PokemonFRLG_PokemonSprites.cpp
     Source/PokemonFRLG/Resources/PokemonFRLG_PokemonSprites.h
+    Source/PokemonHome/Inference/PokemonHome_AbilityReader.cpp
+    Source/PokemonHome/Inference/PokemonHome_AbilityReader.h
     Source/PokemonHome/Inference/PokemonHome_BallReader.cpp
     Source/PokemonHome/Inference/PokemonHome_BallReader.h
     Source/PokemonHome/Inference/PokemonHome_BoxGenderDetector.cpp
     Source/PokemonHome/Inference/PokemonHome_BoxGenderDetector.h
     Source/PokemonHome/Inference/PokemonHome_ButtonDetector.cpp
     Source/PokemonHome/Inference/PokemonHome_ButtonDetector.h
+    Source/PokemonHome/Inference/PokemonHome_FilterMenuConfirmReader.cpp
+    Source/PokemonHome/Inference/PokemonHome_FilterMenuConfirmReader.h
+    Source/PokemonHome/Inference/PokemonHome_FilterMenuReader.cpp
+    Source/PokemonHome/Inference/PokemonHome_FilterMenuReader.h
     Source/PokemonHome/Inference/PokemonHome_GigantamaxDetector.cpp
     Source/PokemonHome/Inference/PokemonHome_GigantamaxDetector.h
+    Source/PokemonHome/Inference/PokemonHome_HomeApplicationDetector.cpp
+    Source/PokemonHome/Inference/PokemonHome_HomeApplicationDetector.h
     Source/PokemonHome/Inference/PokemonHome_OriginMarkReader.cpp
     Source/PokemonHome/Inference/PokemonHome_OriginMarkReader.h
+    Source/PokemonHome/Inference/PokemonHome_PokemonData.cpp
+    Source/PokemonHome/Inference/PokemonHome_PokemonData.h
     Source/PokemonHome/Inference/PokemonHome_SelectionArrowDetector.cpp
     Source/PokemonHome/Inference/PokemonHome_SelectionArrowDetector.h
+    Source/PokemonHome/Inference/PokemonHome_SummaryDetector.cpp
+    Source/PokemonHome/Inference/PokemonHome_SummaryDetector.h
     Source/PokemonHome/Inference/PokemonHome_SVItemReader.cpp
     Source/PokemonHome/Inference/PokemonHome_SVItemReader.h
     Source/PokemonHome/Inference/PokemonHome_TeraTypeReader.cpp
     Source/PokemonHome/Inference/PokemonHome_TeraTypeReader.h
+    Source/PokemonHome/Options/PokemonHome_BoxSortingTable.cpp
+    Source/PokemonHome/Options/PokemonHome_BoxSortingTable.h
     Source/PokemonHome/PokemonHome_Panels.cpp
     Source/PokemonHome/PokemonHome_Panels.h
     Source/PokemonHome/PokemonHome_Settings.cpp

@@ -11,6 +11,7 @@
 #include "Programs/PokemonHome_PageSwap.h"
 #include "Programs/PokemonHome_BoxSorter.h"
 #include "Programs/PokemonHome_BoxSorterLivingDex.h"
+#include "Programs/PokemonHome_Enrichment.h"
 
 #include "Programs/PokemonHome_GenerateNameOCR.h"
 
@@ -21,7 +22,7 @@ namespace PokemonHome{
 
 
 PanelListFactory::PanelListFactory()
-    : PanelListDescriptor(Pokemon::STRING_POKEMON + " Home")
+    : PanelListDescriptor(::PokemonAutomation::Pokemon::STRING_POKEMON + " Home")
 {}
 
 std::vector<PanelEntry> PanelListFactory::make_panels() const{
@@ -32,6 +33,7 @@ std::vector<PanelEntry> PanelListFactory::make_panels() const{
     ret.emplace_back("---- General ----");
     ret.emplace_back(make_single_switch_program<PokemonHome::PageSwap_Descriptor, PokemonHome::PageSwap>());
     ret.emplace_back(make_single_switch_program<PokemonHome::BoxSorter_Descriptor, PokemonHome::BoxSorter>());
+    ret.emplace_back(make_single_switch_program<PokemonHome::Enrichment_Descriptor, PokemonHome::Enrichment>());
     if (IS_BETA_VERSION || PreloadSettings::instance().DEVELOPER_MODE){
         ret.emplace_back(make_single_switch_program<PokemonHome::BoxSorterLivingDex_Descriptor, PokemonHome::BoxSorterLivingDex>());
     }

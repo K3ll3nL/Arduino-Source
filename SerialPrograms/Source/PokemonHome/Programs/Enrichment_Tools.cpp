@@ -1,3 +1,5 @@
+﻿//Kellen Work
+
 #include "Enrichment_Tools.h"
 #include "CommonTools/Async/InferenceRoutines.h"
 #include "CommonTools/VisualDetectors/BlackScreenDetector.h"
@@ -13,7 +15,7 @@ void load_into_sv(SingleSwitchProgramEnvironment& env, ProControllerContext& con
 
     int ret = wait_until(
         env.console, context,
-        Milliseconds(240*TICKS_PER_SECOND),
+        240s,
         {
             pre_title_screen
         }
@@ -21,7 +23,7 @@ void load_into_sv(SingleSwitchProgramEnvironment& env, ProControllerContext& con
 
     if(ret==-1)throw;
     else{
-        pbf_mash_button(context, BUTTON_A, 4*TICKS_PER_SECOND);
+        pbf_mash_button(context, BUTTON_A, 4s);
     }
 };
 

@@ -1,3 +1,5 @@
+﻿//Kellen Work
+
 /*  Program Name
  *
  *  From: https://github.com/PokemonAutomation/
@@ -132,12 +134,12 @@ bool close_game_and_open(SingleSwitchProgramEnvironment& env, ProControllerConte
 
     context.wait_for_all_requests();
     while (ret!=0){
-        pbf_press_button(context, BUTTON_HOME, 10, 240);
+        pbf_press_button(context, BUTTON_HOME, 80ms, 240ms);
         ret = wait_until(env.console, context, 30s, {home_menu});
     }
 
-    pbf_press_button(context, BUTTON_X, 10, 80);
-    pbf_press_button(context, BUTTON_A, 10, 240);
+    pbf_press_button(context, BUTTON_X, 80ms, 240ms);
+    pbf_press_button(context, BUTTON_A, 80ms, 240ms);
 
     overlays.add(COLOR_GREEN, switch_game_checker);
     bool found = false;
@@ -165,7 +167,7 @@ bool close_game_and_open(SingleSwitchProgramEnvironment& env, ProControllerConte
             break;
         }
 
-        pbf_press_button(context, BUTTON_RIGHT, 10, 30);
+        pbf_press_button(context, BUTTON_RIGHT, 80ms, 240ms);
     }
 
     overlays.clear();
@@ -190,7 +192,7 @@ bool test(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
     while(!context.cancelled()){
         pbf_wait(context, 3s);
 
-        pbf_press_button(context, BUTTON_B, 10, 50);
+        pbf_press_button(context, BUTTON_B, 80ms, 240ms);
 
         VideoSnapshot screen = env.console.video().snapshot();
 
@@ -232,11 +234,11 @@ void Enrichment2::program(SingleSwitchProgramEnvironment& env, ProControllerCont
 
     //     if(ret==-1)throw;
 
-    //     pbf_press_button(context, BUTTON_DOWN, 10, 40);
-    //     pbf_press_button(context, BUTTON_DOWN, 10, 40);
-    //     pbf_press_button(context, BUTTON_A, 10, 40);
-    //     pbf_press_button(context, BUTTON_A, 10, 70);
-    //     pbf_press_button(context, BUTTON_A, 10, 70);
+    //     pbf_press_button(context, BUTTON_DOWN, 80ms, 240ms);
+    //     pbf_press_button(context, BUTTON_DOWN, 80ms, 240ms);
+    //     pbf_press_button(context, BUTTON_A, 80ms, 240ms);
+    //     pbf_press_button(context, BUTTON_A, 80ms, 240ms);
+    //     pbf_press_button(context, BUTTON_A, 80ms, 240ms);
     // }
 
 
