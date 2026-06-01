@@ -189,6 +189,33 @@ protected:
 };
 
 
+class HomeListFilterViewDetector : public StaticScreenDetector{
+public:
+    HomeListFilterViewDetector(Color color);
+    virtual ~HomeListFilterViewDetector();
+
+    virtual void make_overlays(VideoOverlaySet& items) const override;
+    virtual bool detect(const ImageViewRGB32& screen) override;
+
+protected:
+    Color m_color;
+    ImageFloatBox m_box;
+};
+
+class HomeListFilterViewWatcher : public VisualInferenceCallback{
+public:
+    HomeListFilterViewWatcher(Color color);
+    virtual ~HomeListFilterViewWatcher();
+
+    virtual void make_overlays(VideoOverlaySet& items) const override;
+    virtual bool process_frame(const ImageViewRGB32& frame, WallClock timestamp) override;
+
+protected:
+    HomeListFilterViewDetector m_detector;
+    FixedLimitVector<OverlayBoxScope> m_hits;
+};
+
+
 class HomeSummaryViewDetector : public StaticScreenDetector{
 public:
     HomeSummaryViewDetector(Color color);
@@ -405,6 +432,7 @@ public:
 protected:
     HomePageRightMoveDetector m_detector;
     bool m_prev_detected;
+    int  m_consec_dark = 0;
     FixedLimitVector<OverlayBoxScope> m_hits;
 };
 
@@ -437,6 +465,7 @@ public:
 protected:
     HomePageLeftMoveDetector m_detector;
     bool m_prev_detected;
+    int  m_consec_dark = 0;
     FixedLimitVector<OverlayBoxScope> m_hits;
 };
 

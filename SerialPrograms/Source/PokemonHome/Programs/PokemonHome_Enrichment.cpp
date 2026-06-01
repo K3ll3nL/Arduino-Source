@@ -369,7 +369,7 @@ void home_navigate_to_box_secondary(SingleSwitchProgramEnvironment& env, ProCont
         }
 
         // Navigate to the next box
-        pbf_press_button(context, BUTTON_L, 80ms, 240ms);
+        pbf_press_button(context, BUTTON_L, 80ms, 240ms+240ms);
         context.wait_for_all_requests();
         box_name = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(env.console.video().snapshot(), home_box_checker_secondary)));
     }
@@ -379,35 +379,41 @@ void home_navigate_to_box_secondary(SingleSwitchProgramEnvironment& env, ProCont
     ImageFloatBox home_box_checker_secondary(0.85, 0.723, 0.06, 0.03);
     VideoOverlaySet box_render(env.console);
 
-    // Go to the first box in the program
     box_render.add(COLOR_RED, home_box_checker_secondary);
 
-    std::string temp = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(env.console.video().snapshot(), home_box_checker_secondary)));
-    int home_box = std::stoi(temp.substr(0, temp.find_last_of('/')));
+    // Reads the current secondary box number from the "N/M" display. Returns -1 on OCR/parse failure.
+    auto read_box_number = [&]() -> int {
+        std::string temp = sanitize_OCR(OCR::ocr_read(Language::English,
+            extract_box_reference(env.console.video().snapshot(), home_box_checker_secondary)));
+        try {
+            size_t slash = temp.find_last_of('/');
+            if (slash == std::string::npos) return -1;
+            return std::stoi(temp.substr(0, slash));
+        } catch (...) {
+            return -1;
+        }
+    };
 
-    // Store the last 5 reads
+    int home_box = read_box_number();
+
     std::deque<int> prev_reads;
 
     while (target != home_box) {
-        // Add current box_name to prev_reads
-        prev_reads.push_back(home_box);
-        if (prev_reads.size() > 5) {
-            prev_reads.pop_front();
+        if (home_box >= 0) {
+            prev_reads.push_back(home_box);
+            if (prev_reads.size() > 5) prev_reads.pop_front();
         }
 
-        // Check if the last 5 reads are all the same
+        // If the last 5 valid reads are all the same, we're stuck — nudge left
         if (prev_reads.size() == 5 && std::all_of(prev_reads.begin(), prev_reads.end(), [&](const int val) {
                 return val == prev_reads.front();
             })) {
-            // All 5 reads are the same, press DPAD_LEFT
             pbf_press_button(context, BUTTON_LEFT, 80ms, 240ms);
         }
 
-        // Navigate to the next box
-        pbf_press_button(context, BUTTON_L, 80ms, 240ms);
+        pbf_press_button(context, BUTTON_L, 80ms, 480ms);
         context.wait_for_all_requests();
-        temp = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(env.console.video().snapshot(), home_box_checker_secondary)));
-        home_box = std::stoi(temp.substr(0, temp.find_last_of('/')));
+        home_box = read_box_number();
     }
 }
 
@@ -449,7 +455,7 @@ HomeCursor home_locate_empty_position_secondary(SingleSwitchProgramEnvironment& 
                 }
             }
         }
-        pbf_press_button(context, BUTTON_R, 80ms, 240ms);
+        pbf_press_button(context, BUTTON_R, 80ms, 240ms+240ms);
         (*current_box)++;
         context.wait_for_all_requests();
         screen = env.console.video().snapshot();
@@ -566,7 +572,7 @@ std::vector<PokemonData> home_request_next_simple_item_evo(SingleSwitchProgramEn
     pbf_press_button(context, BUTTON_DOWN, 80ms, 240ms);
     pbf_press_button(context, BUTTON_DOWN, 80ms, 240ms);
     pbf_press_button(context, BUTTON_A, 80ms, 240ms);
-    pbf_press_button(context, BUTTON_X, 80ms, 240ms);
+    home_manager.navigate_menus_to(env, context, PageID::LIST_VIEW_FILTER);
     home_manager.scroll_filter_menu(env, context, "labels");
     pbf_press_button(context, BUTTON_DOWN, 80ms, 240ms);
     pbf_press_button(context, BUTTON_DOWN, 80ms, 240ms);
@@ -584,7 +590,7 @@ std::vector<PokemonData> home_request_next_simple_item_evo(SingleSwitchProgramEn
     pbf_press_button(context, BUTTON_A, 80ms, 240ms);
     pbf_press_button(context, BUTTON_UP, 80ms, 240ms);
     pbf_press_button(context, BUTTON_A, 80ms, 240ms);
-    pbf_press_button(context, BUTTON_B, 80ms, 240ms);
+    home_manager.navigate_menus_to(env, context, PageID::LIST_VIEW);
 
     pbf_wait(context, 1500ms);
     context.wait_for_all_requests();
@@ -931,7 +937,7 @@ void home_move_pokemon_to_game(SingleSwitchProgramEnvironment& env, ProControlle
     pbf_press_button(context, BUTTON_A, 80ms, 240ms);
     pbf_press_button(context, BUTTON_DOWN, 80ms, 240ms);
     pbf_press_button(context, BUTTON_DOWN, 80ms, 240ms);
-    pbf_press_button(context, BUTTON_A, 80ms, 240ms);
+    pbf_press_button(context, BUTTON_A, 80ms, 240ms+240ms);
     pbf_press_button(context, BUTTON_A, 80ms, 240ms);
     pbf_press_button(context, BUTTON_UP, 80ms, 240ms);
     pbf_press_button(context, BUTTON_A, 80ms, 240ms);
@@ -1467,10 +1473,6 @@ void pla_navigate_to_box(SingleSwitchProgramEnvironment& env, ProControllerConte
 
 }
 
-void plza_run_ralts(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
-    ssf_press_left_joystick(context, {128, 0}, 0ms, 600ms, 0ms);
-}
-
 void Enrichment::initialize_home(SingleSwitchProgramEnvironment& env, ProControllerContext& context, HomeEnvironment& home_manager, std::vector<Game>& game_list){
     ImageFloatBox game_checker(0.0455, 0.244, 0.442, 0.057);
     VideoSnapshot screen = env.console.video().snapshot();
@@ -1613,8 +1615,10 @@ void Enrichment::home_dispose_of_go(SingleSwitchProgramEnvironment& env, ProCont
         do{
             HomeCursor next_spot = home_locate_empty_position_secondary(env, context, &temp_box, PLA_LAST_BOX, false);
 
-            pbf_press_button(context, BUTTON_X, 80ms, 240ms);
-            pbf_press_button(context, BUTTON_X, 80ms, 240ms);
+            home_manager.navigate_menus_to(env, context, PageID::LIST_VIEW_FILTER);
+
+            context.wait_for_all_requests();
+
             home_manager.scroll_filter_menu(env, context, "markings");
             pbf_press_button(context, BUTTON_A, 80ms, 240ms);
             pbf_press_button(context, BUTTON_UP, 80ms, 240ms);
@@ -1633,14 +1637,16 @@ void Enrichment::home_dispose_of_go(SingleSwitchProgramEnvironment& env, ProCont
             }
             pbf_press_button(context, BUTTON_DOWN, 80ms, 240ms);
             pbf_press_button(context, BUTTON_DOWN, 80ms, 240ms);
+            pbf_press_button(context, BUTTON_DOWN, 80ms, 240ms);
+            pbf_wait(context,200ms);
 
             context.wait_for_all_requests();
 
             // block for checking that we have successfully navigated to PLA
-            ImageFloatBox PLA_check(0.83, 0.4, 0.1, 0.06);
+            ImageFloatBox PLA_check(0.83, 0.49, 0.1, 0.058);
             VideoSnapshot screen = env.console.video().snapshot();
             FloatPixel PLA_button = image_stats(extract_box_reference(screen, PLA_check)).average;
-            while(euclidean_distance(PLA_button, FloatPixel(255, 187, 0))>5){
+            while(euclidean_distance(PLA_button, FloatPixel(255, 181, 0))>5){
                 pbf_press_button(context, BUTTON_DOWN, 80ms, 240ms);
                 context.wait_for_all_requests();
                 screen = env.console.video().snapshot();
@@ -1648,13 +1654,15 @@ void Enrichment::home_dispose_of_go(SingleSwitchProgramEnvironment& env, ProCont
             }
 
             pbf_press_button(context, BUTTON_A, 80ms, 240ms);
-            pbf_press_button(context, BUTTON_B, 80ms, 240ms);
+            home_manager.navigate_menus_to(env, context, PageID::LIST_VIEW);
+            context.wait_for_all_requests();
 
 
             // Inspect for blacklisted
-            pbf_press_button(context, BUTTON_A, 80ms, 240ms);
+            pbf_press_button(context, BUTTON_A, 80ms, 240ms+240ms);
             pbf_press_button(context, BUTTON_DOWN, 80ms, 240ms);
             pbf_press_button(context, BUTTON_A, 80ms, 240ms);
+            pbf_wait(context, 1s);
 
             // Take note of first ID No, ot id, and nature for looping
             context.wait_for_all_requests();
@@ -1681,8 +1689,8 @@ void Enrichment::home_dispose_of_go(SingleSwitchProgramEnvironment& env, ProCont
                     env.console.log("Found Nonblacklisted");
 
                     // Move this into the boxes
-                    pbf_press_button(context, BUTTON_B, 80ms, 270ms);
-                    pbf_press_button(context, BUTTON_A, 80ms, 240ms);
+                    pbf_press_button(context, BUTTON_B, 80ms, 240ms+3s);
+                    pbf_press_button(context, BUTTON_A, 80ms, 240ms+240ms);
                     pbf_press_button(context, BUTTON_A, 80ms, 240ms);
 
                     context.wait_for_all_requests();
@@ -1692,7 +1700,7 @@ void Enrichment::home_dispose_of_go(SingleSwitchProgramEnvironment& env, ProCont
                     home_move_pokemon_to_game(env, context, home_manager, next_spot);
                     break;
                 }
-                pbf_press_button(context, BUTTON_R, 80ms, 240ms);
+                pbf_press_button(context, BUTTON_R, 80ms, 240ms+150ms);
                 context.wait_for_all_requests();
                 screen = env.console.video().snapshot();
                 id = OCR::read_number_waterfill(env.console, extract_box_reference(screen, ot_id_box), 0xff808080, 0xffffffff);
@@ -1716,8 +1724,7 @@ void Enrichment::home_dispose_of_go(SingleSwitchProgramEnvironment& env, ProCont
 
     more_go = false;
     try{
-        pbf_press_button(context, BUTTON_X, 80ms, 240ms);
-        pbf_press_button(context, BUTTON_X, 80ms, 240ms);
+        home_manager.navigate_menus_to(env, context, PageID::LIST_VIEW_FILTER);
         home_manager.scroll_filter_menu(env, context, "markings");
         pbf_press_button(context, BUTTON_A, 80ms, 240ms);
         pbf_press_button(context, BUTTON_UP, 80ms, 240ms);
@@ -1729,14 +1736,14 @@ void Enrichment::home_dispose_of_go(SingleSwitchProgramEnvironment& env, ProCont
         home_manager.scroll_filter_menu(env, context, "shiny");
         pbf_press_button(context, BUTTON_UP, 80ms, 240ms);
         pbf_press_button(context, BUTTON_A, 80ms, 240ms);
-        pbf_press_button(context, BUTTON_B, 80ms, 270ms);
+        home_manager.navigate_menus_to(env, context, PageID::LIST_VIEW);
 
         do{
 
             // Inspect for blacklisted
             pbf_press_button(context, BUTTON_A, 80ms, 240ms);
             pbf_press_button(context, BUTTON_DOWN, 80ms, 240ms);
-            pbf_press_button(context, BUTTON_A, 80ms, 240ms);
+            pbf_press_button(context, BUTTON_A, 80ms, 240ms+3s);
 
             // Take note of first ID No, ot id, and nature for looping
             context.wait_for_all_requests();
@@ -1763,21 +1770,22 @@ void Enrichment::home_dispose_of_go(SingleSwitchProgramEnvironment& env, ProCont
                     env.console.log("Found Nonblacklisted");
 
                     // Release
-                    pbf_press_button(context, BUTTON_B, 80ms, 280ms);
-                    pbf_press_button(context, BUTTON_A, 80ms, 240ms);
+                    pbf_press_button(context, BUTTON_B, 80ms, 240ms+3s);
+                    pbf_press_button(context, BUTTON_A, 80ms, 240ms+240ms);
                     pbf_press_button(context, BUTTON_UP, 80ms, 240ms);
                     pbf_press_button(context, BUTTON_UP, 80ms, 240ms);
-                    pbf_press_button(context, BUTTON_A, 80ms, 240ms);
-                    pbf_press_button(context, BUTTON_A, 80ms, 240ms);
+                    pbf_press_button(context, BUTTON_A, 80ms, 240ms+1s);
+                    pbf_press_button(context, BUTTON_A, 80ms, 240ms+1s);
                     pbf_press_button(context, BUTTON_UP, 80ms, 240ms);
+                    pbf_press_button(context, BUTTON_A, 80ms, 240ms+500ms);
                     pbf_press_button(context, BUTTON_A, 80ms, 240ms);
-                    pbf_press_button(context, BUTTON_A, 80ms, 240ms);
+                    pbf_wait(context, 700ms);
 
                     context.wait_for_all_requests();
 
                     break;
                 }
-                pbf_press_button(context, BUTTON_R, 80ms, 240ms);
+                pbf_press_button(context, BUTTON_R, 80ms, 240ms+240ms);
                 context.wait_for_all_requests();
                 screen = env.console.video().snapshot();
                 id = OCR::read_number_waterfill(env.console, extract_box_reference(screen, ot_id_box), 0xff808080, 0xffffffff);
@@ -1840,7 +1848,7 @@ void Enrichment::wipe_markings(SingleSwitchProgramEnvironment& env, ProControlle
             for(int k = 2; k <= 3; k++){
                 env.console.log("Starting cycle");
                 pbf_press_button(context, BUTTON_PLUS, 80ms, 240ms+500ms);
-                pbf_press_button(context, BUTTON_X, 80ms, 240ms+500ms);
+                home_manager.navigate_menus_to(env, context, PageID::LIST_VIEW_FILTER);
                 home_manager.scroll_filter_menu(env, context, "markings");
 
                 int row = i, col = j, color = k, rest = 3-i;
@@ -1862,7 +1870,7 @@ void Enrichment::wipe_markings(SingleSwitchProgramEnvironment& env, ProControlle
                 }
 
                 pbf_press_button(context, BUTTON_A, 80ms, 240ms);
-                pbf_press_button(context, BUTTON_B, 80ms, 240ms);
+                home_manager.navigate_menus_to(env, context, PageID::LIST_VIEW);
 
                 pbf_wait(context, 1500ms);
                 context.wait_for_all_requests();
@@ -1909,6 +1917,15 @@ void Enrichment::wipe_markings(SingleSwitchProgramEnvironment& env, ProControlle
 
 void Enrichment::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
 
+    // VideoSnapshot screen = env.console.video().snapshot();
+
+    // ImageFloatBox pokemon_box_small(0.76, 0.295, 0.14, 0.23);
+    // FloatPixel pokemon_color = image_stats(extract_box_reference(screen, pokemon_box_small)).average;
+    // env.console.log(std::to_string(pokemon_color.r) + ", " +
+    //            std::to_string(pokemon_color.g) + ", " +
+    //            std::to_string(pokemon_color.b));
+
+
     std::vector<Game> game_list = {Game(GameStatus::POKEMON_VIOLET,0,false)/*,Game(GameStatus::POKEMON_SWORD,3,false),Game(GameStatus::POKEMON_PLA,1,false),Game("GameStatus::POKEMON_EEVEE",4,false)*/};
 
     VideoSnapshot screen = env.console.video().snapshot();
@@ -1945,7 +1962,8 @@ void Enrichment::program(SingleSwitchProgramEnvironment& env, ProControllerConte
                 home_menu
             }
             );
-    }    pbf_press_button(context, BUTTON_X, 80ms, 240ms);
+    }
+    pbf_press_button(context, BUTTON_X, 80ms, 240ms);
     pbf_press_button(context, BUTTON_A, 80ms, 320ms);
     pbf_press_button(context, BUTTON_A, 80ms, 3150ms);
     pbf_press_button(context, BUTTON_A, 80ms, 3150ms);

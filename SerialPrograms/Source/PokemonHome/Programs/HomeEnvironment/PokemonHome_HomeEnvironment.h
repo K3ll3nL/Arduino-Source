@@ -22,6 +22,7 @@ enum class PageID {
     SUMMARY_VIEW,
     MARKINGS_VIEW,
     LIST_VIEW,
+    LIST_VIEW_FILTER,
     UNKNOWN
 };
 
@@ -134,7 +135,7 @@ public:
     CursorActionResponse pick_up_pokemon_multi(SingleSwitchProgramEnvironment&, ProControllerContext&);
     CursorActionResponse put_down_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&);
     CursorActionResponse put_down_pokemon_multi(SingleSwitchProgramEnvironment&, ProControllerContext&);
-    CursorActionResponse identify_page(SingleSwitchProgramEnvironment&, ProControllerContext&, bool = false, int = UINT_MAX);
+    CursorActionResponse identify_page(SingleSwitchProgramEnvironment&, ProControllerContext&, bool = false, int = INT_MAX);
     int get_page();
     int get_page() const ;
     int get_row();   // TODO: Delete after implementing box system
@@ -142,6 +143,7 @@ public:
     int get_col();   // TODO: Delete after implementing box system
     int get_col() const ;
     int distance_to(const HomeCursor&) const;
+    void mark_position(int r, int c){ row = r; col = c; }
     bool secondary_open;
 
 private:
@@ -150,6 +152,10 @@ private:
     CursorActionResponse position_cursor(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&, int = 0);
     CursorActionResponse navigate_to_page(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&);
     CursorActionResponse locate_position(SingleSwitchProgramEnvironment&, ProControllerContext&, bool = false);
+
+    // locate_position helpers — each does exactly one thing
+    std::pair<int,int> detect_cursor_visually(SingleSwitchProgramEnvironment&, ProControllerContext&);
+    bool               nudge_from_nav_edge   (SingleSwitchProgramEnvironment&, ProControllerContext&);
 
     int row;
     int col;

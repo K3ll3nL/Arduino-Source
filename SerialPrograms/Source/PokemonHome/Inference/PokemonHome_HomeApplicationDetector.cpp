@@ -272,6 +272,50 @@ bool HomeListViewWatcher::process_frame(const ImageViewRGB32& screen, WallClock 
 }
 
 
+HomeListFilterViewDetector::~HomeListFilterViewDetector() = default;
+
+HomeListFilterViewDetector::HomeListFilterViewDetector(Color color)
+    : m_color(color)
+{}
+
+void HomeListFilterViewDetector::make_overlays(VideoOverlaySet& items) const{
+    items.add(m_color, m_box);
+}
+
+bool HomeListFilterViewDetector::detect(const ImageViewRGB32& screen){
+    char chars[] = "\n\r—";
+
+    ImageFloatBox menu_read_corner(0.06, 0.021, 0.25, 0.05);
+    ImageFloatBox filter_menu(0.7, 0.09, 0.21, 0.05);
+    std::string menu_text = OCR::ocr_read(Language::English, extract_box_reference(screen, menu_read_corner));
+    std::string filter_text = OCR::ocr_read(Language::English, extract_box_reference(screen, filter_menu));
+    for(auto a:chars){filter_text.erase(std::remove(filter_text.begin(),filter_text.end(), a),filter_text.end());}
+    for(auto a:chars){menu_text.erase(std::remove(menu_text.begin(),menu_text.end(), a),menu_text.end());}
+    if(menu_text == "POKEMON LIST" && filter_text == "Filters"){
+        return true;
+    }
+
+    return false;
+}
+
+
+
+HomeListFilterViewWatcher::~HomeListFilterViewWatcher() = default;
+
+HomeListFilterViewWatcher::HomeListFilterViewWatcher(Color color)
+    : VisualInferenceCallback("HomeListFilterViewWatcher")
+    , m_detector(color)
+{}
+
+void HomeListFilterViewWatcher::make_overlays(VideoOverlaySet& items) const{
+    m_detector.make_overlays(items);
+}
+
+bool HomeListFilterViewWatcher::process_frame(const ImageViewRGB32& screen, WallClock timestamp){
+    return m_detector.detect(screen);
+}
+
+
 HomeSummaryViewDetector::~HomeSummaryViewDetector() = default;
 
 HomeSummaryViewDetector::HomeSummaryViewDetector(Color color)
@@ -589,13 +633,22 @@ void HomePageRightMoveWatcher::make_overlays(VideoOverlaySet& items) const{
 }
 
 bool HomePageRightMoveWatcher::process_frame(const ImageViewRGB32& screen, WallClock timestamp){
-
     if(!m_prev_detected){
+        m_consec_dark = 0;
         m_prev_detected = m_detector.detect(screen);
         return false;
     }else{
-        return !m_detector.detect(screen);
-    }}
+        if(!m_detector.detect(screen)){
+            // Require the pixel to stay dark for 4 consecutive frames.
+            // A cursor passing over the button flicks dark for 1-2 frames;
+            // a real page-turn animation holds dark for many frames.
+            return ++m_consec_dark >= 4;
+        }else{
+            m_consec_dark = 0;
+            return false;
+        }
+    }
+}
 
 
 HomePageLeftMoveDetector::~HomePageLeftMoveDetector() = default;
@@ -635,14 +688,18 @@ void HomePageLeftMoveWatcher::make_overlays(VideoOverlaySet& items) const{
 }
 
 bool HomePageLeftMoveWatcher::process_frame(const ImageViewRGB32& screen, WallClock timestamp){
-
     if(!m_prev_detected){
+        m_consec_dark = 0;
         m_prev_detected = m_detector.detect(screen);
         return false;
     }else{
-        return !m_detector.detect(screen);
+        if(!m_detector.detect(screen)){
+            return ++m_consec_dark >= 4;
+        }else{
+            m_consec_dark = 0;
+            return false;
+        }
     }
-
 }
 
 
@@ -742,12 +799,12 @@ class HomeRedCursorMatcher : public ImageMatch::WaterfillTemplateMatcher {
 public:
     HomeRedCursorMatcher() : WaterfillTemplateMatcher(
               "PokemonHome/HomeRedHand-Template.png",    // Use the same or replace with correct path
-              Color(250, 85, 0), Color(255, 93, 5), 50
+              Color(230, 60, 0), Color(255, 130, 20), 50
               ){
-        m_aspect_ratio_lower = 0.8;
-        m_aspect_ratio_upper = 2;
-        m_area_ratio_lower = 0.8;
-        m_area_ratio_upper = 1.2;
+        m_aspect_ratio_lower = 0.85;
+        m_aspect_ratio_upper = 1.05;
+        m_area_ratio_lower = 0.85;
+        m_area_ratio_upper = 1.05;
     }
 
     static const HomeRedCursorMatcher& instance(){
@@ -816,7 +873,7 @@ std::pair<int, int> HomeCursorLocator::locate_grabbing_hand(const ImageViewRGB32
 
 std::pair<int, int> HomeCursorLocator::locate_red_hand(const ImageViewRGB32& frame, const ImageFloatBox& region) const{
     const std::vector<std::pair<uint32_t, uint32_t>> filters = {
-        {combine_rgb(250, 85, 0), combine_rgb(255, 93, 5)}
+        {combine_rgb(230, 60, 0), combine_rgb(255, 130, 20)}
     };
 
     const double screen_rel_size = (frame.height() / 1080.0);
@@ -831,7 +888,7 @@ std::pair<int, int> HomeCursorLocator::locate_red_hand(const ImageViewRGB32& fra
         HomeRedCursorMatcher::instance(),
         filters,
         {min_size, SIZE_MAX},
-        40,
+        45,
         [&](Kernels::Waterfill::WaterfillObject& object) -> bool {
             hand_loc = std::make_pair(
                 (object.center_of_gravity_x() + pixel_box.min_x) / static_cast<double>(frame.width()),

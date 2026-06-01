@@ -94,6 +94,9 @@ static std::string region_to_string(Region r){
 HomeCursor::HomeCursor(SingleSwitchProgramEnvironment& env, ProControllerContext& context, bool single_page, bool secondary_open){
     holding_pokemon = false;
     this->secondary_open = secondary_open;
+    row = 0;
+    col = 0;
+    box = 0;
 
     locate_position(env, context);
     if(!single_page){
@@ -327,7 +330,7 @@ CursorActionResponse HomeCursor::navigate_to_page(SingleSwitchProgramEnvironment
                                      leftWatcher
                                  }
                                  );
-            pbf_wait(context, 12ms);
+            pbf_wait(context, 120ms);
             context.wait_for_all_requests();
             switch (ret){
             case 0:
@@ -349,7 +352,6 @@ CursorActionResponse HomeCursor::locate_position(SingleSwitchProgramEnvironment&
     // Special waterfill case for if holding pokemon, very reliable
     context.wait_for_all_requests();
 
-    ImageFloatBox hand_region = {0.03, 0.15, 0.93, 0.5};
     HomeCursorWatcher handWatcher(holding_pokemon?HomeCursorType::GRABBING:HomeCursorType::RED, hand_region, COLOR_WHITE);
 
     int ret = wait_until(env.console, context, 2s, {handWatcher});
@@ -374,9 +376,6 @@ CursorActionResponse HomeCursor::locate_position(SingleSwitchProgramEnvironment&
             pbf_press_button(context, BUTTON_UP, 80ms, 240ms);
             return locate_position(env, context, true);
         }
-
-        env.console.log(std::to_string(holding_pokemon));
-
         env.console.log("HERE, FAILED AT FINDING CURSOR");
 
         HomeCursorWatcher handWatcher2(!holding_pokemon?HomeCursorType::GRABBING:HomeCursorType::RED, hand_region, COLOR_WHITE);
@@ -516,9 +515,10 @@ CursorActionResponse HomeCursor::identify_page(SingleSwitchProgramEnvironment& e
         // Decide which way to scroll
         if (page_offset < 0 || (page_offset == 0 && (box_name_top == 199 || box_name_bottom == 199))) {
             pbf_press_button(context, BUTTON_L, 80ms, 240ms);
+            pbf_press_button(context, BUTTON_L, 80ms, 240ms+240ms);
             page_offset--;
         } else {
-            pbf_press_button(context, BUTTON_R, 80ms, 240ms);
+            pbf_press_button(context, BUTTON_R, 80ms, 240ms+240ms);
             page_offset++;
         }
 
@@ -601,17 +601,48 @@ bool HomeEnvironment::navigate_menus_to(SingleSwitchProgramEnvironment& env, Pro
     bool succeeded = true;
     std::vector<PageID> steps;
 
-    // If a specific game is requested and it doesn't match what's open,
-    // take a pit stop at MAIN_MENU (which logs out of the current game),
-    // then re-enter via GAME_SELECTION → BOX_VIEW with game_open updated.
+    // If a specific game is requested and it doesn't match what's open:
     if(!(game == game_open || game == GameStatus::CURRENT)){
-        if(current_view != PageID::MAIN_MENU){
-            steps = find_navigation_path(env, context, current_view, PageID::MAIN_MENU);
-            succeeded = perform_navigation_steps(env, context, steps) && succeeded;
+
+        // If game_open is UNKNOWN, try to resolve it before deciding whether
+        // to log out.
+        if(game_open == GameStatus::UNKNOWN){
+               current_view == PageID::TITLE_SCREEN ||
+                // No game is connected at these views — resolve to NONE.
+                // In a game-specific view (list/summary/markings/box).
+                // Navigate to BOX_VIEW where identify_game_icon() can read
+                // the icon pixel to determine the actual game.
+                steps = find_navigation_path(env, context, current_view, PageID::BOX_VIEW);
+                if(!steps.empty()){
+                    succeeded = perform_navigation_steps(env, context, steps) && succeeded;
+                    identify_game_icon(env, context);
+                }
+            }
+            // If current_view is UNKNOWN we can't navigate safely — fall
+            // through and let the full logout path handle it.
         }
-        game_open = game;
-        steps = find_navigation_path(env, context, PageID::MAIN_MENU, PageID::BOX_VIEW);
-        succeeded = perform_navigation_steps(env, context, steps) && succeeded;
+
+        // Re-check now that game_open may have been resolved.
+        if(!(game == game_open || game == GameStatus::CURRENT)){
+            // Navigate to MAIN_MENU first (logs out of current game).
+            if(current_view != PageID::MAIN_MENU){
+                steps = find_navigation_path(env, context, current_view, PageID::MAIN_MENU);
+                perform_navigation_steps(env, context, steps);
+                // perform_navigation_steps does not update current_view on HomeSaveFailedError,
+                // so check current_view directly rather than relying on succeeded.
+            }
+
+            // Only enter the new game if we actually made it to MAIN_MENU.
+            // If the logout failed (save timed out), current_view will still be BOX_VIEW
+            // and we must not attempt GAME_SELECTION from there.
+            if(current_view == PageID::MAIN_MENU){
+                game_open = game;
+                steps = find_navigation_path(env, context, PageID::MAIN_MENU, PageID::BOX_VIEW);
+                succeeded = perform_navigation_steps(env, context, steps) && succeeded;
+            }else{
+                succeeded = false;
+            }
+        }
     }
 
     // Navigate from wherever we are now to the final destination.
@@ -624,6 +655,12 @@ bool HomeEnvironment::navigate_menus_to(SingleSwitchProgramEnvironment& env, Pro
         if(!cursor.has_value() || cursor->get_page() == 0){
             cursor.emplace(env, context, false, game_open != GameStatus::POKEMON_HOME);
         }
+    }
+
+    // If anything failed (e.g. HomeSaveFailedError), current_view may be stale.
+    // Re-detect so the caller starts the next navigation from a known state.
+    if(!succeeded){
+        detect_home(env, context);
     }
 
     context.wait_for_all_requests();
@@ -722,6 +759,10 @@ bool HomeEnvironment::perform_navigation_steps(SingleSwitchProgramEnvironment& e
             transition_it->second(env, context);
         }catch(HomeSaveFailedError){
             no_errors = false;
+            steps = {};
+            // Do NOT set current_view — we're in an uncertain state after a save failure.
+            // The caller should detect_home before trusting current_view again.
+            return false;
         }
     }
     current_view = steps.back();
@@ -765,12 +806,16 @@ void HomeEnvironment::preserve_placeholders(int start, int end){
 
 bool HomeEnvironment::reconcile_box(SingleSwitchProgramEnvironment& env, ProControllerContext& context, int box_num, bool retry = false){
     int moves = 0;
-    if(cursor.value().get_row()<3){
-        navigate_to(env, context, {0,0, box_num});
+    const int original_row = cursor.value().get_row();
+    if(original_row < 3){
+        navigate_to(env, context, {0, 0, box_num});
     }else{
-        for(int i = 5-cursor.value().get_row(); i>0; i--, moves++){
+        for(int i = 5 - original_row; i > 0; i--, moves++){
             pbf_press_dpad(context, DPAD_DOWN, 80ms, 240ms);
         }
+        context.wait_for_all_requests();
+        // Cursor has wrapped to row 0 — update tracking to match reality.
+        cursor.value().mark_position(0, cursor.value().get_col());
     }
 
     pbf_wait(context, 125ms);
@@ -809,11 +854,13 @@ bool HomeEnvironment::reconcile_box(SingleSwitchProgramEnvironment& env, ProCont
     }
     if(succeeded)env.console.log("Box " + std::to_string(box_num)+" successfully reconciled");
 
-    if(moves>0){
-        for( ; moves>0; moves--){
+    if(moves > 0){
+        for( ; moves > 0; moves--){
             pbf_press_dpad(context, DPAD_UP, 80ms, 240ms);
         }
         context.wait_for_all_requests();
+        // Cursor has unwrapped back to original row — update tracking.
+        cursor.value().mark_position(original_row, cursor.value().get_col());
     }
 
     // If it didn't succeed, just double check that we aren't at the wrong box.
@@ -1004,9 +1051,11 @@ bool HomeEnvironment::sort_into_correct_boxes(
 
 void HomeEnvironment::scan_box(SingleSwitchProgramEnvironment& env, ProControllerContext& context, int box_num){
     navigate_to(env, context, {0, 0, box_num});
+    pbf_wait(context,200ms);
+    context.wait_for_all_requests();
 
     HomeCursorWatcher handWatcher(HomeCursorType::RED, {0.03, 0.15, 0.93, 0.5}, COLOR_WHITE);
-    int ret = wait_until(env.console, context, 2s, {handWatcher});
+    int ret = wait_until(env.console, context, 500ms, {handWatcher});
 
     if(ret!=0&&handWatcher.location().first!=0&&handWatcher.location().second!=0){
         pbf_mash_button(context, BUTTON_B, 2s);
@@ -1702,6 +1751,7 @@ void HomeEnvironment::detect_home(SingleSwitchProgramEnvironment& env, ProContro
     HomeMainMenuWatcher mainMenuWatcher(COLOR_BLUE);
     HomeGameSelectWatcher gameSelectWatcher(COLOR_BLUE);
     HomeListViewWatcher listWatcher(COLOR_BLUE);
+    HomeListFilterViewWatcher filterWatcher(COLOR_BLUE);
     HomeSummaryViewWatcher summaryWatcher(COLOR_BLUE);
     HomeMarkingsViewWatcher markingsWatcher(COLOR_BLUE);
     HomeBoxViewWatcher boxWatcher(COLOR_BLUE);
@@ -1713,6 +1763,7 @@ void HomeEnvironment::detect_home(SingleSwitchProgramEnvironment& env, ProContro
             mainMenuWatcher,
             gameSelectWatcher,
             listWatcher,
+            filterWatcher,
             summaryWatcher,
             markingsWatcher,
             boxWatcher,
@@ -1745,18 +1796,23 @@ void HomeEnvironment::detect_home(SingleSwitchProgramEnvironment& env, ProContro
         // env.console.log("At List View");
         break;
     case 4:
+        current_view = PageID::LIST_VIEW_FILTER;
+        game_open = GameStatus::UNKNOWN;
+        // env.console.log("At List Filter View");
+        break;
+    case 5:
         current_view = PageID::SUMMARY_VIEW;
         // TODO: Break out summary view into box version and list version
         game_open = GameStatus::UNKNOWN;
         // env.console.log("At Summary View");
         break;
-    case 5:
+    case 6:
         current_view = PageID::MARKINGS_VIEW;
         // TODO: Break out Markings view into box version and list version
         game_open = GameStatus::UNKNOWN;
         // env.console.log("At Markings View");
         break;
-    case 6:
+    case 7:
         current_view = PageID::BOX_VIEW;
         identify_game_icon(env, context);
         cursor.emplace(env, context, single_page, game_open != GameStatus::POKEMON_HOME);
@@ -1765,7 +1821,7 @@ void HomeEnvironment::detect_home(SingleSwitchProgramEnvironment& env, ProContro
         // TODO: Get current home box as well as secondary box (if applicable)
         // env.console.log("At Box View");
         break;
-    case 7:
+    case 8:
         pbf_mash_button(context, BUTTON_B, 5s);
         context.wait_for_all_requests();
         detect_home(env, context, single_page);
@@ -1790,6 +1846,7 @@ std::string HomeEnvironment::get_view(){
     case PageID::SUMMARY_VIEW: return "Summary View";
     case PageID::MARKINGS_VIEW: return "Markings View";
     case PageID::LIST_VIEW: return "List View";
+    case PageID::LIST_VIEW_FILTER: return "Filter List View";
     case PageID::UNKNOWN: return "Unknown";
         break;
     }
@@ -1947,12 +2004,12 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
 
                  // Can't find main menu
                  if(ret!=0){
-                     throw;
+                                          throw std::runtime_error("TITLE_SCREEN to MAIN_MENU: main menu did not appear after login.");
                  }
              }
              // Else, error out
              else{
-                 throw;
+                                  throw std::runtime_error("TITLE_SCREEN to MAIN_MENU: login dialog did not appear.");
              }
 
          }},
@@ -1973,9 +2030,8 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
                  {gameSelectWatcher}
                  );
 
-             // If true, wait for LoginDialogueDetector!=0 (Finished logging in)
              if(ret!=0){
-                 throw;
+                 throw std::runtime_error("MAIN_MENU to GAME_SELECTION: game selection screen did not appear.");
              }
          }},
     };
@@ -1999,7 +2055,7 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
 
              // If true, wait for LoginDialogueDetector!=0 (Finished logging in)
              if(ret!=0){
-                 throw;
+                                  throw std::runtime_error("GAME_SELECTION to MAIN_MENU: main menu did not appear.");
              }
          }},
         {PageID::BOX_VIEW,
@@ -2020,7 +2076,7 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
              case GameStatus::POKEMON_SHIELD: target_name = "Pokémon Shield"; break;
              case GameStatus::POKEMON_SCARLET: target_name = "Pokémon Scarlet"; break;
              case GameStatus::POKEMON_VIOLET: target_name = "Pokémon Violet"; break;
-             default: throw;
+             default:              throw std::runtime_error("GAME_SELECTION to BOX_VIEW: unrecognized game_open value.");
                  break;
              }
 
@@ -2055,7 +2111,7 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
                  });
 
              if(ret!=0){
-                 throw;
+                                  throw std::runtime_error("GAME_SELECTION to BOX_VIEW: box view did not appear after selecting game.");
              }
          }},
     };
@@ -2080,17 +2136,21 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
                  context.wait_for_all_requests();
 
                  ret = wait_until(
-                     env.console, context, 60s, {
+                     env.console, context, 5s, {
                          prelimLogoutWatcher
                      });
              }while(ret!=0&&retries++<5);
+
+             if(ret!=0){
+                 throw std::runtime_error("BOX_VIEW → PRELIMINARY LOGOUT: Was not able to locate logout screen.");
+             }
 
              pbf_press_button(context, BUTTON_A, 80ms, 240ms);
 
              context.wait_for_all_requests();
 
              ret = wait_until(
-                 env.console, context, 60s, {logoutWatcher});
+                 env.console, context, 120s, {logoutWatcher});
 
              env.console.log(std::to_string(ret));
              if(ret!=0){
@@ -2106,15 +2166,20 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
                  context.wait_for_all_requests();
 
                  ret = wait_until(
-                     env.console, context, 60s, {
+                     env.console, context, 10s, {
                          mainMenuWatcher
                      });
-             }while(ret!=0&&retries++<5);
+             }while(ret!=0&&retries++<30);
 
              if(ret!=0){
-                 throw;
+                 throw std::runtime_error("BOX_VIEW → MAIN_MENU: main menu did not appear after saving.");
              }
 
+             // Wait for the HOME app to fully settle on the main menu.
+             // The watcher fires on the first visible frame, but the confirmation
+             // dialog may still be animating out — without this wait the next
+             // transition presses A into the wrong screen.
+             pbf_wait(context, 1500ms);
              context.wait_for_all_requests();
 
          }},
@@ -2160,7 +2225,7 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
                  });
 
              if(ret!=0){
-                 throw;
+                                  throw std::runtime_error("BOX_VIEW to SUMMARY_VIEW: summary view did not appear.");
              }
          }},
         {PageID::LIST_VIEW,
@@ -2185,7 +2250,7 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
                  );
 
              if(ret!=0){
-                 throw;
+                                  throw std::runtime_error("BOX_VIEW to MARKINGS_VIEW: markings view did not appear.");
              }
          }},
     };
@@ -2215,7 +2280,7 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
                  );
 
              if(ret!=0){
-                 throw;
+                                  throw std::runtime_error("BOX_VIEW to LIST_VIEW: list view did not appear.");
              }
 
              identify_game_icon(env, context);
@@ -2248,7 +2313,7 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
                  );
 
              if(ret!=0){
-                 throw;
+                                  throw std::runtime_error("SUMMARY_VIEW to BOX_VIEW: box view did not reappear.");
              }
          }},
     };
@@ -2278,10 +2343,48 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
                  );
 
              if(ret!=0){
-                 throw;
+                                  throw std::runtime_error("MARKINGS_VIEW to BOX_VIEW: box view did not reappear.");
              }
 
              identify_game_icon(env, context);
+
+         }},
+        {PageID::LIST_VIEW_FILTER,
+         [](SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
+             HomeListFilterViewWatcher filterWatcher(COLOR_BLUE);
+
+             int ret = 0;
+             int retries = 0;
+             do{
+                 pbf_press_button(context, BUTTON_X, 80ms, 240ms+500ms);
+
+                 context.wait_for_all_requests();
+
+                 ret = wait_until(
+                     env.console, context, 5s, {
+                         filterWatcher
+                     });
+             }while(ret!=0&&retries++<5);
+
+         }}
+    };
+    navigation_map[PageID::LIST_VIEW_FILTER] = {
+        {PageID::LIST_VIEW,
+         [](SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
+             HomeListViewWatcher listWatcher(COLOR_BLUE);
+
+             int ret = 0;
+             int retries = 0;
+             do{
+                 pbf_press_button(context, BUTTON_B, 80ms, 240ms+500ms);
+
+                 context.wait_for_all_requests();
+
+                 ret = wait_until(
+                     env.console, context, 5s, {
+                         listWatcher
+                     });
+             }while(ret!=0&&retries++<5);
 
          }},
     };
@@ -2302,7 +2405,7 @@ std::string HomeEnvironment::get_filter_menu_read(SingleSwitchProgramEnvironment
     if (!result.results.empty()){ // program is entered specifically into Markings
         return result.results.cbegin()->second.token;
     }
-    ImageFloatBox dialog_box_top(0.7, 0.1, 0.21, 0.05);
+    ImageFloatBox dialog_box_top(0.7, 0.09, 0.21, 0.05);
     dialog_image = extract_box_reference(screen, dialog_box_top);
     result = FilterMenuConfirmReader::instance().read_substring(
         env.console, Language::English, dialog_image,

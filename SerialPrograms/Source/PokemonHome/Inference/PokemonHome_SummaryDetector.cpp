@@ -130,7 +130,7 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
                    {FloatPixel(168.583553, 170.585142, 169.121477), FloatPixel(166.553304, 203.350642, 236.466633)},
                    {FloatPixel(165.417406, 167.340598, 166.266998), /*Need shiny P form Unown*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(157.113683, 158.939366, 157.916402), FloatPixel(154.486959, 193.69863, 232.002593)},
-                   {FloatPixel(150.893273, 152.667826, 151.728475), FloatPixel(148.442904, 191.789708, 233.815925)},
+                   {FloatPixel(150.893273, 152.667826, 151.728475), FloatPixel(150.513176, 186.955795, 224.936113)},
                    {FloatPixel(171.734725, 173.602096, 172.299721), FloatPixel(169.83889, 206.225567, 238.884264)},
                    {FloatPixel(183.944942, 185.595455, 184.330615), FloatPixel(182.191525, 213.09559, 240.793006)},
                    {FloatPixel(149.057921, 150.999191, 149.797233), /*Need shiny U form Unown*/ FloatPixel(0, 0, 0)},
@@ -158,22 +158,22 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
                    {FloatPixel(155.77202, 182.861839, 141.182531), FloatPixel(176.417361, 215.793141, 147.944463)}}}, // Basculin (Red Striped+Shiny, Blue Striped+Shiny, White Striped+Shiny)
             {585, {{FloatPixel(248.905624, 231.960547, 202.304008), /*Need shiny Spring Form form Deerling*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(200.765784, 221.649718, 157.010388), /*Need shiny Summer Form form Deerling*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(249.129347, 223.596864, 153.540712), /*Need shiny Autumn Form form Deerling*/ FloatPixel(0, 0, 0)},
+                   {FloatPixel(249.129347, 223.596864, 153.540712), /*Need shiny Autumn Form form Deerling*/ FloatPixel(244.047683, 220.092922, 192.877204)},
                    {/*Need nonshiny Winter Form form Deerling*/ FloatPixel(0, 0, 0), /*Need shiny Winter Form form Deerling*/ FloatPixel(0, 0, 0)}}}, // Deerling (Spring+Shiny, Summer+Shiny, Autumn+Shiny, Winter+Shiny)
             {586, {{FloatPixel(226.703307, 210.355288, 183.036095), /*Need shiny Spring Form form Sawsbuck*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny Summer Form form Sawsbuck*/ FloatPixel(0, 0, 0), /*Need shiny Summer Form form Sawsbuck*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(225.556512, 191.422413, 157.115032), /*Need shiny Autumn Form form Sawsbuck*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(230.642283, 221.722029, 206.291687), /*Need shiny Winter Form form Sawsbuck*/ FloatPixel(0, 0, 0)}}}, // Sawsbuck (Spring+Shiny, Summer+Shiny, Autumn+Shiny, Winter+Shiny)
-            {641, {{FloatPixel(180.638956, 187.422533, 160.762681), /*Need shiny Incarnate form Tornadus*/ FloatPixel(0, 0, 0)},
+            {641, {{FloatPixel(180.638956, 187.422533, 160.762681), FloatPixel(175.081724, 183.154170, 166.370758)},
                    {/*Need nonshiny Therian form Tornadus*/ FloatPixel(0, 0, 0), /*Need shiny Therian form Tornadus*/ FloatPixel(0, 0, 0)}}}, // Tornadus (Incarnate+Shiny, Therian+Shiny)
-            {642, {{FloatPixel(181.380142, 198.698165, 205.539588), /*Need shiny Incarnate form Thundurus*/ FloatPixel(0, 0, 0)},
+            {642, {{FloatPixel(181.380142, 198.698165, 205.539588), FloatPixel(187.676055, 188.501694, 199.490362)},
                    {FloatPixel(190.639990,213.828007, 226.926490), FloatPixel(217.579161, 205.614537, 235.753148)}}}, // Thundurus (Incarnate+Shiny, Therian+Shiny)
-            {645, {{FloatPixel(216.922398, 184.366681, 141.085397), /*Need shiny Incarnate form Landorus*/ FloatPixel(0, 0, 0)},
+            {645, {{FloatPixel(216.922398, 184.366681, 141.085397), FloatPixel(209.757735, 178.269112, 135.176340)},
                    {FloatPixel(234.314036,198.174901,152.318818), /*Need shiny Therian form Landorus*/ FloatPixel(0, 0, 0)}}}, // Landorus (Incarnate+Shiny, Therian+Shiny)
             // {647, {{}}} // Keldeo (Normal+Shiny, Resolute+Shiny)
             {666, {{FloatPixel(221.886572, 169.684854, 191.849577), /*Need shiny Meadow form Vivillon*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(231.026757, 231.861194, 230.119484), /*Need shiny Icy Snow form Vivillon*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(95.708298, 134.220905, 214.867970), /*Need shiny Polar form Vivillon*/ FloatPixel(0, 0, 0)},
+                   {FloatPixel(94.476151, 127.894427, 196.586236), /*Need shiny Polar form Vivillon*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(185.650887, 224.292676, 234.018437), /*Need shiny Tundra form Vivillon*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(227.867925, 208.871013, 81.038149), /*Need shiny Continental form Vivillon*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(85.099892, 182.975282, 163.189576), /*Need shiny Garden form Vivillon*/ FloatPixel(0, 0, 0)},
@@ -215,17 +215,17 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
                    {FloatPixel(210.150992, 222.111044, 182.765754), /*Need shiny Dandy form Furfrou*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny La Reine form Furfrou*/ FloatPixel(0, 0, 0), /*Need shiny La Reine form Furfrou*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(228.011032, 185.871507, 162.710187), /*Need shiny Kabuki form Furfrou*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny Pharoah form Furfrou*/ FloatPixel(0, 0, 0), /*Need shiny Pharoah form Furfrou*/ FloatPixel(0, 0, 0)}}}, // Furfrou (Normal+Shiny, Heart+Shiny, Star+Shiny, Diamond+Shiny, Debutante+Shiny, Matron+Shiny, Dandy+Shiny, La Reine+Shiny, Kabuki+Shiny, Pharoah+Shiny)
-            {710, {{FloatPixel(176.750779, 145.625794, 106.997542), /*Need shiny average form Pumpkaboo*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny small form Pumpkaboo*/ FloatPixel(176.750779, 145.625794, 106.997542), /*Need shiny small form Pumpkaboo*/ FloatPixel(0, 0, 0)},
+                   {FloatPixel(179.805732, 202.272680, 219.423132), /*Need shiny Pharoah form Furfrou*/ FloatPixel(0, 0, 0)}}}, // Furfrou (Normal+Shiny, Heart+Shiny, Star+Shiny, Diamond+Shiny, Debutante+Shiny, Matron+Shiny, Dandy+Shiny, La Reine+Shiny, Kabuki+Shiny, Pharoah+Shiny)
+            {710, {{FloatPixel(176.750779, 145.625794, 106.997542), FloatPixel(122.705840, 119.765649, 116.301145)},
+                   {FloatPixel(176.750779, 145.625794, 106.997542), FloatPixel(137.974322, 134.666057,  130.857421)},
                    {/*Need nonshiny large form Pumpkaboo*/ FloatPixel(0, 0, 0), /*Need shiny large form Pumpkaboo*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(169.021166, 137.025138, 97.663134), /*Need shiny super form Pumpkaboo*/ FloatPixel(0, 0, 0)}}}, // Pumpkaboo (Average+Shiny, Small+Shiny, Large+Shiny, Super+Shiny)
             {711, {{FloatPixel(218.143812, 191.685062, 156.579146), /*Need shiny Average form Gourgeist*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny Small form Gourgeist*/ FloatPixel(0, 0, 0), /*Need shiny Small form Gourgeist*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny Large form Gourgeist*/ FloatPixel(0, 0, 0), /*Need shiny Large form Gourgeist*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny Super form Gourgeist*/ FloatPixel(0, 0, 0), /*Need shiny Super form Gourgeist*/ FloatPixel(0, 0, 0)}}}, // Gourgeist (Average+Shiny, Small+Shiny, Large+Shiny, Super+Shiny)
-            {718, {{FloatPixel(142.745968, 150.517538, 112.791267), /*Need shiny 50 form Zygarde*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(142.745968, 150.517538, 112.791267), /*Need shiny 50-power-construct form Zygarde*/ FloatPixel(0, 0, 0)},
+            {718, {{FloatPixel(142.745968, 150.517538, 112.791267), FloatPixel(203.881101, 226.507600, 221.670059)},
+                   {FloatPixel(142.745968, 150.517538, 112.791267), FloatPixel(203.881101, 226.507600, 221.670059)},
                    {/*Need nonshiny 10 form Zygarde*/ FloatPixel(0, 0, 0), /*Need shiny 10 form Zygarde*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny 10-power-construct form Zygarde*/ FloatPixel(0, 0, 0), /*Need shiny 10-power-construct form Zygarde*/ FloatPixel(0, 0, 0)}}},
             // {720, {}} // Hoopa (Confined+Shiny, Unbound+Shiny)
@@ -302,7 +302,7 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
                    {/*Need nonshiny rainbow-swirl-berry-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny rainbow-swirl-berry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny rainbow-swirl-love-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny rainbow-swirl-love-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny rainbow-swirl-star-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny rainbow-swirl-star-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny rainbow-swirl-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny rainbow-swirl-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
+                   {FloatPixel(223.848873, 231.266983, 166.089309), /*Need shiny rainbow-swirl-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny rainbow-swirl-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny rainbow-swirl-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny rainbow-swirl-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny rainbow-swirl-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0)}}},
             {893, {{FloatPixel(145.668440, 155.417226, 145.465448), /*Need shiny Normal form Zarude*/ FloatPixel(0, 0, 0)},
@@ -340,6 +340,7 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
         // I'm thinking set the form to -1, we can use a system that encodes the last 4 symbols (square, heart, star, diamond) to store the form
         // This will only be allowed for a subset of pokemon, which we can store in a player-specific txt file. if the ot and date met match, we can allow it as marked, otherwise, nothing should be marked.
         int form_id = -2;
+        int retries = 0;
 
         if((shiny_stddev_value > 30)?issue_list[national_dex_number].second:issue_list[national_dex_number].first){ // Shiny alcremie, all sinistea, etc.
             return PokemonData(
@@ -360,64 +361,71 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
                 );
             // throw std::logic_error("Unidentifiable form encountered. Unknown solution.");
         }else{
-            double best_distance = 10;
-            const PokemonInformation* best_match = nullptr;
-            (void)best_match;
+            while(retries++<5){
+                double best_distance = 5;
+                const PokemonInformation* best_match = nullptr;
+                (void)best_match;
 
-            // Check color similarity vs. your reference map (visual_forms)
-            auto it = visual_forms.find(national_dex_number);
-            if (it != visual_forms.end()){
-                const auto& variants = it->second;
+                // Check color similarity vs. your reference map (visual_forms)
+                auto it = visual_forms.find(national_dex_number);
+                if (it != visual_forms.end()){
+                    const auto& variants = it->second;
 
-                for (const auto& candidate : matches){
-                    int fid = candidate.form_id.value_or(-1);
-                    if (fid >= 0 && fid < (int)variants.size()){
-                        const auto& [normal_color, shiny_color] = variants[fid];
-                        const FloatPixel& target_color = shiny_stddev_value > 30 ? shiny_color : normal_color;
-                        double distance = euclidean_distance(pokemon_color, target_color);
-                        if (distance < best_distance){
-                            best_distance = distance;
-                            best_match = &candidate;
-                            form_id = best_match->form_id.value();
+                    for (const auto& candidate : matches){
+                        int fid = candidate.form_id.value_or(-1);
+                        if (fid >= 0 && fid < (int)variants.size()){
+                            const auto& [normal_color, shiny_color] = variants[fid];
+                            const FloatPixel& target_color = shiny_stddev_value > 30 ? shiny_color : normal_color;
+                            double distance = euclidean_distance(pokemon_color, target_color);
+                            if (distance < best_distance){
+                                best_distance = distance;
+                                best_match = &candidate;
+                                form_id = best_match->form_id.value();
+                            }
                         }
                     }
                 }
-            }
 
-            if (form_id == -2) {
-                logger.log(std::to_string(pokemon_color.r) + ", " +
-                           std::to_string(pokemon_color.g) + ", " +
-                           std::to_string(pokemon_color.b));
-                std::cout<< "Could not identify visual form. Check PokemonHome_SummaryDetector at line 104. " <<
-                    "RGB Values for extracted box are: (" <<
-                    std::to_string(pokemon_color.r) << ", " <<
-                    std::to_string(pokemon_color.g) << ", " <<
-                    std::to_string(pokemon_color.b) << ")" << std::endl;
-                throw std::logic_error(
-                    "Could not identify visual form. Check PokemonHome_SummaryDetector at line 104. "
-                    "RGB Values for extracted box are: (" +
-                    std::to_string(pokemon_color.r) + ", " +
-                    std::to_string(pokemon_color.g) + ", " +
-                    std::to_string(pokemon_color.b) + ")"
-                    );
-            }
+                if (form_id == -2) {
+                    if(retries<6){
+                        pokemon_color = image_stats(extract_box_reference(screen, pokemon_box_small)).average;
 
-            return PokemonData(
-                national_dex_number,
-                best_match->form_id.value(),
-                best_match->form.value(),
-                gender,
-                type1,
-                type2,
-                best_match->region.value(),
-                ot_id_value,
-                level,
-                shiny_stddev_value > 30,
-                gmax_stddev_value > 30,
-                ability,
-                PokemonType::NONE, // TODO: Add tera typing
-                false
+                        continue;
+                    }
+                    logger.log(std::to_string(pokemon_color.r) + ", " +
+                               std::to_string(pokemon_color.g) + ", " +
+                               std::to_string(pokemon_color.b));
+                    std::cout<< "Could not identify visual form. Check PokemonHome_SummaryDetector at line 104. " <<
+                        "RGB Values for extracted box are: (" <<
+                        std::to_string(pokemon_color.r) << ", " <<
+                        std::to_string(pokemon_color.g) << ", " <<
+                        std::to_string(pokemon_color.b) << ")" << std::endl;
+                    throw std::logic_error(
+                        "Could not identify visual form. Check PokemonHome_SummaryDetector at line 104. "
+                        "RGB Values for extracted box are: (" +
+                        std::to_string(pokemon_color.r) + ", " +
+                        std::to_string(pokemon_color.g) + ", " +
+                        std::to_string(pokemon_color.b) + ")"
+                        );
+                }
+
+                return PokemonData(
+                    national_dex_number,
+                    best_match->form_id.value(),
+                    best_match->form.value(),
+                    gender,
+                    type1,
+                    type2,
+                    best_match->region.value(),
+                    ot_id_value,
+                    level,
+                    shiny_stddev_value > 30,
+                    gmax_stddev_value > 30,
+                    ability,
+                    PokemonType::NONE, // TODO: Add tera typing
+                    false
                 );
+            }
 
         }
 
@@ -426,6 +434,7 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
 
     }
 
+    return{};
 }
 
 
