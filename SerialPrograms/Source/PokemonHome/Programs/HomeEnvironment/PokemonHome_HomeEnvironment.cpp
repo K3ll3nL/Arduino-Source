@@ -309,7 +309,7 @@ CursorActionResponse HomeCursor::navigate_to_page(SingleSwitchProgramEnvironment
                                      rightWatcher
                                  }
                                  );
-            pbf_wait(context, 12ms);
+            pbf_wait(context, 120ms);
             context.wait_for_all_requests();
             switch (ret){
             case 0:
@@ -352,6 +352,7 @@ CursorActionResponse HomeCursor::locate_position(SingleSwitchProgramEnvironment&
     // Special waterfill case for if holding pokemon, very reliable
     context.wait_for_all_requests();
 
+    ImageFloatBox hand_region = {0.03, 0.1, 0.93, 0.6};
     HomeCursorWatcher handWatcher(holding_pokemon?HomeCursorType::GRABBING:HomeCursorType::RED, hand_region, COLOR_WHITE);
 
     int ret = wait_until(env.console, context, 2s, {handWatcher});
@@ -514,7 +515,6 @@ CursorActionResponse HomeCursor::identify_page(SingleSwitchProgramEnvironment& e
 
         // Decide which way to scroll
         if (page_offset < 0 || (page_offset == 0 && (box_name_top == 199 || box_name_bottom == 199))) {
-            pbf_press_button(context, BUTTON_L, 80ms, 240ms);
             pbf_press_button(context, BUTTON_L, 80ms, 240ms+240ms);
             page_offset--;
         } else {
@@ -607,8 +607,12 @@ bool HomeEnvironment::navigate_menus_to(SingleSwitchProgramEnvironment& env, Pro
         // If game_open is UNKNOWN, try to resolve it before deciding whether
         // to log out.
         if(game_open == GameStatus::UNKNOWN){
+            if(current_view == PageID::MAIN_MENU  ||
                current_view == PageID::TITLE_SCREEN ||
+               current_view == PageID::GAME_SELECTION){
                 // No game is connected at these views — resolve to NONE.
+                game_open = GameStatus::NONE;
+            }else if(current_view != PageID::UNKNOWN){
                 // In a game-specific view (list/summary/markings/box).
                 // Navigate to BOX_VIEW where identify_game_icon() can read
                 // the icon pixel to determine the actual game.
