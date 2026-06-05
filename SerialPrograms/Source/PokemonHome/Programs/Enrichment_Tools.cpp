@@ -28,10 +28,12 @@ void load_into_sv(SingleSwitchProgramEnvironment& env, ProControllerContext& con
 };
 
 std::string sanitize_OCR(std::string str){
-    static const char unwanted[] = "\n\r—.,";
-    for (char c : unwanted){
-        str.erase(std::remove(str.begin(), str.end(), c), str.end());
-    }
+    str.erase(
+        std::remove_if(str.begin(), str.end(), [](unsigned char c){
+            return c < 0x20 || c == 0x7F;
+        }),
+        str.end()
+    );
     return str;
 };
 

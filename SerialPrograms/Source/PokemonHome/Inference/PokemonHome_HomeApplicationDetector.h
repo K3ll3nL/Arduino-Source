@@ -404,6 +404,33 @@ protected:
 };
 
 
+class HomeErrorPlacingWondertradeDetector : public StaticScreenDetector{
+public:
+    HomeErrorPlacingWondertradeDetector(Color color);
+    virtual ~HomeErrorPlacingWondertradeDetector();
+
+    virtual void make_overlays(VideoOverlaySet& items) const override;
+    virtual bool detect(const ImageViewRGB32& screen) override;
+
+protected:
+    Color m_color;
+    ImageFloatBox m_box;
+};
+
+class HomeErrorPlacingWondertradeWatcher : public VisualInferenceCallback{
+public:
+    HomeErrorPlacingWondertradeWatcher(Color color);
+    virtual ~HomeErrorPlacingWondertradeWatcher();
+
+    virtual void make_overlays(VideoOverlaySet& items) const override;
+    virtual bool process_frame(const ImageViewRGB32& frame, WallClock timestamp) override;
+
+protected:
+    HomeErrorPlacingWondertradeDetector m_detector;
+    FixedLimitVector<OverlayBoxScope> m_hits;
+};
+
+
 class HomePageRightMoveDetector : public StaticScreenDetector{
 public:
     HomePageRightMoveDetector(Color color);

@@ -117,6 +117,7 @@ private:
     BooleanCheckBoxOption WIPE_MARKINGS;
     BooleanCheckBoxOption DISPOSE_GOS;
     BooleanCheckBoxOption STARTING_AT_DESK;
+    BooleanCheckBoxOption SKIP_READ;
     BooleanCheckBoxOption EMERGENCY_DELOAD;
     BooleanCheckBoxOption NORMAL_DELOAD;
     BooleanCheckBoxOption SKIP_SETUP;

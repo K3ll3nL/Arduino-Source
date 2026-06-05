@@ -314,12 +314,12 @@ CursorActionResponse HomeCursor::navigate_to_page(SingleSwitchProgramEnvironment
             switch (ret){
             case 0:
                 last_move = {CursorActionResult::SUCCESS, "Watched page turn"};
+                box++;
                 break;
             default:
-                return {CursorActionResult::FAILURE, "Could not observe page traversal to the right"};
-                break;
+                env.console.log("Right page watcher failed, retrying...");
+                continue;
             }
-            box++;
         }
     }else{ // navigating left
         while(box>dest_cursor.box){
@@ -335,12 +335,12 @@ CursorActionResponse HomeCursor::navigate_to_page(SingleSwitchProgramEnvironment
             switch (ret){
             case 0:
                 last_move = {CursorActionResult::SUCCESS, "Watched page turn"};
+                box--;
                 break;
             default:
-                return {CursorActionResult::FAILURE, "Could not observe page traversal to the left"};
-                break;
+                env.console.log("Left page watcher failed, retrying...");
+                continue;
             }
-            box--;
         }
     }
 
@@ -809,6 +809,7 @@ void HomeEnvironment::preserve_placeholders(int start, int end){
 }
 
 bool HomeEnvironment::reconcile_box(SingleSwitchProgramEnvironment& env, ProControllerContext& context, int box_num, bool retry = false){
+    env.console.log("Reconciling box");
     int moves = 0;
     const int original_row = cursor.value().get_row();
     if(original_row < 3){
@@ -1174,7 +1175,7 @@ void HomeEnvironment::set_prime(int target_id, int target_form){
 };
 
 
-void HomeEnvironment::build_box(SingleSwitchProgramEnvironment& env, ProControllerContext& context, int box_num){
+void HomeEnvironment::build_box(SingleSwitchProgramEnvironment& env, ProControllerContext& context, int box_num, bool fast){
     std::vector<std::tuple<HomeCursor, HomeCursor, PokemonData*>> pending_swaps;
 
     // auto process_best = [&](PokemonData& p_in_slot)->void{
@@ -1191,8 +1192,12 @@ void HomeEnvironment::build_box(SingleSwitchProgramEnvironment& env, ProControll
     // };
 
     // First, try to load from the .json files. If there is a failure, manually scan box
-    if(!boxes.load(box_num) || !reconcile_box(env, context, box_num)){
-        scan_box(env, context, box_num);
+    bool loaded = boxes.load(box_num);
+    if(!fast || !loaded){
+        if(!reconcile_box(env, context, box_num)){
+            env.console.log("Scanning box");
+            scan_box(env, context, box_num);
+        }
     }
 
     HomeBox& box = boxes.at(box_num);
@@ -1289,11 +1294,11 @@ bool HomeEnvironment::sort_box(SingleSwitchProgramEnvironment& env, ProControlle
     return swapped;
 }
 
-void HomeEnvironment::set_up_boxes(SingleSwitchProgramEnvironment& env, ProControllerContext& context, int start, int end){
+void HomeEnvironment::set_up_boxes(SingleSwitchProgramEnvironment& env, ProControllerContext& context, int start, int end, bool fast){
     navigate_menus_to(env, context, PageID::BOX_VIEW, GameStatus::POKEMON_HOME);
 
     for(int i = start; i <= end; i++){
-        build_box(env, context, i);
+        build_box(env, context, i, fast);
     }
 
     // --- Step 1: Build set of existing Pokemon keys ---
@@ -1926,8 +1931,20 @@ PokemonData HomeEnvironment::scan_pokemon(SingleSwitchProgramEnvironment& env, P
 
     try{
         if(ret==0){
-            pokemon = summary_page.get_pokemon(env.console, env.console.video().snapshot(), pokedex_information);
-            env.console.log(pokemon.to_string());
+            // Retry up to 5 times on ShinyFormNotFoundError — the screen
+            // may not have fully settled, giving a bad color read.
+            for(int attempt = 0; ; attempt++){
+                try{
+                    pokemon = summary_page.get_pokemon(env.console, env.console.video().snapshot(), pokedex_information);
+                    env.console.log(pokemon.to_string());
+                    break;
+                }catch(ShinyFormNotFoundError& e){
+                    if(attempt >= 5) throw e;
+                    env.console.log("ShinyFormNotFoundError on attempt " + std::to_string(attempt + 1) + "/5 — retrying in 200ms.");
+                    pbf_wait(context, 200ms);
+                    context.wait_for_all_requests();
+                }
+            }
         }
     }catch(Exception& e){
         context.wait_for_all_requests();

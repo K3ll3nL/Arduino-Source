@@ -2,6 +2,7 @@
 #define PokemonAutomation_PokemonHome_SummaryDetector_H
 
 
+#include <stdexcept>
 #include "Common/Cpp/Color.h"
 #include "CommonFramework/ImageTools/ImageBoxes.h"
 #include "CommonTools/VisualDetector.h"
@@ -15,6 +16,13 @@ class OverlayBoxScope;
 
 namespace NintendoSwitch{
 namespace PokemonHome{
+
+
+// Thrown by SummaryWatcher::get_pokemon when the shiny form color cannot
+// be matched to a known form after exhausting internal retries.
+struct ShinyFormNotFoundError : public std::runtime_error {
+    using std::runtime_error::runtime_error;
+};
 
 
 class SummaryDetector : public StaticScreenDetector{

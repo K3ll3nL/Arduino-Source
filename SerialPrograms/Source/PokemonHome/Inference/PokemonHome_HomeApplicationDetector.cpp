@@ -13,6 +13,7 @@
 #include "CommonTools/OCR/OCR_Routines.h"
 #include "Kernels/Waterfill/Kernels_Waterfill_Types.h"
 #include <iostream>
+#include "PokemonHome/Programs/Enrichment_Tools.h"
 #include "PokemonHome_HomeApplicationDetector.h"
 
 //#include <iostream>
@@ -39,17 +40,14 @@ bool HomeApplicationDetector::detect(const ImageViewRGB32& screen){
 
     // Title screen banner says "Push any button"
     ImageFloatBox title_screen_box(0.3, 0.8, 0.4, 0.075);
-    char chars[] = "\n\r—";
-    std::string box_name = OCR::ocr_read(Language::English, extract_box_reference(screen, title_screen_box));
-    for(auto a:chars){box_name.erase(std::remove(box_name.begin(),box_name.end(), a),box_name.end());}
+    std::string box_name = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, title_screen_box)));
     if(box_name == "Push any button"){
         return true;
     }
 
     // In most main menus, where the minus button for help shows
     ImageFloatBox minus_help_corner(0.03, 0.965, 0.06, 0.03);
-    std::string minus_button = OCR::ocr_read(Language::English, extract_box_reference(screen, minus_help_corner));
-    for(auto a:chars){minus_button.erase(std::remove(minus_button.begin(),minus_button.end(), a),minus_button.end());}
+    std::string minus_button = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, minus_help_corner)));
     if(minus_button == "Help"){
         return true;
     }
@@ -93,9 +91,7 @@ bool HomeTitleScreenDetector::detect(const ImageViewRGB32& screen){
 
     // Title screen banner says "Push any button"
     ImageFloatBox title_screen_box(0.3, 0.8, 0.4, 0.075);
-    char chars[] = "\n\r—";
-    std::string box_name = OCR::ocr_read(Language::English, extract_box_reference(screen, title_screen_box));
-    for(auto a:chars){box_name.erase(std::remove(box_name.begin(),box_name.end(), a),box_name.end());}
+    std::string box_name = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, title_screen_box)));
     if(box_name == "Push any button"){
         return true;
     }
@@ -138,15 +134,11 @@ void HomeMainMenuDetector::make_overlays(VideoOverlaySet& items) const{
 
 bool HomeMainMenuDetector::detect(const ImageViewRGB32& screen){
 
-    char chars[] = "\n\r—";
-
     // In most main menus, where the minus button for help shows
     ImageFloatBox minus_help_corner(0.03, 0.965, 0.06, 0.03);
     ImageFloatBox menu_read_corner(0.06, 0.021, 0.25, 0.05);
-    std::string minus_button = OCR::ocr_read(Language::English, extract_box_reference(screen, minus_help_corner));
-    std::string menu_text = OCR::ocr_read(Language::English, extract_box_reference(screen, menu_read_corner));
-    for(auto a:chars){minus_button.erase(std::remove(minus_button.begin(),minus_button.end(), a),minus_button.end());}
-    for(auto a:chars){menu_text.erase(std::remove(menu_text.begin(),menu_text.end(), a),menu_text.end());}
+    std::string minus_button = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, minus_help_corner)));
+    std::string menu_text = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, menu_read_corner)));
     if(menu_text == "MAIN MENU" && minus_button == "Help"){
         return true;
     }
@@ -187,15 +179,11 @@ void HomeGameSelectDetector::make_overlays(VideoOverlaySet& items) const{
 
 bool HomeGameSelectDetector::detect(const ImageViewRGB32& screen){
 
-    char chars[] = "\n\r—.,";
-
     // In most main menus, where the minus button for help shows
     ImageFloatBox minus_help_corner(0.03, 0.965, 0.06, 0.03);
     ImageFloatBox help_text(0.3, 0.1, 0.41, 0.05);
-    std::string minus_button = OCR::ocr_read(Language::English, extract_box_reference(screen, minus_help_corner));
-    std::string menu_text = OCR::ocr_read(Language::English, extract_box_reference(screen, help_text));
-    for(auto a:chars){minus_button.erase(std::remove(minus_button.begin(),minus_button.end(), a),minus_button.end());}
-    for(auto a:chars){menu_text.erase(std::remove(menu_text.begin(),menu_text.end(), a),menu_text.end());}
+    std::string minus_button = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, minus_help_corner)));
+    std::string menu_text = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, help_text)));
     if(menu_text == "Select a game to connect to Pokémon HOME" && minus_button == "Help"){
         return true;
     }
@@ -236,15 +224,11 @@ void HomeListViewDetector::make_overlays(VideoOverlaySet& items) const{
 
 bool HomeListViewDetector::detect(const ImageViewRGB32& screen){
 
-    char chars[] = "\n\r—";
-
     // In most main menus, where the minus button for help shows
     ImageFloatBox minus_help_corner(0.03, 0.965, 0.06, 0.03);
     ImageFloatBox menu_read_corner(0.06, 0.021, 0.25, 0.05);
-    std::string minus_button = OCR::ocr_read(Language::English, extract_box_reference(screen, minus_help_corner));
-    std::string menu_text = OCR::ocr_read(Language::English, extract_box_reference(screen, menu_read_corner));
-    for(auto a:chars){minus_button.erase(std::remove(minus_button.begin(),minus_button.end(), a),minus_button.end());}
-    for(auto a:chars){menu_text.erase(std::remove(menu_text.begin(),menu_text.end(), a),menu_text.end());}
+    std::string minus_button = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, minus_help_corner)));
+    std::string menu_text = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, menu_read_corner)));
     if(menu_text == "POKEMON LIST" && minus_button == "Help"){
         return true;
     }
@@ -283,14 +267,10 @@ void HomeListFilterViewDetector::make_overlays(VideoOverlaySet& items) const{
 }
 
 bool HomeListFilterViewDetector::detect(const ImageViewRGB32& screen){
-    char chars[] = "\n\r—";
-
     ImageFloatBox menu_read_corner(0.06, 0.021, 0.25, 0.05);
     ImageFloatBox filter_menu(0.7, 0.09, 0.21, 0.05);
-    std::string menu_text = OCR::ocr_read(Language::English, extract_box_reference(screen, menu_read_corner));
-    std::string filter_text = OCR::ocr_read(Language::English, extract_box_reference(screen, filter_menu));
-    for(auto a:chars){filter_text.erase(std::remove(filter_text.begin(),filter_text.end(), a),filter_text.end());}
-    for(auto a:chars){menu_text.erase(std::remove(menu_text.begin(),menu_text.end(), a),menu_text.end());}
+    std::string menu_text = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, menu_read_corner)));
+    std::string filter_text = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, filter_menu)));
     if(menu_text == "POKEMON LIST" && filter_text == "Filters"){
         return true;
     }
@@ -328,15 +308,11 @@ void HomeSummaryViewDetector::make_overlays(VideoOverlaySet& items) const{
 
 bool HomeSummaryViewDetector::detect(const ImageViewRGB32& screen){
 
-    char chars[] = "\n\r—";
-
     // In most main menus, where the minus button for help shows
     ImageFloatBox minus_help_corner(0.03, 0.965, 0.06, 0.03);
     ImageFloatBox menu_read_corner(0.06, 0.021, 0.25, 0.05);
-    std::string minus_button = OCR::ocr_read(Language::English, extract_box_reference(screen, minus_help_corner));
-    std::string menu_text = OCR::ocr_read(Language::English, extract_box_reference(screen, menu_read_corner));
-    for(auto a:chars){minus_button.erase(std::remove(minus_button.begin(),minus_button.end(), a),minus_button.end());}
-    for(auto a:chars){menu_text.erase(std::remove(menu_text.begin(),menu_text.end(), a),menu_text.end());}
+    std::string minus_button = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, minus_help_corner)));
+    std::string menu_text = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, menu_read_corner)));
     if(menu_text == "CHECK SUMMARY" && minus_button == "Help"){
         return true;
     }
@@ -376,18 +352,13 @@ void HomeMarkingsViewDetector::make_overlays(VideoOverlaySet& items) const{
 
 bool HomeMarkingsViewDetector::detect(const ImageViewRGB32& screen){
 
-    char chars[] = "\n\r—";
-
     // In most main menus, where the minus button for help shows
     ImageFloatBox minus_help_corner(0.03, 0.965, 0.06, 0.03);
     ImageFloatBox menu_read_corner(0.06, 0.021, 0.25, 0.05);
     ImageFloatBox markings_box(0.76, 0.325, 0.1, 0.05);
-    std::string minus_button = OCR::ocr_read(Language::English, extract_box_reference(screen, minus_help_corner));
-    std::string menu_text = OCR::ocr_read(Language::English, extract_box_reference(screen, menu_read_corner));
-    std::string markings_text = OCR::ocr_read(Language::English, extract_box_reference(screen, markings_box));
-    for(auto a:chars){minus_button.erase(std::remove(minus_button.begin(),minus_button.end(), a),minus_button.end());}
-    for(auto a:chars){menu_text.erase(std::remove(menu_text.begin(),menu_text.end(), a),menu_text.end());}
-    for(auto a:chars){markings_text.erase(std::remove(markings_text.begin(),markings_text.end(), a),markings_text.end());}
+    std::string minus_button = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, minus_help_corner)));
+    std::string menu_text = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, menu_read_corner)));
+    std::string markings_text = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, markings_box)));
     if(markings_text == "Markings" && menu_text == "POKEMON"){
         return true;
     }
@@ -427,15 +398,11 @@ void HomeBoxViewDetector::make_overlays(VideoOverlaySet& items) const{
 
 bool HomeBoxViewDetector::detect(const ImageViewRGB32& screen){
 
-    char chars[] = "\n\r—";
-
     // In most main menus, where the minus button for help shows
     ImageFloatBox minus_help_corner(0.03, 0.965, 0.06, 0.03);
     ImageFloatBox menu_read_corner(0.06, 0.021, 0.25, 0.05);
-    std::string minus_button = OCR::ocr_read(Language::English, extract_box_reference(screen, minus_help_corner));
-    std::string menu_text = OCR::ocr_read(Language::English, extract_box_reference(screen, menu_read_corner));
-    for(auto a:chars){minus_button.erase(std::remove(minus_button.begin(),minus_button.end(), a),minus_button.end());}
-    for(auto a:chars){menu_text.erase(std::remove(menu_text.begin(),menu_text.end(), a),menu_text.end());}
+    std::string minus_button = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, minus_help_corner)));
+    std::string menu_text = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, menu_read_corner)));
     if(menu_text == "POKEMON" && minus_button == "Help"){
         return true;
     }
@@ -476,12 +443,9 @@ void HomeLoginDialogueDetector::make_overlays(VideoOverlaySet& items) const{
 
 bool HomeLoginDialogueDetector::detect(const ImageViewRGB32& screen){
 
-    char chars[] = "\n\r—";
-
     // Search for the dialogue text to say, "Logging into Pokémon HOME..."
     ImageFloatBox login_dialogue(0.155, 0.82, 0.37, 0.06);
-    std::string login_text = OCR::ocr_read(Language::English, extract_box_reference(screen, login_dialogue));
-    for(auto a:chars){login_text.erase(std::remove(login_text.begin(),login_text.end(), a),login_text.end());}
+    std::string login_text = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, login_dialogue)));
     if(login_text == "Logging into Pokémon HOME..."){
         return true;
     }
@@ -521,12 +485,9 @@ void HomeLogoutDialogueDetector::make_overlays(VideoOverlaySet& items) const{
 
 bool HomeLogoutDialogueDetector::detect(const ImageViewRGB32& screen){
 
-    char chars[] = "\n\r—";
-
     // Search for the dialogue text to say, "Your Boxes have been saved!"
     ImageFloatBox login_dialogue(0.155, 0.82, 0.37, 0.06);
-    std::string login_text = OCR::ocr_read(Language::English, extract_box_reference(screen, login_dialogue));
-    for(auto a:chars){login_text.erase(std::remove(login_text.begin(),login_text.end(), a),login_text.end());}
+    std::string login_text = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, login_dialogue)));
     if(login_text == "Your Boxes have been saved!"){
         return true;
     }
@@ -565,11 +526,8 @@ void HomePrelimLogoutDialogueDetector::make_overlays(VideoOverlaySet& items) con
 }
 
 bool HomePrelimLogoutDialogueDetector::detect(const ImageViewRGB32& screen){
-    char chars[] = "\n\r—";
-
     ImageFloatBox login_dialogue(0.155, 0.82, 0.32, 0.06);
-    std::string login_text = OCR::ocr_read(Language::English, extract_box_reference(screen, login_dialogue));
-    for(auto a:chars){login_text.erase(std::remove(login_text.begin(),login_text.end(), a),login_text.end());}
+    std::string login_text = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, login_dialogue)));
     if(login_text == "Would you like to save your"){
         return true;
     }
@@ -591,6 +549,46 @@ void HomePrelimLogoutDialogueWatcher::make_overlays(VideoOverlaySet& items) cons
 }
 
 bool HomePrelimLogoutDialogueWatcher::process_frame(const ImageViewRGB32& screen, WallClock timestamp){
+    return m_detector.detect(screen);
+}
+
+
+
+HomeErrorPlacingWondertradeDetector::~HomeErrorPlacingWondertradeDetector() = default;
+
+HomeErrorPlacingWondertradeDetector::HomeErrorPlacingWondertradeDetector(Color color)
+    : m_color(color)
+{}
+
+void HomeErrorPlacingWondertradeDetector::make_overlays(VideoOverlaySet& items) const{
+    items.add(m_color, m_box);
+}
+
+bool HomeErrorPlacingWondertradeDetector::detect(const ImageViewRGB32& screen){
+
+    ImageFloatBox error_dialogue(0.155, 0.820, 0.360, 0.060);
+    std::string error_text = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, error_dialogue)));
+    if(error_text == "You can’t move a Pokémon that"){
+        return true;
+    }
+
+    return false;
+}
+
+
+
+HomeErrorPlacingWondertradeWatcher::~HomeErrorPlacingWondertradeWatcher() = default;
+
+HomeErrorPlacingWondertradeWatcher::HomeErrorPlacingWondertradeWatcher(Color color)
+    : VisualInferenceCallback("HomeErrorPlacingWondertradeWatcher")
+    , m_detector(color)
+{}
+
+void HomeErrorPlacingWondertradeWatcher::make_overlays(VideoOverlaySet& items) const{
+    m_detector.make_overlays(items);
+}
+
+bool HomeErrorPlacingWondertradeWatcher::process_frame(const ImageViewRGB32& screen, WallClock timestamp){
     return m_detector.detect(screen);
 }
 
@@ -937,11 +935,8 @@ void NameBoxDetector::make_overlays(VideoOverlaySet& items) const{
 
 bool NameBoxDetector::detect(const ImageViewRGB32& screen){
 
-    char chars[] = "\n\r—";
-
     ImageFloatBox boxName(0.102, 0.075, 0.408, 0.045);
-    std::string box_name_text = OCR::ocr_read(Language::English, extract_box_reference(screen, boxName));
-    for(auto a:chars){box_name_text.erase(std::remove(box_name_text.begin(),box_name_text.end(), a),box_name_text.end());}
+    std::string box_name_text = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, boxName)));
     if(box_name_text == "What would you like to name this Box?"|| box_name_text == "VWhat would you like to name this Box?"){
         return true;
     }

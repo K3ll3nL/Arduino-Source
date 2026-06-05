@@ -175,12 +175,12 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
                    {FloatPixel(231.026757, 231.861194, 230.119484), /*Need shiny Icy Snow form Vivillon*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(94.476151, 127.894427, 196.586236), /*Need shiny Polar form Vivillon*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(185.650887, 224.292676, 234.018437), /*Need shiny Tundra form Vivillon*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(227.867925, 208.871013, 81.038149), /*Need shiny Continental form Vivillon*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(85.099892, 182.975282, 163.189576), /*Need shiny Garden form Vivillon*/ FloatPixel(0, 0, 0)},
+                   {FloatPixel(224.583208, 204.294655, 96.249370), /*Need shiny Continental form Vivillon*/ FloatPixel(0, 0, 0)},
+                   {FloatPixel(83.334677, 172.304908, 156.569763), /*Need shiny Garden form Vivillon*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(142.155684, 126.404845, 171.699304), /*Need shiny Elegant form Vivillon*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(217.237603, 114.672443, 100.138671), /*Need shiny Modern form Vivillon*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(91.567334, 189.329566, 231.155309), /*Need shiny Marine form Vivillon*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(214.911440, 141.001184, 78.027551), /*Need shiny Archipelago form Vivillon*/ FloatPixel(0, 0, 0)},
+                   {FloatPixel(201.893932, 136.923447, 83.959393), /*Need shiny Archipelago form Vivillon*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(217.478939, 180.618524, 102.546124), /*Need shiny High Plains form Vivillon*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(222.375989, 201.872392, 154.396795), /*Need shiny Sandstorm form Vivillon*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(190.078921, 178.329581, 131.191555), /*Need shiny River form Vivillon*/ FloatPixel(0, 0, 0)},
@@ -218,7 +218,7 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
                    {FloatPixel(179.805732, 202.272680, 219.423132), /*Need shiny Pharoah form Furfrou*/ FloatPixel(0, 0, 0)}}}, // Furfrou (Normal+Shiny, Heart+Shiny, Star+Shiny, Diamond+Shiny, Debutante+Shiny, Matron+Shiny, Dandy+Shiny, La Reine+Shiny, Kabuki+Shiny, Pharoah+Shiny)
             {710, {{FloatPixel(176.750779, 145.625794, 106.997542), FloatPixel(122.705840, 119.765649, 116.301145)},
                    {FloatPixel(176.750779, 145.625794, 106.997542), FloatPixel(137.974322, 134.666057,  130.857421)},
-                   {/*Need nonshiny large form Pumpkaboo*/ FloatPixel(0, 0, 0), /*Need shiny large form Pumpkaboo*/ FloatPixel(0, 0, 0)},
+                   {FloatPixel(168.145566, 140.553783, 108.519382), /*Need shiny large form Pumpkaboo*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(169.021166, 137.025138, 97.663134), /*Need shiny super form Pumpkaboo*/ FloatPixel(0, 0, 0)}}}, // Pumpkaboo (Average+Shiny, Small+Shiny, Large+Shiny, Super+Shiny)
             {711, {{FloatPixel(218.143812, 191.685062, 156.579146), /*Need shiny Average form Gourgeist*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny Small form Gourgeist*/ FloatPixel(0, 0, 0), /*Need shiny Small form Gourgeist*/ FloatPixel(0, 0, 0)},
@@ -230,30 +230,30 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
                    {/*Need nonshiny 10-power-construct form Zygarde*/ FloatPixel(0, 0, 0), /*Need shiny 10-power-construct form Zygarde*/ FloatPixel(0, 0, 0)}}},
             // {720, {}} // Hoopa (Confined+Shiny, Unbound+Shiny)
             {745, {{FloatPixel(238.055297, 228.085697, 217.930717), /*Need shiny midday form Lycanroc*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(231.466093, 176.397365, 175.000195), /*Need shiny midnight form Lycanroc*/ FloatPixel(0, 0, 0)},
+                   {FloatPixel(221.600492, 174.590628, 173.468941), /*Need shiny midnight form Lycanroc*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(243.136992, 230.463440, 212.349592), /*Need shiny dusk form Lycanroc*/ FloatPixel(0, 0, 0)}}}, // Lycanroc (Midday+Shiny, Midnight+Shiny, Dusk+Shiny)
             {774, {{FloatPixel(253.261302, 188.247302, 209.165038), /*Need shiny red form Minior*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(253.937328, 229.135178, 140.157918), /*Need shiny orange form Minior*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(254.009968, 248.293395, 148.695227), /*Need shiny yellow form Minior*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(214.754512, 240.142043, 168.540472), /*Need shiny green form Minior*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(206.958748, 244.507390, 252.608841), /*Need shiny blue form Minior*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(138.633739, 225.633724, 251.312073), /*Need shiny indigo form Minior*/ FloatPixel(0, 0, 0)},
+                   {FloatPixel(143.486629, 219.023939, 245.570992), /*Need shiny indigo form Minior*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny violet form Minior*/ FloatPixel(0, 0, 0), /*Need shiny violet form Minior*/ FloatPixel(0, 0, 0)}}}, // Minior
             // {801, {{}}} // Magearna
             {849, {{FloatPixel(214.090913, 198.908907, 201.775168), FloatPixel(236.409402, 202.482522, 193.531149)},
                    {FloatPixel(208.276217, 213.869694, 236.102680), /*Need shiny Low Key Form form Toxtricity*/ FloatPixel(0, 0, 0)}}}, // Toxtricity
             {869, {{FloatPixel(253.746657, 237.065700, 215.477935), /*Need shiny vanilla-cream-strawberry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny vanilla-cream-berry-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny vanilla-cream-berry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
+                   {FloatPixel(232.880291, 235.296498, 224.240047), /*Need shiny vanilla-cream-berry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(228.011032, 185.871507, 162.710187), /*Need shiny vanilla-cream-love-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny vanilla-cream-star-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny vanilla-cream-star-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny vanilla-cream-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny vanilla-cream-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny vanilla-cream-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny vanilla-cream-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
+                   {FloatPixel(235.547743, 236.791897, 204.082729), /*Need shiny vanilla-cream-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
+                   {FloatPixel(252.715913, 234.472434, 201.167886), /*Need shiny vanilla-cream-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny vanilla-cream-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny vanilla-cream-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(253.648924, 227.252368, 235.011827), /*Need shiny ruby-cream-strawberry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(233.593342, 228.645326, 244.782588), /*Need shiny ruby-cream-berry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny ruby-cream-love-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny ruby-cream-love-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
+                   {FloatPixel(252.324035, 227.209318, 235.218446), /*Need shiny ruby-cream-love-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny ruby-cream-star-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny ruby-cream-star-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny ruby-cream-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny ruby-cream-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
+                   {FloatPixel(235.419984, 226.038704, 219.942799), /*Need shiny ruby-cream-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny ruby-cream-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny ruby-cream-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny ruby-cream-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny ruby-cream-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny matcha-cream-strawberry-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny matcha-cream-strawberry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
@@ -284,27 +284,27 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
                    {/*Need nonshiny salted-cream-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny salted-cream-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny salted-cream-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny salted-cream-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny salted-cream-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny salted-cream-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny ruby-swirl-strawberry-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny ruby-swirl-strawberry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
+                   {FloatPixel(252.615631, 227.637367, 211.580061), /*Need shiny ruby-swirl-strawberry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny ruby-swirl-berry-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny ruby-swirl-berry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny ruby-swirl-love-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny ruby-swirl-love-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny ruby-swirl-star-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny ruby-swirl-star-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny ruby-swirl-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny ruby-swirl-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
+                   {FloatPixel(235.952347, 229.773219, 199.615946), /*Need shiny ruby-swirl-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny ruby-swirl-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny ruby-swirl-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny ruby-swirl-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny ruby-swirl-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny caramel-swirl-strawberry-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny caramel-swirl-strawberry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
+                   {FloatPixel(251.647350, 229.150663, 195.432906), /*Need shiny caramel-swirl-strawberry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny caramel-swirl-berry-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny caramel-swirl-berry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny caramel-swirl-love-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny caramel-swirl-love-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(253.548267, 243.189171, 178.852605), /*Need shiny caramel-swirl-star-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny caramel-swirl-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny caramel-swirl-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny caramel-swirl-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny caramel-swirl-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
+                   {FloatPixel(250.722164, 228.955975, 163.246372), /*Need shiny caramel-swirl-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny caramel-swirl-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny caramel-swirl-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny rainbow-swirl-strawberry-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny rainbow-swirl-strawberry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny rainbow-swirl-berry-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny rainbow-swirl-berry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny rainbow-swirl-love-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny rainbow-swirl-love-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny rainbow-swirl-star-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny rainbow-swirl-star-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(223.848873, 231.266983, 166.089309), /*Need shiny rainbow-swirl-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
+                   {FloatPixel(250.513776, 229.189741, 178.628193), /*Need shiny rainbow-swirl-strawberry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
+                   {FloatPixel(231.047203, 229.714879, 186.883814), /*Need shiny rainbow-swirl-berry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
+                   {FloatPixel(250.752084, 232.281194, 181.950039), /*Need shiny rainbow-swirl-love-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
+                   {FloatPixel(251.081500, 239.607642, 166.087675), /*Need shiny rainbow-swirl-star-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
+                   {FloatPixel(233.751289, 231.266204, 166.069942), /*Need shiny rainbow-swirl-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
                    {/*Need nonshiny rainbow-swirl-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny rainbow-swirl-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny rainbow-swirl-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny rainbow-swirl-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0)}}},
+                   {FloatPixel(244.005037, 228.61814, 184.254107), /*Need shiny rainbow-swirl-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0)}}},
             {893, {{FloatPixel(145.668440, 155.417226, 145.465448), /*Need shiny Normal form Zarude*/ FloatPixel(0, 0, 0)},
                    {FloatPixel(155.516534, 158.234111, 154.194912), /*Need shiny Dada form Zarude*/ FloatPixel(0, 0, 0)}}}, // Zarude
             {901, {{FloatPixel(164.019187, 144.650258, 124.668500), /*Need shiny normal form Urasluna*/ FloatPixel(0, 0, 0)},
@@ -340,7 +340,6 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
         // I'm thinking set the form to -1, we can use a system that encodes the last 4 symbols (square, heart, star, diamond) to store the form
         // This will only be allowed for a subset of pokemon, which we can store in a player-specific txt file. if the ot and date met match, we can allow it as marked, otherwise, nothing should be marked.
         int form_id = -2;
-        int retries = 0;
 
         if((shiny_stddev_value > 30)?issue_list[national_dex_number].second:issue_list[national_dex_number].first){ // Shiny alcremie, all sinistea, etc.
             return PokemonData(
@@ -361,80 +360,72 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
                 );
             // throw std::logic_error("Unidentifiable form encountered. Unknown solution.");
         }else{
-            while(retries++<5){
-                double best_distance = 5;
-                const PokemonInformation* best_match = nullptr;
-                (void)best_match;
+            double best_distance = 10;
+            const PokemonInformation* best_match = nullptr;
+            (void)best_match;
 
-                // Check color similarity vs. your reference map (visual_forms)
-                auto it = visual_forms.find(national_dex_number);
-                if (it != visual_forms.end()){
-                    const auto& variants = it->second;
+            // Check color similarity vs. your reference map (visual_forms)
+            auto it = visual_forms.find(national_dex_number);
+            if (it != visual_forms.end()){
+                const auto& variants = it->second;
 
-                    for (const auto& candidate : matches){
-                        int fid = candidate.form_id.value_or(-1);
-                        if (fid >= 0 && fid < (int)variants.size()){
-                            const auto& [normal_color, shiny_color] = variants[fid];
-                            const FloatPixel& target_color = shiny_stddev_value > 30 ? shiny_color : normal_color;
-                            double distance = euclidean_distance(pokemon_color, target_color);
-                            if (distance < best_distance){
-                                best_distance = distance;
-                                best_match = &candidate;
-                                form_id = best_match->form_id.value();
-                            }
+                for (const auto& candidate : matches){
+                    int fid = candidate.form_id.value_or(-1);
+                    if (fid >= 0 && fid < (int)variants.size()){
+                        const auto& [normal_color, shiny_color] = variants[fid];
+                        const FloatPixel& target_color = shiny_stddev_value > 30 ? shiny_color : normal_color;
+                        double distance = euclidean_distance(pokemon_color, target_color);
+                        if (distance < best_distance){
+                            best_distance = distance;
+                            best_match = &candidate;
+                            form_id = best_match->form_id.value();
                         }
                     }
                 }
-
-                if (form_id == -2) {
-                    if(retries<6){
-                        pokemon_color = image_stats(extract_box_reference(screen, pokemon_box_small)).average;
-
-                        continue;
-                    }
-                    logger.log(std::to_string(pokemon_color.r) + ", " +
-                               std::to_string(pokemon_color.g) + ", " +
-                               std::to_string(pokemon_color.b));
-                    std::cout<< "Could not identify visual form. Check PokemonHome_SummaryDetector at line 104. " <<
-                        "RGB Values for extracted box are: (" <<
-                        std::to_string(pokemon_color.r) << ", " <<
-                        std::to_string(pokemon_color.g) << ", " <<
-                        std::to_string(pokemon_color.b) << ")" << std::endl;
-                    throw std::logic_error(
-                        "Could not identify visual form. Check PokemonHome_SummaryDetector at line 104. "
-                        "RGB Values for extracted box are: (" +
-                        std::to_string(pokemon_color.r) + ", " +
-                        std::to_string(pokemon_color.g) + ", " +
-                        std::to_string(pokemon_color.b) + ")"
-                        );
-                }
-
-                return PokemonData(
-                    national_dex_number,
-                    best_match->form_id.value(),
-                    best_match->form.value(),
-                    gender,
-                    type1,
-                    type2,
-                    best_match->region.value(),
-                    ot_id_value,
-                    level,
-                    shiny_stddev_value > 30,
-                    gmax_stddev_value > 30,
-                    ability,
-                    PokemonType::NONE, // TODO: Add tera typing
-                    false
-                );
             }
 
+            if (form_id == -2) {
+                logger.log(std::to_string(pokemon_color.r) + ", " +
+                           std::to_string(pokemon_color.g) + ", " +
+                           std::to_string(pokemon_color.b));
+                std::cout<< "Could not identify visual form. Check PokemonHome_SummaryDetector at line 104. " <<
+                    "RGB Values for extracted box are: (" <<
+                    std::to_string(pokemon_color.r) << ", " <<
+                    std::to_string(pokemon_color.g) << ", " <<
+                    std::to_string(pokemon_color.b) << ")" << std::endl;
+                throw ShinyFormNotFoundError(
+                    "Shiny form not found. Could not match visual form color. "
+                    "RGB Values for extracted box are: (" +
+                    std::to_string(pokemon_color.r) + ", " +
+                    std::to_string(pokemon_color.g) + ", " +
+                    std::to_string(pokemon_color.b) + ")"
+                    );
+            }
+
+            return PokemonData(
+                national_dex_number,
+                best_match->form_id.value(),
+                best_match->form.value(),
+                gender,
+                type1,
+                type2,
+                best_match->region.value(),
+                ot_id_value,
+                level,
+                shiny_stddev_value > 30,
+                gmax_stddev_value > 30,
+                ability,
+                PokemonType::NONE, // TODO: Add tera typing
+                false
+            );
         }
+
 
 
 
 
     }
 
-    return{};
 }
 
 

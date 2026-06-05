@@ -79,6 +79,7 @@ enum class GameStatus {
     POKEMON_SHIELD,
     POKEMON_SCARLET,
     POKEMON_VIOLET,
+    POKEMON_PLZA,
     CURRENT,
     UNKNOWN
 };
@@ -184,9 +185,9 @@ public:
     std::string get_filter_menu_read(SingleSwitchProgramEnvironment& env, ProControllerContext& context);
     std::string get_view();
     bool sort_into_correct_boxes(SingleSwitchProgramEnvironment&, ProControllerContext&, int, int);
-    void build_box(SingleSwitchProgramEnvironment&, ProControllerContext&, int);
+    void build_box(SingleSwitchProgramEnvironment&, ProControllerContext&, int, bool = false);
     bool sort_box(SingleSwitchProgramEnvironment&, ProControllerContext&, int);
-    void set_up_boxes(SingleSwitchProgramEnvironment&, ProControllerContext&, int, int);
+    void set_up_boxes(SingleSwitchProgramEnvironment&, ProControllerContext&, int, int, bool = false);
     void sort_all_boxes(SingleSwitchProgramEnvironment&, ProControllerContext&, int, int);
     size_t get_box();
     std::optional<HomeCursor> locate_pokemon(PokemonData&);
