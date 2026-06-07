@@ -304,43 +304,23 @@ CursorActionResponse HomeCursor::navigate_to_page(SingleSwitchProgramEnvironment
         while(box<dest_cursor.box){
             pbf_press_button(context, BUTTON_R, 80ms, 240ms);
             HomePageRightMoveWatcher rightWatcher(COLOR_BLUE);
-            int ret = wait_until(env.console, context, 2000ms,
-                                 {
-                                     rightWatcher
-                                 }
-                                 );
+            int ret = wait_until(env.console, context, 2000ms, {rightWatcher});
             pbf_wait(context, 120ms);
             context.wait_for_all_requests();
-            switch (ret){
-            case 0:
-                last_move = {CursorActionResult::SUCCESS, "Watched page turn"};
-                box++;
-                break;
-            default:
-                env.console.log("Right page watcher failed, retrying...");
-                continue;
-            }
+            if(ret != 0) env.console.log("Right page watcher missed, assuming page moved.");
+            last_move = {CursorActionResult::SUCCESS, "Navigated right to page"};
+            box++;
         }
     }else{ // navigating left
         while(box>dest_cursor.box){
             pbf_press_button(context, BUTTON_L, 80ms, 240ms);
             HomePageLeftMoveWatcher leftWatcher(COLOR_BLUE);
-            int ret = wait_until(env.console, context, 2000ms,
-                                 {
-                                     leftWatcher
-                                 }
-                                 );
+            int ret = wait_until(env.console, context, 2000ms, {leftWatcher});
             pbf_wait(context, 120ms);
             context.wait_for_all_requests();
-            switch (ret){
-            case 0:
-                last_move = {CursorActionResult::SUCCESS, "Watched page turn"};
-                box--;
-                break;
-            default:
-                env.console.log("Left page watcher failed, retrying...");
-                continue;
-            }
+            if(ret != 0) env.console.log("Left page watcher missed, assuming page moved.");
+            last_move = {CursorActionResult::SUCCESS, "Navigated left to page"};
+            box--;
         }
     }
 
@@ -565,7 +545,8 @@ int HomeCursor::get_col() const{
 }
 
 int HomeCursor::distance_to(const HomeCursor& other) const{
-    int x_dist = std::min(std::abs(static_cast<int>(other.col-col)),std::abs(static_cast<int>((secondary_open?12:6)-other.col-col)));
+    int total_cols = secondary_open ? 12 : 6;
+    int x_dist = std::min(std::abs(static_cast<int>(other.col-col)), total_cols - std::abs(static_cast<int>(other.col-col)));
     int y_dist = std::min(static_cast<int>(3), std::abs(static_cast<int>(other.row-row)));
     int box_dist = std::abs(static_cast<int>(other.box-box));
 
@@ -767,6 +748,18 @@ bool HomeEnvironment::perform_navigation_steps(SingleSwitchProgramEnvironment& e
             // Do NOT set current_view — we're in an uncertain state after a save failure.
             // The caller should detect_home before trusting current_view again.
             return false;
+        }
+
+        // Actively verify we arrived at the expected page before proceeding.
+        // detect_page races all page watchers and only resolves when OCR reads
+        // cleanly, so it won't fire until the screen is in a stable, manipulatable state.
+        // Unlike detect_home, it has no side effects on game_open or cursor state.
+        PageID detected = detect_page(env, context);
+        if(detected != next){
+            throw std::runtime_error(
+                "Navigation verification failed: expected " + to_string(next) +
+                " but detected " + to_string(detected)
+            );
         }
     }
     current_view = steps.back();
@@ -1752,6 +1745,42 @@ void HomeEnvironment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProCon
 }
 
 
+
+PageID HomeEnvironment::detect_page(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+    context.wait_for_all_requests();
+
+    HomeTitleScreenWatcher titleWatcher(COLOR_BLUE);
+    HomeMainMenuWatcher mainMenuWatcher(COLOR_BLUE);
+    HomeGameSelectWatcher gameSelectWatcher(COLOR_BLUE);
+    HomeListViewWatcher listWatcher(COLOR_BLUE);
+    HomeListFilterViewWatcher filterWatcher(COLOR_BLUE);
+    HomeSummaryViewWatcher summaryWatcher(COLOR_BLUE);
+    HomeMarkingsViewWatcher markingsWatcher(COLOR_BLUE);
+    HomeBoxViewWatcher boxWatcher(COLOR_BLUE);
+
+    int ret = wait_until(env.console, context, 30s, {
+        titleWatcher,
+        mainMenuWatcher,
+        gameSelectWatcher,
+        listWatcher,
+        filterWatcher,
+        summaryWatcher,
+        markingsWatcher,
+        boxWatcher,
+    });
+
+    switch(ret){
+    case 0: return PageID::TITLE_SCREEN;
+    case 1: return PageID::MAIN_MENU;
+    case 2: return PageID::GAME_SELECTION;
+    case 3: return PageID::LIST_VIEW;
+    case 4: return PageID::LIST_VIEW_FILTER;
+    case 5: return PageID::SUMMARY_VIEW;
+    case 6: return PageID::MARKINGS_VIEW;
+    case 7: return PageID::BOX_VIEW;
+    default: return PageID::UNKNOWN;
+    }
+}
 
 void HomeEnvironment::detect_home(SingleSwitchProgramEnvironment& env, ProControllerContext& context, bool single_page){
     context.wait_for_all_requests();

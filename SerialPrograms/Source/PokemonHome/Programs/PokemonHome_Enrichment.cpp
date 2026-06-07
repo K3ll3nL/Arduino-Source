@@ -345,50 +345,51 @@ PokemonType closest_type(const FloatPixel& color_box){
 }
 
 void home_navigate_to_box_secondary(SingleSwitchProgramEnvironment& env, ProControllerContext& context, HomeEnvironment& home_manager, std::string target) {
-    ImageFloatBox home_box_checker_secondary(0.62, 0.1, 0.245, 0.038);
-    VideoOverlaySet box_render(env.console);
-
-    // Add overlays for debugging
-    box_render.add(COLOR_RED, home_box_checker_secondary);
-    box_render.add(COLOR_GREEN, home_box_checker_secondary);
+    pbf_wait(context, 500ms);
 
     context.wait_for_all_requests();
 
-    std::string box_name = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(env.console.video().snapshot(), home_box_checker_secondary)));
+    HomeCursor cur = home_manager.get_cursor();
+    if (cur.get_col() < 6) {
+        int nearest_col = (cur.get_col() < 3) ? 11 : 6;
+        home_manager.navigate_to(env, context, {cur.get_row(), nearest_col});
+    }
 
-    // Store the last 5 reads
-    std::deque<std::string> prev_reads;
+    ImageFloatBox home_box_checker_secondary(0.62, 0.1, 0.245, 0.038);
+    VideoOverlaySet box_render(env.console);
+    box_render.add(COLOR_RED, home_box_checker_secondary);
 
-    while (target != box_name) {
-        // Add current box_name to prev_reads
-        prev_reads.push_back(box_name);
-        if (prev_reads.size() > 5) {
-            prev_reads.pop_front();
-        }
+    context.wait_for_all_requests();
 
-        // Check if the last 5 reads are all the same
-        if (prev_reads.size() == 5 && std::all_of(prev_reads.begin(), prev_reads.end(), [&](const std::string& val) {
-                return val == prev_reads.front();
-            })) {
-            // All 5 reads are the same, press DPAD_LEFT and DPAD_DOWN
-            pbf_press_button(context, BUTTON_LEFT, 80ms, 240ms);
-            pbf_press_button(context, BUTTON_DOWN, 80ms, 240ms+240ms);
-        }
+    auto read_name = [&]() {
+        return sanitize_OCR(OCR::ocr_read(Language::English,
+            extract_box_reference(env.console.video().snapshot(), home_box_checker_secondary)));
+    };
 
-        // Navigate to the next box
-        pbf_press_button(context, BUTTON_L, 80ms, 240ms+240ms);
+    std::string box_name = read_name();
+    int iters = 0;
+    while (box_name != target && iters++ < 100) {
+        pbf_press_button(context, BUTTON_L, 80ms, 480ms);
         context.wait_for_all_requests();
-        box_name = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(env.console.video().snapshot(), home_box_checker_secondary)));
+        box_name = read_name();
     }
 }
 
 void home_navigate_to_box_secondary(SingleSwitchProgramEnvironment& env, ProControllerContext& context, HomeEnvironment& home_manager, int target){
+    pbf_wait(context, 500ms);
+
+    context.wait_for_all_requests();
+
+    HomeCursor cur = home_manager.get_cursor();
+    if (cur.get_col() < 6) {
+        int nearest_col = (cur.get_col() < 3) ? 11 : 6;
+        home_manager.navigate_to(env, context, {cur.get_row(), nearest_col});
+    }
+
     ImageFloatBox home_box_checker_secondary(0.85, 0.723, 0.06, 0.03);
     VideoOverlaySet box_render(env.console);
-
     box_render.add(COLOR_RED, home_box_checker_secondary);
 
-    // Reads the current secondary box number from the "N/M" display. Returns -1 on OCR/parse failure.
     auto read_box_number = [&]() -> int {
         std::string temp = sanitize_OCR(OCR::ocr_read(Language::English,
             extract_box_reference(env.console.video().snapshot(), home_box_checker_secondary)));
@@ -401,23 +402,10 @@ void home_navigate_to_box_secondary(SingleSwitchProgramEnvironment& env, ProCont
         }
     };
 
+    context.wait_for_all_requests();
     int home_box = read_box_number();
-
-    std::deque<int> prev_reads;
-
-    while (target != home_box) {
-        if (home_box >= 0) {
-            prev_reads.push_back(home_box);
-            if (prev_reads.size() > 5) prev_reads.pop_front();
-        }
-
-        // If the last 5 valid reads are all the same, we're stuck — nudge left
-        if (prev_reads.size() == 5 && std::all_of(prev_reads.begin(), prev_reads.end(), [&](const int val) {
-                return val == prev_reads.front();
-            })) {
-            pbf_press_button(context, BUTTON_LEFT, 80ms, 240ms);
-        }
-
+    int iters = 0;
+    while (home_box != target && iters++ < 100) {
         pbf_press_button(context, BUTTON_L, 80ms, 480ms);
         context.wait_for_all_requests();
         home_box = read_box_number();
@@ -1538,6 +1526,7 @@ void Enrichment::enrich_with_games(SingleSwitchProgramEnvironment& env, ProContr
                 if(!SKIP_SETUP){
                     home_manager.detect_home(env, context);
                     home_manager.navigate_menus_to(env, context, PageID::BOX_VIEW, GameStatus::POKEMON_VIOLET);
+                    context.wait_for_all_requests();
                     home_manager.navigate_to(env, context, {2, 11, 0});
                     home_navigate_to_box_secondary(env, context, home_manager, SV_BOX_NAME);
                     home_manager.navigate_to(env, context, {1, 1, 0});
@@ -1580,13 +1569,15 @@ void Enrichment::enrich_with_games(SingleSwitchProgramEnvironment& env, ProContr
 // Requires env, context
 void Enrichment::home_put_away_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext& context, HomeEnvironment& home_manager, Game& game, bool emergency = false){
 
+    context.wait_for_all_requests();
+
     home_manager.navigate_to(env, context, {1, 6});
 
     switch(game.game){
     case GameStatus::POKEMON_VIOLET:
-        home_navigate_to_box_secondary(env, context, SV_BOX_NAME);
+        home_navigate_to_box_secondary(env, context, home_manager, SV_BOX_NAME);
     default:
-        home_navigate_to_box_secondary(env, context, SV_BOX_NAME);
+        home_navigate_to_box_secondary(env, context, home_manager, SV_BOX_NAME);
     }
     // pbf_press_button(context, BUTTON_UP, 80ms, 240ms);
     // move back to the Home side of the boxes
@@ -1631,7 +1622,7 @@ void Enrichment::home_dispose_of_go(SingleSwitchProgramEnvironment& env, ProCont
 
     int temp_box = PLA_FIRST_BOX;
     bool more_go = false;
-    home_navigate_to_box_secondary(env, context, temp_box);
+    home_navigate_to_box_secondary(env, context, home_manager, temp_box);
     try{
         do{
             HomeCursor next_spot = home_locate_empty_position_secondary(env, context, &temp_box, PLA_LAST_BOX, false);

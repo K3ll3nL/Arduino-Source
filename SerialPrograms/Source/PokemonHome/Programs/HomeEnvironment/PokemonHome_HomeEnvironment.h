@@ -206,6 +206,7 @@ private:
     CursorActionResponse handle_errors(SingleSwitchProgramEnvironment&, ProControllerContext&, const CursorActionResponse&);
 
     void initialize_navigation_map(SingleSwitchProgramEnvironment&, ProControllerContext&);
+    PageID detect_page(SingleSwitchProgramEnvironment&, ProControllerContext&);
     std::vector<PageID> find_navigation_path(SingleSwitchProgramEnvironment&, ProControllerContext&, PageID, PageID);
     bool perform_navigation_steps(SingleSwitchProgramEnvironment&, ProControllerContext&, std::vector<PageID>&);
     void identify_game_icon(SingleSwitchProgramEnvironment&, ProControllerContext&);
