@@ -293,6 +293,7 @@ public:
 protected:
     Color m_color;
     ImageFloatBox m_box;
+
 };
 
 

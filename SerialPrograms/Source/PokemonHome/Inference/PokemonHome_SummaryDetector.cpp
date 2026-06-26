@@ -1,7 +1,11 @@
 #include "PokemonHome_SummaryDetector.h"
+#include "CommonFramework/Globals.h"
 #include "CommonFramework/ImageTools/ImageStats.h"
 #include "CommonFramework/VideoPipeline/VideoOverlayScopes.h"
 #include "CommonTools/OCR/OCR_NumberReader.h"
+#include "Common/Cpp/Json/JsonValue.h"
+#include "Common/Cpp/Json/JsonObject.h"
+#include "Common/Cpp/Json/JsonArray.h"
 #include "PokemonHome/Inference/PokemonHome_AbilityReader.h"
 #include "PokemonHome/Inference/PokemonHome_BoxGenderDetector.h"
 #include <iostream>
@@ -11,7 +15,15 @@ namespace PokemonAutomation{
 namespace NintendoSwitch{
 namespace PokemonHome{
 
+struct FormVisualData {
+    std::vector<FloatPixel> normal;
+    std::vector<FloatPixel> shiny;
+};
 
+struct PokemonVisualData {
+    std::vector<std::string> boxes;
+    std::vector<FormVisualData> forms;
+};
 
 SummaryDetector::~SummaryDetector() = default;
 
@@ -82,6 +94,15 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
 
     std::vector<PokemonInformation> matches = PokemonInformation().Id(national_dex_number).Gender(gender).Type1(type1).Type2(type2).Ability({ability}).match(information.get_pokedex());
 
+    logger.log(
+        "identify_pokemon: dex=" + std::to_string(national_dex_number) +
+        " gender=" + std::to_string((int)gender) +
+        " type1=" + std::to_string((int)type1) +
+        " type2=" + std::to_string((int)type2) +
+        " ability=" + ability +
+        " matches=" + std::to_string(matches.size())
+    );
+
     if(matches.size()==1){
         return PokemonData(
             national_dex_number,
@@ -100,231 +121,78 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
             false
             );
     }else{
-        FloatPixel pokemon_color = image_stats(extract_box_reference(screen, pokemon_box_small)).average;
-
-        static std::unordered_map<int, std::vector<std::pair<FloatPixel, FloatPixel>>> visual_forms = {
-            {25, {{FloatPixel(248.564141, 220.904500, 74.276412), /*Need shiny pikachu-m form Pikachu*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(248.594196, 220.895341, 74.365152), /*Need shiny pikachu-f form Pikachu*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(241.680927, 208.992175, 95.705435), /*Need shiny pikachu-original-cap form Pikachu*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(234.432471, 196.569238, 73.098768), /*Need shiny pikachu-hoenn-cap form Pikachu*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(232.633454, 198.147125, 80.908562), /*Need shiny pikachu-sinnoh-cap form Pikachu*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(232.528301, 210.646181, 99.712840), /*Need shiny pikachu-unova-cap form Pikachu*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(245.101886, 211.422143, 94.546543), /*Need shiny pikachu-kalos-cap form Pikachu*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(243.070737, 209.447026, 91.116201), /*Need shiny pikachu-alola-cap form Pikachu*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(241.320962, 211.372796, 92.970890), /*Need shiny pikachu-partner-cap form Pikachu*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(236.343536, 207.752563, 90.168126), /*Need shiny pikachu-world-cap form Pikachu*/ FloatPixel(0, 0, 0)}}}, // Pikachu (Base+Shiny, Cap, Hoenn, Sinnoh, Unova, Kalos, Alola, Partner, World)
-            {201, {{FloatPixel(170.934285, 172.982582, 171.41171), /*Need shiny A form Unown*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(171.051985, 172.886542, 171.652027), /*Need shiny B form Unown*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(176.412055, 178.22759, 176.8081), /*Need shiny C form Unown*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(159.567979, 161.690026, 160.454821), FloatPixel(157.188212, 198.651457, 236.569283)},
-                   {FloatPixel(160.319388, 162.789918, 161.06639), /*Need shiny E form Unown*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(153.205915, 155.198765, 154.417376), FloatPixel(150.810034, 193.6098, 235.118375)},
-                   {FloatPixel(182.024254, 183.959737, 182.321307), FloatPixel(180.19163, 211.312942, 238.684495)},
-                   {FloatPixel(162.561158, 164.912954, 163.358196), /*Need shiny H form Unown*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(173.638146, 175.842502, 174.158502), /*Need shiny I form Unown*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(174.78719, 176.783337, 175.370398), FloatPixel(173.128448, 205.976991, 236.628388)},
-                   {FloatPixel(155.181497, 157.789063, 156.005996), FloatPixel(152.902236, 195.905834, 234.782663)},
-                   {FloatPixel(182.587585, 184.501769, 183.053828), FloatPixel(180.942259, 210.843551, 238.327138)},
-                   {FloatPixel(165.695827, 167.787549, 166.355483), /*Need shiny M form Unown*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(156.977935, 159.123696, 157.581949), /*Need shiny N form Unown*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(168.583553, 170.585142, 169.121477), FloatPixel(166.553304, 203.350642, 236.466633)},
-                   {FloatPixel(165.417406, 167.340598, 166.266998), /*Need shiny P form Unown*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(157.113683, 158.939366, 157.916402), FloatPixel(154.486959, 193.69863, 232.002593)},
-                   {FloatPixel(150.893273, 152.667826, 151.728475), FloatPixel(150.513176, 186.955795, 224.936113)},
-                   {FloatPixel(171.734725, 173.602096, 172.299721), FloatPixel(169.83889, 206.225567, 238.884264)},
-                   {FloatPixel(183.944942, 185.595455, 184.330615), FloatPixel(182.191525, 213.09559, 240.793006)},
-                   {FloatPixel(149.057921, 150.999191, 149.797233), /*Need shiny U form Unown*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(174.859411, 176.782708, 175.724967), FloatPixel(173.018827, 209.631461, 241.697251)},
-                   {FloatPixel(174.45659, 176.309105, 174.934824), FloatPixel(172.27166, 207.564951, 239.244499)},
-                   {FloatPixel(153.545989, 155.090164, 154.541672), /*Need shiny X form Unown*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(178.924631, 180.80897, 179.51523), /*Need shiny Y form Unown*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(161.410736, 163.732717, 162.055058), FloatPixel(159.08811, 198.56639, 234.025063)},
-                   {FloatPixel(166.253478, 167.907453, 166.422323), /*Need shiny ! form Unown*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(162.93385, 164.838815, 163.50664), FloatPixel(160.774164, 205.105798, 242.707804)}}}, // Unown (A-Z?!+Shiny)
-            // {351, {{}}} // Castform (Normal+Shiny, Sunny+Shiny, Rainy+Shiny, Snowy+Shiny)
-            // {386, {{}}} // Deoxys (Normal+Shiny, Attack+Shiny, Defense+Shiny, Speed+Shiny)
-            {412, {{FloatPixel(187.917961, 224.88263, 150.888176), FloatPixel(186.449005, 226.713005, 155.512037)},
-                   {FloatPixel(234.216738, 234.237543, 209.198765), FloatPixel(232.057786, 236.224607, 215.107357)},
-                   {FloatPixel(238.852021, 218.341228, 220.157693), FloatPixel(236.174496, 219.359965, 224.627593)}}}, // Burmy (Plant+Shiny, Sandy+Shiny, Trash+Shiny)
-            {413, {{FloatPixel(167.571861, 212.879677, 158.623366), FloatPixel(167.632945, 215.726481, 164.212975)},
-                   {FloatPixel(227.790158, 209.376304, 177.705915), FloatPixel(227.686578, 212.199439, 183.602096)},
-                   {/*Need nonshiny Trash Cloak form Wormadam*/ FloatPixel(0, 0, 0), FloatPixel(240.343821, 199.945587, 213.737379)}}}, // Wormadam (Plant+Shiny, Sandy+Shiny, Trash+Shiny)
-            {422, {{FloatPixel(123.741276, 214.299886, 216.025723), /*Need shiny East sea form Shellos*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(249.065206, 203.930327, 199.138116), /*Need shiny West sea form Shellos*/ FloatPixel(0, 0, 0)}}}, // Shellos (East Sea+Shiny, West Sea+Shiny)
-            {423, {{FloatPixel(115.69842, 205.94094, 167.599727), /*Need shiny East sea form Gastrodon*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(223.847374, 184.596384, 159.035166), FloatPixel(221.540532, 199.802884, 136.430507)}}}, // Gastrodon (East Sea+Shiny, West Sea+Shiny)
-            {550, {{FloatPixel(154.554668, 184.862948, 128.165682), FloatPixel(176.424991, 220.055567, 139.549646)},
-                   {FloatPixel(155.520356, 196.498486, 152.874385), FloatPixel(173.566929, 223.443818, 153.306796)},
-                   {FloatPixel(155.77202, 182.861839, 141.182531), FloatPixel(176.417361, 215.793141, 147.944463)}}}, // Basculin (Red Striped+Shiny, Blue Striped+Shiny, White Striped+Shiny)
-            {585, {{FloatPixel(248.905624, 231.960547, 202.304008), /*Need shiny Spring Form form Deerling*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(200.765784, 221.649718, 157.010388), /*Need shiny Summer Form form Deerling*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(249.129347, 223.596864, 153.540712), /*Need shiny Autumn Form form Deerling*/ FloatPixel(244.047683, 220.092922, 192.877204)},
-                   {/*Need nonshiny Winter Form form Deerling*/ FloatPixel(0, 0, 0), /*Need shiny Winter Form form Deerling*/ FloatPixel(0, 0, 0)}}}, // Deerling (Spring+Shiny, Summer+Shiny, Autumn+Shiny, Winter+Shiny)
-            {586, {{FloatPixel(226.703307, 210.355288, 183.036095), /*Need shiny Spring Form form Sawsbuck*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny Summer Form form Sawsbuck*/ FloatPixel(0, 0, 0), /*Need shiny Summer Form form Sawsbuck*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(225.556512, 191.422413, 157.115032), /*Need shiny Autumn Form form Sawsbuck*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(230.642283, 221.722029, 206.291687), /*Need shiny Winter Form form Sawsbuck*/ FloatPixel(0, 0, 0)}}}, // Sawsbuck (Spring+Shiny, Summer+Shiny, Autumn+Shiny, Winter+Shiny)
-            {641, {{FloatPixel(180.638956, 187.422533, 160.762681), FloatPixel(175.081724, 183.154170, 166.370758)},
-                   {/*Need nonshiny Therian form Tornadus*/ FloatPixel(0, 0, 0), /*Need shiny Therian form Tornadus*/ FloatPixel(0, 0, 0)}}}, // Tornadus (Incarnate+Shiny, Therian+Shiny)
-            {642, {{FloatPixel(181.380142, 198.698165, 205.539588), FloatPixel(187.676055, 188.501694, 199.490362)},
-                   {FloatPixel(190.639990,213.828007, 226.926490), FloatPixel(217.579161, 205.614537, 235.753148)}}}, // Thundurus (Incarnate+Shiny, Therian+Shiny)
-            {645, {{FloatPixel(216.922398, 184.366681, 141.085397), FloatPixel(209.757735, 178.269112, 135.176340)},
-                   {FloatPixel(234.314036,198.174901,152.318818), /*Need shiny Therian form Landorus*/ FloatPixel(0, 0, 0)}}}, // Landorus (Incarnate+Shiny, Therian+Shiny)
-            // {647, {{}}} // Keldeo (Normal+Shiny, Resolute+Shiny)
-            {666, {{FloatPixel(221.886572, 169.684854, 191.849577), /*Need shiny Meadow form Vivillon*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(231.026757, 231.861194, 230.119484), /*Need shiny Icy Snow form Vivillon*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(94.476151, 127.894427, 196.586236), /*Need shiny Polar form Vivillon*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(185.650887, 224.292676, 234.018437), /*Need shiny Tundra form Vivillon*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(224.583208, 204.294655, 96.249370), /*Need shiny Continental form Vivillon*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(83.334677, 172.304908, 156.569763), /*Need shiny Garden form Vivillon*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(142.155684, 126.404845, 171.699304), /*Need shiny Elegant form Vivillon*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(217.237603, 114.672443, 100.138671), /*Need shiny Modern form Vivillon*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(91.567334, 189.329566, 231.155309), /*Need shiny Marine form Vivillon*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(201.893932, 136.923447, 83.959393), /*Need shiny Archipelago form Vivillon*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(217.478939, 180.618524, 102.546124), /*Need shiny High Plains form Vivillon*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(222.375989, 201.872392, 154.396795), /*Need shiny Sandstorm form Vivillon*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(190.078921, 178.329581, 131.191555), /*Need shiny River form Vivillon*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(167.391114, 182.842832, 186.364297), /*Need shiny Monsoon form Vivillon*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(151.286890, 206.048972, 170.821307), /*Need shiny Savanna form Vivillon*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(233.181227, 176.330345, 98.137022), /*Need shiny Sun form Vivillon*/ FloatPixel(237.455660, 180.563347, 102.031044)},
-                   {FloatPixel(208.253942, 199.788344, 134.279350), /*Need shiny Ocean form Vivillon*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(132.258709, 164.699424, 148.602365), /*Need shiny Jungle form Vivillon*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(210.645851, 216.916552, 186.039003), /*Need shiny Fancy form Vivillon*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny Pokeball form Vivillon*/ FloatPixel(0, 0, 0), /*Need shiny Pokeball form Vivillon*/ FloatPixel(0, 0, 0)}}}, // Vivillon
-            {669, {{/*Need nonshiny Red form Flabebe*/ FloatPixel(0, 0, 0), /*Need shiny Red form Flabebe*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny Blue form Flabebe*/ FloatPixel(0, 0, 0), /*Need shiny Blue form Flabebe*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny Orange form Flabebe*/ FloatPixel(0, 0, 0), /*Need shiny Orange form Flabebe*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny White form Flabebe*/ FloatPixel(0, 0, 0), /*Need shiny White form Flabebe*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(240.832009, 240.773714, 154.978714), /*Need shiny Yellow form Flabebe*/ FloatPixel(0, 0, 0)}}}, // Flabebe (Red+Shiny, Yellow+Shiny, Orange+Shiny, Blue+Shiny, White+Shiny)
-            {670, {{FloatPixel(229.313722, 220.905609, 194.702512), /*Need shiny Red form Floette*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(195.946277, 223.513581, 214.595125), /*Need shiny Blue form Floette*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(229.489852, 230.593327, 186.307906), /*Need shiny Orange form Floette*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(228.545479, 243.563662, 213.230393), /*Need shiny White form Floette*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(229.107357, 240.968701, 195.879662), /*Need shiny Yellow form Floette*/ FloatPixel(0, 0, 0)}}}, // Floette (Red+Shiny, Yellow+Shiny, Orange+Shiny, Blue+Shiny, White+Shiny)
-            {671, {{FloatPixel(183.045869, 202.187822, 195.971864), /*Need shiny Red form Florges*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny Blue form Florges*/ FloatPixel(0, 0, 0), /*Need shiny Blue form Florges*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny Orange form Florges*/ FloatPixel(0, 0, 0), /*Need shiny Orange form Florges*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(181.038704, 230.859156, 221.319118), /*Need shiny White form Florges*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny Yellow form Florges*/ FloatPixel(0, 0, 0), /*Need shiny Yellow form Florges*/ FloatPixel(0, 0, 0)}}}, // Florges (Red+Shiny, Yellow+Shiny, Orange+Shiny, Blue+Shiny, White+Shiny)
-            {676, {{FloatPixel(240.378433, 239.426400, 229.896450), /*Need shiny Natural form Furfrou*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(218.810469, 206.982612, 200.879512), /*Need shiny Heart form Furfrou*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(199.981742, 222.200114, 216.318773), /*Need shiny Star form Furfrou*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(226.835382, 214.561173, 180.754962), /*Need shiny Diamond form Furfrou*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny Debutante form Furfrou*/ FloatPixel(0, 0, 0), /*Need shiny Debutante form Furfrou*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(229.316555, 213.887711, 211.874595), /*Need shiny Matron form Furfrou*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(210.150992, 222.111044, 182.765754), /*Need shiny Dandy form Furfrou*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny La Reine form Furfrou*/ FloatPixel(0, 0, 0), /*Need shiny La Reine form Furfrou*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(228.011032, 185.871507, 162.710187), /*Need shiny Kabuki form Furfrou*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(179.805732, 202.272680, 219.423132), /*Need shiny Pharoah form Furfrou*/ FloatPixel(0, 0, 0)}}}, // Furfrou (Normal+Shiny, Heart+Shiny, Star+Shiny, Diamond+Shiny, Debutante+Shiny, Matron+Shiny, Dandy+Shiny, La Reine+Shiny, Kabuki+Shiny, Pharoah+Shiny)
-            {710, {{FloatPixel(176.750779, 145.625794, 106.997542), FloatPixel(122.705840, 119.765649, 116.301145)},
-                   {FloatPixel(176.750779, 145.625794, 106.997542), FloatPixel(137.974322, 134.666057,  130.857421)},
-                   {FloatPixel(168.145566, 140.553783, 108.519382), /*Need shiny large form Pumpkaboo*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(169.021166, 137.025138, 97.663134), /*Need shiny super form Pumpkaboo*/ FloatPixel(0, 0, 0)}}}, // Pumpkaboo (Average+Shiny, Small+Shiny, Large+Shiny, Super+Shiny)
-            {711, {{FloatPixel(218.143812, 191.685062, 156.579146), /*Need shiny Average form Gourgeist*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny Small form Gourgeist*/ FloatPixel(0, 0, 0), /*Need shiny Small form Gourgeist*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny Large form Gourgeist*/ FloatPixel(0, 0, 0), /*Need shiny Large form Gourgeist*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny Super form Gourgeist*/ FloatPixel(0, 0, 0), /*Need shiny Super form Gourgeist*/ FloatPixel(0, 0, 0)}}}, // Gourgeist (Average+Shiny, Small+Shiny, Large+Shiny, Super+Shiny)
-            {718, {{FloatPixel(142.745968, 150.517538, 112.791267), FloatPixel(203.881101, 226.507600, 221.670059)},
-                   {FloatPixel(142.745968, 150.517538, 112.791267), FloatPixel(203.881101, 226.507600, 221.670059)},
-                   {/*Need nonshiny 10 form Zygarde*/ FloatPixel(0, 0, 0), /*Need shiny 10 form Zygarde*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny 10-power-construct form Zygarde*/ FloatPixel(0, 0, 0), /*Need shiny 10-power-construct form Zygarde*/ FloatPixel(0, 0, 0)}}},
-            // {720, {}} // Hoopa (Confined+Shiny, Unbound+Shiny)
-            {745, {{FloatPixel(238.055297, 228.085697, 217.930717), /*Need shiny midday form Lycanroc*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(221.600492, 174.590628, 173.468941), /*Need shiny midnight form Lycanroc*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(243.136992, 230.463440, 212.349592), /*Need shiny dusk form Lycanroc*/ FloatPixel(0, 0, 0)}}}, // Lycanroc (Midday+Shiny, Midnight+Shiny, Dusk+Shiny)
-            {774, {{FloatPixel(253.261302, 188.247302, 209.165038), /*Need shiny red form Minior*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(253.937328, 229.135178, 140.157918), /*Need shiny orange form Minior*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(254.009968, 248.293395, 148.695227), /*Need shiny yellow form Minior*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(214.754512, 240.142043, 168.540472), /*Need shiny green form Minior*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(206.958748, 244.507390, 252.608841), /*Need shiny blue form Minior*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(143.486629, 219.023939, 245.570992), /*Need shiny indigo form Minior*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny violet form Minior*/ FloatPixel(0, 0, 0), /*Need shiny violet form Minior*/ FloatPixel(0, 0, 0)}}}, // Minior
-            // {801, {{}}} // Magearna
-            {849, {{FloatPixel(214.090913, 198.908907, 201.775168), FloatPixel(236.409402, 202.482522, 193.531149)},
-                   {FloatPixel(208.276217, 213.869694, 236.102680), /*Need shiny Low Key Form form Toxtricity*/ FloatPixel(0, 0, 0)}}}, // Toxtricity
-            {869, {{FloatPixel(253.746657, 237.065700, 215.477935), /*Need shiny vanilla-cream-strawberry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(232.880291, 235.296498, 224.240047), /*Need shiny vanilla-cream-berry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(228.011032, 185.871507, 162.710187), /*Need shiny vanilla-cream-love-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny vanilla-cream-star-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny vanilla-cream-star-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(235.547743, 236.791897, 204.082729), /*Need shiny vanilla-cream-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(252.715913, 234.472434, 201.167886), /*Need shiny vanilla-cream-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny vanilla-cream-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny vanilla-cream-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(253.648924, 227.252368, 235.011827), /*Need shiny ruby-cream-strawberry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(233.593342, 228.645326, 244.782588), /*Need shiny ruby-cream-berry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(252.324035, 227.209318, 235.218446), /*Need shiny ruby-cream-love-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny ruby-cream-star-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny ruby-cream-star-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(235.419984, 226.038704, 219.942799), /*Need shiny ruby-cream-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny ruby-cream-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny ruby-cream-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny ruby-cream-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny ruby-cream-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny matcha-cream-strawberry-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny matcha-cream-strawberry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny matcha-cream-berry-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny matcha-cream-berry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny matcha-cream-love-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny matcha-cream-love-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny matcha-cream-star-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny matcha-cream-star-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny matcha-cream-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny matcha-cream-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny matcha-cream-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny matcha-cream-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny matcha-cream-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny matcha-cream-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(228.571336, 235.559315, 236.906314), /*Need shiny mint-cream-strawberry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny mint-cream-berry-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny mint-cream-berry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny mint-cream-love-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny mint-cream-love-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny mint-cream-star-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny mint-cream-star-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny mint-cream-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny mint-cream-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny mint-cream-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny mint-cream-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny mint-cream-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny mint-cream-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny lemon-cream-strawberry-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny lemon-cream-strawberry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny lemon-cream-berry-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny lemon-cream-berry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny lemon-cream-love-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny lemon-cream-love-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny lemon-cream-star-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny lemon-cream-star-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny lemon-cream-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny lemon-cream-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny lemon-cream-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny lemon-cream-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny lemon-cream-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny lemon-cream-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny salted-cream-strawberry-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny salted-cream-strawberry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny salted-cream-berry-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny salted-cream-berry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny salted-cream-love-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny salted-cream-love-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny salted-cream-star-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny salted-cream-star-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny salted-cream-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny salted-cream-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny salted-cream-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny salted-cream-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny salted-cream-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny salted-cream-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(252.615631, 227.637367, 211.580061), /*Need shiny ruby-swirl-strawberry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny ruby-swirl-berry-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny ruby-swirl-berry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny ruby-swirl-love-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny ruby-swirl-love-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny ruby-swirl-star-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny ruby-swirl-star-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(235.952347, 229.773219, 199.615946), /*Need shiny ruby-swirl-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny ruby-swirl-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny ruby-swirl-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny ruby-swirl-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny ruby-swirl-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(251.647350, 229.150663, 195.432906), /*Need shiny caramel-swirl-strawberry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny caramel-swirl-berry-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny caramel-swirl-berry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny caramel-swirl-love-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny caramel-swirl-love-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(253.548267, 243.189171, 178.852605), /*Need shiny caramel-swirl-star-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny caramel-swirl-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny caramel-swirl-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(250.722164, 228.955975, 163.246372), /*Need shiny caramel-swirl-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny caramel-swirl-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny caramel-swirl-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(250.513776, 229.189741, 178.628193), /*Need shiny rainbow-swirl-strawberry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(231.047203, 229.714879, 186.883814), /*Need shiny rainbow-swirl-berry-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(250.752084, 232.281194, 181.950039), /*Need shiny rainbow-swirl-love-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(251.081500, 239.607642, 166.087675), /*Need shiny rainbow-swirl-star-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(233.751289, 231.266204, 166.069942), /*Need shiny rainbow-swirl-clover-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny rainbow-swirl-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0), /*Need shiny rainbow-swirl-flower-sweet form Alcremie*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(244.005037, 228.61814, 184.254107), /*Need shiny rainbow-swirl-ribbon-sweet form Alcremie*/ FloatPixel(0, 0, 0)}}},
-            {893, {{FloatPixel(145.668440, 155.417226, 145.465448), /*Need shiny Normal form Zarude*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(155.516534, 158.234111, 154.194912), /*Need shiny Dada form Zarude*/ FloatPixel(0, 0, 0)}}}, // Zarude
-            {901, {{FloatPixel(164.019187, 144.650258, 124.668500), /*Need shiny normal form Urasluna*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(184.399553, 157.850567, 134.671903), /*Need shiny blood-moon form Ursaluna*/ FloatPixel(0, 0, 0)}}}, // Ursaluna
-            {905, {{/*Need nonshiny Incarnate form Enamorus*/ FloatPixel(0, 0, 0), /*Need shiny Incarnate form Enamorus*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny Therian form Enamorus*/ FloatPixel(0, 0, 0), /*Need shiny Therian form Enamorus*/ FloatPixel(0, 0, 0)}}}, // Enamorus (Incarnate+Shiny, Therian+Shiny)
-            {925, {{/*Need nonshiny family-of-three form Maushold*/ FloatPixel(0, 0, 0), /*Need shiny family-of-three form Maushold*/ FloatPixel(0, 0, 0)},
-                      {FloatPixel(253.635658, 253.878283, 253.176475), /*Need shiny family-of-four form Maushold*/ FloatPixel(0, 0, 0)}}}, // Maushold
-            {931, {{FloatPixel(228.007465, 235.134534, 213.292496), /*Need shiny green-plumage form Squawkabilly*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(220.686158, 230.386632, 227.928304), /*Need shiny blue-plumage form Squawkabilly*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(240.899104, 235.976421, 212.062597), /*Need shiny yellow-plumage form Squawkabilly*/ FloatPixel(0, 0, 0)},
-                   {FloatPixel(238.067769, 236.356877, 227.726601), /*Need shiny white-plumage form Squawkabilly*/ FloatPixel(0, 0, 0)}}}, // Squawkabilly
-            {978, {{FloatPixel(250.973933, 207.915368, 173.900393), FloatPixel(228.232027, 193.251544, 171.628133)},
-                   {FloatPixel(253.702647, 244.697281, 245.435829), FloatPixel(253.786515, 254.710697, 253.529605)},
-                   {FloatPixel(254.238997, 254.524763, 243.675036), FloatPixel(254.139000, 250.651217, 245.767193)}}}, // Tatsugiri
-            {982, {{FloatPixel(224.980258, 233.049946, 170.930522), /*Need shiny two-segment form Dudunsparce*/ FloatPixel(0, 0, 0)},
-                   {/*Need nonshiny three-segment form Dudunsparce*/ FloatPixel(0, 0, 0), /*Need shiny three-segment form Dudunsparce*/ FloatPixel(0, 0, 0)}}}, // Dudunsparce
-            {999, {{FloatPixel(222.680417, 208.518917, 169.581170),FloatPixel(223.853235, 209.191825, 169.646690)},
-                   {FloatPixel(227.996058, 232.016789, 224.896271), /*Need shiny Roaming form Gimmighoul*/ FloatPixel(0, 0, 0)}}} // Gimmighoul
+        static const std::unordered_map<std::string, ImageFloatBox> box_registry = {
+            {"main",  ImageFloatBox(0.760,  0.295,  0.14,   0.23  )},
+            {"hat",   ImageFloatBox(0.72,   0.25,   0.15,   0.2)},
+            {"sweet", ImageFloatBox(0.765,  0.383,  0.01,   0.02)},
+            {"low",   ImageFloatBox(0.8,    0.55,   0.001,  0.001)},
+            {"u1",    ImageFloatBox(0.760,  0.295,  0.0467, 0.0767)},
+            {"u2",    ImageFloatBox(0.8067, 0.295,  0.0467, 0.0767)},
+            {"u3",    ImageFloatBox(0.8533, 0.295,  0.0467, 0.0767)},
+            {"u4",    ImageFloatBox(0.760,  0.3717, 0.0467, 0.0767)},
+            {"u5",    ImageFloatBox(0.8067, 0.3717, 0.0467, 0.0767)},
+            {"u6",    ImageFloatBox(0.8533, 0.3717, 0.0467, 0.0767)},
+            {"u7",    ImageFloatBox(0.760,  0.4483, 0.0467, 0.0767)},
+            {"u8",    ImageFloatBox(0.8067, 0.4483, 0.0467, 0.0767)},
+            {"u9",    ImageFloatBox(0.8533, 0.4483, 0.0467, 0.0767)},
         };
+
+        std::unordered_map<int, PokemonVisualData> visual_forms;
+        {
+            JsonValue json = load_json_file(RESOURCE_PATH() + "PokemonHome/visual_forms.json");
+            JsonObject* root = json.to_object();
+            if (root){
+                for (auto it = root->begin(); it != root->end(); ++it){
+                    int dex_id = std::stoi(it->first);
+                    JsonObject* poke_obj = it->second.to_object();
+                    if (!poke_obj) continue;
+
+                    const JsonArray* boxes_json = poke_obj->get_array("boxes_used");
+                    JsonValue* forms_val = poke_obj->get_value("forms");
+                    if (!boxes_json || !forms_val || !forms_val->is_array()) continue;
+                    JsonArray& forms_json = *forms_val->to_array();
+
+                    PokemonVisualData poke_data;
+                    for (size_t b = 0; b < boxes_json->size(); b++){
+                        const std::string* box_name = (*boxes_json)[b].to_string();
+                        if (box_name) poke_data.boxes.push_back(*box_name);
+                    }
+
+                    for (size_t i = 0; i < forms_json.size(); i++){
+                        JsonObject* form = forms_json[i].to_object();
+                        FormVisualData data;
+                        if (form){
+                            JsonValue* values_val = form->get_value("values");
+                            if (values_val && values_val->is_array()){
+                                JsonArray& values = *values_val->to_array();
+                                JsonArray* normal_boxes = values.size() > 0 ? values[0].to_array() : nullptr;
+                                JsonArray* shiny_boxes  = values.size() > 1 ? values[1].to_array() : nullptr;
+                                for (size_t b = 0; b < poke_data.boxes.size(); b++){
+                                    FloatPixel n, s;
+                                    if (normal_boxes && b < normal_boxes->size()){
+                                        JsonArray* rgb = (*normal_boxes)[b].to_array();
+                                        if (rgb && rgb->size() == 3)
+                                            n = FloatPixel((*rgb)[0].to_double_default(), (*rgb)[1].to_double_default(), (*rgb)[2].to_double_default());
+                                    }
+                                    if (shiny_boxes && b < shiny_boxes->size()){
+                                        JsonArray* rgb = (*shiny_boxes)[b].to_array();
+                                        if (rgb && rgb->size() == 3)
+                                            s = FloatPixel((*rgb)[0].to_double_default(), (*rgb)[1].to_double_default(), (*rgb)[2].to_double_default());
+                                    }
+                                    data.normal.push_back(n);
+                                    data.shiny.push_back(s);
+                                }
+                            }
+                        }
+                        poke_data.forms.push_back(std::move(data));
+                    }
+                    visual_forms[dex_id] = std::move(poke_data);
+                }
+                logger.log("visual_forms loaded: " + std::to_string(visual_forms.size()) + " entries");
+            }else{
+                logger.log("visual_forms failed to load from: " + RESOURCE_PATH() + "PokemonHome/visual_forms.json");
+            }
+        }
 
         std::unordered_map<int, std::pair<bool,bool>> issue_list = { // TODO: FIX THIS
             {774, {false,true}},
@@ -341,7 +209,7 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
         // This will only be allowed for a subset of pokemon, which we can store in a player-specific txt file. if the ot and date met match, we can allow it as marked, otherwise, nothing should be marked.
         int form_id = -2;
 
-        if((shiny_stddev_value > 30)?issue_list[national_dex_number].second:issue_list[national_dex_number].first){ // Shiny alcremie, all sinistea, etc.
+        if(!matches.empty() && ((shiny_stddev_value > 30)?issue_list[national_dex_number].second:issue_list[national_dex_number].first)){ // Shiny alcremie, all sinistea, etc.
             return PokemonData(
                 national_dex_number,
                 -1,
@@ -360,46 +228,99 @@ PokemonData SummaryDetector::identify_pokemon(Logger& logger, const ImageViewRGB
                 );
             // throw std::logic_error("Unidentifiable form encountered. Unknown solution.");
         }else{
-            double best_distance = 10;
             const PokemonInformation* best_match = nullptr;
-            (void)best_match;
 
-            // Check color similarity vs. your reference map (visual_forms)
-            auto it = visual_forms.find(national_dex_number);
-            if (it != visual_forms.end()){
-                const auto& variants = it->second;
+            // Cache box measurements so Unown's 9 boxes aren't re-extracted per candidate.
+            std::unordered_map<std::string, FloatPixel> box_cache;
+            auto get_box_color = [&](const std::string& name) -> FloatPixel {
+                auto cache_it = box_cache.find(name);
+                if (cache_it != box_cache.end()) return cache_it->second;
+                auto reg_it = box_registry.find(name);
+                if (reg_it == box_registry.end()) return FloatPixel(0, 0, 0);
+                FloatPixel color = image_stats(extract_box_reference(screen, reg_it->second)).average;
+                box_cache[name] = color;
+                return color;
+            };
+
+            if(national_dex_number==201){
+                int temp = 1;
+                (void) temp;
+            }
+
+            auto vit = visual_forms.find(national_dex_number);
+            if (vit != visual_forms.end()){
+                const PokemonVisualData& poke_data = vit->second;
+                bool is_shiny = shiny_stddev_value > 30;
+
+                logger.log("visual_form check: dex=" + std::to_string(national_dex_number) +
+                    " is_shiny=" + std::to_string(is_shiny) +
+                    " shiny_stddev=" + std::to_string(shiny_stddev_value) +
+                    " forms_in_json=" + std::to_string(poke_data.forms.size()) +
+                    " candidates=" + std::to_string(matches.size()));
 
                 for (const auto& candidate : matches){
                     int fid = candidate.form_id.value_or(-1);
-                    if (fid >= 0 && fid < (int)variants.size()){
-                        const auto& [normal_color, shiny_color] = variants[fid];
-                        const FloatPixel& target_color = shiny_stddev_value > 30 ? shiny_color : normal_color;
-                        double distance = euclidean_distance(pokemon_color, target_color);
-                        if (distance < best_distance){
-                            best_distance = distance;
-                            best_match = &candidate;
-                            form_id = best_match->form_id.value();
-                        }
+                    if (fid < 0 || fid >= (int)poke_data.forms.size()){
+                        logger.log("  fid=" + std::to_string(fid) + " (" + candidate.form.value_or("?") + ") -> out of range, skipping");
+                        continue;
+                    }
+                    const FormVisualData& form_data = poke_data.forms[fid];
+                    const std::vector<FloatPixel>& colors = is_shiny ? form_data.shiny : form_data.normal;
+
+                    bool has_data  = false;
+                    bool all_match = true;
+                    for (size_t b = 0; b < poke_data.boxes.size() && all_match; b++){
+                        if (b >= colors.size()){ all_match = false; break; }
+                        const FloatPixel& ref = colors[b];
+                        if (ref.r == 0 && ref.g == 0 && ref.b == 0){ all_match = false; break; }
+                        has_data = true;
+                        auto dist = euclidean_distance(get_box_color(poke_data.boxes[b]), ref);
+                        if (dist > 5.0)
+                            all_match = false;
+                    }
+                    if (!has_data) all_match = false;
+                    logger.log("  fid=" + std::to_string(fid) + " (" + candidate.form.value_or("?") + ") -> has_data=" + std::to_string(has_data) + " all_match=" + std::to_string(all_match));
+                    if (all_match){
+                        form_id    = fid;
+                        best_match = &candidate;
+                        break;
                     }
                 }
             }
 
+            if (form_id == -2 && !matches.empty() && visual_forms.find(national_dex_number) == visual_forms.end()){
+                logger.log("No visual_forms entry for dex #" + std::to_string(national_dex_number) + ", using first match: " + matches[0].form.value_or("?"));
+                return PokemonData(
+                    national_dex_number,
+                    matches[0].form_id.value(),
+                    matches[0].form.value(),
+                    gender, type1, type2,
+                    matches[0].region.value(),
+                    ot_id_value, level,
+                    shiny_stddev_value > 30,
+                    gmax_stddev_value > 30,
+                    ability,
+                    PokemonType::NONE,
+                    false
+                );
+            }
+
             if (form_id == -2) {
-                logger.log(std::to_string(pokemon_color.r) + ", " +
-                           std::to_string(pokemon_color.g) + ", " +
-                           std::to_string(pokemon_color.b));
-                std::cout<< "Could not identify visual form. Check PokemonHome_SummaryDetector at line 104. " <<
-                    "RGB Values for extracted box are: (" <<
-                    std::to_string(pokemon_color.r) << ", " <<
-                    std::to_string(pokemon_color.g) << ", " <<
-                    std::to_string(pokemon_color.b) << ")" << std::endl;
-                throw ShinyFormNotFoundError(
-                    "Shiny form not found. Could not match visual form color. "
-                    "RGB Values for extracted box are: (" +
-                    std::to_string(pokemon_color.r) + ", " +
-                    std::to_string(pokemon_color.g) + ", " +
-                    std::to_string(pokemon_color.b) + ")"
-                    );
+                std::string msg = "Could not identify visual form for dex #" + std::to_string(national_dex_number) + ". Box readings:\n                    [";
+                auto vit2 = visual_forms.find(national_dex_number);
+                if (vit2 != visual_forms.end()){
+                    const auto& boxes = vit2->second.boxes;
+                    for (size_t bi = 0; bi < boxes.size(); bi++){
+                        FloatPixel c = get_box_color(boxes[bi]);
+                        bool is_last = (bi + 1 == boxes.size());
+                        msg += "[" + std::to_string(c.r) + ", " + std::to_string(c.g) + ", " + std::to_string(c.b) + (is_last ? "]], " : "],");
+                    }
+                } else {
+                    FloatPixel c = get_box_color("main");
+                    msg += "\n  main: (" + std::to_string(c.r) + ", " + std::to_string(c.g) + ", " + std::to_string(c.b) + ")";
+                }
+                logger.log(msg);
+                throw ShinyFormNotFoundError(msg);
             }
 
             return PokemonData(
@@ -449,17 +370,9 @@ void SummaryWatcher::make_overlays(VideoOverlaySet& items) const{
     m_frozen_screen.make_overlays(items); // frozen screen box
 }
 
-// Only return true when the screen is frozen AND the summary is detected
 bool SummaryWatcher::process_frame(const ImageViewRGB32& screen, WallClock timestamp){
-    // Step 1: Check if the screen is frozen
     bool frozen = m_frozen_screen.process_frame(screen, timestamp);
-
-    // Step 2: Only check for summary if screen is frozen
-    if (!frozen){
-        return false;
-    }
-
-    // Step 3: Check if the summary screen is actually present
+    if (!frozen) return false;
     return m_detector.detect(screen);
 }
 

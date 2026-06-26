@@ -140,15 +140,19 @@ bool run_pokemon(
     size_t consecutive_move_select = 0;
 //    bool battle_menu_seen = false;
     bool next_turn_on_battle_menu = false;
+
+    NormalBattleMenuWatcher battle_menu(COLOR_RED);
+    MoveSelectWatcher move_select_menu(COLOR_YELLOW);
+    GradientArrowWatcher next_pokemon(COLOR_BLUE, GradientArrowType::RIGHT, {0.50, 0.51, 0.30, 0.10});
+    SwapMenuWatcher swap_menu(COLOR_BLUE);
+    AdvanceDialogWatcher dialog(COLOR_CYAN);
+    OverworldWatcher overworld(stream.logger(), COLOR_GREEN);
+
     while (true){
 
-        NormalBattleMenuWatcher battle_menu(COLOR_RED);
-        MoveSelectWatcher move_select_menu(COLOR_YELLOW);
-        GradientArrowWatcher next_pokemon(COLOR_BLUE, GradientArrowType::RIGHT, {0.50, 0.51, 0.30, 0.10});
-        SwapMenuWatcher swap_menu(COLOR_BLUE);
-        AdvanceDialogWatcher dialog(COLOR_CYAN);
-        OverworldWatcher overworld(stream.logger(), COLOR_GREEN);
+        pbf_wait(context, 500ms);
         context.wait_for_all_requests();
+
         int ret = run_until<ProControllerContext>(
             stream, context,
             [](ProControllerContext& context){

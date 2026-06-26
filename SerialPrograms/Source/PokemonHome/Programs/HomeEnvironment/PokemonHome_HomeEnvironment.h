@@ -136,7 +136,8 @@ public:
     CursorActionResponse pick_up_pokemon_multi(SingleSwitchProgramEnvironment&, ProControllerContext&);
     CursorActionResponse put_down_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&);
     CursorActionResponse put_down_pokemon_multi(SingleSwitchProgramEnvironment&, ProControllerContext&);
-    CursorActionResponse identify_page(SingleSwitchProgramEnvironment&, ProControllerContext&, bool = false, int = INT_MAX);
+    CursorActionResponse identify_box(SingleSwitchProgramEnvironment&, ProControllerContext&, bool = false, int = INT_MAX);
+    CursorActionResponse open_box_spaces(SingleSwitchProgramEnvironment&, ProControllerContext&, int = 0);
     int get_page();
     int get_page() const ;
     int get_row();   // TODO: Delete after implementing box system
@@ -151,13 +152,9 @@ private:
     void align_col(SingleSwitchProgramEnvironment&, ProControllerContext&, const int&);
     void align_row(SingleSwitchProgramEnvironment&, ProControllerContext&, const int&);
     CursorActionResponse position_cursor(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&, int = 0);
-    CursorActionResponse navigate_to_page(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&);
+    CursorActionResponse navigate_to_box(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&);
+    bool is_stable_state(SingleSwitchProgramEnvironment&, ProControllerContext&);
     CursorActionResponse locate_position(SingleSwitchProgramEnvironment&, ProControllerContext&, bool = false);
-
-    // locate_position helpers — each does exactly one thing
-    std::pair<int,int> detect_cursor_visually(SingleSwitchProgramEnvironment&, ProControllerContext&);
-    bool               nudge_from_nav_edge   (SingleSwitchProgramEnvironment&, ProControllerContext&);
-
     int row;
     int col;
     int box;
@@ -188,7 +185,7 @@ public:
     void build_box(SingleSwitchProgramEnvironment&, ProControllerContext&, int, bool = false);
     bool sort_box(SingleSwitchProgramEnvironment&, ProControllerContext&, int);
     void set_up_boxes(SingleSwitchProgramEnvironment&, ProControllerContext&, int, int, bool = false);
-    void sort_all_boxes(SingleSwitchProgramEnvironment&, ProControllerContext&, int, int);
+    void sort_all_boxes(SingleSwitchProgramEnvironment&, ProControllerContext&, int, int, bool = false);
     size_t get_box();
     std::optional<HomeCursor> locate_pokemon(PokemonData&);
     PokemonData populate_pokemon(PokemonData incomplete);
@@ -201,6 +198,7 @@ public:
 
     HomeStorage boxes;  // TODO: Make Private
 
+    std::optional<HomeCursor> cursor;
 
 private:
     CursorActionResponse handle_errors(SingleSwitchProgramEnvironment&, ProControllerContext&, const CursorActionResponse&);
@@ -215,7 +213,6 @@ private:
     void scan_box(SingleSwitchProgramEnvironment&, ProControllerContext&, int);
     void set_prime(int target_id, int target_form);
 
-    std::optional<HomeCursor> cursor;
     GameStatus game_open;
     PageID current_view;
 

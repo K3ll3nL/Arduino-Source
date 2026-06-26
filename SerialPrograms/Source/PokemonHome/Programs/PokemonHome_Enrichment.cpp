@@ -475,7 +475,7 @@ void sv_get_evo_items(SingleSwitchProgramEnvironment& env, ProControllerContext&
 
     ImageFloatBox other_icon(0.485, 0.11, 0.005, 0.005);
     while(euclidean_distance(image_stats(extract_box_reference(env.console.video().snapshot(), other_icon)).average, FloatPixel(255, 210,0))>5){
-        pbf_press_dpad(context, DPAD_RIGHT, 80ms, 240ms+240ms);
+        pbf_press_dpad(context, DPAD_RIGHT, 80ms, 480ms);
         context.wait_for_all_requests();
     }
 
@@ -874,7 +874,7 @@ std::vector<PokemonData> home_request_next_for_fun(SingleSwitchProgramEnvironmen
 
     if(filter_text=="No matches found!")return {};
 
-    std::vector<int> no_evo_list = {3,6,9,12,15,18,20,22,24,26,28,31,34,36,38,40,42,45,47,49,51,53,55,59,62,65,68,71,73,76,78,80,85,87,89,91,94,97,99,101,103,105,106,107,110,113,115,119,121,122,124,127,128,130,131,132,134,135,136,139,141,142,143,144,145,146,149,150,151,154,157,160,162,164,166,168,169,171,178,181,182,184,185,186,189,192,195,196,197,199,201,202,205,208,210,212,213,214,219,224,225,226,227,229,230,232,235,237,241,242,243,244,245,248,249,250,251,254,257,260,262,267,269,272,275,277,279,282,284,286,289,291,292,295,297,301,302,303,306,308,310,311,312,313,314,317,319,321,323,324,326,327,330,332,334,335,336,337,338,340,342,344,346,348,350,351,352,354,357,358,359,362,365,367,368,369,370,373,376,377,378,379,380,381,382,383,384,385,386,389,392,395,398,400,402,405,406,407,409,411,413,414,416,417,419,421,423,424,426,427,428,429,430,432,433,435,437,439,441,442,445,446,447,448,450,452,454,455,457,460,461,462,463,464,465,466,467,468,469,470,471,472,473,474,475,476,477,478,479,480,481,482,483,484,485,486,487,488,489,490,491,492,493,494,497,500,503,505,508,510,512,514,516,518,521,523,526,527,528,530,531,534,537,538,539,541,542,545,547,549,550,553,555,556,558,560,561,563,565,567,569,571,573,576,579,581,584,586,587,589,591,593,594,596,598,601,604,606,609,612,614,615,617,618,620,621,623,626,628,630,631,632,635,637,638,639,640,641,642,643,644,645,646,647,648,649,652,655,658,660,663,666,668,671,673,675,676,678,681,683,685,687,689,691,693,695,697,699,700,701,702,703,706,707,709,710,711,713,715,716,717,718,719,720,721,724,727,730,733,735,738,740,741,743,745,746,748,750,752,754,756,758,760,763,764,765,766,768,770,771,772,773,774,775,776,777,778,779,780,781,784,785,786,787,788,791,792,793,794,795,796,797,798,799,800,801,802,804,805,806,807,809,812,815,818,820,823,826,828,830,832,834,836,839,841,842,844,845,847,849,851,853,855,858,861,862,863,864,865,866,867,869,870,871,872,873,874,875,876,877,879,880,881,882,883,887,888,889,890,892,893,894,895,896,897,898,899,900,901,902,903,904,905,908,911,914,916,918,920,923,925,927,930,931,934,936,937,939,941,943,945,947,949,950,952,954,956,959,961,962,964,966,967,968,970,972,973,975,976,977,978,979,980,981,982,983,984,985,986,987,988,989,990,991,992,993,994,995,998,999,1000,1001,1002,1003,1004,1005,1006,1007,1008,1009,1010,1013,1014,1015,1016,1017,1018,1019,1020,1021,1022,1023,1024,1025};
+    std::vector<int> no_evo_list = {3,6,9,12,15,18,20,22,24,26,28,31,34,36,38,40,42,45,47,49,51,53,55,59,62,65,68,71,73,76,78,80,85,87,89,91,94,97,99,101,103,105,106,107,110,113,115,119,121,122,124,127,128,130,131,132,134,135,136,139,141,142,143,144,145,146,149,150,151,154,157,160,162,164,166,168,169,171,178,181,182,184,185,186,189,192,195,196,197,199,201,202,205,208,210,212,213,214,219,224,225,226,227,229,230,232,235,237,241,242,243,244,245,248,249,250,251,254,257,260,262,267,269,272,275,277,279,282,284,286,289,291,292,295,297,301,302,303,306,308,310,311,312,313,314,317,319,321,323,324,326,327,330,332,334,335,336,337,338,340,342,344,346,348,350,351,352,354,357,358,359,362,365,367,368,369,370,373,376,377,378,379,380,381,382,383,384,385,386,389,392,395,398,400,402,405,406,407,409,411,413,414,416,417,419,421,423,424,426,427,428,429,430,432,433,435,437,439,441,442,445,446,447,448,450,452,454,455,457,460,461,462,463,464,465,466,467,468,469,470,471,472,473,474,475,476,477,478,479,480,481,482,483,484,485,486,487,488,489,490,491,492,493,494,497,500,503,505,508,510,512,514,516,518,521,523,526,527,528,530,531,534,537,538,539,541,542,545,547,549,550,553,555,556,558,560,561,563,565,567,569,571,573,576,579,581,584,586,587,589,591,593,594,596,598,601,604,606,609,612,614,615,617,618,620,621,623,626,628,630,631,632,635,637,638,639,640,641,642,643,644,645,646,647,648,649,652,655,658,660,663,666,668,671,673,675,676,678,681,683,685,687,689,691,693,695,697,699,700,701,702,703,706,707,709,710,711,713,715,716,717,718,719,720,721,724,727,730,733,735,738,740,741,743,745,746,748,750,752,754,756,758,760,763,764,765,766,768,770,771,772,773,774,775,776,777,778,779,780,781,784,785,786,787,788,791,792,793,794,795,796,797,798,799,800,801,802,804,805,806,807,809,812,815,818,820,823,826,828,830,832,834,836,839,841,842,844,845,847,849,851,853,855,858,861,862,863,864,865,866,867,869,870,871,872,873,874,875,876,877,879,880,881,882,883,887,888,889,890,892,893,894,895,896,897,898,899,900,901,902,903,904,905,908,911,914,916,918,920,923,925,927,930,931,934,936,937,939,941,943,945,947,949,950,952,954,956,959,961,962,964,966,967,968,970,972,973,975,976,977,978,979,980,981,982,983,984,985,986,987,988,989,990,991,992,993,994,995,998,1000,1001,1002,1003,1004,1005,1006,1007,1008,1009,1010,1013,1014,1015,1016,1017,1018,1019,1020,1021,1022,1023,1024,1025};
 
 
     pbf_press_button(context, BUTTON_A, 80ms, 240ms);
@@ -1057,10 +1057,6 @@ int home_fill_boxes_to_game(SingleSwitchProgramEnvironment& env, ProControllerCo
 }
 
 void sv_run_ace2(SingleSwitchProgramEnvironment& env, ProControllerContext& context, double b_probability = 0){
-    PokemonSV::AdvanceDialogWatcher evo_message(COLOR_CYAN, PokemonSV::DialogType::DIALOG_BLACK);
-    PokemonSV::AdvanceDialogWatcher next_battle_message(COLOR_CYAN, PokemonSV::DialogType::DIALOG_WHITE);
-    PokemonSV::PromptDialogWatcher learn_move_message(COLOR_CYAN);
-    PokemonSV::NormalBattleMenuWatcher battle_menu(COLOR_RED);
 
     ImageFloatBox evolve_message(0.28, 0.76, 0.065, 0.055);
 
@@ -1069,92 +1065,145 @@ void sv_run_ace2(SingleSwitchProgramEnvironment& env, ProControllerContext& cont
     VideoSnapshot screen = env.console.video().snapshot();
 
     // Close out of boxes and run tournament
-    pbf_press_button(context, BUTTON_B, 80ms, 300ms+500ms);
+    pbf_press_button(context, BUTTON_B, 80ms, 300ms+1500ms);
     pbf_mash_button(context, BUTTON_A, 40s);
 
     for(int i = 0; i < 4; i++){
         env.console.log("Running battle "+std::to_string(i+1), COLOR_CYAN);
 
-        int ret = -1, errcheck = 0;
-        while(ret==-1){
-            ret = wait_until(
-                env.console, context,
-                30s,
-                {battle_menu}
-                );
-            if(++errcheck>6)throw BattleFailedException{};
-            else{pbf_press_button(context, BUTTON_B, 80ms, 240ms);}
-        }
+        PokemonSV::NormalBattleMenuWatcher battle_menu(COLOR_RED);
+        WallClock start = current_time();
+        run_until<ProControllerContext>(
+            env.console, context,
+            [&](ProControllerContext& context){
+                for (size_t c = 0; c < 30; c++){ //Sylveon build has 16 PP at max, and Chi-Yu build has 24.
+                    if (current_time() - start > std::chrono::minutes(2)){
+                        env.log("Timed out during battle after 2 minutes.", COLOR_RED);
+                        throw BattleFailedException{};
+                    }
+                    context.wait_for_all_requests();
+                    pbf_press_button(context, BUTTON_B, 80ms, 240ms);
+
+                }
+            },
+            { battle_menu }
+        );
 
 
-        bool terrastalized = true;
-        bool win = PokemonSV::run_pokemon(env.console, context, {}, true, terrastalized);
+        PokemonSV::AdvanceDialogWatcher end_of_battle(COLOR_YELLOW);
+        start = current_time();
+        run_until<ProControllerContext>(
+            env.console, context,
+            [&](ProControllerContext& context){
+                for (size_t c = 0; c < 30; c++){ //Sylveon build has 16 PP at max, and Chi-Yu build has 24.
+                    if (current_time() - start > std::chrono::minutes(10)){
+                        env.log("Timed out during battle after 10 minutes.", COLOR_RED);
+                        throw BattleFailedException{};
+                    }
 
-        if(!win){
-            throw BattleFailedException{};
-        }
+                    PokemonSV::GradientArrowWatcher switch_pokemon(COLOR_BLUE, PokemonSV::GradientArrowType::RIGHT, {0.50, 0.40, 0.20, 0.30});
+                    PokemonSV::NormalBattleMenuWatcher battle_menu(COLOR_YELLOW);
+                    PokemonSV::MoveSelectWatcher move_select(COLOR_GREEN);
+                    PokemonSV::SwapMenuWatcher fainted(COLOR_RED);
+                    context.wait_for_all_requests();
+
+                    int ret = wait_until(
+                        env.console, context,
+                        std::chrono::seconds(90), //Tera takes ~25 to 30 seconds each, slightly over 60 seconds if both player and opponent uses in the same turn
+                        {
+                            switch_pokemon,
+                            battle_menu,
+                            move_select,
+                            fainted,
+                        }   //End of battle from tera'd ace takes longer, 45 seconds was not enough
+                        );
+                    switch (ret){
+                    case 0:
+                        env.log("Detected switch " + STRING_POKEMON + " prompt. Pressing B to not switch...");
+                        pbf_mash_button(context, BUTTON_B, 3000ms);
+                        break;
+                    case 1:
+                        env.log("Detected battle menu. Pressing A to attack...");
+                        pbf_mash_button(context, BUTTON_A, 3000ms);
+                        break;
+                    case 2:
+                        env.log("Detected move selection. Pressing A to attack...");
+                        pbf_mash_button(context, BUTTON_A, 3000ms);
+                        break;
+                    case 3:
+                        // Calyrex has fainted. Give up.
+                        throw BattleFailedException{};
+                    default:
+                        env.log("Timed out during battle. Stuck, crashed, or took more than 90 seconds for a turn.", COLOR_RED);
+                    }
+                }
+            },
+            { end_of_battle }
+            );
 
         pbf_press_button(context, BUTTON_A, 80ms, 240ms);
 
         // Account for evolutions
 
-
-        ret = wait_until(
+        start = current_time();
+        run_until<ProControllerContext>(
             env.console, context,
-            60s,
-            {
-                evo_message,
-                next_battle_message,
-                learn_move_message
-            }
-            );
-
-        env.console.log("ret is "+std::to_string(ret));
-
-
-        while(ret!=-1){
-            switch(ret){
-            case 0:
-                screen = env.console.video().snapshot();
-                pbf_press_button(context, BUTTON_A, 80ms, 240ms);
-                if(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, evolve_message))) == "What?"){
-                    float prob_pick = rand();
-                    float prob_pick_clamped = prob_pick/RAND_MAX;
-                    float prob_manipped = (1-(std::powf(1-(b_probability),1.0f/4.0f)));
-
-                    env.console.log(std::to_string(prob_pick)+" "+std::to_string(prob_pick_clamped)+" "+std::to_string(prob_manipped));
-                    if(prob_pick_clamped > prob_manipped){   // TODO: Fix Probability Check
-                        pbf_mash_button(context, BUTTON_B, 500ms);
-                    }  else{
-                        pbf_wait(context, 10000ms);
+            [&](ProControllerContext& context){
+                for (size_t c = 0; c < 30; c++){
+                    if (current_time() - start > std::chrono::minutes(5)){
+                        env.log("Timed out after battle after 5 minutes.", COLOR_RED);
+                        throw BattleFailedException{};
                     }
-                    errcheck = 0;
+
+                    PokemonSV::AdvanceDialogWatcher evo_message(COLOR_CYAN, PokemonSV::DialogType::DIALOG_BLACK);
+                    PokemonSV::PromptDialogWatcher learn_move_message(COLOR_CYAN);
+                    PokemonSV::AdvanceDialogWatcher next_battle_message(COLOR_CYAN, PokemonSV::DialogType::DIALOG_WHITE);
+                    PokemonSV::DialogArrowWatcher dialog_arrow(COLOR_RED, env.console, {0.850, 0.820, 0.020, 0.050}, 0.8365, 0.846);
+                    PokemonSV::OverworldWatcher overworld(env.console, COLOR_RED);
+
+                    context.wait_for_all_requests();
+
+                    int ret = wait_until(
+                        env.console, context,
+                        60s,
+                        {
+                            evo_message,
+                            learn_move_message,
+                            next_battle_message,
+                            dialog_arrow,
+                            overworld,
+                        }
+                    );
+                    switch(ret){
+                    case 0:
+                        screen = env.console.video().snapshot();
+                        pbf_press_button(context, BUTTON_A, 80ms, 240ms);
+                        if(sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, evolve_message))) == "What?"){
+                            float prob_pick = rand();
+                            float prob_pick_clamped = prob_pick/RAND_MAX;
+                            float prob_manipped = (1-(std::powf(1-(b_probability),1.0f/4.0f)));
+
+                            env.console.log(std::to_string(prob_pick)+" "+std::to_string(prob_pick_clamped)+" "+std::to_string(prob_manipped));
+                            if(prob_pick_clamped > prob_manipped){
+                                pbf_mash_button(context, BUTTON_B, 500ms);
+                            }  else{
+                                pbf_wait(context, 10000ms);
+                            }
+                        }
+                        break;
+                    case 4:
+                        return;
+                    case 1:
+                    case 2:
+                    case 3:
+                    default:
+                        pbf_press_button(context, BUTTON_B, 80ms, 240ms);
+                        break;
+                    }
                 }
-            case 1:
-                pbf_mash_button(context, BUTTON_B, 5s);
-            case 2:
-                pbf_press_button(context, BUTTON_B, 80ms, 240ms);
-                break;
-            default:
-                throw;
-            }
-
-            context.wait_for_all_requests();
-
-            ret = wait_until(
-                env.console, context,
-                60s,
-                {
-                    evo_message,
-                    next_battle_message,
-                    learn_move_message
-                }
-                );
-
-            if(errcheck++>10){
-                throw BattleFailedException{};
-            }
-        }
+            },
+            { battle_menu }
+        );
     }
 }
 
@@ -1188,16 +1237,15 @@ void sv_run_item_evos(SingleSwitchProgramEnvironment& env, ProControllerContext&
 
     std::vector<std::string> evo_list = {"thunder-stone","ice-stone", "moon-stone", "fire-stone", "water-stone", "leaf-stone", "shiny-stone", "sun-stone", "dusk-stone", "metal-alloy"};
 
-    // Navigate to bag, then items pocket
-    pbf_press_dpad(context, DPAD_UP, 80ms, 240ms);
-    pbf_press_button(context, BUTTON_A, 80ms, 240ms);
+
+    PokemonSV::enter_menu_from_overworld(env.program_info(), env.console, context, 0);
 
 
     context.wait_for_all_requests();
 
     ImageFloatBox other_icon(0.485, 0.11, 0.005, 0.005);
-    while(euclidean_distance(image_stats(extract_box_reference(env.console.video().snapshot(), other_icon)).average, FloatPixel(255, 215.5,0))>5){
-        pbf_press_dpad(context, DPAD_RIGHT, 80ms, 240ms);
+    while(euclidean_distance(image_stats(extract_box_reference(env.console.video().snapshot(), other_icon)).average, FloatPixel(255, 210,0))>5){
+        pbf_press_dpad(context, DPAD_RIGHT, 80ms, 480ms);
         context.wait_for_all_requests();
     }
 
@@ -1424,8 +1472,8 @@ void sv_run_enrichment(SingleSwitchProgramEnvironment& env, ProControllerContext
             nav_to_column(runs+1);
         }
 
-        pbf_press_button(context, BUTTON_A, 80ms, 240ms);        // Put pokemon down
-        pbf_press_button(context, BUTTON_B, 80ms, 300ms+500ms);       // Close out of boxes
+        pbf_press_button(context, BUTTON_A, 80ms, 240ms+240ms);        // Put pokemon down
+        pbf_press_button(context, BUTTON_B, 80ms, 300ms+2s);       // Close out of boxes
     };
 
     // Loaded into game
@@ -1454,10 +1502,10 @@ void sv_run_enrichment(SingleSwitchProgramEnvironment& env, ProControllerContext
             move_pokemon_column(runs, false);       // Put away the pokemon from this iteration
 
             //save
-            pbf_press_button(context, BUTTON_R, 80ms, 300ms);
-            pbf_press_button(context, BUTTON_A, 80ms, 240ms);
+            pbf_press_button(context, BUTTON_R, 80ms, 1s);
+            pbf_press_button(context, BUTTON_A, 80ms, 1s);
             pbf_wait(context, 6000ms);
-            pbf_press_button(context, BUTTON_B, 80ms, 300ms);
+            pbf_press_button(context, BUTTON_B, 80ms, 1s);
         }
         catch(const BattleFailedException& e){
             env.console.log(e.what());
@@ -1523,23 +1571,21 @@ void Enrichment::enrich_with_games(SingleSwitchProgramEnvironment& env, ProContr
                     item_counts_init = true;
                     switch_close_game_and_open(env, context, "Pokémon HOME");
                 }
-                if(!SKIP_SETUP){
-                    home_manager.detect_home(env, context);
-                    home_manager.navigate_menus_to(env, context, PageID::BOX_VIEW, GameStatus::POKEMON_VIOLET);
-                    context.wait_for_all_requests();
-                    home_manager.navigate_to(env, context, {2, 11, 0});
-                    home_navigate_to_box_secondary(env, context, home_manager, SV_BOX_NAME);
-                    home_manager.navigate_to(env, context, {1, 1, 0});
-                    context.wait_for_all_requests();
-                    pokemon = home_fill_boxes_to_game(env, context, home_manager, tempbox, game, SV_BOX_NAME, enrichment_mode, item_counts);
-                    env.console.log("Pokemon: "+std::to_string(pokemon));
-                    if(pokemon==0){
-                        env.console.log("Pokemon is now 0.");
-                        mode_list[game.game].erase(mode_list[game.game].begin());
-                        enrichment_mode = mode_list[game.game][0];
-                        env.console.log("enrichment_mode:"+to_string(enrichment_mode));
-                        break;
-                    }
+                home_manager.detect_home(env, context);
+                home_manager.navigate_menus_to(env, context, PageID::BOX_VIEW, GameStatus::POKEMON_VIOLET);
+                context.wait_for_all_requests();
+                home_manager.navigate_to(env, context, {2, 11, 0});
+                home_navigate_to_box_secondary(env, context, home_manager, SV_BOX_NAME);
+                home_manager.navigate_to(env, context, {1, 1, 0});
+                context.wait_for_all_requests();
+                pokemon = home_fill_boxes_to_game(env, context, home_manager, tempbox, game, SV_BOX_NAME, enrichment_mode, item_counts);
+                env.console.log("Pokemon: "+std::to_string(pokemon));
+                if(pokemon==0){
+                    env.console.log("Pokemon is now 0.");
+                    mode_list[game.game].erase(mode_list[game.game].begin());
+                    enrichment_mode = mode_list[game.game][0];
+                    env.console.log("enrichment_mode:"+to_string(enrichment_mode));
+                    break;
                 }
                 home_manager.navigate_menus_to(env, context, PageID::MAIN_MENU);
                 switch_close_game_and_open(env, context, "Pokémon Violet");
@@ -1583,6 +1629,7 @@ void Enrichment::home_put_away_pokemon(SingleSwitchProgramEnvironment& env, ProC
     // move back to the Home side of the boxes
     // pbf_press_button(context, BUTTON_LEFT, 80ms, 240ms);
     home_manager.navigate_to(env, context, {0,0, HOME_FIRST_BOX});
+    context.wait_for_all_requests();
     try{
         for(int i = 0; i < 6; i++){
             for(int j = 0; j < 5; j++){
@@ -1928,6 +1975,19 @@ void Enrichment::wipe_markings(SingleSwitchProgramEnvironment& env, ProControlle
 }
 
 void Enrichment::program(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+    // SummaryWatcher summary_page(COLOR_CYAN);
+    // PokemonData pokemon;
+    // PokedexReader pokedex_information;
+
+    // wait_until(
+    //     env.console, context,
+    //     10s,
+    //     {summary_page}
+    // );
+
+    // pokemon = summary_page.get_pokemon(env.console, env.console.video().snapshot(), pokedex_information);
+    // env.console.log(pokemon.to_string());
+
 
     std::vector<Game> game_list = {Game(GameStatus::POKEMON_VIOLET,1,false)/*,Game(GameStatus::POKEMON_SWORD,4,false),Game(GameStatus::POKEMON_PLA,2,false),Game("GameStatus::POKEMON_EEVEE",5,false)*/};
 
@@ -1946,16 +2006,18 @@ void Enrichment::program(SingleSwitchProgramEnvironment& env, ProControllerConte
 
     initialize_home(env, context, home_manager, game_list);
 
-    enrich_with_games(env, context, home_manager, game_list);
-    send_program_notification(
-        env, NOTIFICATION_ERROR_FATAL,
-        COLOR_GREEN,
-        "Finished Running Enhancements",
-        {}, "",
-        screen
-        );
+    if(!SKIP_SETUP){
+        enrich_with_games(env, context, home_manager, game_list);
+        send_program_notification(
+            env, NOTIFICATION_ERROR_FATAL,
+            COLOR_GREEN,
+            "Finished Running Enhancements",
+            {}, "",
+            screen
+            );
+    }
 
-    home_manager.sort_all_boxes(env, context, HOME_FIRST_BOX, HOME_LAST_BOX);
+    home_manager.sort_all_boxes(env, context, HOME_FIRST_BOX, HOME_LAST_BOX, SKIP_READ);
 
     int ret = -1;
     while(ret!=0){
@@ -1987,7 +2049,7 @@ void Enrichment::program(SingleSwitchProgramEnvironment& env, ProControllerConte
     //            std::to_string(pokemon_color.b));
 
 
-    // // SV Item Testing
+    // SV Item Testing
     // ImageFloatBox other_icon(0.485, 0.11, 0.005, 0.005);
     // auto temp = image_stats(extract_box_reference(env.console.video().snapshot(), other_icon)).average;
     // env.console.log(std::to_string(temp.r)+" "+std::to_string(temp.g)+" "+std::to_string(temp.b));
@@ -1999,7 +2061,7 @@ void Enrichment::program(SingleSwitchProgramEnvironment& env, ProControllerConte
     // PokemonSV::PromptDialogWatcher learn_move_message(COLOR_CYAN);
     // PokemonSV::NormalBattleMenuWatcher battle_menu(COLOR_RED);
 
-    // int ret = wait_until(
+    // int ret = wait_until(q
     //     env.console, context,
     //     60s,
     //     {

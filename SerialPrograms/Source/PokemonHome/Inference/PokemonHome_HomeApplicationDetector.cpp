@@ -137,9 +137,11 @@ bool HomeMainMenuDetector::detect(const ImageViewRGB32& screen){
     // In most main menus, where the minus button for help shows
     ImageFloatBox minus_help_corner(0.03, 0.965, 0.06, 0.03);
     ImageFloatBox menu_read_corner(0.06, 0.021, 0.25, 0.05);
+    ImageFloatBox menu_main_desc(0.38, 0.095, 0.23, 0.06);
     std::string minus_button = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, minus_help_corner)));
     std::string menu_text = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, menu_read_corner)));
-    if(menu_text == "MAIN MENU" && minus_button == "Help"){
+    std::string main_desc = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, menu_main_desc)));
+    if(menu_text == "MAIN MENU" && minus_button == "Help" && main_desc == "Deposit your Pokémon"){
         return true;
     }
 
@@ -401,9 +403,11 @@ bool HomeBoxViewDetector::detect(const ImageViewRGB32& screen){
     // In most main menus, where the minus button for help shows
     ImageFloatBox minus_help_corner(0.03, 0.965, 0.06, 0.03);
     ImageFloatBox menu_read_corner(0.06, 0.021, 0.25, 0.05);
+    ImageFloatBox swap_button_corner(0.76, 0.96, 0.05, 0.035);
     std::string minus_button = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, minus_help_corner)));
     std::string menu_text = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, menu_read_corner)));
-    if(menu_text == "POKEMON" && minus_button == "Help"){
+    std::string swap_button = sanitize_OCR(OCR::ocr_read(Language::English, extract_box_reference(screen, swap_button_corner)));
+    if(menu_text == "POKEMON" && minus_button == "Help" && swap_button == "Swap"){
         return true;
     }
 
@@ -551,7 +555,6 @@ void HomePrelimLogoutDialogueWatcher::make_overlays(VideoOverlaySet& items) cons
 bool HomePrelimLogoutDialogueWatcher::process_frame(const ImageViewRGB32& screen, WallClock timestamp){
     return m_detector.detect(screen);
 }
-
 
 
 HomeErrorPlacingWondertradeDetector::~HomeErrorPlacingWondertradeDetector() = default;

@@ -11,6 +11,7 @@
 #include "NintendoSwitch/Commands/NintendoSwitch_Commands_PushButtons.h"
 #include "NintendoSwitch/NintendoSwitch_SingleSwitchProgram.h"
 #include "PokemonHome/Inference/PokemonHome_HomeApplicationDetector.h"
+#include "PokemonHome/Inference/PokemonHome_SelectionArrowDetector.h"
 #include "PokemonHome/Inference/PokemonHome_FilterMenuReader.h"
 #include "PokemonHome/Inference/PokemonHome_FilterMenuConfirmReader.h"
 #include "PokemonHome/Inference/PokemonHome_SummaryDetector.h"
@@ -36,8 +37,12 @@ using namespace Pokemon;
 static int MAX_RETRIES = 5;
 
 std::string sanitize_OCR2(std::string str){
-    char chars[] = "\n\r—.,";
-    for(auto a:chars){str.erase(std::remove(str.begin(),str.end(), a),str.end());}
+    str.erase(
+        std::remove_if(str.begin(), str.end(), [](unsigned char c){
+            return c < 0x20 || c == 0x7F || c==0x0A;
+        }),
+        str.end()
+        );
     return str;
 }
 
@@ -100,9 +105,9 @@ HomeCursor::HomeCursor(SingleSwitchProgramEnvironment& env, ProControllerContext
 
     locate_position(env, context);
     if(!single_page){
-        identify_page(env, context, false);
+        identify_box(env, context, false);
         if(box==0){
-            identify_page(env,context, true, UINT_MAX);
+            identify_box(env,context, true, UINT_MAX);
         }
     }
 
@@ -129,16 +134,64 @@ HomeCursor::HomeCursor()
 CursorActionResponse HomeCursor::move_cursor_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const HomeCursor& dest_cursor){
     // TODO: Implement cursor movement logic
 
-    auto response = position_cursor(env, context, dest_cursor);
-    if(response.result!=CursorActionResult::SUCCESS){
-        return {response.result, response.message+" in movement to ("+std::to_string(dest_cursor.row)+", "+std::to_string(dest_cursor.col)+"), box "+std::to_string(dest_cursor.box)};
-    }
+    CursorActionResponse response = {};
 
     if(dest_cursor.box!=0){
-        response = navigate_to_page(env, context, dest_cursor);
-        if(response.result!=CursorActionResult::SUCCESS){
-            return {response.result, response.message+" in movement to ("+std::to_string(dest_cursor.row)+", "+std::to_string(dest_cursor.col)+"), box "+std::to_string(dest_cursor.box)};
+        if(std::abs(dest_cursor.box-box)>8){ // Going long distance
+            open_box_spaces(env, context);
+
+            int curr_page = box/30;
+            int dest_page = dest_cursor.box/30;
+
+            pbf_wait(context, 1s);
+            context.wait_for_all_requests();
+            if(dest_page>curr_page){ // Navigating right
+                while(curr_page<dest_page){
+                    pbf_press_button(context, BUTTON_R, 80ms, 2s);
+                    context.wait_for_all_requests();
+                    curr_page++;
+                }
+            }else{ // navigating left
+                while(curr_page>dest_page){
+                    pbf_press_button(context, BUTTON_L, 80ms, 2s);
+                    context.wait_for_all_requests();
+                    curr_page--;
+                }
+            }
+
+            int dest_row = (dest_cursor.box-1 - (dest_page*30))/6;
+            int dest_col = (dest_cursor.box-1 - (dest_page*30))%6;
+
+            context.wait_for_all_requests();
+
+            // Reset positions since they are not accurate anymore
+            row = box/6;
+            col = box%6;
+
+            response = position_cursor(env, context, {dest_row, dest_col});
+
+            if(response.result==CursorActionResult::SUCCESS){
+
+                pbf_press_button(context, BUTTON_A, 80ms, 1s);
+
+                row = 0;
+                col = 0;
+                box = dest_cursor.box;
+            }else{
+                return {CursorActionResult::FAILURE, "Could not navigate to box through Box Spaces"};
+            }
+
+        }else{
+            response = navigate_to_box(env, context, dest_cursor);
+            if(response.result!=CursorActionResult::SUCCESS){
+                return {response.result, response.message+" in movement to ("+std::to_string(dest_cursor.row)+", "+std::to_string(dest_cursor.col)+"), box "+std::to_string(dest_cursor.box)};
+            }
         }
+    }
+
+    response = position_cursor(env, context, dest_cursor);
+    if(response.result!=CursorActionResult::SUCCESS){
+        return {response.result, response.message+" in movement to ("+std::to_string(dest_cursor.row)+", "+std::to_string(dest_cursor.col)+"), box "+std::to_string(dest_cursor.box)};
     }
 
     return {CursorActionResult::SUCCESS, "Successfully navigated to ("+std::to_string(dest_cursor.row)+", "+std::to_string(dest_cursor.col)+"), box "+std::to_string(dest_cursor.box)};
@@ -152,6 +205,9 @@ CursorActionResponse HomeCursor::pick_up_pokemon(SingleSwitchProgramEnvironment&
 }
 
 CursorActionResponse HomeCursor::pick_up_pokemon_multi(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+
+
+
     pbf_press_button(context, BUTTON_A, 80ms, 240ms);    // press y button
     holding_pokemon = true;
     // locate_position(env, context);
@@ -240,23 +296,23 @@ CursorActionResponse HomeCursor::position_cursor(SingleSwitchProgramEnvironment&
     }
 
 
-    if(retry_count > 3){ // Last resort for checking that the cursor did not end up at the bottom or top row.
-        // TODO: Add detection for top and bottom row buttons that don't appear in the normal grid
-        ImageFloatBox box_name_button = {0.3, 0.1, 0.01, 0.02};
-        ImageFloatBox box_spaces_button = {0.3, 0.72, 0.01, 0.02};
-        ImageFloatBox newest_30_button = {0.46, 0.72, 0.01, 0.02};
-        context.wait_for_all_requests();
+    // if(retry_count > 3){ // Last resort for checking that the cursor did not end up at the bottom or top row.
+    //     // TODO: Add detection for top and bottom row buttons that don't appear in the normal grid
+    //     ImageFloatBox box_name_button = {0.3, 0.1, 0.01, 0.02};
+    //     ImageFloatBox box_spaces_button = {0.3, 0.72, 0.01, 0.02};
+    //     ImageFloatBox newest_30_button = {0.46, 0.72, 0.01, 0.02};
+    //     context.wait_for_all_requests();
 
-        VideoSnapshot screen = env.console.video().snapshot();
-        if(euclidean_distance(image_stats(extract_box_reference(screen, box_name_button)).average, FloatPixel(255, 215.5,0))<=15){
-            pbf_press_button(context, BUTTON_DOWN, 80ms, 240ms);
-            return locate_position(env, context, true);
-        }
-        if(euclidean_distance(image_stats(extract_box_reference(screen, box_spaces_button)).average, FloatPixel(255, 215.5,0))<=15 || euclidean_distance(image_stats(extract_box_reference(screen, newest_30_button)).average, FloatPixel(255, 215.5,0))<=15){
-            pbf_press_button(context, BUTTON_UP, 80ms, 240ms);
-            return locate_position(env, context, true);
-        }
-    }
+    //     VideoSnapshot screen = env.console.video().snapshot();
+    //     if(euclidean_distance(image_stats(extract_box_reference(screen, box_name_button)).average, FloatPixel(255, 215.5,0))<=15){
+    //         pbf_press_button(context, BUTTON_DOWN, 80ms, 240ms);
+    //         return locate_position(env, context, true);
+    //     }
+    //     if(euclidean_distance(image_stats(extract_box_reference(screen, box_spaces_button)).average, FloatPixel(255, 215.5,0))<=15 || euclidean_distance(image_stats(extract_box_reference(screen, newest_30_button)).average, FloatPixel(255, 215.5,0))<=15){
+    //         pbf_press_button(context, BUTTON_UP, 80ms, 240ms);
+    //         return locate_position(env, context, true);
+    //     }
+    // }
 
     if(row < 0 || col < 0 || row > MAX_ROWS || col > MAX_COLUMNS){
         locate_position(env, context, false);
@@ -285,13 +341,13 @@ CursorActionResponse HomeCursor::position_cursor(SingleSwitchProgramEnvironment&
     return {CursorActionResult::SUCCESS, "Successfully moved cursor to ("+std::to_string(row)+", "+std::to_string(col)+")"};
 }
 
-CursorActionResponse HomeCursor::navigate_to_page(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const HomeCursor& dest_cursor){
+CursorActionResponse HomeCursor::navigate_to_box(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const HomeCursor& dest_cursor){
     if(dest_cursor.box>200 || dest_cursor.box < 0){
         return {CursorActionResult::FAILURE, "box "+std::to_string(dest_cursor.box)+" out of scope"};
     }
 
     if(box == 0){
-        identify_page(env, context, false, UINT_MAX);
+        identify_box(env, context, false, UINT_MAX);
     }
 
     CursorActionResponse last_move;
@@ -328,54 +384,38 @@ CursorActionResponse HomeCursor::navigate_to_page(SingleSwitchProgramEnvironment
 }
 
 
+bool HomeCursor::is_stable_state(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
+    context.wait_for_all_requests();
+    VideoSnapshot frame = env.console.video().snapshot();
+
+    HomeCursorLocator cursorLocator(holding_pokemon ? HomeCursorType::GRABBING : HomeCursorType::RED, {0.03, 0.1, 0.93, 0.6}, COLOR_WHITE);
+    if (cursorLocator.detect(frame).first < 0) return false;
+
+    FilterCursorLocator filterLocator({0, 0, 1, 1}, COLOR_BLUE);
+    if (filterLocator.detect(frame).first >= 0) return false;
+
+    SelectionArrowDetector arrowDetector(COLOR_BLUE, nullptr, SelectionArrowType::RIGHT, {0, 0, 1, 1});
+    if (arrowDetector.detect(frame)) return false;
+
+    return true;
+}
+
 CursorActionResponse HomeCursor::locate_position(SingleSwitchProgramEnvironment& env, ProControllerContext& context, bool retry){
-    // Special waterfill case for if holding pokemon, very reliable
     context.wait_for_all_requests();
 
     ImageFloatBox hand_region = {0.03, 0.1, 0.93, 0.6};
-    HomeCursorWatcher handWatcher(holding_pokemon?HomeCursorType::GRABBING:HomeCursorType::RED, hand_region, COLOR_WHITE);
+    HomeCursorWatcher redWatcher(holding_pokemon ? HomeCursorType::GRABBING : HomeCursorType::RED, hand_region, COLOR_WHITE);
 
-    int ret = wait_until(env.console, context, 2s, {handWatcher});
-    if (ret == 0){
-        auto [x, y] = handWatcher.location();
+    int ret = wait_until(env.console, context, 2s, {redWatcher});
+    if (ret == 0) {
+        auto [x, y] = redWatcher.location();
         row = y;
         col = x;
-        env.console.log("HERE at ("+std::to_string(y)+", "+std::to_string(x)+")");
+        env.console.log("Found cursor at ("+std::to_string(y)+", "+std::to_string(x)+")");
         return {CursorActionResult::SUCCESS, "Found cursor at ("+std::to_string(y)+", "+std::to_string(x)+")"};
-    }else{
-        ImageFloatBox box_name_button = {0.3, 0.1, 0.01, 0.02};
-        ImageFloatBox box_spaces_button = {0.3, 0.72, 0.01, 0.02};
-        ImageFloatBox newest_30_button = {0.46, 0.72, 0.01, 0.02};
-        context.wait_for_all_requests();
-
-        VideoSnapshot screen = env.console.video().snapshot();
-        if(euclidean_distance(image_stats(extract_box_reference(screen, box_name_button)).average, FloatPixel(255, 187,0))<=15){
-            pbf_press_button(context, BUTTON_DOWN, 80ms, 240ms);
-            return locate_position(env, context, true);
-        }
-        if(euclidean_distance(image_stats(extract_box_reference(screen, box_spaces_button)).average, FloatPixel(255, 187,0))<=15 || euclidean_distance(image_stats(extract_box_reference(screen, newest_30_button)).average, FloatPixel(255, 187,0))<=15){
-            pbf_press_button(context, BUTTON_UP, 80ms, 240ms);
-            return locate_position(env, context, true);
-        }
-        env.console.log("HERE, FAILED AT FINDING CURSOR");
-
-        HomeCursorWatcher handWatcher2(!holding_pokemon?HomeCursorType::GRABBING:HomeCursorType::RED, hand_region, COLOR_WHITE);
-        ret = wait_until(env.console, context, 5s, {handWatcher, handWatcher2});
-        if (ret == 0){
-            auto [x, y] = handWatcher.location();
-            row = y;
-            col = x;
-            env.console.log("HERE at ("+std::to_string(y)+", "+std::to_string(x)+")");
-            return {CursorActionResult::SUCCESS, "Found cursor at ("+std::to_string(y)+", "+std::to_string(x)+")"};
-        }else if (ret == 1){
-            auto [x, y] = handWatcher2.location();
-            row = y;
-            col = x;
-            holding_pokemon = !holding_pokemon;
-            return locate_position(env, context, true);
-        }
-        return {CursorActionResult::FAILURE, "Could not locate cursor"};
     }
+
+    return {CursorActionResult::FAILURE, "Could not locate cursor"};
 }
 
 
@@ -393,7 +433,7 @@ CursorActionResponse HomeCursor::locate_position(SingleSwitchProgramEnvironment&
 * and determines the current page based on a >50% consensus.
 */
 
-CursorActionResponse HomeCursor::identify_page(SingleSwitchProgramEnvironment& env, ProControllerContext& context, bool hard_check, int expected) {
+CursorActionResponse HomeCursor::identify_box(SingleSwitchProgramEnvironment& env, ProControllerContext& context, bool hard_check, int expected) {
     context.wait_for_all_requests();
 
     VideoSnapshot screen = env.console.video().snapshot();
@@ -439,7 +479,7 @@ CursorActionResponse HomeCursor::identify_page(SingleSwitchProgramEnvironment& e
                 box = box_name_top;
                 return {CursorActionResult::SUCCESS, "Successfully identified expected page as " + std::to_string(box)};
             } else {
-                CursorActionResponse response = identify_page(env, context, true);
+                CursorActionResponse response = identify_box(env, context, true);
                 return {response.result, response.message+" after a failed soft check"};
             }
         }else{
@@ -447,7 +487,7 @@ CursorActionResponse HomeCursor::identify_page(SingleSwitchProgramEnvironment& e
                 box = box_name_top;
                 return {CursorActionResult::SUCCESS, "Successfully identified page as " + std::to_string(box)};
             } else {
-                CursorActionResponse response = identify_page(env, context, true);
+                CursorActionResponse response = identify_box(env, context, true);
                 return {response.result, response.message+" after a failed soft check"};
             }
         }
@@ -512,11 +552,67 @@ CursorActionResponse HomeCursor::identify_page(SingleSwitchProgramEnvironment& e
 
     CursorActionResponse temp = {CursorActionResult::FAILURE, "Could not identify page after extensive hard check"};
 
-    return box==0?identify_page(env, context, true, UINT_MAX):temp;
+    return box==0?identify_box(env, context, true, UINT_MAX):temp;
 
 }
 
 
+CursorActionResponse HomeCursor::open_box_spaces(SingleSwitchProgramEnvironment& env, ProControllerContext& context, int retries){
+    if(retries==5){
+        return {CursorActionResult::FAILURE, "Could not move to boxes after 5 retry attempts"};
+    }
+
+    SelectionArrowDetector boxSpaces(COLOR_WHITE, nullptr, SelectionArrowType::RIGHT, {0.165, 0.7, 0.04, 0.072});
+    SelectionArrowDetector boxName(COLOR_WHITE, nullptr, SelectionArrowType::RIGHT, {0.1, 0.08, 0.04, 0.072});
+    ImageFloatBox back_confirmation(0.23, 0.72, 0.07, 0.04);
+
+    context.wait_for_all_requests();
+    VideoSnapshot frame = env.console.video().snapshot();
+    if(!boxSpaces.detect(frame)){ // We're not already starting at boxes
+        if(!is_stable_state(env, context)){
+            pbf_mash_button(context, BUTTON_B, 2s);
+        }
+
+
+        if(row>1){
+            for(int i = row; i < 5; i++){
+                pbf_press_dpad(context, DPAD_DOWN, 80ms, 240ms);
+            }
+        }else{
+            for(int i = 0; i < row+2; i++){
+                pbf_press_dpad(context, DPAD_UP, 80ms, 240ms);
+            }
+        }
+
+        if(col>3){
+            pbf_press_button(context, BUTTON_LEFT, 80ms, 240ms);
+        }
+
+        // Before we press A, make sure we are over the "Box Spaces" button
+        context.wait_for_all_requests();
+        frame = env.console.video().snapshot();
+        if (!boxSpaces.detect(frame)){ // Couldn't find cursor at the right place
+            if(boxName.detect(frame)){ // It's okay, was just because it missed a press
+                pbf_press_dpad(context, DPAD_UP, 80ms, 240ms);
+            }else{
+                return open_box_spaces(env, context, retries++);
+            }
+        }
+    }
+
+    pbf_press_button(context, BUTTON_A, 80ms, 1s);
+
+    context.wait_for_all_requests();
+    auto temp = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(env.console.video().snapshot(), back_confirmation)));
+    if(temp!="Back"){
+        return {CursorActionResult::FAILURE, "Navigated to button but could not see Box Spaces open,"};
+    }
+
+
+    return retries > 0
+        ? CursorActionResponse{CursorActionResult::SUCCESS, "Successfully opened Box Spaces after " + std::to_string(retries) + " attempts"}
+        : CursorActionResponse{CursorActionResult::SUCCESS, "Successfully opened Box Spaces"};
+}
 
 
 
@@ -863,6 +959,8 @@ bool HomeEnvironment::reconcile_box(SingleSwitchProgramEnvironment& env, ProCont
 
     // If it didn't succeed, just double check that we aren't at the wrong box.
     if(!succeeded && mismatches >= 25 && !retry){
+        pbf_mash_button(context, BUTTON_B, 1s);
+
         bail_out(env, context);
 
         navigate_to(env, context, {0,0,box_num});
@@ -1171,19 +1269,6 @@ void HomeEnvironment::set_prime(int target_id, int target_form){
 void HomeEnvironment::build_box(SingleSwitchProgramEnvironment& env, ProControllerContext& context, int box_num, bool fast){
     std::vector<std::tuple<HomeCursor, HomeCursor, PokemonData*>> pending_swaps;
 
-    // auto process_best = [&](PokemonData& p_in_slot)->void{
-    //     auto key = std::make_pair(p_in_slot.id, p_in_slot.form_id);
-    //     auto it = best_map.find(key);
-
-    //     if (it == best_map.end()) { // No current best
-    //         best_map[key] = &p_in_slot;
-    //         p_in_slot.prime_example = true;
-    //         return;
-    //     } else{
-    //         set_prime(p_in_slot.id, p_in_slot.form_id);
-    //     }
-    // };
-
     // First, try to load from the .json files. If there is a failure, manually scan box
     bool loaded = boxes.load(box_num);
     if(!fast || !loaded){
@@ -1226,6 +1311,12 @@ bool HomeEnvironment::sort_box(SingleSwitchProgramEnvironment& env, ProControlle
     bool swapped = false;
 
     for (int i = 0; i < total_slots - 1; ++i) {
+        {
+            int irow = i / HomeBox::MAX_COLS, icol = i % HomeBox::MAX_COLS;
+            auto& islot = box.at(irow, icol);
+            if (islot.isOccupied() && islot.getPokemon()->form_id < 0) continue;
+        }
+
         int min_idx = i;
         int min_row = i / HomeBox::MAX_COLS;
         int min_col = i % HomeBox::MAX_COLS;
@@ -1237,6 +1328,8 @@ bool HomeEnvironment::sort_box(SingleSwitchProgramEnvironment& env, ProControlle
 
             HomeSlot& candidate = box.at(row, col);
             HomeSlot& current_min = box.at(min_row, min_col);
+
+            if (candidate.isOccupied() && candidate.getPokemon()->form_id < 0) continue;
 
             if (current_min.isEmpty() ||
                 (!candidate.isEmpty() && *candidate.getPokemon() < *current_min.getPokemon())) {
@@ -1423,7 +1516,7 @@ void HomeEnvironment::set_up_boxes(SingleSwitchProgramEnvironment& env, ProContr
 
 
 
-void HomeEnvironment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControllerContext& context, int start, int end){
+void HomeEnvironment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProControllerContext& context, int start, int end, bool fast){
     auto pad_with_placeholders = [&]() {
         // --- Step 1: Build set of existing Pokemon keys ---
         std::unordered_set<uint64_t> existing;
@@ -1554,89 +1647,11 @@ void HomeEnvironment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProCon
 
     navigate_menus_to(env, context, PageID::BOX_VIEW, GameStatus::POKEMON_HOME);
 
-
-    set_up_boxes(env, context, start, end);
+    // TODO: Make this an empty object check
+    // set_up_boxes(env, context, start, end, fast);
     auto all_pokemon = boxes.flatten();
 
     int all_pokemon_size = static_cast<int>(all_pokemon.size());
-
-    // for (int i = 0; i < all_pokemon_size; i++){
-    //     PokemonData* p = all_pokemon[i];
-    //     if (!p || (p->prime_example&&!p->placeholder)) continue;
-
-    //     for (int j = i + 1; j < all_pokemon_size; j++){
-    //         PokemonData* p2 = all_pokemon[j];
-    //         if (!p2 || !p2->prime_example) continue;
-
-    //         // Only swap matching species/forms
-    //         if (p->id == p2->id && p->form_id == p2->form_id){
-    //             swap_pokemon(env, context, {p->row, p->col, p->box}, {p2->row, p2->col, p2->box});
-    //             context.wait_for_all_requests();
-
-    //             if(p2->placeholder){
-    //                 boxes.at(p2->box).at(p2->row,p2->col).clear();
-    //             }
-
-    //             boxes.store(p->box);
-    //             boxes.store(p2->box);
-
-    //             break; // stop after first matching prime found
-    //         }
-    //     }
-    // }
-
-
-
-
-    // auto left_comb = [&](int start, int end) -> bool{
-    //     bool swapped = false;
-    //     for(int i = start; i <= end - 1; i++){
-    //         bool temp = sort_into_correct_boxes(env, context, i, i+1);
-    //         if(!reconcile_box(env, context,i+1)){
-    //             build_box(env, context, i);
-    //             build_box(env, context, i+1);
-    //             pad_with_placeholders();
-    //             i--;
-    //             continue;
-    //         }if(temp){
-    //             swapped = true;
-    //             boxes.store(i);
-    //             boxes.store(i+1);
-    //         }
-    //     }
-    //     return swapped;
-    // };
-    // auto right_comb = [&](int start, int end) -> bool{
-    //     bool swapped = false;
-    //     for(int i = end - 1; i >= start; i--){
-    //         bool temp = sort_into_correct_boxes(env, context, i, i+1);
-    //         if(!reconcile_box(env, context,i)){
-    //             build_box(env, context, i);
-    //             build_box(env, context, i+1);
-    //             pad_with_placeholders();
-    //             i++;
-    //             continue;
-    //         }if(temp){
-    //             swapped = true;
-    //             boxes.store(i);
-    //             boxes.store(i+1);
-    //         }
-    //     }
-    //     return swapped;
-    // };
-    // auto sort_each = [&](int start, int end) -> void{
-    //     for(int i = start; i <= end; i++){
-    //         bool temp = sort_box(env, context, i);
-    //         if(!reconcile_box(env, context,i)){
-    //             build_box(env, context, i);
-    //             pad_with_placeholders();
-    //             i--;
-    //             continue;
-    //         }if(temp){
-    //             boxes.store(i);
-    //         }
-    //     }
-    // };
 
     auto pause_to_save = [&]() -> bool{
         bool succeeded = true;
@@ -1682,29 +1697,17 @@ void HomeEnvironment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProCon
     navigate_menus_to(env, context, PageID::BOX_VIEW, GameStatus::POKEMON_HOME);
     periodic_save();
 
-    // do{
-    //     while(true){
-
-    //         // We are starting at the right side, going left
-    //         if(!right_comb(start, end))break;
-    //         periodic_save();
-
-
-    //         if(!left_comb(start, end))break;
-    //         periodic_save();
-
-
-    //     }
-    // }while(!pause_to_save());
-
     int consecutive_in_box = 0;
 
 
     for (int i = 0; i < all_pokemon_size; i++) {
+        if (all_pokemon[i]->form_id < 0) continue;
+
         int min_index = i;
         periodic_save();
 
         for (int j = i + 1; j < all_pokemon_size; j++) {
+            if (all_pokemon[j]->form_id < 0) continue;
             if (*all_pokemon[j] < *all_pokemon[min_index]) {
                 min_index = j;
             }
@@ -1960,8 +1963,6 @@ PokemonData HomeEnvironment::scan_pokemon(SingleSwitchProgramEnvironment& env, P
 
     try{
         if(ret==0){
-            // Retry up to 5 times on ShinyFormNotFoundError — the screen
-            // may not have fully settled, giving a bad color read.
             for(int attempt = 0; ; attempt++){
                 try{
                     pokemon = summary_page.get_pokemon(env.console, env.console.video().snapshot(), pokedex_information);
@@ -2033,80 +2034,76 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
              HomeLoginDialogueWatcher loginWatcher(COLOR_BLUE);
              HomeMainMenuWatcher mainMenuWatcher(COLOR_BLUE);
 
-             // Press A
-             env.console.log("Press A");
-             pbf_press_button(context, BUTTON_A, 80ms, 240ms);
-
              context.wait_for_all_requests();
+             WallClock start = current_time();
+             run_until<ProControllerContext>(
+                 env.console, context,
+                 [&](ProControllerContext& context){
+                     for(int i = 0; i < 5; i++){
+                         if (current_time() - start > std::chrono::seconds(30)){
+                             env.log("Timed out during navigation after 30 seconds.", COLOR_RED);
+                             throw std::runtime_error("GAME_SELECTION to MAIN_MENU: main menu did not appear.");
+                         }
+                         pbf_press_button(context, BUTTON_A, 80ms, 2s);
+                         context.wait_for_all_requests();
 
-             // Check for LoginDialogueDetector == 0
-             int ret = wait_until(
-                 env.console, context, 5000ms, {
-                     loginWatcher
-                 });
-
-             // If true, wait for Main Menu (Finished logging in, we can wait 2.5 mins)
-             if(ret==0){
-                 ret = wait_until(
-                     env.console, context, 150000ms, {
-                         mainMenuWatcher
+                     }
+                     int ret = wait_until(
+                         env.console, context, 5s, {
+                             loginWatcher
                      });
-
-                 // Can't find main menu
-                 if(ret!=0){
-                                          throw std::runtime_error("TITLE_SCREEN to MAIN_MENU: main menu did not appear after login.");
-                 }
-             }
-             // Else, error out
-             else{
-                                  throw std::runtime_error("TITLE_SCREEN to MAIN_MENU: login dialog did not appear.");
-             }
-
+                     if (ret == 0) start = current_time();
+                 },
+                 { mainMenuWatcher }
+             );
          }},
     };
 
     navigation_map[PageID::MAIN_MENU] = {
         {PageID::GAME_SELECTION,
          [](SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
-
              HomeGameSelectWatcher gameSelectWatcher(COLOR_BLUE);
 
-             // Press A, then verify we are at the game selection screen
-             int ret = run_until<ProControllerContext>(
+             context.wait_for_all_requests();
+             WallClock start = current_time();
+             run_until<ProControllerContext>(
                  env.console, context,
-                 [](ProControllerContext& context){
-                     pbf_press_button(context, BUTTON_A, 80ms, 2s);
+                 [&](ProControllerContext& context){
+                     for(int i = 0; i < 5; i++){
+                         if (current_time() - start > std::chrono::seconds(30)){
+                             env.log("Timed out during navigation after 30 seconds.", COLOR_RED);
+                             throw std::runtime_error("GAME_SELECTION to MAIN_MENU: main menu did not appear.");
+                         }
+                         pbf_press_button(context, BUTTON_A, 80ms, 2s);
+                         context.wait_for_all_requests();
+                     }
                  },
-                 {gameSelectWatcher}
-                 );
-
-             if(ret!=0){
-                 throw std::runtime_error("MAIN_MENU to GAME_SELECTION: game selection screen did not appear.");
-             }
+                 { gameSelectWatcher }
+             );
          }},
     };
 
     navigation_map[PageID::GAME_SELECTION] = {
         {PageID::MAIN_MENU,
          [](SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
-
              HomeMainMenuWatcher mainMenuWatcher(COLOR_BLUE);
 
-             // Press B, then verify we are at the game selection screen
-             // env.console.log("Press B");
-             pbf_press_button(context, BUTTON_B, 80ms, 240ms);
-
              context.wait_for_all_requests();
-
-             int ret = wait_until(
-                 env.console, context, 5000ms, {
-                     mainMenuWatcher
-                 });
-
-             // If true, wait for LoginDialogueDetector!=0 (Finished logging in)
-             if(ret!=0){
-                                  throw std::runtime_error("GAME_SELECTION to MAIN_MENU: main menu did not appear.");
-             }
+             WallClock start = current_time();
+             run_until<ProControllerContext>(
+                 env.console, context,
+                 [&](ProControllerContext& context){
+                     for(int i = 0; i < 5; i++){
+                         if (current_time() - start > std::chrono::seconds(30)){
+                             env.log("Timed out during navigation after 30 seconds.", COLOR_RED);
+                             throw std::runtime_error("GAME_SELECTION to MAIN_MENU: main menu did not appear.");
+                         }
+                         pbf_press_button(context, BUTTON_B, 80ms, 2s);
+                         context.wait_for_all_requests();
+                     }
+                 },
+                 { mainMenuWatcher }
+             );
          }},
         {PageID::BOX_VIEW,
          [this](SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
@@ -2126,7 +2123,8 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
              case GameStatus::POKEMON_SHIELD: target_name = "Pokémon Shield"; break;
              case GameStatus::POKEMON_SCARLET: target_name = "Pokémon Scarlet"; break;
              case GameStatus::POKEMON_VIOLET: target_name = "Pokémon Violet"; break;
-             default:              throw std::runtime_error("GAME_SELECTION to BOX_VIEW: unrecognized game_open value.");
+             default:
+                 throw std::runtime_error("GAME_SELECTION to BOX_VIEW: unrecognized game_open value.");
                  break;
              }
 
@@ -2146,91 +2144,65 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
                  for(auto a:chars){text.erase(std::remove(text.begin(),text.end(), a),text.end());}
              };
 
-             // env.console.log("Found game " + text + OCR::ocr_read(Language::English, extract_box_reference(env.console.video().snapshot(), game_checker)));
-
-             // Press A twice, then verify we are at the Box View screen
-             // env.console.log("Press A");
-             pbf_press_button(context, BUTTON_A, 80ms, 240ms+240ms);
-             pbf_press_button(context, BUTTON_A, 80ms, 240ms);
-
              context.wait_for_all_requests();
-
-             int ret = wait_until(
-                 env.console, context, 150000ms, {
-                     boxWatcher
-                 });
-
-             if(ret!=0){
-                                  throw std::runtime_error("GAME_SELECTION to BOX_VIEW: box view did not appear after selecting game.");
-             }
+             WallClock start = current_time();
+             run_until<ProControllerContext>(
+                 env.console, context,
+                 [&](ProControllerContext& context){
+                     for(int i = 0; i < 5; i++){
+                         if (current_time() - start > std::chrono::minutes(2)){
+                             env.log("Timed out during navigation after 2 minutes.", COLOR_RED);
+                             throw std::runtime_error("GAME_SELECTION to BOX_VIEW: box view did not appear after selecting game.");
+                         }
+                         pbf_press_button(context, BUTTON_A, 80ms, 4s);
+                         context.wait_for_all_requests();
+                     }
+                 },
+                 { boxWatcher }
+             );
          }},
     };
 
     navigation_map[PageID::BOX_VIEW] = {
         {PageID::MAIN_MENU,
          [](SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
-             HomeLogoutDialogueWatcher logoutWatcher(COLOR_BLUE);
-             HomePrelimLogoutDialogueWatcher prelimLogoutWatcher(COLOR_BLUE);
              HomeMainMenuWatcher mainMenuWatcher(COLOR_BLUE);
 
-             // Press Plus, then trigger logout sequence
-             // env.console.log("Press Plus");
-             // env.console.log("Press A");
-             int ret;
-             int retries = 0;
-
-             do{
-                 pbf_press_button(context, BUTTON_PLUS, 80ms, 240ms);
-                 pbf_wait(context, 700ms);
-
-                 context.wait_for_all_requests();
-
-                 ret = wait_until(
-                     env.console, context, 5s, {
-                         prelimLogoutWatcher
-                     });
-             }while(ret!=0&&retries++<5);
-
-             if(ret!=0){
-                 throw std::runtime_error("BOX_VIEW → PRELIMINARY LOGOUT: Was not able to locate logout screen.");
-             }
-
-             pbf_press_button(context, BUTTON_A, 80ms, 240ms);
-
              context.wait_for_all_requests();
-
-             ret = wait_until(
-                 env.console, context, 120s, {logoutWatcher});
-
-             env.console.log(std::to_string(ret));
-             if(ret!=0){
-                 pbf_press_button(context, BUTTON_A, 80ms, 240ms);
-                 throw HomeSaveFailedError{};
-             }
-
-             retries = 0;
-
-             do{
-                 pbf_press_button(context, BUTTON_A, 80ms, 240ms);
-
-                 context.wait_for_all_requests();
-
-                 ret = wait_until(
-                     env.console, context, 10s, {
-                         mainMenuWatcher
-                     });
-             }while(ret!=0&&retries++<30);
-
-             if(ret!=0){
-                 throw std::runtime_error("BOX_VIEW → MAIN_MENU: main menu did not appear after saving.");
-             }
-
-             // Wait for the HOME app to fully settle on the main menu.
-             // The watcher fires on the first visible frame, but the confirmation
-             // dialog may still be animating out — without this wait the next
-             // transition presses A into the wrong screen.
-             pbf_wait(context, 1500ms);
+             pbf_press_button(context, BUTTON_PLUS, 80ms, 1s);
              context.wait_for_all_requests();
+             WallClock start = current_time();
+             run_until<ProControllerContext>(
+                 env.console, context,
+                 [&](ProControllerContext& context){
+                     for(int i = 0; i < 7; i++){
+                         if (current_time() - start > std::chrono::minutes(2)){
+                             env.log("Timed out during navigation after 2 minutes.", COLOR_RED);
+                             throw std::runtime_error("SUMMARY_VIEW to BOX_VIEW: list view did not appear.");
+                         }
+                         HomeLogoutDialogueWatcher logoutWatcher(COLOR_BLUE);
+                         HomePrelimLogoutDialogueWatcher prelimLogoutWatcher(COLOR_BLUE);
+
+
+                         context.wait_for_all_requests();
+                         int ret = wait_until(
+                             env.console, context,
+                             std::chrono::seconds(20),
+                             {
+                                 logoutWatcher,
+                                 prelimLogoutWatcher
+                             }
+                         );
+                         switch (ret){
+                         case 0:
+                         case 1:
+                         default:
+                          pbf_press_button(context, BUTTON_A, 80ms, 1s);
+                         }
+                     }
+                 },
+                 { mainMenuWatcher }
+             );
 
          }},
         {PageID::SUMMARY_VIEW,
@@ -2246,7 +2218,7 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
              context.wait_for_all_requests();
 
              int ret = wait_until(
-                 env.console, context, 5000ms, {
+                 env.console, context, 5s, {
                      summaryWatcher
                  });
 
@@ -2270,38 +2242,34 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
              context.wait_for_all_requests();
 
              int ret = wait_until(
-                 env.console, context, 5000ms, {
+                 env.console, context, 5s, {
                      markingsWatcher
                  });
 
              if(ret!=0){
-                                  throw std::runtime_error("BOX_VIEW to SUMMARY_VIEW: summary view did not appear.");
+                 throw std::runtime_error("BOX_VIEW to SUMMARY_VIEW: summary view did not appear.");
              }
          }},
         {PageID::LIST_VIEW,
          [](SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
              HomeListViewWatcher listWatcher(COLOR_BLUE);
 
-             // Press X
-             // env.console.log("Press X");
-
-             pbf_press_button(context, BUTTON_X, 80ms, 240ms);
-
              context.wait_for_all_requests();
-
-             int ret = run_until<ProControllerContext>( // Press X 5 times in case it didn't register
+             WallClock start = current_time();
+             run_until<ProControllerContext>(
                  env.console, context,
-                 [](ProControllerContext& context){
+                 [&](ProControllerContext& context){
                      for(int i = 0; i < 5; i++){
+                         if (current_time() - start > std::chrono::seconds(30)){
+                             env.log("Timed out during navigation after 30 seconds.", COLOR_RED);
+                             throw std::runtime_error("BOX_VIEW to MARKINGS_VIEW: markings view did not appear.");
+                         }
                          pbf_press_button(context, BUTTON_X, 500ms, 2s);
+                         context.wait_for_all_requests();
                      }
                  },
-                 {listWatcher}
-                 );
-
-             if(ret!=0){
-                                  throw std::runtime_error("BOX_VIEW to MARKINGS_VIEW: markings view did not appear.");
-             }
+                 { listWatcher }
+             );
          }},
     };
 
@@ -2310,61 +2278,48 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
          [this](SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
              HomeBoxViewWatcher boxWatcher(COLOR_BLUE);
 
-             // Press B
-             // env.console.log("Press B");
-
-             pbf_press_button(context, BUTTON_B, 80ms, 240ms);
-
              context.wait_for_all_requests();
-
-             int ret = run_until<ProControllerContext>( // Press B 5 times in case it didn't register
+             WallClock start = current_time();
+             run_until<ProControllerContext>(
                  env.console, context,
-                 [](ProControllerContext& context){
+                 [&](ProControllerContext& context){
                      for(int i = 0; i < 5; i++){
+                         if (current_time() - start > std::chrono::seconds(30)){
+                             env.log("Timed out during navigation after 30 seconds.", COLOR_RED);
+                             throw std::runtime_error("SUMMARY_VIEW to BOX_VIEW: list view did not appear.");
+                         }
                          pbf_press_button(context, BUTTON_B, 500ms, 2s);
+                         context.wait_for_all_requests();
                      }
                  },
-                 {
-                     boxWatcher
-                 }
-                 );
-
-             if(ret!=0){
-                                  throw std::runtime_error("BOX_VIEW to LIST_VIEW: list view did not appear.");
-             }
-
+                 { boxWatcher }
+             );
              identify_game_icon(env, context);
-
          }},
     };
 
     navigation_map[PageID::MARKINGS_VIEW] = {
         {PageID::BOX_VIEW,
-         [](SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
+         [this](SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
              HomeBoxViewWatcher boxWatcher(COLOR_BLUE);
 
-             //Press B
-             // env.console.log("Press B");
-
-             pbf_press_button(context, BUTTON_B, 80ms, 240ms);
-
              context.wait_for_all_requests();
-
-             int ret = run_until<ProControllerContext>( // Press B 5 times in case it didn't register
+             WallClock start = current_time();
+             run_until<ProControllerContext>( // Press B 5 times in case it didn't register
                  env.console, context,
-                 [](ProControllerContext& context){
+                 [&](ProControllerContext& context){
                      for(int i = 0; i < 5; i++){
+                         if (current_time() - start > std::chrono::seconds(30)){
+                             env.log("Timed out during navigation after 30 seconds.", COLOR_RED);
+                             throw std::runtime_error("MARKINGS_VIEW to BOX_VIEW: box view did not reappear.");
+                         }
                          pbf_press_button(context, BUTTON_B, 500ms, 2s);
+                         context.wait_for_all_requests();
                      }
                  },
-                 {
-                     boxWatcher
-                 }
-                 );
-
-             if(ret!=0){
-                                  throw std::runtime_error("SUMMARY_VIEW to BOX_VIEW: box view did not reappear.");
-             }
+                 { boxWatcher }
+             );
+             identify_game_icon(env, context);
          }},
     };
 
@@ -2373,28 +2328,22 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
          [this](SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
              HomeBoxViewWatcher boxWatcher(COLOR_BLUE);
 
-             //Press B
-             // env.console.log("Press B");
-
-             pbf_press_button(context, BUTTON_B, 80ms, 240ms);
-
              context.wait_for_all_requests();
-
-             int ret = run_until<ProControllerContext>( // Press B 5 times in case it didn't register
+             WallClock start = current_time();
+             run_until<ProControllerContext>( // Press B 5 times in case it didn't register
                  env.console, context,
-                 [](ProControllerContext& context){
+                 [&](ProControllerContext& context){
                      for(int i = 0; i < 5; i++){
+                         if (current_time() - start > std::chrono::seconds(30)){
+                             env.log("Timed out during navigation after 30 seconds.", COLOR_RED);
+                             throw std::runtime_error("LIST_VIEW to BOX_VIEW: box view did not reappear.");
+                         }
                          pbf_press_button(context, BUTTON_B, 500ms, 2s);
+                         context.wait_for_all_requests();
                      }
                  },
-                 {
-                     boxWatcher
-                 }
-                 );
-
-             if(ret!=0){
-                                  throw std::runtime_error("MARKINGS_VIEW to BOX_VIEW: box view did not reappear.");
-             }
+                 { boxWatcher }
+             );
 
              identify_game_icon(env, context);
 
@@ -2403,18 +2352,22 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
          [](SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
              HomeListFilterViewWatcher filterWatcher(COLOR_BLUE);
 
-             int ret = 0;
-             int retries = 0;
-             do{
-                 pbf_press_button(context, BUTTON_X, 80ms, 240ms+500ms);
-
-                 context.wait_for_all_requests();
-
-                 ret = wait_until(
-                     env.console, context, 5s, {
-                         filterWatcher
-                     });
-             }while(ret!=0&&retries++<5);
+             context.wait_for_all_requests();
+             WallClock start = current_time();
+             run_until<ProControllerContext>(
+                 env.console, context,
+                 [&](ProControllerContext& context){
+                     for(int i = 0; i < 5; i++){
+                         if (current_time() - start > std::chrono::seconds(30)){
+                             env.log("Timed out during navigation after 30 seconds.", COLOR_RED);
+                             throw std::runtime_error("LIST_VIEW to LIST_VIEW_FILTER: box view did not reappear.");
+                         }
+                         pbf_press_button(context, BUTTON_X, 500ms, 2s);
+                         context.wait_for_all_requests();
+                     }
+                 },
+                 { filterWatcher }
+             );
 
          }}
     };
@@ -2423,19 +2376,22 @@ void HomeEnvironment::initialize_navigation_map(SingleSwitchProgramEnvironment& 
          [](SingleSwitchProgramEnvironment& env, ProControllerContext& context) {
              HomeListViewWatcher listWatcher(COLOR_BLUE);
 
-             int ret = 0;
-             int retries = 0;
-             do{
-                 pbf_press_button(context, BUTTON_B, 80ms, 240ms+500ms);
-
-                 context.wait_for_all_requests();
-
-                 ret = wait_until(
-                     env.console, context, 5s, {
-                         listWatcher
-                     });
-             }while(ret!=0&&retries++<5);
-
+             context.wait_for_all_requests();
+             WallClock start = current_time();
+             run_until<ProControllerContext>(
+                 env.console, context,
+                 [&](ProControllerContext& context){
+                     for(int i = 0; i < 5; i++){
+                         if (current_time() - start > std::chrono::seconds(30)){
+                             env.log("Timed out during navigation after 30 seconds.", COLOR_RED);
+                             throw std::runtime_error("LIST_VIEW_FILTER to LIST_VIEW: box view did not reappear.");
+                         }
+                         pbf_press_button(context, BUTTON_B, 500ms, 2s);
+                         context.wait_for_all_requests();
+                     }
+                 },
+                 { listWatcher }
+             );
          }},
     };
 }
@@ -2672,7 +2628,7 @@ void HomeEnvironment::bail_out(SingleSwitchProgramEnvironment &env, ProControlle
     }
 
 
-    cursor.value().identify_page(env, context, true);
+    cursor.value().identify_box(env, context, true);
 }
 
 }
