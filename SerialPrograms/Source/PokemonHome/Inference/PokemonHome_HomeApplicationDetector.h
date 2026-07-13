@@ -627,6 +627,8 @@ private:
     std::pair<double, double> m_location;
 };
 
+
+
 }
 }
 }

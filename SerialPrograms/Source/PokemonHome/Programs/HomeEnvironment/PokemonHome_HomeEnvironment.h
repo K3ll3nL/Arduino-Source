@@ -8,6 +8,7 @@
 #include <deque>
 #include <functional>
 #include <unordered_map>
+#include <vector>
 
 namespace PokemonAutomation {
 namespace NintendoSwitch {
@@ -132,6 +133,8 @@ public:
     }
 
     CursorActionResponse move_cursor_to(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&);
+    CursorActionResponse navigate_long_distance(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&, int retry_count = 0);
+    CursorActionResponse navigate_short_distance(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&);
     CursorActionResponse pick_up_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&);
     CursorActionResponse pick_up_pokemon_multi(SingleSwitchProgramEnvironment&, ProControllerContext&);
     CursorActionResponse put_down_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&);
@@ -146,6 +149,9 @@ public:
     int get_col() const ;
     int distance_to(const HomeCursor&) const;
     void mark_position(int r, int c){ row = r; col = c; }
+    bool is_holding() const { return holding_pokemon; }
+    void set_holding(bool v) { holding_pokemon = v; }
+    CursorActionResponse sync_position(SingleSwitchProgramEnvironment& env, ProControllerContext& context) { return locate_position(env, context); }
     bool secondary_open;
 
 private:
@@ -162,6 +168,27 @@ private:
     // size_t secondary_box;
     bool holding_pokemon;
     // bool InSecondaryBoxes;
+};
+
+struct SwapTransaction {
+    HomeCursor slot_a;
+    HomeCursor slot_b;
+    FloatPixel expected_color_a;
+    FloatPixel expected_color_b;
+    bool slot_a_occupied = false;
+    bool slot_b_occupied = false;
+    bool completed = false;
+};
+
+class TransactionBank {
+public:
+    void begin(SwapTransaction tx);
+    void commit_last();
+    void void_last();
+    std::vector<SwapTransaction> pending() const;
+    void clear_completed();
+private:
+    std::vector<SwapTransaction> m_log;
 };
 
 class HomeEnvironment : public SingleSwitchProgramInstance {
@@ -212,6 +239,8 @@ private:
     bool reconcile_box(SingleSwitchProgramEnvironment&, ProControllerContext&, int, bool);
     void scan_box(SingleSwitchProgramEnvironment&, ProControllerContext&, int);
     void set_prime(int target_id, int target_form);
+    bool do_physical_swap(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&, const HomeCursor&, bool, bool);
+    void update_internal_state(HomeSlot&, HomeSlot&, const HomeCursor&, const HomeCursor&);
 
     GameStatus game_open;
     PageID current_view;
@@ -222,6 +251,7 @@ private:
     std::unordered_map<PageID, std::vector<std::pair<PageID, NavigationFunction>>> navigation_map;
     std::unordered_map<std::pair<PageID, PageID>, std::vector<PageID>, pair_hash> navigation_cache;
     std::unordered_map<std::pair<int, int>, PokemonData*, pair_hash> best_map;
+    TransactionBank transaction_bank;
 };
 
 }

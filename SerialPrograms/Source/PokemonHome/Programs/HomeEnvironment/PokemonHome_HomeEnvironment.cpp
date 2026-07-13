@@ -36,6 +36,43 @@ using namespace Pokemon;
 
 static int MAX_RETRIES = 5;
 
+void TransactionBank::begin(SwapTransaction tx){
+    m_log.push_back(std::move(tx));
+}
+
+void TransactionBank::commit_last(){
+    for (auto it = m_log.rbegin(); it != m_log.rend(); ++it) {
+        if (!it->completed) {
+            it->completed = true;
+            return;
+        }
+    }
+}
+
+void TransactionBank::void_last(){
+    for (auto it = m_log.rbegin(); it != m_log.rend(); ++it) {
+        if (!it->completed) {
+            m_log.erase(std::next(it).base());
+            return;
+        }
+    }
+}
+
+std::vector<SwapTransaction> TransactionBank::pending() const{
+    std::vector<SwapTransaction> result;
+    for (const auto& tx : m_log) {
+        if (!tx.completed) result.push_back(tx);
+    }
+    return result;
+}
+
+void TransactionBank::clear_completed(){
+    m_log.erase(
+        std::remove_if(m_log.begin(), m_log.end(), [](const SwapTransaction& tx){ return tx.completed; }),
+        m_log.end()
+    );
+}
+
 std::string sanitize_OCR2(std::string str){
     str.erase(
         std::remove_if(str.begin(), str.end(), [](unsigned char c){
@@ -131,62 +168,120 @@ HomeCursor::HomeCursor()
 
 
 
-CursorActionResponse HomeCursor::move_cursor_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const HomeCursor& dest_cursor){
-    // TODO: Implement cursor movement logic
+CursorActionResponse HomeCursor::navigate_long_distance(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const HomeCursor& dest_cursor, int retry_count){
+    auto fail_and_recover = [&](const std::string& reason) -> CursorActionResponse {
+        env.console.log("navigate_long_distance failed: " + reason + " (attempt " + std::to_string(retry_count + 1) + ")");
 
+        // Escape the Box Spaces overlay back to the box grid, then re-establish where the
+        // cursor actually is so we never retry from a corrupt/unknown state. Box Spaces shows
+        // a "Back" button; mash B until it is gone.
+        ImageFloatBox back_confirmation(0.23, 0.72, 0.07, 0.04);
+        for (int i = 0; i < 4; i++){
+            context.wait_for_all_requests();
+            auto back_text = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(env.console.video().snapshot(), back_confirmation)));
+            if (back_text != "Back")
+                break;
+            pbf_mash_button(context, BUTTON_B, 1s);
+        }
+        // Cached box/row/col are no longer trustworthy — force a fresh, hard consensus read.
+        box = 0;
+        holding_pokemon = false;
+        locate_position(env, context, false);
+        identify_box(env, context, true, UINT_MAX);
+
+        if (retry_count + 1 > MAX_RETRIES){
+            return {CursorActionResult::FAILURE, "navigate_long_distance: exhausted retries. Last failure: " + reason};
+        }
+        // On the final attempt, fall back to short-distance stepping from the now-known box,
+        // which is slower but far more robust than another Box Spaces pass.
+        if (retry_count + 1 == MAX_RETRIES){
+            env.console.log("navigate_long_distance: falling back to short-distance navigation from box " + std::to_string(box));
+            return navigate_short_distance(env, context, dest_cursor);
+        }
+        return navigate_long_distance(env, context, dest_cursor, retry_count + 1);
+    };
+
+    auto open_result = open_box_spaces(env, context);
+    if (open_result.result != CursorActionResult::SUCCESS)
+        return fail_and_recover("could not open Box Spaces: " + open_result.message);
+
+    // Boxes are 1-indexed (1..200). Box Spaces shows 30 boxes per page (5 rows x 6 cols),
+    // so box b lives on page (b-1)/30 at slot (b-1)%30. Using box/30 would mis-page every
+    // 30th box (e.g. box 30 is the last slot of page 0, not the first slot of page 1).
+    int curr_page = (box - 1) / 30;
+    int dest_page = (dest_cursor.box - 1) / 30;
+
+    pbf_wait(context, 1s);
+    context.wait_for_all_requests();
+    if (dest_page > curr_page) {
+        while (curr_page < dest_page) {
+            pbf_press_button(context, BUTTON_R, 80ms, 2s);
+            context.wait_for_all_requests();
+            curr_page++;
+        }
+    } else {
+        while (curr_page > dest_page) {
+            pbf_press_button(context, BUTTON_L, 80ms, 2s);
+            context.wait_for_all_requests();
+            curr_page--;
+        }
+    }
+
+    int dest_row = (dest_cursor.box - 1 - (dest_page * 30)) / 6;
+    int dest_col = (dest_cursor.box - 1 - (dest_page * 30)) % 6;
+
+    context.wait_for_all_requests();
+    // Paging keeps the cursor on the same on-screen grid slot, which corresponds to the
+    // starting box's slot within its own page: (box-1)%30.
+    int curr_slot = (box - 1) % 30;
+    row = curr_slot / 6;
+    col = curr_slot % 6;
+
+    auto response = position_cursor(env, context, {dest_row, dest_col});
+    if (response.result != CursorActionResult::SUCCESS)
+        return fail_and_recover("could not position cursor within Box Spaces: " + response.message);
+
+    pbf_press_button(context, BUTTON_A, 80ms, 1s);
+    context.wait_for_all_requests();
+
+    // Verify the A press actually entered the box — "Back" button disappears when we leave Box Spaces.
+    ImageFloatBox back_confirmation(0.23, 0.72, 0.07, 0.04);
+    VideoSnapshot frame = env.console.video().snapshot();
+    auto back_text = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(frame, back_confirmation)));
+    if (back_text == "Back") {
+        env.console.log("navigate_long_distance: A press did not enter box. Back button still visible, retrying A");
+        pbf_press_button(context, BUTTON_A, 80ms, 1s);
+        context.wait_for_all_requests();
+        back_text = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(env.console.video().snapshot(), back_confirmation)));
+        if (back_text == "Back") {
+            return fail_and_recover("could not enter box after two A presses. Back button persists");
+        }
+    }
+
+    row = 0;
+    col = 0;
+    box = dest_cursor.box;
+    return {CursorActionResult::SUCCESS, "Long-distance navigation succeeded"};
+}
+
+CursorActionResponse HomeCursor::navigate_short_distance(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const HomeCursor& dest_cursor){
+    auto response = navigate_to_box(env, context, dest_cursor);
+    if (response.result != CursorActionResult::SUCCESS)
+        return {response.result, response.message + " in movement to (" + std::to_string(dest_cursor.row) + ", " + std::to_string(dest_cursor.col) + "), box " + std::to_string(dest_cursor.box)};
+    return response;
+}
+
+CursorActionResponse HomeCursor::move_cursor_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const HomeCursor& dest_cursor){
     CursorActionResponse response = {};
 
-    if(dest_cursor.box!=0){
-        if(std::abs(dest_cursor.box-box)>8){ // Going long distance
-            open_box_spaces(env, context);
-
-            int curr_page = box/30;
-            int dest_page = dest_cursor.box/30;
-
-            pbf_wait(context, 1s);
-            context.wait_for_all_requests();
-            if(dest_page>curr_page){ // Navigating right
-                while(curr_page<dest_page){
-                    pbf_press_button(context, BUTTON_R, 80ms, 2s);
-                    context.wait_for_all_requests();
-                    curr_page++;
-                }
-            }else{ // navigating left
-                while(curr_page>dest_page){
-                    pbf_press_button(context, BUTTON_L, 80ms, 2s);
-                    context.wait_for_all_requests();
-                    curr_page--;
-                }
-            }
-
-            int dest_row = (dest_cursor.box-1 - (dest_page*30))/6;
-            int dest_col = (dest_cursor.box-1 - (dest_page*30))%6;
-
-            context.wait_for_all_requests();
-
-            // Reset positions since they are not accurate anymore
-            row = box/6;
-            col = box%6;
-
-            response = position_cursor(env, context, {dest_row, dest_col});
-
-            if(response.result==CursorActionResult::SUCCESS){
-
-                pbf_press_button(context, BUTTON_A, 80ms, 1s);
-
-                row = 0;
-                col = 0;
-                box = dest_cursor.box;
-            }else{
-                return {CursorActionResult::FAILURE, "Could not navigate to box through Box Spaces"};
-            }
-
-        }else{
-            response = navigate_to_box(env, context, dest_cursor);
-            if(response.result!=CursorActionResult::SUCCESS){
-                return {response.result, response.message+" in movement to ("+std::to_string(dest_cursor.row)+", "+std::to_string(dest_cursor.col)+"), box "+std::to_string(dest_cursor.box)};
-            }
+    if (dest_cursor.box != 0) {
+        if (std::abs(dest_cursor.box - box) > 8) {
+            response = navigate_long_distance(env, context, dest_cursor);
+        } else {
+            response = navigate_short_distance(env, context, dest_cursor);
         }
+        if (response.result != CursorActionResult::SUCCESS)
+            return response;
     }
 
     response = position_cursor(env, context, dest_cursor);
@@ -198,10 +293,18 @@ CursorActionResponse HomeCursor::move_cursor_to(SingleSwitchProgramEnvironment& 
 }
 
 CursorActionResponse HomeCursor::pick_up_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
-    pbf_press_button(context, BUTTON_Y, 80ms, 240ms);    // press y button
+    context.wait_for_all_requests();
+    pbf_press_button(context, BUTTON_Y, 80ms, 240ms);
     holding_pokemon = true;
-    return {CursorActionResult::SUCCESS, "Function still undefined"};
-
+    HomeCursorWatcher grabWatcher(HomeCursorType::GRABBING, {0.03, 0.1, 0.93, 0.6}, COLOR_WHITE);
+    int ret = wait_until(env.console, context, 1s, {grabWatcher});
+    if (ret != 0) {
+        holding_pokemon = false;
+        return {CursorActionResult::FAILURE, "Pick-up failed: cursor did not become GRABBING"};
+    }
+    auto [x, y] = grabWatcher.location();
+    row = y; col = x;
+    return {CursorActionResult::SUCCESS, "Picked up pokemon at ("+std::to_string(y)+", "+std::to_string(x)+")"};
 }
 
 CursorActionResponse HomeCursor::pick_up_pokemon_multi(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
@@ -216,15 +319,32 @@ CursorActionResponse HomeCursor::pick_up_pokemon_multi(SingleSwitchProgramEnviro
 }
 
 CursorActionResponse HomeCursor::put_down_pokemon(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
-    pbf_press_button(context, BUTTON_Y, 80ms, 240ms);    // press y button
+    context.wait_for_all_requests();
+    pbf_press_button(context, BUTTON_Y, 80ms, 240ms);
     holding_pokemon = false;
-    return {CursorActionResult::SUCCESS, "Function still undefined"};
+    HomeCursorWatcher redWatcher(HomeCursorType::RED, {0.03, 0.1, 0.93, 0.6}, COLOR_WHITE);
+    int ret = wait_until(env.console, context, 1s, {redWatcher});
+    if (ret != 0) {
+        holding_pokemon = true;
+        return {CursorActionResult::FAILURE, "Put-down failed: cursor did not return to RED"};
+    }
+    auto [x, y] = redWatcher.location();
+    row = y; col = x;
+    return {CursorActionResult::SUCCESS, "Put down pokemon at ("+std::to_string(y)+", "+std::to_string(x)+")"};
 }
 
 CursorActionResponse HomeCursor::put_down_pokemon_multi(SingleSwitchProgramEnvironment& env, ProControllerContext& context){
-    pbf_press_button(context, BUTTON_A, 80ms, 240ms);    // press y button
-    holding_pokemon = true;
-    return {CursorActionResult::SUCCESS, "Function still undefined"};
+    pbf_press_button(context, BUTTON_A, 80ms, 240ms);
+    holding_pokemon = false;
+    HomeCursorWatcher redWatcher(HomeCursorType::RED, {0.03, 0.1, 0.93, 0.6}, COLOR_WHITE);
+    int ret = wait_until(env.console, context, 1s, {redWatcher});
+    if (ret != 0) {
+        holding_pokemon = true;
+        return {CursorActionResult::FAILURE, "Put-down (multi) failed: cursor did not return to RED"};
+    }
+    auto [x, y] = redWatcher.location();
+    row = y; col = x;
+    return {CursorActionResult::SUCCESS, "Put down pokemon (multi) at ("+std::to_string(y)+", "+std::to_string(x)+")"};
 }
 
 void HomeCursor::align_col(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const int& new_col){
@@ -292,6 +412,7 @@ CursorActionResponse HomeCursor::position_cursor(SingleSwitchProgramEnvironment&
 
 
     if (retry_count > MAX_RETRIES) {
+        env.console.log("position_cursor: max retries reached targeting (" + std::to_string(dest_cursor.row) + "," + std::to_string(dest_cursor.col) + "), currently at (" + std::to_string(row) + "," + std::to_string(col) + "), holding=" + (holding_pokemon ? "true" : "false"));
         return {CursorActionResult::FAILURE, "Reached maximum retry attempts"};
     }
 
@@ -330,13 +451,22 @@ CursorActionResponse HomeCursor::position_cursor(SingleSwitchProgramEnvironment&
     }
 
 
-    // if(!(dest_cursor.row==row&&dest_cursor.col==col)){
-    locate_position(env, context);
-    // }
-
-    if(row!=dest_cursor.row||col!=dest_cursor.col || row > MAX_ROWS || col > (secondary_open?2:1)*MAX_COLUMNS){
-        return position_cursor(env, context, dest_cursor, retry_count+1);
+    // When holding a pokemon the GRABBING cursor appears offset from the RED cursor's
+    // grid position, so locate_position gives wrong coords and causes infinite retries.
+    // Trust align_col/align_row when holding; put_down_pokemon's RED postcondition is the real verify.
+    if (!holding_pokemon) {
+        locate_position(env, context);
+        if(row!=dest_cursor.row||col!=dest_cursor.col || row > MAX_ROWS || col > (secondary_open?2:1)*MAX_COLUMNS){
+            env.console.log("position_cursor: mismatch after locate. at (" + std::to_string(row) + "," + std::to_string(col) + "), want (" + std::to_string(dest_cursor.row) + "," + std::to_string(dest_cursor.col) + "), retry " + std::to_string(retry_count + 1));
+            return position_cursor(env, context, dest_cursor, retry_count+1);
+        }
+    } else {
+        env.console.log("position_cursor: holding pokemon, trusting input. dest (" + std::to_string(dest_cursor.row) + "," + std::to_string(dest_cursor.col) + ")");
+        row = dest_cursor.row;
+        col = dest_cursor.col;
     }
+
+    context.wait_for_all_requests();
 
     return {CursorActionResult::SUCCESS, "Successfully moved cursor to ("+std::to_string(row)+", "+std::to_string(col)+")"};
 }
@@ -751,8 +881,13 @@ bool HomeEnvironment::navigate_menus_to(SingleSwitchProgramEnvironment& env, Pro
 void HomeEnvironment::navigate_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const HomeCursor& dest_cursor){
     context.wait_for_all_requests();
 
+    env.console.log("navigate_to: dest (" + std::to_string(dest_cursor.get_row()) + "," + std::to_string(dest_cursor.get_col()) + ") box " + std::to_string(dest_cursor.get_page()) +
+                    " | cursor now (" + std::to_string(cursor->get_row()) + "," + std::to_string(cursor->get_col()) + ") box " + std::to_string(cursor->get_page()) +
+                    " | holding=" + (cursor->is_holding() ? "true" : "false"));
+
     auto response = this->cursor->move_cursor_to(env, context, dest_cursor);
     if(response.result!=CursorActionResult::SUCCESS){
+        env.console.log("navigate_to FAILED: " + response.message);
         handle_errors(env, context, response);
     }
 }
@@ -899,18 +1034,7 @@ void HomeEnvironment::preserve_placeholders(int start, int end){
 
 bool HomeEnvironment::reconcile_box(SingleSwitchProgramEnvironment& env, ProControllerContext& context, int box_num, bool retry = false){
     env.console.log("Reconciling box");
-    int moves = 0;
-    const int original_row = cursor.value().get_row();
-    if(original_row < 3){
-        navigate_to(env, context, {0, 0, box_num});
-    }else{
-        for(int i = 5 - original_row; i > 0; i--, moves++){
-            pbf_press_dpad(context, DPAD_DOWN, 80ms, 240ms);
-        }
-        context.wait_for_all_requests();
-        // Cursor has wrapped to row 0 — update tracking to match reality.
-        cursor.value().mark_position(0, cursor.value().get_col());
-    }
+    navigate_to(env, context, {0, 0, box_num});
 
     pbf_wait(context, 125ms);
     context.wait_for_all_requests();
@@ -947,15 +1071,6 @@ bool HomeEnvironment::reconcile_box(SingleSwitchProgramEnvironment& env, ProCont
         }
     }
     if(succeeded)env.console.log("Box " + std::to_string(box_num)+" successfully reconciled");
-
-    if(moves > 0){
-        for( ; moves > 0; moves--){
-            pbf_press_dpad(context, DPAD_UP, 80ms, 240ms);
-        }
-        context.wait_for_all_requests();
-        // Cursor has unwrapped back to original row — update tracking.
-        cursor.value().mark_position(original_row, cursor.value().get_col());
-    }
 
     // If it didn't succeed, just double check that we aren't at the wrong box.
     if(!succeeded && mismatches >= 25 && !retry){
@@ -1669,15 +1784,43 @@ void HomeEnvironment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProCon
     WallClock start_time = current_time();
 
 
+    // Persist the current in-memory box states to JSON. swap_pokemon mutates `boxes` as the
+    // sort progresses, but store() is otherwise only called from build_box, so without this the
+    // on-disk JSON would stay frozen at the initial scan and a crash/restart would lose progress.
+    // Only call this after a *successful* in-game save so the JSON checkpoint always matches the
+    // last durable game save.
+    auto export_boxes = [&](){
+        for (int i = start; i <= end; i++) {
+            try {
+                boxes.store(i);
+            } catch (const std::exception& e) {
+                env.console.log(std::string("export_boxes: failed to store box ") + std::to_string(i) + ": " + e.what(), COLOR_RED);
+            }
+        }
+    };
+
+    // Roll the in-memory model back to the last persisted JSON. Used when an in-game save fails:
+    // the swaps since the last successful save are not durable, so we discard them in memory to
+    // keep the model consistent with the last checkpoint on disk.
+    auto revert_boxes = [&](){
+        for (int i = start; i <= end; i++) {
+            try {
+                boxes.load(i);
+            } catch (const std::exception& e) {
+                env.console.log(std::string("revert_boxes: failed to load box ") + std::to_string(i) + ": " + e.what(), COLOR_RED);
+            }
+        }
+    };
+
     auto periodic_save = [&](){
         if (current_time() - start_time >= std::chrono::minutes(25)) {
             start_time = current_time();
-            while (!pause_to_save()) {
-                boxes = HomeStorage();
-                for(int i = start; i <= end; i++){
-                    build_box(env, context, i);
-                }
-                pad_with_placeholders();
+            if (pause_to_save()) {
+                // Durable save succeeded — mirror the mutated box states to JSON.
+                export_boxes();
+            } else {
+                // Save failed — revert to the last successfully-saved state.
+                revert_boxes();
             }
         }
     };
@@ -1701,13 +1844,17 @@ void HomeEnvironment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProCon
 
 
     for (int i = 0; i < all_pokemon_size; i++) {
-        if (all_pokemon[i]->form_id < 0) continue;
+        // form_id == -1 is an ambiguous *but known-species* form (Sinistea/Polteageist, shiny
+        // Alcremie, etc.) — it still sorts correctly by id, and the placeholder spacer accounting
+        // in pad_with_placeholders assumes it lands in its region block. Only skip form_id <= -2,
+        // the genuinely-unidentified scan sentinel, which has no trustworthy id to sort on.
+        if (all_pokemon[i]->form_id <= -2) continue;
 
         int min_index = i;
         periodic_save();
 
         for (int j = i + 1; j < all_pokemon_size; j++) {
-            if (all_pokemon[j]->form_id < 0) continue;
+            if (all_pokemon[j]->form_id <= -2) continue;
             if (*all_pokemon[j] < *all_pokemon[min_index]) {
                 min_index = j;
             }
@@ -1734,17 +1881,35 @@ void HomeEnvironment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProCon
             swap_pokemon(env, context, a, b);
         }
 
-        if(i%30==29&&!reconcile_box(env, context, start+(i/30))){
-            build_box(env, context, start+(i/30));
+        if (i % 30 == 29) {
+            int box_num = start + (i / 30);
+            if (!reconcile_box(env, context, box_num)) {
+                auto pending = transaction_bank.pending();
+                bool has_pending = std::any_of(pending.begin(), pending.end(), [&](const SwapTransaction& tx){
+                    return tx.slot_a.get_page() == box_num || tx.slot_b.get_page() == box_num;
+                });
+                if (has_pending) {
+                    build_box(env, context, box_num);
+                    pad_with_placeholders();
+                    all_pokemon = boxes.flatten();
+                } else {
+                    scan_box(env, context, box_num);
+                }
+            }
+            transaction_bank.clear_completed();
         }
     }
 
-    if(!reconcile_box(env, context, start+(all_pokemon_size/30))){
+    if (!reconcile_box(env, context, start + (all_pokemon_size / 30))) {
         boxes = HomeStorage();
         sort_all_boxes(env, context, start, end);
     }
 
-    pause_to_save();
+    if (pause_to_save()) {
+        export_boxes();
+    } else {
+        revert_boxes();
+    }
 }
 
 
@@ -2500,76 +2665,49 @@ void HomeEnvironment::scroll_filter_menu(SingleSwitchProgramEnvironment& env, Pr
 }
 
 
-void HomeEnvironment::swap_pokemon(
+bool HomeEnvironment::do_physical_swap(
     SingleSwitchProgramEnvironment& env,
     ProControllerContext& context,
     const HomeCursor& slot1,
-    const HomeCursor& slot2
-    ){
-    HomeSlot& s1 = boxes.at(slot1.get_page()).at(slot1.get_row(), slot1.get_col());
-    HomeSlot& s2 = boxes.at(slot2.get_page()).at(slot2.get_row(), slot2.get_col());
+    const HomeCursor& slot2,
+    bool s1_occupied,
+    bool s2_occupied
+){
+    if (!s1_occupied && !s2_occupied) return true;
 
-    // --- SAFETY CHECKS ---
-    auto validate_slot = [&](const HomeSlot& slot, const HomeCursor& cursor){
-        if (slot.getPokemon().has_value()){
-            const PokemonData& p = slot.getPokemon().value();
-            if (p.box != cursor.get_page() || p.row != cursor.get_row() || p.col != cursor.get_col()){
-                send_program_notification(
-                    env, NOTIFICATION_ERROR_FATAL,
-                    COLOR_RED,
-                    "Mismatch between HomeSlot position and PokemonData coordinates. "
-                    "Expected (" + std::to_string(cursor.get_page()) + "," +
-                        std::to_string(cursor.get_row()) + "," +
-                        std::to_string(cursor.get_col()) +
-                        ") but got (" + std::to_string(p.box) + "," +
-                        std::to_string(p.row) + "," +
-                        std::to_string(p.col) + ").",
-                    {}, "",
-                    env.console.video().snapshot()
-                    );
-                bail_out(env, context);
-                scan_box(env, context, cursor.get_page());
+    HomeCursor pick_from = (!s1_occupied || (s2_occupied && cursor->distance_to(slot2) < cursor->distance_to(slot1))) ? slot2 : slot1;
+    HomeCursor put_to    = (pick_from == slot1) ? slot2 : slot1;
 
-            }
-        }
-    };
+    env.console.log("do_physical_swap: pick (" + std::to_string(pick_from.get_row()) + "," + std::to_string(pick_from.get_col()) + ") box " + std::to_string(pick_from.get_page()) +
+                    " → put (" + std::to_string(put_to.get_row()) + "," + std::to_string(put_to.get_col()) + ") box " + std::to_string(put_to.get_page()));
 
-    validate_slot(s1, slot1);
-    validate_slot(s2, slot2);
-
-    bool s1_occupied = s1.isOccupied();
-    bool s2_occupied = s2.isOccupied();
-
-    // --- PHYSICAL swap in-game ---
-    if (!s1_occupied && !s2_occupied) {
-    } else if (!s1_occupied) {
-        navigate_to(env, context, slot2);
-        pick_up_pokemon(env, context);
-        navigate_to(env, context, slot1);
-        put_down_pokemon(env, context);
-    } else if (!s2_occupied) {
-        navigate_to(env, context, slot1);
-        pick_up_pokemon(env, context);
-        navigate_to(env, context, slot2);
-        put_down_pokemon(env, context);
-    } else if (cursor->distance_to(slot1) <= cursor->distance_to(slot2)) {
-        navigate_to(env, context, slot1);
-        pick_up_pokemon(env, context);
-        navigate_to(env, context, slot2);
-        put_down_pokemon(env, context);
-    } else {
-        navigate_to(env, context, slot2);
-        pick_up_pokemon(env, context);
-        navigate_to(env, context, slot1);
-        put_down_pokemon(env, context);
+    navigate_to(env, context, pick_from);
+    auto pick_result = cursor->pick_up_pokemon(env, context);
+    if (pick_result.result != CursorActionResult::SUCCESS) {
+        env.console.log("swap_pokemon: pick-up failed — " + pick_result.message);
+        return false;
     }
 
-    // --- INTERNAL swap/update ---
+    navigate_to(env, context, put_to);
+    auto put_result = cursor->put_down_pokemon(env, context);
+    if (put_result.result != CursorActionResult::SUCCESS) {
+        env.console.log("swap_pokemon: put-down failed — " + put_result.message);
+        return false;
+    }
+
+    return true;
+}
+
+void HomeEnvironment::update_internal_state(
+    HomeSlot& s1,
+    HomeSlot& s2,
+    const HomeCursor& slot1,
+    const HomeCursor& slot2
+){
     bool s1_empty = s1.isEmpty();
     bool s2_empty = s2.isEmpty();
 
     if (!s1_empty && !s2_empty) {
-        // Both contain Pokémon data (could include placeholders).
         s1.swap_with(s2.getPokemon().value());
     } else if (!s1_empty && s2_empty) {
         s2.setPokemon(s1.getPokemon().value());
@@ -2585,8 +2723,98 @@ void HomeEnvironment::swap_pokemon(
         s2.clear();
     }
 
-    // Keep color cache consistent.
     std::swap(s1.m_quick_color, s2.m_quick_color);
+}
+
+void HomeEnvironment::swap_pokemon(
+    SingleSwitchProgramEnvironment& env,
+    ProControllerContext& context,
+    const HomeCursor& slot1,
+    const HomeCursor& slot2
+){
+    HomeSlot& s1 = boxes.at(slot1.get_page()).at(slot1.get_row(), slot1.get_col());
+    HomeSlot& s2 = boxes.at(slot2.get_page()).at(slot2.get_row(), slot2.get_col());
+
+    // --- SAFETY CHECKS ---
+    auto validate_slot = [&](const HomeSlot& slot, const HomeCursor& cursor_pos){
+        if (slot.getPokemon().has_value()){
+            const PokemonData& p = slot.getPokemon().value();
+            if (p.box != cursor_pos.get_page() || p.row != cursor_pos.get_row() || p.col != cursor_pos.get_col()){
+                send_program_notification(
+                    env, NOTIFICATION_ERROR_FATAL,
+                    COLOR_RED,
+                    "Mismatch between HomeSlot position and PokemonData coordinates. "
+                    "Expected (" + std::to_string(cursor_pos.get_page()) + "," +
+                        std::to_string(cursor_pos.get_row()) + "," +
+                        std::to_string(cursor_pos.get_col()) +
+                        ") but got (" + std::to_string(p.box) + "," +
+                        std::to_string(p.row) + "," +
+                        std::to_string(p.col) + ").",
+                    {}, "",
+                    env.console.video().snapshot()
+                );
+                bail_out(env, context);
+                scan_box(env, context, cursor_pos.get_page());
+            }
+        }
+    };
+
+    validate_slot(s1, slot1);
+    validate_slot(s2, slot2);
+
+    bool s1_occupied = s1.isOccupied();
+    bool s2_occupied = s2.isOccupied();
+
+    bool succeeded = false;
+    for (int attempt = 0; attempt < MAX_RETRIES && !succeeded; attempt++) {
+        if (attempt > 0) {
+            env.console.log("swap_pokemon: retry attempt " + std::to_string(attempt) + " of " + std::to_string(MAX_RETRIES - 1));
+            cursor->sync_position(env, context);
+        }
+
+        // --- BEGIN TRANSACTION ---
+        SwapTransaction tx;
+        tx.slot_a           = slot1;
+        tx.slot_b           = slot2;
+        tx.expected_color_a = s2.m_quick_color;
+        tx.expected_color_b = s1.m_quick_color;
+        tx.slot_a_occupied  = s2_occupied;
+        tx.slot_b_occupied  = s1_occupied;
+        transaction_bank.begin(tx);
+
+        // --- PHYSICAL SWAP ---
+        succeeded = do_physical_swap(env, context, slot1, slot2, s1_occupied, s2_occupied);
+
+        if (!succeeded) {
+            pbf_mash_button(context, BUTTON_B, 1s);
+            context.wait_for_all_requests();
+            cursor->set_holding(false);
+            transaction_bank.void_last();
+        }
+    }
+
+    if (!succeeded) {
+        env.console.log("swap_pokemon: all retries exhausted, swap (" +
+            std::to_string(slot1.get_page()) + "/" + std::to_string(slot1.get_row()) + "," + std::to_string(slot1.get_col()) + ") <-> (" +
+            std::to_string(slot2.get_page()) + "/" + std::to_string(slot2.get_row()) + "," + std::to_string(slot2.get_col()) + ") could not complete");
+        send_program_notification(env, NOTIFICATION_ERROR_RECOVERABLE, COLOR_RED,
+            "swap_pokemon failed after " + std::to_string(MAX_RETRIES) + " attempts — rescanning affected boxes.",
+            {}, "", env.console.video().snapshot());
+
+        // Rescan both boxes so the internal model reflects actual game state.
+        std::unordered_set<int> affected_boxes = { slot1.get_page(), slot2.get_page() };
+        for (int box_num : affected_boxes) {
+            env.console.log("swap_pokemon: rescanning box " + std::to_string(box_num) + " after failed swap");
+            scan_box(env, context, box_num);
+        }
+        return;
+    }
+
+    // --- INTERNAL MODEL UPDATE ---
+    update_internal_state(s1, s2, slot1, slot2);
+
+    // --- COMMIT ---
+    transaction_bank.commit_last();
 }
 
 
