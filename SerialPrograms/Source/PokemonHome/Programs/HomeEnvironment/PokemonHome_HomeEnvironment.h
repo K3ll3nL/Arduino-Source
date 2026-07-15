@@ -149,6 +149,7 @@ public:
     int get_col() const ;
     int distance_to(const HomeCursor&) const;
     void mark_position(int r, int c){ row = r; col = c; }
+    void mark_position(int r, int c, int b){ row = r; col = c; box = b; }
     bool is_holding() const { return holding_pokemon; }
     void set_holding(bool v) { holding_pokemon = v; }
     CursorActionResponse sync_position(SingleSwitchProgramEnvironment& env, ProControllerContext& context) { return locate_position(env, context); }
@@ -205,6 +206,10 @@ public:
     void put_down_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&);
     void put_down_pokemon_multi(SingleSwitchProgramEnvironment&, ProControllerContext&);
     void swap_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor& slot1, const HomeCursor& slot2);
+    // Multi-select block move: select the height x width rectangle whose top-left is src_topleft
+    // (carrying its occupancy mask) and drop it anchored at dst_topleft. Occupied source cells
+    // must land on empty destination cells. Updates the in-memory box model. See SortPlanner.
+    void block_move(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor& src_topleft, int height, int width, const HomeCursor& dst_topleft);
     void bail_out(SingleSwitchProgramEnvironment&env, ProControllerContext&context);
     std::string get_filter_menu_read(SingleSwitchProgramEnvironment& env, ProControllerContext& context);
     std::string get_view();

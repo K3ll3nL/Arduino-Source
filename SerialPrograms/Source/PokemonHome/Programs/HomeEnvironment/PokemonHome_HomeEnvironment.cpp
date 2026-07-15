@@ -1,6 +1,7 @@
 ﻿//Kellen Work
 
 #include "PokemonHome_HomeEnvironment.h"
+#include "PokemonHome_SortPlanner.h"
 #include "CommonFramework/ImageTools/ImageStats.h"
 #include "CommonFramework/Notifications/ProgramNotifications.h"
 #include "CommonFramework/VideoPipeline/VideoFeed.h"
@@ -1764,9 +1765,6 @@ void HomeEnvironment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProCon
 
     // TODO: Make this an empty object check
     // set_up_boxes(env, context, start, end, fast);
-    auto all_pokemon = boxes.flatten();
-
-    int all_pokemon_size = static_cast<int>(all_pokemon.size());
 
     auto pause_to_save = [&]() -> bool{
         bool succeeded = true;
@@ -1843,66 +1841,190 @@ void HomeEnvironment::sort_all_boxes(SingleSwitchProgramEnvironment& env, ProCon
     int consecutive_in_box = 0;
 
 
-    for (int i = 0; i < all_pokemon_size; i++) {
-        // form_id == -1 is an ambiguous *but known-species* form (Sinistea/Polteageist, shiny
-        // Alcremie, etc.) — it still sorts correctly by id, and the placeholder spacer accounting
-        // in pad_with_placeholders assumes it lands in its region block. Only skip form_id <= -2,
-        // the genuinely-unidentified scan sentinel, which has no trustworthy id to sort on.
-        if (all_pokemon[i]->form_id <= -2) continue;
+    // ===================== PLANNER-BASED SORT =====================
+    // Build abstract token grids over boxes [start..end], plan the minimal-movement
+    // transformation into dex order (block moves + single swaps), then execute it.
+    // See PokemonHome_SortPlanner.{h,cpp} and SortPlanner_Design.md.
+    (void)consecutive_in_box;
+    (void)pad_with_placeholders;   // living-dex gap spacing not reproduced in this v1 (see note below)
 
-        int min_index = i;
-        periodic_save();
+    const int nboxes = end - start + 1;
 
-        for (int j = i + 1; j < all_pokemon_size; j++) {
-            if (all_pokemon[j]->form_id <= -2) continue;
-            if (*all_pokemon[j] < *all_pokemon[min_index]) {
-                min_index = j;
+    // Make the in-memory model match physical reality before planning: strip placeholder
+    // markers. A placeholder has a value but is physically an empty cell (isOccupied()==false),
+    // and HOME's multi-select only picks up real Pokémon — leaving placeholders in the grid
+    // would make the planner emit block moves whose mask can't be reproduced on hardware.
+    // NOTE: this yields a *packed* dex-sorted arrangement; reproducing living-dex gaps needs a
+    // gap-aware desired layout (a follow-up — build desired from the padded layout instead).
+    for (int bi = 0; bi < nboxes; bi++){
+        HomeBox& box = boxes.at(start + bi);
+        for (int r = 0; r < HomeBox::MAX_ROWS; r++){
+            for (int c = 0; c < HomeBox::MAX_COLS; c++){
+                HomeSlot& s = box.at(r, c);
+                if (!s.isEmpty() && !s.isOccupied()) s.clear();   // placeholder -> empty
             }
-        }
-
-        if (min_index != i) {
-            HomeCursor a(all_pokemon[i]->row, all_pokemon[i]->col, all_pokemon[i]->box);
-
-            HomeCursor b(all_pokemon[min_index]->row, all_pokemon[min_index]->col, all_pokemon[min_index]->box);
-
-            if(all_pokemon[i]->box==all_pokemon[min_index]->box){
-                consecutive_in_box++;
-            }else{
-                if(consecutive_in_box>5){
-                    if(!reconcile_box(env, context, all_pokemon[i]->box)){
-                        build_box(env, context, all_pokemon[i]->box);
-                        pad_with_placeholders();
-                        all_pokemon = boxes.flatten();
-                    }
-                }
-                consecutive_in_box=0;
-            }
-
-            swap_pokemon(env, context, a, b);
-        }
-
-        if (i % 30 == 29) {
-            int box_num = start + (i / 30);
-            if (!reconcile_box(env, context, box_num)) {
-                auto pending = transaction_bank.pending();
-                bool has_pending = std::any_of(pending.begin(), pending.end(), [&](const SwapTransaction& tx){
-                    return tx.slot_a.get_page() == box_num || tx.slot_b.get_page() == box_num;
-                });
-                if (has_pending) {
-                    build_box(env, context, box_num);
-                    pad_with_placeholders();
-                    all_pokemon = boxes.flatten();
-                } else {
-                    scan_box(env, context, box_num);
-                }
-            }
-            transaction_bank.clear_completed();
         }
     }
 
-    if (!reconcile_box(env, context, start + (all_pokemon_size / 30))) {
-        boxes = HomeStorage();
-        sort_all_boxes(env, context, start, end);
+    // Build the planner grids from the LIVE box model. Called before each step so per-op
+    // recompute always plans from ground truth — a failed move or rescan is absorbed instead of
+    // running a stale frontloaded plan. The target assignment is churn-free: a movable Pokémon
+    // already sitting in a value-correct slot is kept there, so recomputing never shuffles
+    // interchangeable duplicates (which would otherwise prevent convergence).
+    auto rebuild_grids = [&](std::vector<std::vector<int>>& current,
+                             std::vector<std::vector<int>>& desired){
+        current.assign(nboxes, std::vector<int>(SortPlanner::SLOTS, SortPlanner::EMPTY));
+        desired.assign(nboxes, std::vector<int>(SortPlanner::SLOTS, SortPlanner::EMPTY));
+
+        std::vector<PokemonData*> tok_data;   // token id -> live PokemonData
+        std::vector<int>          cur_flat;   // token id -> planner flat slot
+        for (int bi = 0; bi < nboxes; bi++){
+            HomeBox& box = boxes.at(start + bi);
+            for (int r = 0; r < HomeBox::MAX_ROWS; r++){
+                for (int c = 0; c < HomeBox::MAX_COLS; c++){
+                    HomeSlot& s = box.at(r, c);
+                    if (s.isEmpty()) continue;
+                    int id = (int)tok_data.size();
+                    tok_data.push_back(&s.getPokemon().value());
+                    cur_flat.push_back(bi * SortPlanner::SLOTS + r * HomeBox::MAX_COLS + c);
+                    current[bi][r * HomeBox::MAX_COLS + c] = id;
+                }
+            }
+        }
+
+        // Pin genuinely-unidentified tokens (form_id <= -2); collect the rest as movable.
+        std::vector<char> fixed_slot_flat(nboxes * SortPlanner::SLOTS, 0);
+        std::vector<int> movable_ids;
+        for (int id = 0; id < (int)tok_data.size(); id++){
+            if (tok_data[id]->form_id <= -2){
+                int f = cur_flat[id];
+                desired[f / SortPlanner::SLOTS][f % SortPlanner::SLOTS] = id;
+                fixed_slot_flat[f] = 1;
+            } else {
+                movable_ids.push_back(id);
+            }
+        }
+        std::stable_sort(movable_ids.begin(), movable_ids.end(),
+                         [&](int a, int b){ return *tok_data[a] < *tok_data[b]; });
+
+        // Rank interchangeable duplicates together (equal under operator< share a rank).
+        std::vector<int> rank_of(tok_data.size(), -1);
+        int max_rank = -1;
+        for (size_t k = 0; k < movable_ids.size(); k++){
+            if (k == 0 || (*tok_data[movable_ids[k-1]] < *tok_data[movable_ids[k]])) max_rank++;
+            rank_of[movable_ids[k]] = max_rank;
+        }
+        // Pool of ids available per rank (consumed via a per-rank head index).
+        std::vector<std::vector<int>> pool(max_rank + 1);
+        for (int id : movable_ids) pool[rank_of[id]].push_back(id);
+        std::vector<size_t> pool_head(max_rank + 1, 0);
+        std::vector<char> used(tok_data.size(), 0);
+
+        // Canonical free slots in order; the k-th free slot needs the rank of the k-th smallest
+        // movable. Two passes so a pool draw can never steal an occupant a later slot would keep.
+        struct FreeSlot{ int bi, rc, needed_rank; };
+        std::vector<FreeSlot> free_slots;
+        free_slots.reserve(movable_ids.size());
+        {
+            size_t k = 0;
+            for (int bi = 0; bi < nboxes; bi++){
+                for (int rc = 0; rc < SortPlanner::SLOTS; rc++){
+                    int f = bi * SortPlanner::SLOTS + rc;
+                    if (fixed_slot_flat[f]) continue;
+                    if (k < movable_ids.size()){
+                        free_slots.push_back({bi, rc, rank_of[movable_ids[k]]});
+                    } else {
+                        desired[bi][rc] = SortPlanner::EMPTY;   // trailing empty
+                    }
+                    k++;
+                }
+            }
+        }
+        // Pass 1: reserve every occupant already sitting in a value-correct slot (churn-free).
+        std::vector<char> assigned(free_slots.size(), 0);
+        for (size_t i = 0; i < free_slots.size(); i++){
+            int occ = current[free_slots[i].bi][free_slots[i].rc];
+            if (occ != SortPlanner::EMPTY && !used[occ] && rank_of[occ] == free_slots[i].needed_rank){
+                used[occ] = 1;
+                desired[free_slots[i].bi][free_slots[i].rc] = occ;
+                assigned[i] = 1;
+            }
+        }
+        // Pass 2: fill the remaining slots from the pool of still-unused ids of each rank.
+        for (size_t i = 0; i < free_slots.size(); i++){
+            if (assigned[i]) continue;
+            std::vector<int>& pv = pool[free_slots[i].needed_rank];
+            size_t& h = pool_head[free_slots[i].needed_rank];
+            while (h < pv.size() && used[pv[h]]) h++;
+            int chosen = pv[h++];
+            used[chosen] = 1;
+            desired[free_slots[i].bi][free_slots[i].rc] = chosen;
+        }
+    };
+
+    // Cheap up-front summary. Do NOT simulate the whole plan here — on a large bulk region that
+    // O(n^2) simulation stalls for a long time with no visible activity (looks like a freeze).
+    {
+        std::vector<std::vector<int>> cur0, des0;
+        rebuild_grids(cur0, des0);
+        int occupied = 0, misplaced = 0;
+        for (int bi = 0; bi < nboxes; bi++){
+            for (int rc = 0; rc < SortPlanner::SLOTS; rc++){
+                if (cur0[bi][rc] != SortPlanner::EMPTY){
+                    occupied++;
+                    if (cur0[bi][rc] != des0[bi][rc]) misplaced++;
+                }
+            }
+        }
+        env.console.log("Planner sort: bulk boxes " + std::to_string(start) + "-" + std::to_string(end)
+            + ", " + std::to_string(occupied) + " Pokemon, ~" + std::to_string(misplaced)
+            + " out of place. Beginning per-op execution.");
+    }
+
+    // Per-op execution: recompute the next move from the live board each step.
+    const int op_guard_max = nboxes * SortPlanner::SLOTS * 6;
+    int op_count = 0;
+    while (true){
+        periodic_save();
+
+        std::vector<std::vector<int>> current, desired;
+        rebuild_grids(current, desired);
+        SortPlanner planner(current, desired);
+        // Bias op selection toward the cursor's current position so it sweeps locally instead
+        // of teleporting across boxes for each "cheap" swap.
+        planner.set_cursor(cursor->get_page() - start, cursor->get_row(), cursor->get_col());
+        PlanOp op;
+        if (!planner.next_op(op)) break;   // sorted
+
+        if (op.type == PlanOpType::SWAP){
+            env.console.log("sort op " + std::to_string(op_count + 1) + ": SWAP box "
+                + std::to_string(start + op.a.box) + " (" + std::to_string(op.a.row) + "," + std::to_string(op.a.col) + ")  <->  box "
+                + std::to_string(start + op.b.box) + " (" + std::to_string(op.b.row) + "," + std::to_string(op.b.col) + ")");
+            swap_pokemon(env, context,
+                HomeCursor(op.a.row, op.a.col, start + op.a.box),
+                HomeCursor(op.b.row, op.b.col, start + op.b.box));
+        } else {
+            env.console.log("sort op " + std::to_string(op_count + 1) + ": BLOCK "
+                + std::to_string(op.height) + "x" + std::to_string(op.width) + "  box "
+                + std::to_string(start + op.src.box) + " (" + std::to_string(op.src.row) + "," + std::to_string(op.src.col) + ")  ->  box "
+                + std::to_string(start + op.dst.box) + " (" + std::to_string(op.dst.row) + "," + std::to_string(op.dst.col) + ")");
+            block_move(env, context,
+                HomeCursor(op.src.row, op.src.col, start + op.src.box),
+                op.height, op.width,
+                HomeCursor(op.dst.row, op.dst.col, start + op.dst.box));
+        }
+
+        if (++op_count > op_guard_max){
+            env.console.log("Sort: op guard reached (" + std::to_string(op_count) + "); stopping to avoid a loop.");
+            break;
+        }
+    }
+
+    // Verify each affected box against the model; rescan any that don't reconcile.
+    for (int bi = 0; bi < nboxes; bi++){
+        if (!reconcile_box(env, context, start + bi)){
+            scan_box(env, context, start + bi);
+        }
     }
 
     if (pause_to_save()) {
@@ -2818,6 +2940,76 @@ void HomeEnvironment::swap_pokemon(
 }
 
 
+void HomeEnvironment::block_move(
+    SingleSwitchProgramEnvironment& env,
+    ProControllerContext& context,
+    const HomeCursor& src_topleft,
+    int height,
+    int width,
+    const HomeCursor& dst_topleft
+){
+    // Navigate (not holding) to the source top-left cell.
+    cursor->move_cursor_to(env, context, src_topleft);
+    context.wait_for_all_requests();
+
+    // Enter multi-select (ZR), anchor the start (A), then size the rectangle by expanding
+    // down/right, then grab the selection (A). After the grab the held block's reference is
+    // the selection's top-left, which is where the cursor started.
+    pbf_press_button(context, BUTTON_ZR, 80ms, 240ms);
+    pbf_press_button(context, BUTTON_A, 80ms, 240ms);
+    for (int i = 1; i < height; i++) pbf_press_dpad(context, DPAD_DOWN,  80ms, 240ms);
+    for (int i = 1; i < width;  i++) pbf_press_dpad(context, DPAD_RIGHT, 80ms, 240ms);
+    pbf_press_button(context, BUTTON_A, 80ms, 240ms);
+    context.wait_for_all_requests();
+
+    // Move the held block from the source top-left to the destination top-left using relative
+    // steps only. We must NOT route through Box Spaces while holding a selection, so this
+    // steps pages with L/R and cells with the d-pad directly.
+    int dbox = dst_topleft.get_page() - src_topleft.get_page();
+    for (int i = 0; i < dbox;  i++) pbf_press_button(context, BUTTON_R, 80ms, 400ms);
+    for (int i = 0; i < -dbox; i++) pbf_press_button(context, BUTTON_L, 80ms, 400ms);
+    int drow = dst_topleft.get_row() - src_topleft.get_row();
+    for (int i = 0; i < drow;  i++) pbf_press_dpad(context, DPAD_DOWN, 80ms, 240ms);
+    for (int i = 0; i < -drow; i++) pbf_press_dpad(context, DPAD_UP,   80ms, 240ms);
+    int dcol = dst_topleft.get_col() - src_topleft.get_col();
+    for (int i = 0; i < dcol;  i++) pbf_press_dpad(context, DPAD_RIGHT, 80ms, 240ms);
+    for (int i = 0; i < -dcol; i++) pbf_press_dpad(context, DPAD_LEFT,  80ms, 240ms);
+
+    // Drop the block (A) and exit multi-select (ZL).
+    pbf_press_button(context, BUTTON_A, 80ms, 240ms);
+    pbf_press_button(context, BUTTON_ZL, 80ms, 240ms);
+    context.wait_for_all_requests();
+
+    // Resync the cursor model: after ZL the cursor sits at the destination top-left.
+    cursor->set_holding(false);
+    cursor->mark_position(dst_topleft.get_row(), dst_topleft.get_col(), dst_topleft.get_page());
+
+    // Update the in-memory box model. Read+clear every occupied source cell first (so an
+    // overlapping same-box translation doesn't stomp cells we haven't read yet), then write
+    // the destination cells. Occupied source cells are guaranteed empty destinations by the
+    // planner's mask-compatibility check.
+    int sbox = src_topleft.get_page();
+    int tbox = dst_topleft.get_page();
+    struct Carried { int tr, tc; PokemonData data; FloatPixel color; };
+    std::vector<Carried> carried;
+    for (int r = 0; r < height; r++){
+        for (int c = 0; c < width; c++){
+            HomeSlot& s = boxes.at(sbox).at(src_topleft.get_row() + r, src_topleft.get_col() + c);
+            if (!s.isOccupied()) continue;   // gap in the mask (empty/placeholder) — nothing carried
+            PokemonData p = s.getPokemon().value();
+            int tr = dst_topleft.get_row() + r;
+            int tc = dst_topleft.get_col() + c;
+            p.box = tbox; p.row = tr; p.col = tc;
+            carried.push_back({tr, tc, p, s.m_quick_color});
+            s.clear();
+        }
+    }
+    for (const Carried& m : carried){
+        HomeSlot& d = boxes.at(tbox).at(m.tr, m.tc);
+        d.setPokemon(m.data);
+        d.m_quick_color = m.color;
+    }
+}
 
 
 void HomeEnvironment::pick_up_pokemon(SingleSwitchProgramEnvironment &env, ProControllerContext &context){

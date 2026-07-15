@@ -27,6 +27,8 @@
 #include "PokemonHome/Inference/PokemonHome_PokemonData.h"
 #include "PokemonHome/Programs/Enrichment_Tools.h"
 #include "PokemonHome/Programs/HomeEnvironment/PokemonHome_HomeEnvironment.h"
+#include "PokemonHome/Programs/HomeEnvironment/PokemonHome_DexLayout.h"
+#include "Common/Cpp/Exceptions.h"
 #include "PokemonSV/Inference/Battles/PokemonSV_NormalBattleMenus.h"
 #include "PokemonSV/Inference/Overworld/PokemonSV_DirectionDetector.h"
 #include "PokemonSV/Inference/Dialogs/PokemonSV_DialogDetector.h"
@@ -1006,9 +1008,13 @@ int home_fill_boxes_to_game(SingleSwitchProgramEnvironment& env, ProControllerCo
     for(const PokemonData &next: temp_mon){
         if(found >= 30) break;
         if(next!=PokemonData()){
+            home_manager.navigate_to(env, context, {next.row, next.col});
+            context.wait_for_all_requests();
             home_manager.navigate_to(env, context, {next.row, next.col, next.box});
+            context.wait_for_all_requests();
             home_manager.pick_up_pokemon(env, context);
             home_manager.navigate_to(env, context, {found%5, found/5 + 6});
+            context.wait_for_all_requests();
             home_manager.put_down_pokemon(env, context);
 
             {
@@ -2017,7 +2023,19 @@ void Enrichment::program(SingleSwitchProgramEnvironment& env, ProControllerConte
             );
     }
 
-    home_manager.sort_all_boxes(env, context, HOME_FIRST_BOX, HOME_LAST_BOX, SKIP_READ);
+    // Derive the living-dex / bulk boundary from the dex layout (see PokemonHome_DexLayout).
+    // The living dex occupies the first N boxes (N = sum of enabled dexes' static footprints)
+    // and must never be rearranged, so it is simply excluded from the bulk sort range — the
+    // planner never references those boxes and therefore cannot move anything into them.
+    DexSpaceCheck space = check_dex_space(env.logger(), (int)HOME_FIRST_BOX, (int)HOME_LAST_BOX);
+    env.log(space.message);
+    if (!space.dex_fits){
+        throw UserSetupError(env.logger(), space.message);
+    } else if (!space.has_bulk_room){
+        env.log("Bulk sort skipped: no bulk boxes remain after the living dex.");
+    } else {
+        home_manager.sort_all_boxes(env, context, space.bulk_first_box, HOME_LAST_BOX, SKIP_READ);
+    }
 
     int ret = -1;
     while(ret!=0){
