@@ -273,9 +273,14 @@ CursorActionResponse HomeCursor::navigate_short_distance(SingleSwitchProgramEnvi
 }
 
 CursorActionResponse HomeCursor::move_cursor_to(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const HomeCursor& dest_cursor){
+    env.console.log(std::string("move_cursor_to: secondary_open=") + (secondary_open ? "true" : "false"));
     CursorActionResponse response = {};
 
     if (dest_cursor.box != 0) {
+        if(secondary_open){ // Align to the correct box system
+            move_to_box_system(env, context, dest_cursor.col >= MAX_COLUMNS);
+        }
+
         if (std::abs(dest_cursor.box - box) > 8) {
             response = navigate_long_distance(env, context, dest_cursor);
         } else {
@@ -400,6 +405,13 @@ void HomeCursor::align_row(SingleSwitchProgramEnvironment& env, ProControllerCon
 
     row = new_row;
 
+}
+
+void HomeCursor::move_to_box_system(SingleSwitchProgramEnvironment& env, ProControllerContext& context, bool secondary){
+    if (!secondary_open || (col >= MAX_COLUMNS) == secondary) return;
+
+    // Closest column on the target side via the 12-col ring: cross the nearest boundary.
+    align_col(env, context, secondary ? (col < 3 ? 11 : 6) : (col > 8 ? 0 : 5));
 }
 
 CursorActionResponse HomeCursor::position_cursor(SingleSwitchProgramEnvironment& env, ProControllerContext& context, const HomeCursor& dest_cursor, int retry_count){
@@ -576,13 +588,7 @@ CursorActionResponse HomeCursor::identify_box(SingleSwitchProgramEnvironment& en
 
     int box_name_top = 0, box_name_bottom = 0;
 
-    if(col>MAX_COLUMNS){ // in second box, pick good wraparound to get to the main box
-        if(col<=8){
-            move_cursor_to(env, context, {row, 5});
-        }else{
-            move_cursor_to(env, context, {row, 0});
-        }
-    }
+    move_to_box_system(env, context, false);
 
     auto extract_box_data = [&](VideoSnapshot& snapshot) {
         std::string temp;
@@ -689,6 +695,7 @@ CursorActionResponse HomeCursor::identify_box(SingleSwitchProgramEnvironment& en
 
 
 CursorActionResponse HomeCursor::open_box_spaces(SingleSwitchProgramEnvironment& env, ProControllerContext& context, int retries){
+    env.console.log("open_box_spaces: entry retries=" + std::to_string(retries) + " row=" + std::to_string(row) + " col=" + std::to_string(col) + " secondary_open=" + (secondary_open ? "true" : "false"));
     if(retries==5){
         return {CursorActionResult::FAILURE, "Could not move to boxes after 5 retry attempts"};
     }
@@ -699,42 +706,64 @@ CursorActionResponse HomeCursor::open_box_spaces(SingleSwitchProgramEnvironment&
 
     context.wait_for_all_requests();
     VideoSnapshot frame = env.console.video().snapshot();
-    if(!boxSpaces.detect(frame)){ // We're not already starting at boxes
-        if(!is_stable_state(env, context)){
+    bool already_on_button = boxSpaces.detect(frame);
+    env.console.log(std::string("open_box_spaces: initial boxSpaces arrow detected=") + (already_on_button ? "true" : "false"));
+    if(!already_on_button){ // We're not already starting at boxes
+        bool stable = is_stable_state(env, context);
+        env.console.log(std::string("open_box_spaces: is_stable_state=") + (stable ? "true" : "false"));
+        if(!stable){
             pbf_mash_button(context, BUTTON_B, 2s);
         }
 
 
         if(row>1){
+            env.console.log("open_box_spaces: navigating DOWN " + std::to_string(5 - row) + " times (from row " + std::to_string(row) + ")");
             for(int i = row; i < 5; i++){
                 pbf_press_dpad(context, DPAD_DOWN, 80ms, 240ms);
             }
         }else{
+            env.console.log("open_box_spaces: navigating UP " + std::to_string(row + 2) + " times (from row " + std::to_string(row) + ")");
             for(int i = 0; i < row+2; i++){
                 pbf_press_dpad(context, DPAD_UP, 80ms, 240ms);
             }
         }
 
         if(col>3){
+            env.console.log("open_box_spaces: col=" + std::to_string(col) + " > 3, pressing LEFT shoulder");
             pbf_press_button(context, BUTTON_LEFT, 80ms, 240ms);
         }
 
         // Before we press A, make sure we are over the "Box Spaces" button
         context.wait_for_all_requests();
         frame = env.console.video().snapshot();
-        if (!boxSpaces.detect(frame)){ // Couldn't find cursor at the right place
-            if(boxName.detect(frame)){ // It's okay, was just because it missed a press
+        bool on_button_after_nav = boxSpaces.detect(frame);
+        bool on_box_name_after_nav = boxName.detect(frame);
+        env.console.log(std::string("open_box_spaces: after nav — boxSpaces=") + (on_button_after_nav ? "true" : "false") + " boxName=" + (on_box_name_after_nav ? "true" : "false"));
+        if (!on_button_after_nav){ // Couldn't find cursor at the right place
+            if(on_box_name_after_nav){ // It's okay, was just because it missed a press
+                env.console.log("open_box_spaces: on boxName instead of boxSpaces, correcting with DPAD_UP");
                 pbf_press_dpad(context, DPAD_UP, 80ms, 240ms);
             }else{
+                env.console.log("open_box_spaces: cursor not on any known button, recursing");
                 return open_box_spaces(env, context, retries++);
             }
         }
     }
 
+    env.console.log("open_box_spaces: pressing A to enter overlay");
     pbf_press_button(context, BUTTON_A, 80ms, 1s);
 
-    context.wait_for_all_requests();
-    auto temp = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(env.console.video().snapshot(), back_confirmation)));
+    // Sometimes the overlay animation or a lingering artifact from a prior put-down
+    // makes the initial "Back" OCR read empty. Give it one more shot after a short wait
+    // before treating it as a real failure.
+    std::string temp;
+    for (int attempt = 0; attempt < 2; ++attempt){
+        context.wait_for_all_requests();
+        temp = sanitize_OCR2(OCR::ocr_read(Language::English, extract_box_reference(env.console.video().snapshot(), back_confirmation)));
+        env.console.log("open_box_spaces: back_confirmation OCR read = '" + temp + "' (expected 'Back') on attempt " + std::to_string(attempt + 1));
+        if (temp == "Back") break;
+        pbf_wait(context, 500ms);
+    }
     if(temp!="Back"){
         return {CursorActionResult::FAILURE, "Navigated to button but could not see Box Spaces open,"};
     }
@@ -867,6 +896,11 @@ bool HomeEnvironment::navigate_menus_to(SingleSwitchProgramEnvironment& env, Pro
         if(!cursor.has_value() || cursor->get_page() == 0){
             cursor.emplace(env, context, false, game_open != GameStatus::POKEMON_HOME);
         }
+        // Re-assert based on target game; the emplace above (and any state drift during
+        // navigation) can leave secondary_open disagreeing with what we set at the top.
+        cursor->secondary_open =
+            (game != GameStatus::POKEMON_HOME) &&
+            !(game == GameStatus::CURRENT && game_open == GameStatus::POKEMON_HOME);
     }
 
     // If anything failed (e.g. HomeSaveFailedError), current_view may be stale.
@@ -2278,8 +2312,8 @@ PokemonData HomeEnvironment::scan_pokemon(SingleSwitchProgramEnvironment& env, P
     return pokemon;
 }
 
-std::optional<HomeCursor> HomeEnvironment::locate_pokemon(PokemonData& to_locate){
-    auto temp = boxes.find_pokemon(to_locate);
+std::optional<HomeCursor> HomeEnvironment::locate_pokemon(PokemonData& to_locate, const std::vector<PokemonData>& exclude){
+    auto temp = boxes.find_pokemon(to_locate, exclude);
 
     if (temp.has_value()){
         auto [row, col, box] = temp.value();
@@ -2289,8 +2323,8 @@ std::optional<HomeCursor> HomeEnvironment::locate_pokemon(PokemonData& to_locate
     }
 }
 
-PokemonData HomeEnvironment::populate_pokemon(PokemonData incomplete){
-    std::optional<HomeCursor> temp = locate_pokemon(incomplete);
+PokemonData HomeEnvironment::populate_pokemon(PokemonData incomplete, const std::vector<PokemonData>& exclude){
+    std::optional<HomeCursor> temp = locate_pokemon(incomplete, exclude);
     if(temp.has_value()){
         return boxes.at(temp->get_page()).at(temp->get_row(),temp->get_col()).getPokemon().value();
     }else{

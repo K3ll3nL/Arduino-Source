@@ -158,6 +158,10 @@ public:
 private:
     void align_col(SingleSwitchProgramEnvironment&, ProControllerContext&, const int&);
     void align_row(SingleSwitchProgramEnvironment&, ProControllerContext&, const int&);
+    // When secondary_open, R/L only pages the box the cursor is currently over. Hop the cursor
+    // to the nearest column on the requested side (5 for primary, 6 for secondary) so a
+    // subsequent R/L press pages the intended box. No-op when secondary_open is false.
+    void move_to_box_system(SingleSwitchProgramEnvironment&, ProControllerContext&, bool secondary);
     CursorActionResponse position_cursor(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&, int = 0);
     CursorActionResponse navigate_to_box(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor&);
     bool is_stable_state(SingleSwitchProgramEnvironment&, ProControllerContext&);
@@ -206,9 +210,6 @@ public:
     void put_down_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&);
     void put_down_pokemon_multi(SingleSwitchProgramEnvironment&, ProControllerContext&);
     void swap_pokemon(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor& slot1, const HomeCursor& slot2);
-    // Multi-select block move: select the height x width rectangle whose top-left is src_topleft
-    // (carrying its occupancy mask) and drop it anchored at dst_topleft. Occupied source cells
-    // must land on empty destination cells. Updates the in-memory box model. See SortPlanner.
     void block_move(SingleSwitchProgramEnvironment&, ProControllerContext&, const HomeCursor& src_topleft, int height, int width, const HomeCursor& dst_topleft);
     void bail_out(SingleSwitchProgramEnvironment&env, ProControllerContext&context);
     std::string get_filter_menu_read(SingleSwitchProgramEnvironment& env, ProControllerContext& context);
@@ -219,8 +220,8 @@ public:
     void set_up_boxes(SingleSwitchProgramEnvironment&, ProControllerContext&, int, int, bool = false);
     void sort_all_boxes(SingleSwitchProgramEnvironment&, ProControllerContext&, int, int, bool = false);
     size_t get_box();
-    std::optional<HomeCursor> locate_pokemon(PokemonData&);
-    PokemonData populate_pokemon(PokemonData incomplete);
+    std::optional<HomeCursor> locate_pokemon(PokemonData&, const std::vector<PokemonData>& exclude = {});
+    PokemonData populate_pokemon(PokemonData incomplete, const std::vector<PokemonData>& exclude = {});
 
     HomeCursor get_cursor();
 

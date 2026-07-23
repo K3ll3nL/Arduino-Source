@@ -225,7 +225,7 @@ public:
     // Accessors
     HomeSlot& at(int row, int col);
     const HomeSlot& at(int row, int col) const;
-    std::optional<std::pair<int, int>> find_pokemon(const PokemonData& target) const;
+    std::optional<std::pair<int, int>> find_pokemon(const PokemonData& target, const std::vector<PokemonData>& exclude = {}, int box_index = -1) const;
 
     // Swap Pokémon between two slots in this box
     void swap(int row1, int col1, int row2, int col2);
@@ -253,7 +253,7 @@ public:
     // Accessors
     HomeBox& at(int box_index);
     const HomeBox& at(int box_index) const;
-    std::optional<std::tuple<int, int, int>> find_pokemon(const PokemonData& target) const;
+    std::optional<std::tuple<int, int, int>> find_pokemon(const PokemonData& target, const std::vector<PokemonData>& exclude = {}) const;
     std::optional<int> find_box(const HomeSlot &target) const;
     bool has_match(const PokemonInformation) const;
     // Swap Pokémon between any two slots, possibly across boxes

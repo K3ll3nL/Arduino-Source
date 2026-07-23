@@ -594,7 +594,7 @@ const HomeSlot& HomeBox::at(int row, int col) const {
     return m_slots[row][col];
 }
 
-std::optional<std::pair<int, int>> HomeBox::find_pokemon(const PokemonData& target) const {
+std::optional<std::pair<int, int>> HomeBox::find_pokemon(const PokemonData& target, const std::vector<PokemonData>& exclude, int box_index) const {
     for (int row = 0; row < MAX_ROWS; row++) {
         for (int col = 0; col < MAX_COLS; col++) {
             const HomeSlot& slot = m_slots[row][col];
@@ -602,6 +602,14 @@ std::optional<std::pair<int, int>> HomeBox::find_pokemon(const PokemonData& targ
             if (!slot.isEmpty()) {
                 const PokemonData& data = slot.getPokemon().value();
                 if (data == target) {
+                    bool taken = false;
+                    for (const PokemonData& used : exclude) {
+                        if (used.row == row && used.col == col && (box_index < 0 || used.box == box_index)) {
+                            taken = true;
+                            break;
+                        }
+                    }
+                    if (taken) continue;
                     return std::make_pair(row, col);
                 }
             }
@@ -704,10 +712,10 @@ const HomeBox& HomeStorage::at(int box_index) const {
 }
 
 
-std::optional<std::tuple<int, int, int>> HomeStorage::find_pokemon(const PokemonData& target) const {
+std::optional<std::tuple<int, int, int>> HomeStorage::find_pokemon(const PokemonData& target, const std::vector<PokemonData>& exclude) const {
     for (int box_index = 0; box_index < 200; box_index++) {
         const HomeBox& box = m_boxes[box_index];
-        auto pos = box.find_pokemon(target);
+        auto pos = box.find_pokemon(target, exclude, box_index);
         if (pos.has_value()) {
             auto [row, col] = *pos;
             return std::make_tuple(row, col, box_index);
